@@ -1,4 +1,4 @@
--*-  indent-tabs-mode:nil;  -*-
+;;  -*-  indent-tabs-mode:nil;  -*-
 ;;  Copyright (C) 2013
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
@@ -15,9 +15,13 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis artanis)
+  #:use-module (artanis utils)
+  #:use-module (srfi srfi-1)
   #:use-module (ice-9 regex)
   #:use-module (web uri)
   #:use-module (web request)
+  #:use-module (web response)
+  #:use-module (web server)
   #:export (get post put patch delete params header run))
 
 (define request-handlers (make-hash-table))
@@ -41,94 +45,96 @@
   (map (lambda (m) (string->symbol (match:substring m 1)))
        (list-matches *path-keys-regexp* path)))
 
-(define *path-regexp* (make-regexp ":[^\\/]+")) ; compiled regexp for optimization   
+;; compiled regexp for optimization
+(define *path-regexp* (make-regexp ":[^\\/]+"))    
 
 (define (compile-path path)
   (string-append "^" 
-                 (regexp-substitute/global #f *path-regexp* path 'pre "([^/?]+)" 'post)
+                 (regexp-substitute/global 
+                  #f *path-regexp* path 'pre "([^/?]+)" 'post)
                  "([^/]?$)"))
 
 (define *key-regexp* (make-regexp "([^ ]+) ([^ ]+)"))
 
 (define (request->matching-key request)
-  (define (key-matches-route? key)
-    (let* ((m (regexp-exec *key-regexp* key))
+  (define (key-matches-route? pattern)
+    (let* ((m (regexp-exec *key-regexp* pattern))
            (method (match:substring m 1))
            (path-regexp (match:substring m 2)))
       (and (eq? (request-method request) (string->symbol method))
            (regexp-exec (make-regexp path-regexp)
                         (uri-path (request-uri request))))))
-  (any (lambda (k) (and (key-matches-route? k)
-                        (match:substring k 1)))
-       (hash-keys request-handlers)))
+  (find key-matches-route? (hash-keys request-handlers)))
 
 (define (request->handler-keys request)
   (let ((handler-key (request->matching-key request)))
     (and handler-key
          (hash-ref request-handlers handler-key))))
 
-
-  (define handler-key (request->matching-key request))
-  (case handler-key
-    [(#f) #f]
-    [else (hash-ref request-handlers handler-key #f)]))
-
 (define (request->key-bindings request keys)
-  (define path-regexp
-    (second (regexp-split #rx" " (request->matching-key request))))
-  (define bindings (cdr (regexp-match path-regexp (url->string (request-uri request)))))
-  (for/list ([key keys] [binding bindings])
-            (cons key binding)))
-(define run
-  #t)
+  (let* ((path-regexp 
+          (cadr (regexp-split " "
+                              (request->matching-key request))))
+         (uri (request-uri request))
+         (m (string-match path-regexp (uri-path uri))))
+    (map (lambda (k i) (cons k (match:substring m i))) 
+         keys (iota (1- (match:count m)) 1))))
+
+(define (request->key-value request keys)
+  (let* ((path-regexp 
+          (cadr (regexp-split " "
+                              (request->matching-key request))))
+         (uri (request-uri request))
+         (m (string-match path-regexp (uri-path uri))))
+    (map (lambda (i) (match:substring m i)) 
+         (iota (1- (match:count m)) 1))))
 
 (define (params request key)
-  (let ((qstr (uri-query (request-uri request)))
-        (body (utf8->string (read-request-body request)))
-        (keys ()
-    
-    
+  (let* ((method (request-method request))
+         (qstr (case method
+                 ((GET) (uri-query (request-uri request)))
+                 ((POST) (read-request-body request))
+                 (else (error "wrong method for params! method"))))
+         (ql (map (lambda (x) (string-split x #\=))
+                  (string-split qstr #\&)))
+         (keys (request->key-bindings
+                request (cdr (request->handler-keys request)))))
+    (assoc-ref (list ql keys) key)))
 
-(define (params request key)
-  (define query-pairs (url-query (request-uri request)))
-  (define body-pairs
-    (match (request-post-data/raw request)
-      [#f empty]
-      [body (url-query (string->url (string-append "?" (bytes->string/utf-8 body))))]))
-  (define url-pairs
-    (let ([keys (cdr (request->handler/keys request))])
-      (request->key-bindings request keys)))
-  (hash-ref (make-hash (append query-pairs body-pairs url-pairs)) key ""))
+(define (render-404)
+  (values
+   (build-response #:code 404
+                   #:headers '((content-type . (text/html))
+                               (charset . "utf-8")))
+   (lambda (port)
+     (display "not found!" port))))
 
-
-
-
-(define (render/handler handler request)
-  (define content
-    (case (procedure-arity handler)
-      [(1) (handler request)]
-      [else (handler)]))
-  (define status
-    (cond [(list? content) (first content)]
-          [else 200]))
-  (define headers
-    (cond [(list? content) (second content)]
-          [else '()]))
-  (define body
-    (cond [(list? content) (third content)]
-          [else content]))
-
-  (response/full status
-                 (status->message status)
-                 (current-seconds)
-                 TEXT/HTML-MIME-TYPE
-                 headers
-                 (list (string->bytes/utf-8 body))))
+(define (handler-render handler request)
+  (let* ((kv (request->key-value request (cdr (request->handler-keys request))))
+         (content (if (thunk? handler) 
+                      (handler) 
+                      (apply handler `(,request ,kv))))
+         (status (if (list? content) (first content) 200))
+         (headers (if (list? content) (second content) '()))
+         (body (if (list? content) (third content) content)))
+    (values
+     (build-response #:code status
+                     #:headers `((content-type . (text/html)) 
+                                 (charset . "utf-8")
+                                 ,@headers))
+     (lambda (port)
+       (display body port)))))
 
 (define (request->handler request)
-  (let ((handler/keys (request->handler/keys request)))
-    (cond
-     (handler/keys (render/handler (car handler/keys) request))
-     (else (render/404)))))
+  (let ((handler-keys (request->handler-keys request)))
+    (if handler-keys 
+        (handler-render (car handler-keys) request)
+        (render-404))))
+
+(define (server-handler request request-body)
+  (request->handler request))
+
+(define* (run #:key (port 3000))
+  (run-server server-handler 'http `(#:port ,port)))
 
 

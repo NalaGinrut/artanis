@@ -1,4 +1,4 @@
--*-  indent-tabs-mode:nil;  -*-
+;;  -*-  indent-tabs-mode:nil;  -*-
 ;;  Copyright (C) 2013
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 (define-module (artanis utils)
   #:use-module (ice-9 regex)
   #:use-module (srfi srfi-1)
-  #:export (regexp-split hash-keys)
+  #:export (regexp-split hash-keys))
 
 (define* (regexp-split regex str #:optional (flags 0))
   (let ((ret (fold-matches 
