@@ -17,7 +17,7 @@
 (define-module (artanis utils)
   #:use-module (ice-9 regex)
   #:use-module (srfi srfi-1)
-  #:export (regexp-split hash-keys))
+  #:export (regexp-split hash-keys cat bv-cat))
 
 (define* (regexp-split regex str #:optional (flags 0))
   (let ((ret (fold-matches 
@@ -29,10 +29,23 @@
                        (end (match:start m))
                        (s (substring/shared str start end))
                        (groups (map (lambda (n) (match:substring m n))
-                                    (iota (1- (match:count m))))))
+                                    (iota (1- (match:count m)) 1))))
                   (list `(,@ll ,s ,@groups) (match:end m) tail)))
               flags)))
     `(,@(car ret) ,(caddr ret))))
 
 (define (hash-keys ht)
   (hash-map->list (lambda (k v) k) ht))
+
+(define* (cat file #:optional (port (current-output-port)))
+  (display
+   (call-with-input-file file
+     (@ (rnrs io ports) get-string-all))
+   port))
+
+(define* (bv-cat file #:optional (port (current-output-port)))
+  (display
+   (call-with-input-file file
+     (@ (rnrs io ports) get-bytevector-all))
+   port))
+      
