@@ -17,7 +17,15 @@
 (define-module (artanis utils)
   #:use-module (ice-9 regex)
   #:use-module (srfi srfi-1)
-  #:export (regexp-split hash-keys cat bv-cat))
+  #:export (regexp-split hash-keys cat bv-cat get-global-current-time))
+
+(define (get-global-current-time)
+  (call-with-output-string 
+   (lambda (port)
+     ;; NOTE: (time-utc->data t 0) to get global time.
+     ((@@ (web http) write-date) 
+      ((@ (srfi srfi-19) time-utc->date) 
+       ((@ (srfi srfi-19) current-time)) 0) port))))
 
 (define* (regexp-split regex str #:optional (flags 0))
   (let ((ret (fold-matches 
@@ -44,8 +52,7 @@
    port))
 
 (define* (bv-cat file #:optional (port (current-output-port)))
-  (display
+  ((@ (rnrs io ports) put-bytevector) port
    (call-with-input-file file
-     (@ (rnrs io ports) get-bytevector-all))
-   port))
+     (@ (rnrs io ports) get-bytevector-all))))
       

@@ -22,9 +22,14 @@
   #:use-module (web uri)
   #:use-module (web request)
   #:use-module (web response)
+  #:use-module (web http)
   #:use-module (web server)
-  #:export (get post put patch delete params header run))
+  #:export (get post put patch delete params header run response-emit))
 
+(define server-info "artanis-0.0.1")
+(define (get-date)
+  (parse-header 'date (get-global-current-time)))
+ 
 ;; table structure:
 ;; '((rule-handler-key (handler . keys)) ...)
 ;; for example:
@@ -94,7 +99,7 @@
   (let* ((handler-key (rc-rhk rc))
          (hkp (if handler-key  ; get handler-keys pair
                   (hash-ref *handlers-table* handler-key)
-                  (error "invalid handler key" handler-key))))
+                  (throw 'artanis-err 404 "invalid handler key" handler-key))))
     (rc-handler! rc (car hkp))
     (rc-keys! rc (cdr hkp))))
 
@@ -112,7 +117,8 @@
   (let ((qstr (case (rc-method rc)
                 ((GET) (uri-query (request-uri (rc-req rc))))
                 ((POST) (rc-body rc))
-                (else (error "wrong method for query!" (rc-method rc))))))
+                (else (throw 'artanis-err 405 
+                             "wrong method for query!" (rc-method rc))))))
     (rc-qt! rc (map (lambda (x) (string-split x #\=))
                     (string-split qstr #\&)))))
 
@@ -132,23 +138,26 @@
 (define (sys-page-show file port)
   (bv-cat (string-append (sys-page-path) "/" file) port))
 
-(define (render-sys-page status)
-  (format #t "response: ~a ,~a ~% ~a~%" status '() status)
+;; ENHANCE: use colored output
+(define* (log status req #:optional (port (current-output-port)))
+  (let* ((uri (request-uri req))
+         (path (uri-path uri))
+         (qstr (uri-query uri))
+         (method (request-method req)))
+    (format port "[Request] method: ~a path: ~a, qeury: ~a~%" method path qstr)
+    (format port "[Response] status: ~a~%~%" 
+            (if status status "invalid status"))))
+
+;; TODO: we need request to record client info in the future
+(define (render-sys-page status request)
+  (log status request)
   (values
    (build-response #:code status
-                   #:headers '((content-type . (text/html))
+                   #:headers `((server . ,server-info)
+                               (content-type . (text/html))
                                (charset . "utf-8")))
    (lambda (port)
-     (sys-page-show (format #f "~a.html" status) port))))
-
-;; obsoleted, use render-sys-page instead
-(define (render-404)
-  (values
-   (build-response #:code 404
-                   #:headers '((content-type . (text/html))
-                               (charset . "utf-8")))
-   (lambda (port)
-     (display "not found!" port))))
+     (sys-page-show (format #f "pages/~a.html" status) port))))
 
 (define (handler-render handler rc)
   (call-with-values
@@ -157,19 +166,23 @@
             (handler) 
             (handler rc)))
     (lambda (status headers body)
-      (format #t "response: ~a ,~a ~% ~a~%" status headers body)
+      (log status (rc-req rc))
       (values
-       (build-response #:code (or status 200)
-                       #:headers `((content-type . (text/html)) 
+       (build-response #:code status
+                       #:headers `((server . ,server-info)
+                                   (date . ,(get-date))
+                                   (content-type . (text/html)) 
                                    (charset . "utf-8")
                                    ,@(or headers '())))
        (lambda (port)
-         (display body port))))))
+         (unless (eq? 'HEAD (rc-method rc))
+           (display body port)))))))
 
 (define (new-route-context request body)
   (let* ((uri (request-uri request))
          (path (uri-path uri))
-         (method (request-method request))
+         (m (request-method request))
+         (method (if (eq? m 'HEAD) 'GET))
          (rc (make-route-context #f #f #f request path #f method #f #f body)))
     ;; FIXME: maybe we don't need rhk? Throw it after get handler & keys
     (init-rule-handler-key! rc) ; set rule handler key
@@ -177,19 +190,31 @@
     (init-rule-path-regexp! rc) ; set regexp
     rc))
 
+(define (format-status-page status request)
+  (log status request)
+  (render-sys-page status request))
+
 (define (work-with-request request body)
-  (let* ((rc (new-route-context request body))
-         (handler (rc-handler rc)))
-    (if handler 
-        (catch #t (lambda () (handler-render handler rc))
-          (lambda (k . e) (format #t "~a: ~a~%" k e) (render-404)))
-        (render-404)))) ; FIXME: render 500
+  (catch 'artanis-err
+    (lambda ()
+      (let* ((rc (new-route-context request body))
+             (handler (rc-handler rc)))
+        (if handler 
+            (handler-render handler rc)
+            (render-sys-page 404 rc))))
+    (lambda (k . e)
+      (let ((status (car e)))
+        (format-status-page status request)))))
+
+(define* (response-emit body #:key (status 200) (headers '()))
+  (values status headers body))
 
 (define (server-handler request request-body)
-  (get "/favicon.ico" (lambda () (values 404 '() ""))) ; FIXME: fix it
+  ;; avoid a common warn
+  (get "/favicon.ico$" (lambda () (response-emit "" #:status 404)))
+  (get "/$" (lambda () (response-emit "no index.html but it works!")))
   (work-with-request request request-body))
 
 (define* (run #:key (port 3000))
   (run-server server-handler 'http `(#:port ,port)))
-
 
