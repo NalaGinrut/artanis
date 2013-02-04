@@ -5,7 +5,6 @@
 
 (use-modules (artanis artanis))
 
-
 (get "/mmr/:id1/to/:id2"
   (lambda (rc)
     (let ((id1 (params rc 'id1))

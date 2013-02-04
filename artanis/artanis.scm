@@ -135,7 +135,7 @@
   (assoc-ref (rc-bt rc) key))
 
 (define sys-page-path (make-parameter "./"))
-(define (sys-page-show file port)
+(define (page-show file port)
   (bv-cat (string-append (sys-page-path) "/" file) port))
 
 ;; ENHANCE: use colored output
@@ -145,8 +145,7 @@
          (qstr (uri-query uri))
          (method (request-method req)))
     (format port "[Request] method: ~a path: ~a, qeury: ~a~%" method path qstr)
-    (format port "[Response] status: ~a~%~%" 
-            (if status status "invalid status"))))
+    (format port "[Response] status: ~a~%~%" status)))
 
 ;; TODO: we need request to record client info in the future
 (define (render-sys-page status request)
@@ -157,7 +156,7 @@
                                (content-type . (text/html))
                                (charset . "utf-8")))
    (lambda (port)
-     (sys-page-show (format #f "pages/~a.html" status) port))))
+     (page-show (format #f "pages/~a.html" status) port))))
 
 (define (handler-render handler rc)
   (call-with-values
@@ -182,7 +181,7 @@
   (let* ((uri (request-uri request))
          (path (uri-path uri))
          (m (request-method request))
-         (method (if (eq? m 'HEAD) 'GET))
+         (method (if (eq? m 'HEAD) 'GET m))
          (rc (make-route-context #f #f #f request path #f method #f #f body)))
     ;; FIXME: maybe we don't need rhk? Throw it after get handler & keys
     (init-rule-handler-key! rc) ; set rule handler key
@@ -193,6 +192,16 @@
 (define (format-status-page status request)
   (log status request)
   (render-sys-page status request))
+
+(define (format-updating-page)
+  (display "site is temporarily down!\n")
+  (values
+   (build-response #:code 200
+                   #:headers `((server . ,server-info)
+                               (content-type . (text/html))
+                               (charset . "utf-8")))
+   (lambda (port)
+     (page-show "pages/updating.html" port))))
 
 (define (work-with-request request body)
   (catch 'artanis-err
@@ -209,12 +218,30 @@
 (define* (response-emit body #:key (status 200) (headers '()))
   (values status headers body))
 
+(define site-workable? #t)
+
 (define (server-handler request request-body)
+  (if site-workable?
+      (work-with-request request request-body)
+      (format-updating-page)))
+      
+(define (default-route-init)
   ;; avoid a common warn
   (get "/favicon.ico$" (lambda () (response-emit "" #:status 404)))
-  (get "/$" (lambda () (response-emit "no index.html but it works!")))
-  (work-with-request request request-body))
+  (get "/$" (lambda () (response-emit "no index.html but it works!"))))
+
+(define (site-disable msg)
+  (set! site-workable? #f))
+
+(define (site-enable msg)
+  (set! site-workable? #t))
+
+(define (init-server)
+  (sigaction SIGUSR1 site-disable)
+  (sigaction SIGCONT site-enable))
 
 (define* (run #:key (port 3000))
+  (init-server)
+  (default-route-init)
   (run-server server-handler 'http `(#:port ,port)))
 
