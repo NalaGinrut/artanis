@@ -27,9 +27,21 @@
   #:export (get post put patch delete params header run response-emit))
 
 (define server-info "artanis-0.0.1")
-(define (get-date)
-  (parse-header 'date (get-global-current-time)))
- 
+
+;; route generates pages dynamically, so there's no file date
+;; use current time instead
+(define* (get-global-date #:optional (time #f))
+  (parse-header 'date 
+                (if time
+                    (get-global-time (car time) (cdr time)) 
+                    (get-global-time))))
+
+(define* (get-local-date #:optional (time #f))
+  (parse-header 'date 
+                (if time
+                    (get-local-time (car time) (cdr time)) 
+                    (get-local-time))))
+
 ;; table structure:
 ;; '((rule-handler-key (handler . keys)) ...)
 ;; for example:
@@ -51,7 +63,7 @@
 
 (define-record-type route-context
   (make-route-context handler keys regexp request path 
-                      qt method rhk bt body)
+                      qt method rhk bt body date)
   route-context?
   (handler rc-handler rc-handler!) ; reqeust handler
   (keys rc-keys rc-keys!) ; rule keys
@@ -62,8 +74,9 @@
   (method rc-method rc-method!) ; request method
   (rhk rc-rhk rc-rhk!) ; rule handler key in handlers-table
   (bt rc-bt rc-bt!) ; bindings table
-  (body rc-body rc-body!)) ; request body
-
+  (body rc-body rc-body!) ; request body
+  (date rc-mtime rc-mtime!)) ; modified time, users need to set it in handler
+  
 ;; compiled regexp for optimization
 (define *rule-regexp* (make-regexp ":[^\\/]+"))    
 (define *path-keys-regexp* (make-regexp "/:([^\\/]+)"))
@@ -165,24 +178,34 @@
             (handler) 
             (handler rc)))
     (lambda (status headers body)
+      (define last-mtime 
+        (if (rc-mtime rc)
+            `((last-modified . ,(get-local-date (rc-mtime rc))))
+            '()))
       (log status (rc-req rc))
       (values
        (build-response #:code status
                        #:headers `((server . ,server-info)
-                                   (date . ,(get-date))
+                                   (date . ,(get-global-date))
+                                   ,@last-mtime
                                    (content-type . (text/html)) 
                                    (charset . "utf-8")
                                    ,@(or headers '())))
        (lambda (port)
-         (unless (eq? 'HEAD (rc-method rc))
-           (display body port)))))))
+         ;; NOTE: check the method of request rather than rc
+         ;;       since rc doesn't record HEAD method but GET
+         (unless (eq? 'HEAD (request-method (rc-req rc)))
+           (if ((@ (rnrs bytevectors) bytevector?) body)
+               ((@ (rnrs io ports) put-bytevector) port body)
+               (display body port))))))))
 
 (define (new-route-context request body)
   (let* ((uri (request-uri request))
          (path (uri-path uri))
          (m (request-method request))
          (method (if (eq? m 'HEAD) 'GET m))
-         (rc (make-route-context #f #f #f request path #f method #f #f body)))
+         (rc (make-route-context #f #f #f 
+                                 request path #f method #f #f body #f)))
     ;; FIXME: maybe we don't need rhk? Throw it after get handler & keys
     (init-rule-handler-key! rc) ; set rule handler key
     (init-rule-handler-and-keys! rc) ; set handler and keys
@@ -227,7 +250,14 @@
       
 (define (default-route-init)
   ;; avoid a common warn
-  (get "/favicon.ico$" (lambda () (response-emit "" #:status 404)))
+  (get "/favicon.ico$" 
+       (lambda (rc)
+         (let ((st (stat "favicon.ico")))
+           ;; NOTE: we use ctime for last-modified time
+           (rc-mtime! rc (cons (stat:ctime st) (stat:ctimensec st))))
+         (if (file-exists? "favicon.ico")
+             (response-emit (bv-cat "favicon.ico" #f))
+             (response-emit "" #:status 404))))
   (get "/$" (lambda () (response-emit "no index.html but it works!"))))
 
 (define (site-disable msg)
@@ -244,4 +274,3 @@
   (init-server)
   (default-route-init)
   (run-server server-handler 'http `(#:port ,port)))
-

@@ -5,6 +5,7 @@
 
 (use-modules (artanis artanis))
 
+(setlocale LC_ALL "")
 (get "/mmr/:id1/to/:id2"
   (lambda (rc)
     (let ((id1 (params rc 'id1))

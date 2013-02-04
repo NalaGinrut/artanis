@@ -17,15 +17,31 @@
 (define-module (artanis utils)
   #:use-module (ice-9 regex)
   #:use-module (srfi srfi-1)
-  #:export (regexp-split hash-keys cat bv-cat get-global-current-time))
+  #:use-module (srfi srfi-19)
+  #:export (regexp-split hash-keys cat bv-cat get-global-time
+            get-local-time))
 
-(define (get-global-current-time)
+;; default time is #f, get current time
+(define* (get-global-time #:optional (time #f) (nsec 0))
   (call-with-output-string 
    (lambda (port)
      ;; NOTE: (time-utc->data t 0) to get global time.
      ((@@ (web http) write-date) 
-      ((@ (srfi srfi-19) time-utc->date) 
-       ((@ (srfi srfi-19) current-time)) 0) port))))
+      (time-utc->date 
+       (if time
+           (make-time 'time-utc nsec time)
+           (current-time)) 0) port))))
+
+;; default time is #f, get current time
+(define* (get-local-time #:optional (time #f) (nsec 0))
+  (call-with-output-string 
+   (lambda (port)
+     ;; NOTE: (time-utc->data t) to get local time.
+     ((@@ (web http) write-date) 
+      (time-utc->date 
+       (if time
+           (make-time 'time-utc nsec time)
+           (current-time))) port))))
 
 (define* (regexp-split regex str #:optional (flags 0))
   (let ((ret (fold-matches 
@@ -46,13 +62,15 @@
   (hash-map->list (lambda (k v) k) ht))
 
 (define* (cat file #:optional (port (current-output-port)))
-  (display
-   (call-with-input-file file
-     (@ (rnrs io ports) get-string-all))
-   port))
+  (let ((str (call-with-input-file file
+               (@ (rnrs io ports) get-string-all))))
+    (if port
+        (display str port)
+        str)))
 
 (define* (bv-cat file #:optional (port (current-output-port)))
-  ((@ (rnrs io ports) put-bytevector) port
-   (call-with-input-file file
-     (@ (rnrs io ports) get-bytevector-all))))
-      
+  (let ((bv (call-with-input-file file
+              (@ (rnrs io ports) get-bytevector-all))))
+    (if port
+        (display bv port)
+        bv)))
