@@ -1,4 +1,4 @@
-;;  -*-  indent-tabs-mode:nil;  -*-
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
 ;;  Copyright (C) 2013
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify

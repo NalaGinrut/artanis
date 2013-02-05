@@ -1,4 +1,4 @@
-;;  -*-  indent-tabs-mode:nil;  -*-
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
 ;;  Copyright (C) 2013
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
@@ -157,7 +157,7 @@
          (path (uri-path uri))
          (qstr (uri-query uri))
          (method (request-method req)))
-    (format port "[Request] method: ~a path: ~a, qeury: ~a~%" method path qstr)
+    (format port "[Request] method: ~a, path: ~a, qeury: ~a~%" method path qstr)
     (format port "[Response] status: ~a~%~%" status)))
 
 ;; TODO: we need request to record client info in the future
@@ -168,8 +168,7 @@
                    #:headers `((server . ,server-info)
                                (content-type . (text/html))
                                (charset . "utf-8")))
-   (lambda (port)
-     (page-show (format #f "pages/~a.html" status) port))))
+   (page-show (format #f "pages/~a.html" status) #f)))
 
 (define (handler-render handler rc)
   (call-with-values
@@ -188,21 +187,19 @@
                        #:headers `((server . ,server-info)
                                    (date . ,(get-global-date))
                                    ,@last-mtime
-                                   (content-type . (text/html)) 
-                                   (charset . "utf-8")
-                                   ,@(or headers '())))
-       (lambda (port)
-         ;; NOTE: check the method of request rather than rc
-         ;;       since rc doesn't record HEAD method but GET
-         (unless (eq? 'HEAD (request-method (rc-req rc)))
-           (if ((@ (rnrs bytevectors) bytevector?) body)
-               ((@ (rnrs io ports) put-bytevector) port body)
-               (display body port))))))))
+                                   ,@headers))
+       ;; NOTE: sanitize-response will handle 'HEAD method
+       ;;       though rc-method is 'GET when request-method is 'HEAD,
+       ;;       sanitize-response only checks method from request
+       body))))
 
 (define (new-route-context request body)
   (let* ((uri (request-uri request))
          (path (uri-path uri))
          (m (request-method request))
+         ;; NOTE: sanitize-response will handle 'HEAD method
+         ;;       though rc-method is 'GET when request-method is 'HEAD,
+         ;;       sanitize-response only checks method from request
          (method (if (eq? m 'HEAD) 'GET m))
          (rc (make-route-context #f #f #f 
                                  request path #f method #f #f body #f)))
@@ -221,8 +218,7 @@
   (values
    (build-response #:code 200
                    #:headers `((server . ,server-info)
-                               (content-type . (text/html))
-                               (charset . "utf-8")))
+                               (content-type . (text/html))))
    (lambda (port)
      (page-show "pages/updating.html" port))))
 
@@ -238,7 +234,8 @@
       (let ((status (car e)))
         (format-status-page status request)))))
 
-(define* (response-emit body #:key (status 200) (headers '()))
+(define* (response-emit body #:key (status 200) 
+                        (headers '((content-type . (text/html)))))
   (values status headers body))
 
 (define site-workable? #t)
@@ -252,12 +249,13 @@
   ;; avoid a common warn
   (get "/favicon.ico$" 
        (lambda (rc)
-         (let ((st (stat "favicon.ico")))
-           ;; NOTE: we use ctime for last-modified time
-           (rc-mtime! rc (cons (stat:ctime st) (stat:ctimensec st))))
          (if (file-exists? "favicon.ico")
-             (response-emit (bv-cat "favicon.ico" #f))
-             (response-emit "" #:status 404))))
+              (let ((st (stat "favicon.ico")))
+                ;; NOTE: we use ctime for last-modified time
+                (rc-mtime! rc (cons (stat:ctime st) (stat:ctimensec st)))
+                (response-emit (bv-cat "favicon.ico" #f) 
+                               #:headers '((content-type . (image/x-icon)))))
+              (response-emit "" #:status 404))))
   (get "/$" (lambda () (response-emit "no index.html but it works!"))))
 
 (define (site-disable msg)
