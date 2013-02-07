@@ -254,6 +254,7 @@
                 ;; NOTE: we use ctime for last-modified time
                 (rc-mtime! rc (cons (stat:ctime st) (stat:ctimensec st)))
                 (response-emit (bv-cat "favicon.ico" #f) 
+                               ;; TODO: use MIME handle that
                                #:headers '((content-type . (image/x-icon)))))
               (response-emit "" #:status 404))))
   (get "/$" (lambda () (response-emit "no index.html but it works!"))))

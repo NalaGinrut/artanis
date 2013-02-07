@@ -1,6 +1,5 @@
 1. tempate (port from Ragnarok)
 2. theme (based on template)
 3. session (URL based or cookies)
-4. dbi
-5. MIME (use Andy's suggestion, and design for upstream also)
-6. make own favicon.ico (now use opensuse ico instead)
+4. MIME (use Andy's suggestion, and design for upstream also)
+5. make own favicon.ico (now use opensuse ico instead)
