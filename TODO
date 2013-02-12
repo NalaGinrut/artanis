@@ -1,5 +1,7 @@
 1. tempate (port from Ragnarok)
 2. theme (based on template)
-3. session (URL based or cookies)
+3. session (URL based or cookies) (almost done!)
 4. MIME (use Andy's suggestion, and design for upstream also)
 5. make own favicon.ico (now use opensuse ico instead)
+6. maintain my own dbi/dbd compatible with newest Guile
+7. add base64
