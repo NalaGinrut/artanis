@@ -15,11 +15,12 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis utils)
+  #:use-module (artanis md5)
   #:use-module (ice-9 regex)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-19)
   #:export (regexp-split hash-keys cat bv-cat get-global-time
-            get-local-time))
+            get-local-time string->md5 unsafe-random))
 
 ;; default time is #f, get current time
 (define* (get-global-time #:optional (time #f) (nsec 0))
@@ -74,3 +75,11 @@
     (if port
         (display bv port)
         bv)))
+
+(define (string->md5 str)
+  (call-with-input-string str md5))
+
+;; 35147 is the length of GPLv3 in bytes
+(define* (unsafe-random #:optional (n 35147))
+  (random n (random-state-from-platform)))
+
