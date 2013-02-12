@@ -24,7 +24,9 @@
   #:use-module (web response)
   #:use-module (web http)
   #:use-module (web server)
-  #:export (get post put patch delete params header run response-emit))
+  #:use-module (sxml simple)
+  #:export (get post put patch delete params header run response-emit
+            throw-auth-needed tpl->html))
 
 (define server-info "artanis-0.0.1")
 
@@ -84,7 +86,7 @@
 
 ;; parse rule-string and generate the regexp to parse keys from path-string
 (define (rule->keys rule)
-  (map (lambda (m) (string->symbol (match:substring m 1)))
+  (map (lambda (m) (match:substring m 1))
        (list-matches *path-keys-regexp* rule)))
 
 (define (compile-rule rule)
@@ -127,25 +129,31 @@
                  (rc-keys rc) (iota (1- (match:count m)) 1)))))
 
 (define (init-query! rc)
-  (let ((qstr (case (rc-method rc)
+  (let ((str (case (rc-method rc)
                 ((GET) (uri-query (request-uri (rc-req rc))))
-                ((POST) (rc-body rc))
+                ((POST) ((@ (rnrs) utf8->string) (rc-body rc)))
                 (else (throw 'artanis-err 405 
                              "wrong method for query!" (rc-method rc))))))
-    (rc-qt! rc (map (lambda (x) (string-split x #\=))
-                    (string-split qstr #\&)))))
+    (if str
+        (rc-qt! rc (map (lambda (x) (string-split x #\=))
+                        (string-split str #\&)))
+        '())))
 
-;; parse query while needed
+;; parse query or posted data while needed
 ;; ENHANCE: do we need query hashtable?
-(define (query rc key)
+(define (get-from-qstr/post rc key)
   (unless (rc-qt rc) (init-query! rc))
-  (car (assoc-ref (rc-qt rc) key)))
-
+  (and (rc-qt rc)
+       (let ((v (assoc-ref (rc-qt rc) key)))
+         (and v (car v)))))
+      
 ;; parse params while needed
+;; the params will be searched in param-list first, then search from qstr/post
 ;; ENHANCE: do we need query hashtable?
 (define (params rc key)
   (unless (rc-bt rc) (init-rule-key-bindings! rc))
-  (assoc-ref (rc-bt rc) key))
+  (or (assoc-ref (rc-bt rc) key)
+      (get-from-qstr/post rc key)))
 
 (define sys-page-path (make-parameter "./"))
 (define (page-show file port)
@@ -238,6 +246,9 @@
                         (headers '((content-type . (text/html)))))
   (values status headers body))
 
+(define (throw-auth-needed)
+  (values 401 '((WWW-Authenticate . "Basic realm=\"Secure Area\"")) ""))
+
 (define site-workable? #t)
 
 (define (server-handler request request-body)
@@ -264,6 +275,9 @@
 
 (define (site-enable msg)
   (set! site-workable? #t))
+
+(define (tpl->html tpl)
+  (call-with-output-string (lambda (port) (sxml->xml tpl port))))
 
 (define (init-server)
   (sigaction SIGUSR1 site-disable)
