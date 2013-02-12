@@ -22,90 +22,104 @@
 (module-export-all! (current-module))
  
 (define-class <artanis-db> ()
-  (db #:init-value #f))
+  (db #:init-value #f #:getter db-get #:setter db-set!))
+
+(define-generic conn)
+(define-generic re-conn)
+(define-generic close)
+(define-generic insert)
+(define-generic query)
+(define-generic get-status)
+
+(define-method (insert (self <artanis-db>) (table <string>) . vals)
+  (let ((vstr (string-join vals ",")))
+    (query self (format #f "insert into ~a values (~a)" table vstr))))
 
 (define-method (close (self <artanis-db>))
-  (dbi-close (db self))
-  (db! self #f))
+  (dbi-close (db-get self))
+  (db-set! self #f))
 
 (define-method (query (self <artanis-db>) (sql <string>))
-  (dbi-query (db self) sql))
+  (dbi-query (db-get self) sql))
+
+(define-method (get-status (self <artanis-db>))
+  (dbi-get_status (db-get self)))
 
 (define-method (get-all-rows (self <artanis-db>) (field <string>))
   (query self field)
-  (define db (db self))
-  (let lp((next (dbi-get_row db)) (result '()))
-    (if next
-        (lp (dbi-get_row db) (cons next result))
-        (reverse result))))
+  (let ((db (db-get self)))
+    (let lp((next (dbi-get_row db)) (result '()))
+      (if next
+          (lp (dbi-get_row db) (cons next result))
+          (reverse result)))))
 
 (define-method (get-one-row (self <artanis-db>))
-  (dbi-get_row (db self)))
+  (dbi-get_row (db-get self)))
 
 ;; NOTE: don't store passwd
 (define-class <mysql> (<artanis-db>)
   (user #:init-value "artanis" #:init-keyword #:user 
-        #:getter user #:setter user!)
+        #:getter db-user #:setter db-user!)
   (name #:init-value "artanis" #:init-keyword #:name
-        #:getter name #:setter name!)
+        #:getter db-name #:setter db-name!)
   (port #:init-value "3306" #:init-keyword #:port
-        #:getter port #:setter port!)
+        #:getter db-port #:setter db-port!)
   (addr #:init-value "tcp:localhost" #:init-keyword #:addr
-        #:getter addr #:setter addr!))
+        #:getter db-addr #:setter db-addr!))
  
-(define-method (open (self <mysql>) (name <string>) (passwd <string>))
-  (let ((user (user self))
-        (name (name self))
-        (port (port self))
-        (addr (addr self)))
-    (db! self (dbi-open "mysql"
-                        (format #f "~a:~a:~a:~a:~a:"
-                                user passwd name addr port)))
+(define-method (conn (self <mysql>) (name <string>) (passwd <string>))
+  (let ((user (db-user self))
+        (name (db-name self))
+        (port (db-port self))
+        (addr (db-addr self)))
+    (db-set! self (dbi-open "mysql"
+                            (format #f "~a:~a:~a:~a:~a:"
+                                    user passwd name addr port)))
     self))
 
-(define-method (re-open (self <mysql>) (user <string>)
+(define-method (re-conn (self <mysql>) (user <string>)
                         (passwd <string>) (addr <string>))
-  (and user (db! self user))
-  (and addr (addr! self user))
+  (and user (db-user! self user))
+  (and addr (db-addr! self user))
   (close self)
-  (open self passwd))
+  (conn self passwd))
 
 (define-class <sqlite3> ()
   (db-name #:init-value "artanis" #:init-keyword #:db-name #:getter db-name))
 
-(define-method (open (self <sqlite3>) (name <string>))
-  (let ((db-name (db-name self)))
-    (db! self (dbi-open "sqlite3" db-name))
+(define-method (conn (self <sqlite3>))
+  (let ((name (db-name self)))
+    (db-set! self (dbi-open "sqlite3" name))
     self))
 
-(define-method (re-open (self <sqlite3>))
+(define-method (re-conn (self <sqlite3>))
   (close self)
-  (open self))
+  (conn self))
 
 (define-class <postgresql> ()
   (user #:init-value "artanis" #:init-keyword #:user
-        #:getter user #:setter user!)
+        #:getter db-user #:setter db-user!)
   (name #:init-value "artanis" #:init-keyword #:name
-        #:getter name #:setter name!)
+        #:getter db-name #:setter db-name!)
   (addr #:init-value "tcp:localhost"
-        #:init-keyword #:addr #:getter addr #:setter addr!)
+        #:init-keyword #:addr #:getter db-addr #:setter db-addr!)
   (port #:init-value "5432" #:init-keyword #:port 
-        #:getter port #:setter port!))
+        #:getter db-port #:setter db-port!))
 
-(define-method (open (self <postgresql>) (name <string>) (passwd <string>))
-  (let ((user (user self))
-        (name (name self))
-        (port (port self))
-        (addr (addr self)))
-    (db! self (dbi-open "postgresql"
+(define-method (conn (self <postgresql>) (name <string>) (passwd <string>))
+  (let ((user (db-user self))
+        (name (db-name self))
+        (port (db-port self))
+        (addr (db-addr self)))
+    (db-set! self (dbi-open "postgresql"
                         (format #f "~a:~a:~a:~a:~a" 
                                 user passwd name addr port)))
     self))
 
-(define-method (re-open (self <postgresql>) (user <string>) (name <string>)
+(define-method (re-conn (self <postgresql>) (user <string>) (name <string>)
                         (passwd <string>) (addr <string>))
-  (and user (db! self user))
-  (and name (name! self name))
-  (and addr (addr! self user))
+  (and user (db-user! self user))
+  (and name (db-name! self name))
+  (and addr (db-addr! self user))
   (close self)
-  (open self passwd))
+  (conn self passwd))
