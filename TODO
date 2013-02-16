@@ -5,3 +5,4 @@
 5. make own favicon.ico (now use opensuse ico instead)
 6. maintain my own dbi/dbd compatible with newest Guile
 7. add base64
+8. add 'article' table

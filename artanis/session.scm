@@ -19,7 +19,7 @@
   #:use-module (artanis artanis)
   #:use-module (srfi srfi-9)
   #:use-module (web request)
-  #:export (session-set! session-ref session-spawn session-destory session-restore))
+  #:export (session-set! session-ref session-spawn session-destory session-restore has-auth?))
 
 (define *sessions-table* (make-hash-table))
 
@@ -85,3 +85,7 @@
     (values sid 
             (store-session sid session))))
 
+(define* (has-auth? rc #:key (uid_key "session_cur_uid") (key "sid"))
+  (let* ((sid (params rc key))
+         (session (session-restore sid)))
+    (or (not session) (session-ref session uid_key))))

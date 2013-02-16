@@ -8,7 +8,7 @@
              (artanis session)
              (artanis utils)
              (artanis db)
-             (oop goops))
+             (oop goops) (srfi srfi-1))
 
 ;; FOR USERS:
 ;;   Please modify to your own mysql configure
@@ -21,41 +21,54 @@
 
 (get "/admin"
   (lambda (rc)
-    (let* ((sid (params rc "sid"))
-           (session (session-restore sid)))
-      (cond
-       ((or (not session) (session-ref session "current_user_id"))
-        ;;(throw-auth-needed)) ; need authority
-        (response-emit
-         (tpl->html
-          `(html (body
-                  (p "Please login first!")
-                  (form (@ (id "login") (action "/login") (method "POST"))
-                        "user name: " (input (@ (type "text") (name "user")))(br)
-                        "password : " (input (@ (type "password") (name "pwd")))(br)
-                        (input (@ (type "submit") (value "Submit")))))))))
-       (else (response-emit ""))))))
+    (cond
+     ((has-auth? rc)
+      ; TODO: show admin page, just title/author/content and a button
+      )
+     (else (redirect-to rc "/login")))))
 
-(post "/login"
+(get "/login"
+     (lambda ()
+       (response-emit
+        (tpl->html
+         `(html (body
+                 (p "Please login first!")
+                 (form (@ (id "login") (action "/auth") (method "POST"))
+                       "user name: " (input (@ (type "text") (name "user")))(br)
+                       "password : " (input (@ (type "password") (name "pwd")))(br)
+                       (input (@ (type "submit") (value "Submit"))))))))))
+
+(post "/auth"
       (lambda (rc)
         (let ((id "3") ; just for test
               (user (params rc "user"))
               (pwd (params rc "pwd")))
-          (query blog-db (format #f "insert into ~a values (~a,~s,~s)" 
-                                 "user" id user (string->md5 pwd)))
-          (format #t "~a~%" (get-status blog-db))
-          (response-emit (format #f "Registered!~%id:~a~%user: ~a~%password:~a"
-                                 id user pwd)))))
+          (cond
+           ((and user pwd)
+            (query blog-db (format #f "insert into ~a values (~a,~s,~s)" 
+                                   "user" id user (string->md5 pwd)))
+            (format #t "~a~%" (get-status blog-db))
+            (redirect-to rc "/")
+            (response-emit (format #f "Registered!~%id:~a~%user: ~a~%password:~a"
+                                   id user pwd)))
+           (else ; invalid auth request
+            (redirect-to rc "/login"))))))
 
-(get "/show/:the_user"
+(define (get-all-articles)
+  (query blog-db "select * from articles")
+  (fold (lambda (x p)
+          (let ((title (assoc-ref x "title"))
+                (date (assoc-ref x "date"))
+                (content (assoc-ref x "content")))
+            (cons `(div (@ (class "post")) (h2 ,title) (h3 ,title) (p ,content)) p)))
+        '() (get-all-rows blog-db)))
+
+(get "/"
      (lambda (rc)
-       (let ((user (params rc "the_user")))
-         (query blog-db (format #f "select * from user where user = ~s" user))
-         (let* ((row (get-one-row blog-db))
-                (id (assoc-ref row "id"))
-                (user (assoc-ref row "user"))
-                (passwd (assoc-ref row "passwd")))
-           (response-emit (format #f "result:</br>~%id:~a</br>user:~a</br>passwd:~a"
-                                  id user passwd))))))
+       (response-emit 
+        (tpl->html
+         `(html (body
+                 (h1 "This is a blog example")
+                 ,(get-all-articles)))))))
         
 (run)

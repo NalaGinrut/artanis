@@ -26,7 +26,7 @@
   #:use-module (web server)
   #:use-module (sxml simple)
   #:export (get post put patch delete params header run response-emit
-            throw-auth-needed tpl->html))
+            throw-auth-needed tpl->html redirect-to))
 
 (define server-info "artanis-0.0.1")
 
@@ -278,6 +278,11 @@
 
 (define (tpl->html tpl)
   (call-with-output-string (lambda (port) (sxml->xml tpl port))))
+
+(define (redirect-to rc path)
+  (let ((uri (request-uri (rc-req rc))))
+    (struct-set! uri 3 path) ; modify path
+    (server-handler (build-request uri) #f)))
 
 (define (init-server)
   (sigaction SIGUSR1 site-disable)
