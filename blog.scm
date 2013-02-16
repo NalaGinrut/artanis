@@ -4,18 +4,9 @@
 
 ;; This is a very simple blog example for artanis
 
-(use-modules (artanis artanis)
-             (artanis session)
-             (artanis utils)
-             (artanis db)
+(use-modules (artanis artanis) (artanis session) (artanis utils) (artanis db)
              (oop goops) (srfi srfi-1))
 
-;; FOR USERS:
-;;   Please modify to your own mysql configure
-;; mysql info:
-;;   database: mmr_blog
-;;   table:    user
-;;             (id int, user varchar, passwd varchar)      
 (define blog-db (make <mysql> #:user "root" #:name "mmr_blog"))
 (conn blog-db "user" "") ; user is table-name, "" is the passwd of database
 
@@ -24,7 +15,15 @@
     (cond
      ((has-auth? rc)
       ; TODO: show admin page, just title/author/content and a button
-      )
+      (response-emit
+       (tpl->html
+        `(html (body
+                (p "edit your article")
+                (form (@ (id "post_article") (action "/new_article") (method "POST"))
+                      "title: " (input (@ (type "text") (name "title")))(br)
+                      "content:" 
+                      (textarea (@ (name "content") (rows "25") (cols "38")))
+                      (input (@ (type "submit") (value "Submit")))))))))
      (else (redirect-to rc "/login")))))
 
 (get "/login"
@@ -40,7 +39,7 @@
 
 (post "/auth"
       (lambda (rc)
-        (let ((id "3") ; just for test
+        (let ((id "1") ; just for test
               (user (params rc "user"))
               (pwd (params rc "pwd")))
           (cond

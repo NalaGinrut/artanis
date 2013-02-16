@@ -1,0 +1,11 @@
+# This is a mysql script to init the sample blog database
+create database mmr_blog;
+create table user(
+       id integer primary key auto_increment,
+       user varchar(15),
+       passwd varchar(32));
+insert into user values (1,"admin","123");
+create table article(
+       aid integer primary key auto_increment,
+       title varchar(256),
+       content text);
