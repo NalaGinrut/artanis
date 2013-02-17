@@ -291,9 +291,10 @@
   (call-with-output-string (lambda (port) (sxml->xml tpl port))))
 
 (define (redirect-to rc path)
-  (let ((uri (request-uri (rc-req rc))))
+  (let* ((req (rc-req rc))
+         (uri (request-uri req)))
     (struct-set! uri 4 path) ; modify path
-    (server-handler (build-request uri) #f)))
+    (server-handler req #f)))
 
 (define (init-server)
   (sigaction SIGUSR1 site-disable)
