@@ -1,5 +1,6 @@
 # This is a mysql script to init the sample blog database
 create database mmr_blog;
+use mmr_blog;
 create table user(
        id integer primary key auto_increment,
        user varchar(15),

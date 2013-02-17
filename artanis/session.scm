@@ -87,5 +87,5 @@
 
 (define* (has-auth? rc #:key (uid_key "session_cur_uid") (key "sid"))
   (let* ((sid (params rc key))
-         (session (session-restore sid)))
-    (or (not session) (session-ref session uid_key))))
+         (session (get-session sid)))
+    (and session (session-ref session uid_key))))

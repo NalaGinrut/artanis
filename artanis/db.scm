@@ -45,8 +45,7 @@
 (define-method (get-status (self <artanis-db>))
   (dbi-get_status (db-get self)))
 
-(define-method (get-all-rows (self <artanis-db>) (field <string>))
-  (query self field)
+(define-method (get-all-rows (self <artanis-db>))
   (let ((db (db-get self)))
     (let lp((next (dbi-get_row db)) (result '()))
       (if next

@@ -26,7 +26,18 @@
   #:use-module (web server)
   #:use-module (sxml simple)
   #:export (get post put patch delete params header run response-emit
-            throw-auth-needed tpl->html redirect-to))
+            throw-auth-needed tpl->html redirect-to
+            rc-handler rc-handler!
+            rc-keys rc-keys!
+            rc-re rc-re!
+            rc-req rc-req!
+            rc-path rc-path!
+            rc-qt rc-qt!
+            rc-method rc-method!
+            rc-rhk rc-rhk!
+            rc-bt rc-bt!
+            rc-body rc-body!
+            rc-mtime rc-mtime!))
 
 (define server-info "artanis-0.0.1")
 
@@ -281,7 +292,7 @@
 
 (define (redirect-to rc path)
   (let ((uri (request-uri (rc-req rc))))
-    (struct-set! uri 3 path) ; modify path
+    (struct-set! uri 4 path) ; modify path
     (server-handler (build-request uri) #f)))
 
 (define (init-server)

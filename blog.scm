@@ -22,12 +22,13 @@
                 (form (@ (id "post_article") (action "/new_article") (method "POST"))
                       "title: " (input (@ (type "text") (name "title")))(br)
                       "content:" 
-                      (textarea (@ (name "content") (rows "25") (cols "38")))
+                      (textarea (@ (name "content") (rows "25") (cols "38")) 
+                                "write something")(br)
                       (input (@ (type "submit") (value "Submit")))))))))
      (else (redirect-to rc "/login")))))
 
 (get "/login"
-     (lambda ()
+     (lambda (rc)
        (response-emit
         (tpl->html
          `(html (body
@@ -39,17 +40,16 @@
 
 (post "/auth"
       (lambda (rc)
-        (let ((id "1") ; just for test
-              (user (params rc "user"))
+        (let ((user (params rc "user"))
               (pwd (params rc "pwd")))
           (cond
            ((and user pwd)
-            (query blog-db (format #f "insert into ~a values (~a,~s,~s)" 
-                                   "user" id user (string->md5 pwd)))
+            (query blog-db (format #f "insert into ~a (user passwd) values (~s,~s)" 
+                                   "user" user (string->md5 pwd)))
             (format #t "~a~%" (get-status blog-db))
             (redirect-to rc "/")
-            (response-emit (format #f "Registered!~%id:~a~%user: ~a~%password:~a"
-                                   id user pwd)))
+            (response-emit (format #f "Registered!~%user: ~a~%password:~a"
+                                   user pwd)))
            (else ; invalid auth request
             (redirect-to rc "/login"))))))
 
@@ -62,7 +62,7 @@
             (cons `(div (@ (class "post")) (h2 ,title) (h3 ,title) (p ,content)) p)))
         '() (get-all-rows blog-db)))
 
-(get "/"
+(get "/$"
      (lambda (rc)
        (response-emit 
         (tpl->html
