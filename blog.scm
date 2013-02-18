@@ -13,13 +13,13 @@
 (get "/admin"
   (lambda (rc)
     (cond
-     ((has-auth? rc)
+     ((not (has-auth? rc))
       ; TODO: show admin page, just title/author/content and a button
       (response-emit
        (tpl->html
         `(html (body
                 (p "edit your article")
-                (form (@ (id "post_article") (action "/new_article") (method "POST"))
+                (form (@ (id "post_article") (action "/new_post") (method "POST"))
                       "title: " (input (@ (type "text") (name "title")))(br)
                       "content:" 
                       (textarea (@ (name "content") (rows "25") (cols "38")) 
@@ -35,29 +35,29 @@
                  (p "Please login first!")
                  (form (@ (id "login") (action "/auth") (method "POST"))
                        "user name: " (input (@ (type "text") (name "user")))(br)
-                       "password : " (input (@ (type "password") (name "pwd")))(br)
+                       "password : " (input (@ (type "password") (name "passwd")))(br)
                        (input (@ (type "submit") (value "Submit"))))))))))
 
 (post "/auth"
       (lambda (rc)
         (let ((user (params rc "user"))
-              (pwd (params rc "pwd")))
+              (pwd (params rc "passwd")))
           (cond
            ((and user pwd)
-            (query blog-db (format #f "insert into ~a (user passwd) values (~s,~s)" 
-                                   "user" user (string->md5 pwd)))
-            (format #t "~a~%" (get-status blog-db))
-            (redirect-to rc "/")
-            (response-emit (format #f "Registered!~%user: ~a~%password:~a"
-                                   user pwd)))
+            (query blog-db (format #f "select * from user where user=~s" user))
+            (if (string=? pwd (assoc-ref (get-one-row blog-db) "passwd"))
+                (call-with-values
+                    (lambda () (session-spawn rc))
+                  (lambda (sid session)
+                    (redirect-to rc (format #f "/admin?sid=~a" sid)))) ; auth OK
+                (redirect-to rc "/login"))) ; auth failed, relogin!
            (else ; invalid auth request
             (redirect-to rc "/login"))))))
 
 (define (get-all-articles)
-  (query blog-db "select * from articles")
+  (query blog-db "select * from article")
   (fold (lambda (x p)
           (let ((title (assoc-ref x "title"))
-                (date (assoc-ref x "date"))
                 (content (assoc-ref x "content")))
             (cons `(div (@ (class "post")) (h2 ,title) (h3 ,title) (p ,content)) p)))
         '() (get-all-rows blog-db)))
@@ -69,5 +69,15 @@
          `(html (body
                  (h1 "This is a blog example")
                  ,(get-all-articles)))))))
-        
+
+(post "/new_post"
+      (lambda (rc)
+        (let ((title (params rc "title"))
+              (content (params rc "content")))
+          (query blog-db 
+                 (format #f 
+                         "insert into article (title,content) values (~s,~s)"
+                         title content))
+          (redirect-to rc "/"))))
+                                         
 (run)

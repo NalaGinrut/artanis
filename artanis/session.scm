@@ -69,8 +69,7 @@
      (else session))))
     
 (define (new-session rc)
-  (let ((sid (get-new-id))
-        (expires (params rc "session_expires"))
+  (let ((expires (params rc "session_expires"))
         (domain (params rc "sessioin_domain"))
         (secure (params rc "session_secure"))
         (path (rc-path rc)))

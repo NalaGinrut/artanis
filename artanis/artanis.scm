@@ -16,6 +16,7 @@
 
 (define-module (artanis artanis)
   #:use-module (artanis utils)
+  #:use-module (artanis config)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (ice-9 regex)
@@ -278,8 +279,9 @@
                 (response-emit (bv-cat "favicon.ico" #f) 
                                ;; TODO: use MIME handle that
                                #:headers '((content-type . (image/x-icon)))))
-              (response-emit "" #:status 404))))
-  (get "/$" (lambda () (response-emit "no index.html but it works!"))))
+              (response-emit "" #:status 404)))))
+;; FIXME: user can overload the route rules, but now it can't.
+  ;;(get "/$" (lambda () (response-emit "no index.html but it works!"))))
 
 (define (site-disable msg)
   (set! site-workable? #f))
@@ -290,11 +292,18 @@
 (define (tpl->html tpl)
   (call-with-output-string (lambda (port) (sxml->xml tpl port))))
 
+;; I'll pass rc in, in case we need track something
 (define (redirect-to rc path)
-  (let* ((req (rc-req rc))
-         (uri (request-uri req)))
-    (struct-set! uri 4 path) ; modify path
-    (server-handler req #f)))
+  (response-emit
+   ""
+   #:status 303
+   #:headers `((location . ,(string->uri 
+                             (string-append *myhost* path))))))
+
+
+;;  (let* ((uri (string->uri (string-append *myhost* path)))
+;;         (req (build-request uri)))
+;;    (server-handler req #f)))
 
 (define (init-server)
   (sigaction SIGUSR1 site-disable)
