@@ -9,4 +9,5 @@ insert into user values (1,"admin","123");
 create table article(
        aid integer primary key auto_increment,
        title varchar(256),
+       date varchar(8),
        content text);

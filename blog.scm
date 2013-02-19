@@ -5,7 +5,9 @@
 ;; This is a very simple blog example for artanis
 
 (use-modules (artanis artanis) (artanis session) (artanis utils) (artanis db)
-             (oop goops) (srfi srfi-1))
+             (oop goops) (srfi srfi-1) (web uri))
+
+(init-server) ;; make sure call init-server at beginning
 
 (define blog-db (make <mysql> #:user "root" #:name "mmr_blog"))
 (conn blog-db "user" "") ; user is table-name, "" is the passwd of database
@@ -13,8 +15,7 @@
 (get "/admin"
   (lambda (rc)
     (cond
-     ((not (has-auth? rc))
-      ; TODO: show admin page, just title/author/content and a button
+     ((has-auth? rc)
       (response-emit
        (tpl->html
         `(html (body
@@ -32,7 +33,8 @@
        (response-emit
         (tpl->html
          `(html (body
-                 (p "Please login first!")
+                 (p ,(if (params rc "login_failed") "Invalid user name or password!"
+                         "Please login first!"))
                  (form (@ (id "login") (action "/auth") (method "POST"))
                        "user name: " (input (@ (type "text") (name "user")))(br)
                        "password : " (input (@ (type "password") (name "passwd")))(br)
@@ -50,16 +52,17 @@
                     (lambda () (session-spawn rc))
                   (lambda (sid session)
                     (redirect-to rc (format #f "/admin?sid=~a" sid)))) ; auth OK
-                (redirect-to rc "/login"))) ; auth failed, relogin!
+                (redirect-to rc "/login?login_failed=true"))) ; auth failed, relogin!
            (else ; invalid auth request
             (redirect-to rc "/login"))))))
 
 (define (get-all-articles)
   (query blog-db "select * from article")
   (fold (lambda (x p)
-          (let ((title (assoc-ref x "title"))
-                (content (assoc-ref x "content")))
-            (cons `(div (@ (class "post")) (h2 ,title) (h3 ,title) (p ,content)) p)))
+          (let ((title (uri-decode (assoc-ref x "title")))
+                (content (uri-decode (assoc-ref x "content")))
+                (date (assoc-ref x "date")))
+            (cons `(div (@ (class "post")) (h2 ,title) (h3 ,date) (p ,content)) p)))
         '() (get-all-rows blog-db)))
 
 (get "/$"
@@ -73,11 +76,12 @@
 (post "/new_post"
       (lambda (rc)
         (let ((title (params rc "title"))
-              (content (params rc "content")))
+              (content (params rc "content"))
+              (date (strftime "%D" (localtime (current-time)))))
           (query blog-db 
                  (format #f 
-                         "insert into article (title,content) values (~s,~s)"
-                         title content))
+                         "insert into article (title,content,date) values (~s,~s,~s)"
+                         title content date))
           (redirect-to rc "/"))))
                                          
 (run)

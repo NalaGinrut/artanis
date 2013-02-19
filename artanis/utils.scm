@@ -20,7 +20,7 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-19)
   #:export (regexp-split hash-keys cat bv-cat get-global-time
-            get-local-time string->md5 unsafe-random))
+            get-local-time string->md5 unsafe-random string-substitute))
 
 ;; default time is #f, get current time
 (define* (get-global-time #:optional (time #f) (nsec 0))
@@ -82,4 +82,7 @@
 ;; 35147 is the length of GPLv3 in bytes
 (define* (unsafe-random #:optional (n 35147))
   (random n (random-state-from-platform)))
+
+(define (string-substitute str re what)
+  (regexp-substitute/global #f re str 'pre what 'post))
 

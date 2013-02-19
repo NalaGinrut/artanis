@@ -27,7 +27,7 @@
   #:use-module (web server)
   #:use-module (sxml simple)
   #:export (get post put patch delete params header run response-emit
-            throw-auth-needed tpl->html redirect-to
+            throw-auth-needed tpl->html redirect-to init-server
             rc-handler rc-handler!
             rc-keys rc-keys!
             rc-re rc-re!
@@ -279,9 +279,8 @@
                 (response-emit (bv-cat "favicon.ico" #f) 
                                ;; TODO: use MIME handle that
                                #:headers '((content-type . (image/x-icon)))))
-              (response-emit "" #:status 404)))))
-;; FIXME: user can overload the route rules, but now it can't.
-  ;;(get "/$" (lambda () (response-emit "no index.html but it works!"))))
+              (response-emit "" #:status 404))))
+  (get "/$" (lambda () (response-emit "no index.html but it works!"))))
 
 (define (site-disable msg)
   (set! site-workable? #f))
@@ -300,16 +299,11 @@
    #:headers `((location . ,(string->uri 
                              (string-append *myhost* path))))))
 
-
-;;  (let* ((uri (string->uri (string-append *myhost* path)))
-;;         (req (build-request uri)))
-;;    (server-handler req #f)))
-
+;; make sure to call init-server at the beginning
 (define (init-server)
   (sigaction SIGUSR1 site-disable)
-  (sigaction SIGCONT site-enable))
+  (sigaction SIGCONT site-enable)
+  (default-route-init))
 
 (define* (run #:key (port 3000))
-  (init-server)
-  (default-route-init)
   (run-server server-handler 'http `(#:port ,port)))

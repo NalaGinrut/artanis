@@ -79,12 +79,11 @@
                     ("path"    . ,path)))))
 
 (define (session-spawn rc)
-  (let* ((sid (params rc "sid"))
+  (let* ((sid (get-new-id))
          (session (or (and sid (session-restore sid)) (new-session rc))))
     (values sid 
             (store-session sid session))))
 
-(define* (has-auth? rc #:key (uid_key "session_cur_uid") (key "sid"))
-  (let* ((sid (params rc key))
-         (session (get-session sid)))
-    (and session (session-ref session uid_key))))
+(define* (has-auth? rc #:key (key "sid"))
+  (let ((sid (params rc key)))
+    (and sid (get-session sid))))
