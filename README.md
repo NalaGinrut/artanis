@@ -20,15 +20,18 @@ easy to port to other database binding. (but I like dbi)
 ## INSTALL:
 You need guile-dbi to handle database:
 http://download.gna.org/guile-dbi/
+
 And you need specified dbd to control the database, you have three choices:
 * guile-dbd-mysql
 * guile-dbd-postgresql
 * guile-dbd-sqlite3
 
 All the database operations are in (artanis db).
+
 NOTE: For our example/blog.scm, you need guile-dbd-mysql
 
 All the packages above is easy to install:
+
 1. untar the package
 2. ./configure
 3. make
