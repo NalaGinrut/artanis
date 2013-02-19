@@ -306,4 +306,5 @@
   (default-route-init))
 
 (define* (run #:key (port 3000))
+  (format #t "Anytime you want to Quit just try Ctrl+C, thanks!~%")
   (run-server server-handler 'http `(#:port ,port)))

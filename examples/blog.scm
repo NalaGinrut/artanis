@@ -1,5 +1,5 @@
 #! /usr/local/bin/guile \
--L ./
+-L ../
 !#
 
 ;; This is a very simple blog example for artanis
