@@ -7,6 +7,17 @@
 (use-modules (artanis artanis) (artanis session) (artanis utils) (artanis db)
              (oop goops) (srfi srfi-1) (web uri))
 
+;;; This used single entry
+;;; For Example:
+;;; (use-modules (artanis artanis))
+;;; artanis included ((artanis session) (artanis utils) (artanis db)
+;;; (oop goops) (srfi srfi-1) (web uri))
+;;; This like Ruby and PHP object class inherit
+;;; Ruby For example: class B < A end 
+;;; PHP For example: class A extends B {}
+;;; This is more like a Ruby module or itself is the use of Guile module characteristic
+
+
 (init-server) ;; make sure call init-server at beginning
 
 (define blog-db (make <mysql> #:user "root" #:name "mmr_blog"))
