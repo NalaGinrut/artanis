@@ -79,6 +79,18 @@ It's very easy to use:
 (run) ; the last line, you must run the inner server
 ```
 
+## Inner web server
+The default port is 3000, so you have to fetch the URL like:
+http://localhost:3000/...
+
+But you may specify it like this:
+``` scheme
+(run #:port 1234)
+```
+
+## APIs docs
+Coming soon...
+
 Enjoy.
 
 Happy hacking!
