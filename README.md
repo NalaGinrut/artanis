@@ -18,6 +18,11 @@ easy to port to other database binding. (but I like dbi)
 * HTML template of SXML (very easy to use for Lisper)
 
 ## INSTALL:
+First, you need Guile-2.x:
+http://www.gnu.org/software/guile/
+Or just install it with your apt-get/zypper/yum...
+I suggest you install Guile-2.0.7
+
 You need guile-dbi to handle database:
 http://download.gna.org/guile-dbi/
 
