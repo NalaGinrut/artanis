@@ -95,10 +95,6 @@ But you may specify it like this:
 
 ## APIs docs
 ``` scheme
-
-;; 0. the most useful tool, is 'param':
-
-
 ;; 1. HTTP method handler register
 ;;    Here are 6 methods: get post put patch delete params header
 ;;    All of them have same usage, depends on your need.
