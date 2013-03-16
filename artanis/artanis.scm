@@ -19,6 +19,7 @@
   #:use-module (artanis config)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
+  #:use-module (srfi srfi-19)
   #:use-module (ice-9 regex)
   #:use-module (web uri)
   #:use-module (web request)
@@ -28,6 +29,7 @@
   #:use-module (sxml simple)
   #:export (get post put patch delete params header run response-emit
             throw-auth-needed tpl->html redirect-to init-server
+            generate-response-with-file emit-response-with-file
             rc-handler rc-handler!
             rc-keys rc-keys!
             rc-re rc-re!
@@ -196,17 +198,13 @@
         (if (thunk? handler) 
             (handler) 
             (handler rc)))
-    (lambda (status headers body)
-      (define last-mtime 
-        (if (rc-mtime rc)
-            `((last-modified . ,(get-local-date (rc-mtime rc))))
-            '()))
+    (lambda (status headers body mtime)
       (log status (rc-req rc))
       (values
        (build-response #:code status
                        #:headers `((server . ,server-info)
                                    (date . ,(get-global-date))
-                                   ,@last-mtime
+                                   (last-modified . ,(get-local-date mtime))
                                    ,@headers))
        ;; NOTE: sanitize-response will handle 'HEAD method
        ;;       though rc-method is 'GET when request-method is 'HEAD,
@@ -255,8 +253,10 @@
         (format-status-page status request)))))
 
 (define* (response-emit body #:key (status 200) 
-                        (headers '((content-type . (text/html)))))
-  (values status headers body))
+                        (headers '((content-type . (text/html))))
+                        (mtime (current-time)))
+  (values status headers body 
+          (cons (time-second mtime) (time-nanosecond mtime))))
 
 (define (throw-auth-needed)
   (values 401 '((WWW-Authenticate . "Basic realm=\"Secure Area\"")) ""))
@@ -267,19 +267,41 @@
   (if site-workable?
       (work-with-request request request-body)
       (format-updating-page)))
+
+(define (guess-mime filename)
+  ;; TODO: won't implement this before I send MIME patch to Guile upstream.
+  (let ((ext (get-file-ext filename)))
+    (and (string=? ext "ico") 'image/x-icon)
+    ;; HEY! it's just a test code, I'll add real MIME soon!
+    ))
+
+;; proc must return the content-in-bytevector
+(define (generate-response-with-file filename proc)
+  (if (file-exists? filename)
+      (let* ((st (stat filename))
+             ;; NOTE: we use ctime for last-modified time
+             (mtime (make-time time-utc (stat:ctime st) (stat:ctimensec st)))
+             (port (open-input-file filename))
+             (mime (guess-mime filename)))
+        (values mtime 200 (proc port) mime))
+      (values #f 404 "" #f)))
+
+(define (emit-response-with-file filename)
+  (call-with-values
+      (lambda ()
+        (generate-response-with-file filename (lambda (p) (bv-cat p #f))))
+    (lambda (mtime status bv mime)
+      (cond
+       ((= status 200) 
+        (response-emit bv #:status status #:headers `((content-type . (mime)))
+                       #:mtime mtime))
+       (else (response-emit bv #:status status))))))
       
 (define (default-route-init)
   ;; avoid a common warn
   (get "/favicon.ico$" 
        (lambda (rc)
-         (if (file-exists? "favicon.ico")
-              (let ((st (stat "favicon.ico")))
-                ;; NOTE: we use ctime for last-modified time
-                (rc-mtime! rc (cons (stat:ctime st) (stat:ctimensec st)))
-                (response-emit (bv-cat "favicon.ico" #f) 
-                               ;; TODO: use MIME handle that
-                               #:headers '((content-type . (image/x-icon)))))
-              (response-emit "" #:status 404))))
+         (emit-response-with-file "favicon.ico")))
   (get "/$" (lambda () (response-emit "no index.html but it works!"))))
 
 (define (site-disable msg)

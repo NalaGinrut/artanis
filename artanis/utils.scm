@@ -20,7 +20,8 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-19)
   #:export (regexp-split hash-keys cat bv-cat get-global-time
-            get-local-time string->md5 unsafe-random string-substitute))
+            get-local-time string->md5 unsafe-random string-substitute
+            get-file-ext))
 
 ;; default time is #f, get current time
 (define* (get-global-time #:optional (time #f) (nsec 0))
@@ -62,18 +63,24 @@
 (define (hash-keys ht)
   (hash-map->list (lambda (k v) k) ht))
 
-(define* (cat file #:optional (port (current-output-port)))
-  (let ((str (call-with-input-file file
-               (@ (rnrs io ports) get-string-all))))
-    (if port
-        (display str port)
-        str)))
+(define* (cat file/port #:optional (out (current-output-port)))
+  (define get-string-all (@ (rnrs io ports) get-string-all))
+  (if (port? file/port)
+      (get-string-all file/port)
+      (let ((str (if (port? file/port)
+                     (get-string-all file/port)
+                     (call-with-input-file file/port get-string-all))))
+        (if out
+            (display str out)
+            str))))
 
-(define* (bv-cat file #:optional (port (current-output-port)))
-  (let ((bv (call-with-input-file file
-              (@ (rnrs io ports) get-bytevector-all))))
-    (if port
-        (display bv port)
+(define* (bv-cat file/port #:optional (out (current-output-port)))
+  (define get-bytevector-all (@ (rnrs io ports) get-bytevector-all))
+  (let ((bv (if (port? file/port)
+                (get-bytevector-all file/port)
+                (call-with-input-file file/port get-bytevector-all))))
+    (if out
+        (display bv out)
         bv)))
 
 (define (string->md5 str)
@@ -85,4 +92,10 @@
 
 (define (string-substitute str re what)
   (regexp-substitute/global #f re str 'pre what 'post))
+
+(define-syntax get-file-ext               
+  (syntax-rules ()
+    ((_ filename)
+     (substring/shared filename
+                       (1+ (string-index-right filename #\.))))))
 
