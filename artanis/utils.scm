@@ -19,9 +19,10 @@
   #:use-module (ice-9 regex)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-19)
+  #:use-module (web http)
   #:export (regexp-split hash-keys cat bv-cat get-global-time
             get-local-time string->md5 unsafe-random string-substitute
-            get-file-ext))
+            get-file-ext get-global-date get-local-date))
 
 ;; default time is #f, get current time
 (define* (get-global-time #:optional (time #f) (nsec 0))
@@ -98,4 +99,17 @@
     ((_ filename)
      (substring/shared filename
                        (1+ (string-index-right filename #\.))))))
+
+(define* (get-global-date #:optional (time #f))
+  (parse-header 'date 
+                (if time
+                    (get-global-time (car time) (cdr time)) 
+                    (get-global-time))))
+
+(define* (get-local-date #:optional (time #f))
+  (parse-header 'date 
+                (if time
+                    (get-local-time (car time) (cdr time)) 
+                    (get-local-time))))
+
 

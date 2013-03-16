@@ -44,20 +44,6 @@
 
 (define server-info "artanis-0.0.1")
 
-;; route generates pages dynamically, so there's no file date
-;; use current time instead
-(define* (get-global-date #:optional (time #f))
-  (parse-header 'date 
-                (if time
-                    (get-global-time (car time) (cdr time)) 
-                    (get-global-time))))
-
-(define* (get-local-date #:optional (time #f))
-  (parse-header 'date 
-                (if time
-                    (get-local-time (car time) (cdr time)) 
-                    (get-local-time))))
-
 ;; table structure:
 ;; '((rule-handler-key (handler . keys)) ...)
 ;; for example:
