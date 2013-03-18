@@ -17,6 +17,7 @@
 (define-module (artanis artanis)
   #:use-module (artanis utils)
   #:use-module (artanis config)
+  #:use-module (artanis mime)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-19)
@@ -160,23 +161,23 @@
   (bv-cat (string-append (sys-page-path) "/" file) port))
 
 ;; ENHANCE: use colored output
-(define* (log status req #:optional (port (current-output-port)))
+(define* (log status mime req #:optional (port (current-output-port)))
   (let* ((uri (request-uri req))
          (path (uri-path uri))
          (qstr (uri-query uri))
          (method (request-method req)))
     (format port "[Request] method: ~a, path: ~a, qeury: ~a~%" method path qstr)
-    (format port "[Response] status: ~a~%~%" status)))
+    (format port "[Response] status: ~a, mime: ~a~%~%" status mime)))
 
 ;; TODO: we need request to record client info in the future
 (define (render-sys-page status request)
-  (log status request)
+  (log status 'text/html request)
   (values
    (build-response #:code status
                    #:headers `((server . ,server-info)
                                (content-type . (text/html))
                                (charset . "utf-8")))
-   (page-show (format #f "pages/~a.html" status) #f)))
+   (page-show (format #f "~a/pages/~a.html" *error-page-path* status) #f)))
 
 (define (handler-render handler rc)
   (call-with-values
@@ -185,7 +186,7 @@
             (handler) 
             (handler rc)))
     (lambda (status headers body mtime)
-      (log status (rc-req rc))
+      (log status (car (assoc-ref headers 'content-type)) (rc-req rc))
       (values
        (build-response #:code status
                        #:headers `((server . ,server-info)
@@ -214,7 +215,9 @@
     rc))
 
 (define (format-status-page status request)
-  (log status request)
+  (format #t "[EXCEPTION] ~a is abnormal request, status: ~a, "
+          (uri-path (request-uri request)) status)
+  (display "rendering a sys page for it...\n") 
   (render-sys-page status request))
 
 (define (format-updating-page)
@@ -255,11 +258,7 @@
       (format-updating-page)))
 
 (define (guess-mime filename)
-  ;; TODO: won't implement this before I send MIME patch to Guile upstream.
-  (let ((ext (get-file-ext filename)))
-    (and (string=? ext "ico") 'image/x-icon)
-    ;; HEY! it's just a test code, I'll add real MIME soon!
-    ))
+  (mime-guess (get-file-ext filename)))
 
 ;; proc must return the content-in-bytevector
 (define (generate-response-with-file filename proc)
@@ -279,7 +278,7 @@
     (lambda (mtime status bv mime)
       (cond
        ((= status 200) 
-        (response-emit bv #:status status #:headers `((content-type . (mime)))
+        (response-emit bv #:status status #:headers `((content-type . ,(list mime)))
                        #:mtime mtime))
        (else (response-emit bv #:status status))))))
       

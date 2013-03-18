@@ -19,5 +19,5 @@
 (module-export-all! (current-module))
 
 (define *myhost* "http://localhost:3000")
-
+(define *error-page-path* "../")
   
