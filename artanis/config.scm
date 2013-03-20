@@ -19,5 +19,12 @@
 (module-export-all! (current-module))
 
 (define *myhost* "http://localhost:3000")
-(define *error-page-path* "../")
+(define *error-page-path* "../pages")
+(define *updating-page* "updating.html")
+
+(define (get-sys-page status)
+  (format #f "~a/~a.html" *error-page-path* status)) 
+
+(define (current-update-page)
+  (format #f "~a/~a" *error-page-path* *updating-page*))
   

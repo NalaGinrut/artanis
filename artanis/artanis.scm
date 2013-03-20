@@ -161,13 +161,13 @@
   (bv-cat (string-append (sys-page-path) "/" file) port))
 
 ;; ENHANCE: use colored output
-(define* (log status mime req #:optional (port (current-output-port)))
+(define* (log status mime req #:optional (port (current-error-port)))
   (let* ((uri (request-uri req))
          (path (uri-path uri))
          (qstr (uri-query uri))
          (method (request-method req)))
     (format port "[Request] method: ~a, path: ~a, qeury: ~a~%" method path qstr)
-    (format port "[Response] status: ~a, mime: ~a~%~%" status mime)))
+    (format port "[Response] status: ~a, MIME: ~a~%~%" status mime)))
 
 ;; TODO: we need request to record client info in the future
 (define (render-sys-page status request)
@@ -177,7 +177,7 @@
                    #:headers `((server . ,server-info)
                                (content-type . (text/html))
                                (charset . "utf-8")))
-   (page-show (format #f "~a/pages/~a.html" *error-page-path* status) #f)))
+   (page-show (get-sys-page status) #f)))
 
 (define (handler-render handler rc)
   (call-with-values
@@ -227,7 +227,7 @@
                    #:headers `((server . ,server-info)
                                (content-type . (text/html))))
    (lambda (port)
-     (page-show "pages/updating.html" port))))
+     (page-show (current-update-page) port))))
 
 (define (work-with-request request body)
   (catch 'artanis-err
