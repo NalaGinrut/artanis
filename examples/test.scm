@@ -14,4 +14,8 @@
           (id2 (params rc "id2")))
       (response-emit (format #f "~a: Send from ~a to ~a~%" mmr id1 id2)))))
 
+(get "/hello.scm"
+  (lambda (rc)
+    (response-emit "hello world!")))
+
 (run)
