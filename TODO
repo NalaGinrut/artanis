@@ -1,7 +1,10 @@
-1. tempate (port from Ragnarok)
-2. theme (based on template)
-3. session (URL based or cookies) (almost done!)
-4. make own favicon.ico (now use opensuse ico instead)
-5. maintain my own dbi/dbd compatible with newest Guile
-6. add base64
-7. finish basic SQL in ssql
+* tempate (port from Ragnarok)
+* theme (based on template)
+* session (URL based or cookies) (almost done!)
+* make own favicon.ico (now use opensuse ico instead)
+* maintain my own dbi/dbd compatible with newest Guile
+* add base64
+* finish basic SQL in ssql
+* implement expand-conds for ssql
+* write test-cases for ssql
+* design & impement FPRM 
