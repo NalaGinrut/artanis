@@ -5,7 +5,7 @@
 ;; This is a very simple blog example for artanis
 
 (use-modules (artanis artanis) (artanis session) (artanis utils) (artanis db)
-             (oop goops) (srfi srfi-1) (web uri))
+             (oop goops) (srfi srfi-1))
 
 (init-server) ;; make sure call init-server at beginning
 

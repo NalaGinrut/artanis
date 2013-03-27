@@ -22,7 +22,9 @@
   #:use-module (web http)
   #:export (regexp-split hash-keys cat bv-cat get-global-time
             get-local-time string->md5 unsafe-random string-substitute
-            get-file-ext get-global-date get-local-date))
+            get-file-ext get-global-date get-local-date uri-decode))
+
+(define uri-decode (@ (web uri) uri-decode))
 
 ;; default time is #f, get current time
 (define* (get-global-time #:optional (time #f) (nsec 0))
