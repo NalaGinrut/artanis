@@ -22,7 +22,8 @@
   #:use-module (web http)
   #:export (regexp-split hash-keys cat bv-cat get-global-time
             get-local-time string->md5 unsafe-random string-substitute
-            get-file-ext get-global-date get-local-date uri-decode))
+            get-file-ext get-global-date get-local-date uri-decode
+            nfx))
 
 (define uri-decode (@ (web uri) uri-decode))
 
@@ -114,4 +115,14 @@
                     (get-local-time (car time) (cdr time)) 
                     (get-local-time))))
 
+(define (nfx exp)   
+  (let lp((rest exp) (result '()) (cur #f))
+    (cond 
+     ((null? rest) result)
+     ((null? result)
+      (let ((e (list (cadr rest) (car rest) (caddr rest)))) 
+        (lp (cdddr rest) e (car rest))))
+     (else
+      (let ((e (list cur result (cadr rest)))) 
+        (lp (cddr rest) e #f))))))
 
