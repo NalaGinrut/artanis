@@ -45,6 +45,9 @@
     ((_ sentence conds)
      (-> "~a where ~a" sentence conds))))
 
+(define-syntax-rule (->lst pairs)
+  (map (lambda (l) (-> "~{~a~^=~s~}" l)) pairs))
+
 (define-syntax sql-select
   (syntax-rules (* where from distinct order by group having)
     ((_ * from table)
@@ -83,8 +86,7 @@
 (define-syntax sql-update
   (syntax-rules (set where)
     ((_ table set pairs)
-     (let ((pp (map (lambda (l) (-> "~{~a~^=~s~}" l)) pairs)))
-       (-> end "update ~a set ~{~a^,~}" table pp)))
+     (-> end "update ~a set ~{~a^,~}" table (->lst pairs)))
     ((_ table set pairs where conds)
      (->where end (sql-update table set pairs) conds))))
 
@@ -96,9 +98,28 @@
      (-> end "delete from ~a" table))
     ((_ from table where conds)
      (->where end (sql-delete from table) conds))))
-    
+
+;; e.g: (->sql create table 'mmr '((id "number(10)" "not null") (name "varchar(10)")))
+(define-syntax sql-create
+  (syntax-rules (table)
+    ((_ table name pairs)
+     (-> end "create table ~a (~{~a~^,~})" name (->lst pairs)))))
+
+(define-syntax sql-alter
+  (syntax-rules (table rename to add modify drop column)
+    ((_ table old-name rename to new-name)
+     (-> end "alter table ~a rename to ~a" old-name new-name))
+    ((_ table name add pairs) ; e.g: (->sql alter table 'mmr add '((cname "varchar(50)")))
+     (-> end "alter table ~a add (~{~a~^,~})" name (->lst pairs)))
+    ((_ table name mofify pairs)
+     (-> end "alter table ~a modify (~{~a~^,~})" name (->lst pairs)))
+    ((_ table name drop column cname)
+     (-> end "alter table ~a drop column ~a" name cname))
+    ((_ table name rename column old-name to new-name)
+     (-> end "alter table ~a rename column ~a to ~a" name old-name new-name))))
+
 (define-syntax ->sql
-  (syntax-rules (select insert alter create update delete)
+  (syntax-rules (select insert alter create update delete use)
     ((_ select rest ...)
      (->end 'select (sql-select rest ...)))
     ((_ insert rest ...)
@@ -107,7 +128,11 @@
      (sql-alter rest ...))
     ((_ create rest ...)
      (sql-create rest ...))
+    ((_ alter rest ...)
+     (sql-alter rest ...))
     ((_ update rest ...)
      (sql-update rest ...))
     ((_ delete rest ...)
-     (sql-delete rest ...))))
+     (sql-delete rest ...))
+    ((_ use db)
+     (-> end "use ~a" db))))
