@@ -25,6 +25,12 @@
 (define (get-sys-page status)
   (format #f "~a/~a.html" *error-page-path* status)) 
 
-(define (current-update-page)
-  (format #f "~a/~a" *error-page-path* *updating-page*))
+(define current-update-page
+  (make-parameter
+   (format #f "~a/~a" *error-page-path* *updating-page*)))
   
+(define current-start-sign (make-parameter "<% "))
+(define current-startd-sign (make-parameter "<%= "))
+(define current-end-sign (make-parameter " %>"))
+
+(define current-charset (make-parameter "utf-8"))

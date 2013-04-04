@@ -176,7 +176,7 @@
    (build-response #:code status
                    #:headers `((server . ,server-info)
                                (content-type . (text/html))
-                               (charset . "utf-8")))
+                               (charset . ,(current-charset))))
    (page-show (get-sys-page status) #f)))
 
 (define (handler-render handler rc)
