@@ -215,13 +215,13 @@
     rc))
 
 (define (format-status-page status request)
-  (format #t "[EXCEPTION] ~a is abnormal request, status: ~a, "
+  (format (current-error-port) "[EXCEPTION] ~a is abnormal request, status: ~a, "
           (uri-path (request-uri request)) status)
   (display "rendering a sys page for it...\n") 
   (render-sys-page status request))
 
 (define (format-updating-page)
-  (display "site is temporarily down!\n")
+  (display "site is temporarily down!\n" (current-error-port))
   (values
    (build-response #:code 200
                    #:headers `((server . ,server-info)
