@@ -1,5 +1,208 @@
-2013-02-07 Nala Ginrut <nalaginrut@gmail.com>
-	* artanis/db.scm: support dbi
+2013-04-08  Nala Ginrut  <nalaginrut@gmail.com>
 
-2013-03-26 Nala Ginrut <nalaginrut@gmail.com>
-	* artanis/ssql.scm: added ssql
+	fix get-*-time indent
+
+	add static pages handle in default
+
+	Update base64.
+	TODO: update TODO
+	artanis/base64.scm: update base64
+
+2013-04-05  Nala Ginrut  <nalaginrut@gmail.com>
+
+	TODO update
+
+	add base64 support
+
+2013-04-04  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Add embedded-template
+
+	put all log output to error-port
+
+2013-03-29  NalaGinrut  <nalaginrut@gmail.com>
+
+	update ssql: add sql-where, truncate, drop. fix where clause with sql-where
+
+2013-03-28  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update ssql: alter, use, create
+
+2013-03-28  NalaGinrut  <nalaginrut@gmail.com>
+
+	update ssql
+
+	added nfx
+
+2013-03-27  NalaGinrut  <nalaginrut@gmail.com>
+
+	re-export: uri-decode
+
+	Added: ssql
+
+2013-03-20  NalaGinrut  <nalaginrut@gmail.com>
+
+	Fixed config for default path.
+	modified:   artanis/artanis.scm
+	* Change mime to MIME for log.
+	* Updated default path.
+	modified:   artanis/config.scm
+	* Updated default path.
+
+	Add how to work with Nginx and a test in example
+
+2013-03-18  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Add MIME support
+
+2013-03-16  Nala Ginrut  <nalaginrut@gmail.com>
+
+	delete typo in README.md
+
+	Update README.md, added APIs doc
+
+	Move get-global-date & get-local-date to artanis/utils.scm
+
+	Add helper functions for static page.
+	artanis/artanis.scm: Add generate-response-with-file, emit-response-with-file
+	artanis/utils.scm: update cat & bv-cat to support both port and file.
+
+2013-02-20  Mu Lei  <nalaginrut@gmail.com>
+
+	Update TODO
+	article table for blog sample is done
+
+	Update README.md
+
+	Merge pull request #3 from mario-goulart/patch-1
+	README.md: a couple of typo fixes.
+
+2013-02-19  Mario Domenech Goulart  <mario.goulart@gmail.com>
+
+	Update README.md
+	A couple of typo fixes.
+
+2013-02-19  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Merge branch 'master' of github.com:NalaGinrut/artanis
+
+	fixed examples/test.scm
+
+2013-02-19  Mu Lei  <nalaginrut@gmail.com>
+
+	Update README.md
+	add inner server description
+
+	Update README.md
+	fix the indentation
+
+2013-02-19  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update README
+
+	mv sample to examples/
+
+	blog sample works now
+
+2013-02-18  Nala Ginrut  <nalaginrut@gmail.com>
+
+	blog example runs
+
+2013-02-17  Nala Ginrut  <nalaginrut@gmail.com>
+
+	some update
+
+	Update blog sample.
+
+2013-02-17  NalaGinrut  <nalaginrut@gmail.com>
+
+	Update: blog sample
+	modified:   blog.scm
+	new file:   blogdb.mysql
+
+2013-02-16  Nala Ginrut  <nalaginrut@gmail.com>
+
+	blog.scm updated
+	modified:   TODO
+	artanis/artanis.scm: added redirect-to
+
+	new file:   artanis/auth.scm
+	artanis/session.scm: added has-auth?
+	blog.scm: updated
+
+2013-02-13  Nala Ginrut  <nalaginrut@gmail.com>
+
+	TODO list updated
+
+	add a simplest blog example
+
+	test.scm updated
+
+	add string->md5
+
+	fixed db bugs
+
+	fixed params bugs
+
+	add session support
+
+	add md5 support
+
+2013-02-07  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Add: dbi support.
+
+2013-02-05  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Fixed: favicon.ico show bug.
+	modified:   TODO
+	modified:   artanis/artanis.scm
+	modified:   artanis/utils.scm
+	new file:   favicon.ico
+
+2013-02-05  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Add last-modified time, and fixed 'favicon.ico' fetch.
+	* Add: last-modified time
+	* Fixed: 'favicon.ico' fetch
+
+	modified:   artanis/utils.scm
+	* Fixed: get-global-time
+	* Add: get-local-time
+
+	modified:   test.scm
+
+	new file:   BUGS
+
+2013-02-05  Nala Ginrut  <nalaginrut@gmail.com>
+
+	ADD: site enable/disabe
+
+2013-02-04  Nala Ginrut  <nalaginrut@gmail.com>
+
+	v-0.0.1 updated
+	modified:   artanis/artanis.scm
+	* Fixed many bugs
+	* Method HEAD provided
+	* Response header returns server-info and date
+	* Status page works now
+
+	modified:   artanis/utils.scm
+	* ADD: get-global-current-time
+
+	* ADD: pages/ for status page
+
+	new file:   test.scm
+	* ADD: test script for example
+
+2013-02-02  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Update: optimized all things.
+
+2013-01-31  NalaGinrut  <nalaginrut@gmail.com>
+
+	Works now!
+
+2013-01-30  Nala Ginrut  <nalaginrut@gmail.com>
+
+	first commit
