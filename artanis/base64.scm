@@ -1,5 +1,8 @@
-;;  Copyright (C) 2013
-;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;; Copyright (C) 2008, 2010, 2012 Andy Wingo <wingo at pobox dot com>
+;; Copyright (C) 2009 Andreas Rottmann <a dot rottmann at gmx dot at>
+;; Copyright (C) 2013 Mu Lei known as NalaGinrut <nalaginrut@gmail.com>
+
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
 ;;  the Free Software Foundation, either version 3 of the License, or
@@ -13,159 +16,123 @@
 ;;  You should have received a copy of the GNU General Public License
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-;; TODO:
-;; This base64 implementation is not so good.
-;; But it's one of memo in HFG-alpha time when it's the best code of mine.
-;; I'll fix it later. 
-;; God bless hacking.
+;;; Commentary:
+;;
+;; base 64 y'all
+;;
+;;; Code:
 
 (define-module (artanis base64)
-  :export (base64-encode base64-decode))
+  #:use-module (rnrs bytevectors)
+  #:export (base64-encode base64-decode))
 
-;; FIXME: 
-;; it can't accept any punctuation like "!>."
-;; (base64-encode "happy hacking") is OK.
-;; (base64-encode "happy hacking!") throws error.
+(define b64-bytes
+  (string->utf8
+   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwzyz0123456789+/"))
 
-(define encode-str "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
-(define bad-char-str "\x00\x01\x02\x03\x04\x05\x06\a\b\t\v\f\r\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f !\"#$%&'()*,-.:;<~\x7f")
+(define (int->b64-byte i)
+  (bytevector-u8-ref b64-bytes (logand i 63)))
 
-(define get-div car)
-(define get-mod cdr)
-(define div-and-mod (@ (rnrs base) div-and-mod))
-(define div (@ (rnrs base) div))
+(define b64-byte-ranges
+  (map cons
+       (map char->integer '(#\A #\a #\0 #\+ #\/))
+       (map char->integer '(#\Z #\z #\9 #\+ #\/))))
 
-(define (mk-div-mod x n)
-  (call-with-values
-      (lambda () (div-and-mod x n))
-    cons))
+(define (b64-byte->int i)
+  (let lp ((ranges b64-byte-ranges) (out 0))
+    (cond ((null? ranges)
+           (error "bad base64 byte" i))
+          ((and (>= i (caar ranges)) (<= i (cdar ranges)))
+           (+ out (- i (caar ranges))))
+          (else
+           (lp (cdr ranges) (+ out (+ 1 (- (cdar ranges)
+                                           (caar ranges)))))))))
 
-(define get-qindex
-  (lambda (q n)
-    (char->integer (string-ref q n))))
+(define (bytevector-pad bv n fill)
+  (let ((result (make-bytevector n fill)))
+    (bytevector-copy! bv 0 result 0 (bytevector-length bv))
+    result))
 
-(define encode-char
-  (lambda (index)
-    (string-ref encode-str index)))
+(define-syntax bytevector-map-n-to-m
+  (lambda (stx)
+    (syntax-case stx ()
+      ((_ n m)
+       (with-syntax (((byte-in ...)
+                      (map (lambda (x)
+                             #`(bytevector-u8-ref s (+ i #,x)))
+                           (iota (syntax->datum #'n))))
+                     ((byte-out ...)
+                      (generate-temporaries (iota (syntax->datum #'m))))
+                     ((byte-out-idx ...)
+                      (iota (syntax->datum #'m))))
+         #'(lambda (proc s)
+             (let* ((len (bytevector-length s))
+                    (out (make-bytevector (* len (/ m n)))))
+               (let lp ((i 0) (j 0))
+                 (cond
+                  ((< i len)
+                   (call-with-values (lambda () (proc byte-in ...))
+                     (lambda (byte-out ...)
+                       (bytevector-u8-set! out (+ j byte-out-idx) byte-out)
+                       ...))
+                   (lp (+ i n) (+ j m)))
+                  (else out))))))))))
 
-(define encode-quantum
-  (lambda (quantum)
-    (let* ((i1 (get-qindex quantum 0))
-	   (i2 (get-qindex quantum 1))
-	   (i3 (get-qindex quantum 2))
-	   (c1 (encode-char
-		(logand (ash i1 -2) #b111111)))
-	   (c2 (encode-char
-		(logior (ash (logand i1 #b11) 4)
-		       (ash (logand i2 #b11110000) -4))))
-	   (c3 (encode-char
-		(logior (ash (logand i2 #b1111) 2)
-		       (ash (logand i3 #b11000000) -6))))
-	   (c4 (encode-char
-		(logand i3 #b111111))))
-      (list c1 c2 c3 c4))))
+(define (bytevector-fill-range! bv start end u8)
+  (do ((i (- end 1) (- i 1)))
+      ((< i start))
+      (bytevector-u8-set! bv i u8)))
 
-(define encode-m1
-  (lambda (rest)
-    (let* ((i1 (get-qindex rest 0))
-	   (c1 (encode-char
-		(ash (logand i1 #b11111100) -2)))
-	   (c2 (encode-char
-		(ash (logand i1 #b11) 4)))
-	   )
-      (list c1 c2 #\= #\=))))
-		    
-(define encode-m2
-  (lambda (rest)
-    (let* ((i1 (get-qindex rest 0))
-	   (i2 (get-qindex rest 1))
-	   (c1 (encode-char
-		(ash (logand i1 #b11111100) -2)))
-	   (c2 (encode-char
-		(logior (ash (logand i1 #b11) 4)
-			(ash (logand i2 #b11110000) -4))))
-	   (c3 (encode-char
-		(ash (logand i2 #b1111) 2))))
-      (list c1 c2 c3 #\=))))
+(define (bytevector-copy/padding bv npad pad-byte)
+  (let ((result (bytevector-copy bv))
+        (len (bytevector-length bv)))
+    (bytevector-fill-range! result (- len npad) len pad-byte)
+    result))
 
-;; FIXME: string-index is too slow. I need an efficient trans-table to
-;;        decode.
-(define decode-char 
-  (lambda (char)
-    (if (char=? char #\=)
-	0
-	(string-index encode-str char))))
-	  
-(define decode-quantum
-  (lambda (quantum)
-    (let* ((i1 (decode-char (string-ref quantum 0)))
-	   (i2 (decode-char (string-ref quantum 1)))
-	   (i3 (decode-char (string-ref quantum 2)))
-	   (i4 (decode-char (string-ref quantum 3)))
-	   (c1 (integer->char
-		(logior 
-		 (logand (ash i1 2) #xFF)
-		 (ash i2 -4))))
-	   (c2 (integer->char
-		(logior 
-		 (logand (ash i2 4) #xFF)
-		 (ash i3 -2))))
-	   (c3 (integer->char
-		(logior 
-		 (logand (ash i3 6) #xC0) i4))))
-      (list c1 c2 c3))))
+(define (base64-encode str/bv)
+  (let* ((bv (if (string? str/bv) (string->utf8 str/bv) str/bv))
+         (npad (remainder (- 3 (remainder (bytevector-length bv) 3)) 3))
+         (out ((bytevector-map-n-to-m 3 4)
+               (lambda (x y z)
+                 (let ((n (logior (ash x 16) (ash y 8) z)))
+                   (values (int->b64-byte (ash n -18))
+                           (int->b64-byte (ash n -12))
+                           (int->b64-byte (ash n -6))
+                           (int->b64-byte n))))
+               (bytevector-pad bv (+ (bytevector-length bv) npad) 0))))
+    (bytevector-fill-range! out
+                            (- (bytevector-length out) npad)
+                            (bytevector-length out)
+                            (char->integer #\=))
+    (utf8->string out)))
 
-(define base64-encode
-  (lambda (str)
-    (let* ((str-len (string-length str))
-	   (dm (mk-div-mod str-len 3))
-	   (d (get-div dm))
-	   (m (get-mod dm))
-	   (i 0)
-	   (result '()))
-      (while (< i d)
-	     (set! result
-		   (append result
-			   (encode-quantum
-			    (string-copy str (* 3 i) (* 3 (1+ i))))))
-	     (set! i (1+ i)))
-      (cond
-       ((= m 0) (list->string result))
-       ((= m 1) (list->string 
-		 (append result 
-			 (encode-m1
-			  (string-copy str
-				       (* 3 i)
-				       str-len)))))
-       ((= m 2) (list->string 
-		 (append result 
-			 (encode-m2
-			  (string-copy str
-				       (* 3 i)
-				       str-len)))))
-       (else
-	(error base64-encode "Impossible error!"))))))
+(define eql-byte (char->integer #\=))
 
-(define base64-decode
-  (lambda (str)
-    (cond 
-     ((not (string? str)) (error base64-decode
-                                 "Sorry dude, but I need a string!"))
-     ((not 
-       (string-null? (string-filter
-                      (lambda (c) 
-                        (string-contains bad-char-str (string c)))
-                      str)))
-      (error base64-decode
-             "Hey dude, I don't eat this bizarre string!")))
-    (let* ((i 0)
-	   (result '())
-	   (d (div (string-length str) 4)))
-      (while (< i d)
-        (set! result
-		   (append result
-			   (decode-quantum
-			    (string-copy str (* 4 i) (* 4 (1+ i))))))
-	     (set! i (1+ i)))
-      (set! result (list->string result))
-      (string-copy result 0 (string-index result #\x0)))))
+(define (b64-bv-npad bv)
+  (let ((len (bytevector-length bv)))
+    (if (> len 0)
+        (if (= (bytevector-u8-ref bv (- len 1)) eql-byte)
+            (if (> len 1)
+                (if (= (bytevector-u8-ref bv (- len 2)) eql-byte)
+                    2
+                    1)
+                1)
+            0)
+        0)))
+
+(define* (base64-decode str #:optional (outstr #t))
+  (let* ((bv (string->utf8 str))
+         (npad (b64-bv-npad bv))
+         (out ((bytevector-map-n-to-m 4 3)
+               (lambda (w x y z)
+                 (let ((n (logior (ash (b64-byte->int w) 18)
+                                  (ash (b64-byte->int x) 12)
+                                  (ash (b64-byte->int y) 6)
+                                  (b64-byte->int z))))
+                   (values (ash n -16)
+                           (logand (ash n -8) 255)
+                           (logand n 255))))
+               (bytevector-copy/padding bv npad (char->integer #\A))))
+         (result (make-bytevector (- (bytevector-length out) npad))))
+    (bytevector-copy! out 0 result 0 (bytevector-length result))
+    (if outstr (utf8->string result) result)))

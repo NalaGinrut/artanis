@@ -2,8 +2,7 @@
 * session (URL based or cookies) (almost done!)
 * make own favicon.ico (now use opensuse ico instead)
 * maintain my own dbi/dbd compatible with newest Guile
-* fix base64 bug
-* finish basic SQL in ssql
+* Fix SSQL bugs
 * implement expand-conds for ssql
 * write test-cases for ssql
 * design & impement FPRM 
