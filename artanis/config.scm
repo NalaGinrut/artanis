@@ -18,6 +18,9 @@
 
 (module-export-all! (current-module))
 
+(define server-info "Artanis-0.0.1")
+
+;; FIXME: *myhost* should be dynamically generated
 (define *myhost* "http://localhost:3000")
 (define *error-page-path* "../pages")
 (define *updating-page* "updating.html")

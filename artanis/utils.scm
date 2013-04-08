@@ -23,7 +23,7 @@
   #:export (regexp-split hash-keys cat bv-cat get-global-time
             get-local-time string->md5 unsafe-random string-substitute
             get-file-ext get-global-date get-local-date uri-decode
-            nfx))
+            nfx static-filename))
 
 (define uri-decode (@ (web uri) uri-decode))
 
@@ -125,4 +125,7 @@
      (else
       (let ((e (list cur result (cadr rest)))) 
         (lp (cddr rest) e #f))))))
+
+(define-syntax-rule (static-filename path)
+  (substring/shared path 1))
 

@@ -43,8 +43,6 @@
             rc-body rc-body!
             rc-mtime rc-mtime!))
 
-(define server-info "artanis-0.0.1")
-
 ;; table structure:
 ;; '((rule-handler-key (handler . keys)) ...)
 ;; for example:
@@ -284,10 +282,10 @@
       
 (define (default-route-init)
   ;; avoid a common warn
-  (get "/favicon.ico$" 
-       (lambda (rc)
-         (emit-response-with-file "favicon.ico")))
-  (get "/$" (lambda () (response-emit "no index.html but it works!"))))
+  (get "/$" (lambda () (response-emit "no index.html but it works!")))
+  (get "/.+\\.(png|jpg|jpeg|ico|html|js|css)$" 
+       (lambda (rc) 
+         (emit-response-with-file (static-filename (rc-path rc))))))
 
 (define (site-disable msg)
   (set! site-workable? #f))
