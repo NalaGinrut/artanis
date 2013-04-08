@@ -34,9 +34,9 @@
      ;; NOTE: (time-utc->data t 0) to get global time.
      ((@@ (web http) write-date) 
       (time-utc->date 
-       (if time
-           (make-time 'time-utc nsec time)
-           (current-time)) 0) port))))
+       (if time (make-time 'time-utc nsec time) (current-time))
+       0)
+      port))))
 
 ;; default time is #f, get current time
 (define* (get-local-time #:optional (time #f) (nsec 0))
@@ -45,9 +45,8 @@
      ;; NOTE: (time-utc->data t) to get local time.
      ((@@ (web http) write-date) 
       (time-utc->date 
-       (if time
-           (make-time 'time-utc nsec time)
-           (current-time))) port))))
+       (if time (make-time 'time-utc nsec time) (current-time)))
+      port))))
 
 (define* (regexp-split regex str #:optional (flags 0))
   (let ((ret (fold-matches 
@@ -128,4 +127,3 @@
 
 (define-syntax-rule (static-filename path)
   (substring/shared path 1))
-
