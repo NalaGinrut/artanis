@@ -1,0 +1,61 @@
+;;  Cookie tests
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  Copyright (C) 2013
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License as published by
+;;  the Free Software Foundation, either version 3 of the License, or
+;;  (at your option) any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (test-cookie)
+  #:use-module (artanis cookie)
+  #:use-module (test-suite lib))
+
+(define (checkout s c)
+  (string=? s (cookie->header-string c)))
+
+(with-test-prefix "cookie test"
+
+  (pass-if "name-value-pairs OK"
+    (let ((s "a=1;b=2;c=3")
+          (c (make-cookie '((a 1) (b 2) (c 3)) #f #f #f #f #f)))
+      (checkout s c)))
+
+  (pass-if "without name-value-pairs OK"
+    (let ((s "Expires=1;Path=2;Domain=3;Secure;HttpOnly")
+          (c (make-cookie '() 1 2 3 #t #t)))
+      (checkout s c)))
+
+  (pass-if "name-value-pair + Expires OK"
+    (let ((s "a=1;b=2;c=3;Expires=1")
+          (c (make-cookie '((a 1) (b 2) (c 3)) 1 #f #f #f #f)))
+      (checkout s c)))
+
+  (pass-if "NVP + Expires + Path OK"
+    (let ((s "a=1;b=2;c=3;Expires=1;Path=2")
+          (c (make-cookie '((a 1) (b 2) (c 3)) 1 2 #f #f #f)))
+      (checkout s c)))
+
+  (pass-if "NVP + Expires + Path + Domain OK"
+    (let ((s "a=1;b=2;c=3;Expires=1;Path=2;Domain=3")
+          (c (make-cookie '((a 1) (b 2) (c 3)) 1 2 3 #f #f)))
+      (checkout s c)))  
+
+  (pass-if "NVP + Expires + Path + Domain + Secure OK"
+    (let ((s "a=1;b=2;c=3;Expires=1;Path=2;Domain=3;Secure")
+          (c (make-cookie '((a 1) (b 2) (c 3)) 1 2 3 #t #f)))
+      (checkout s c)))  
+
+  (pass-if "NVP + Expires + Path + Domain + Secure + HttpOnly OK"
+    (let ((s "a=1;b=2;c=3;Expires=1;Path=2;Domain=3;Secure;HttpOnly")
+          (c (make-cookie '((a 1) (b 2) (c 3)) 1 2 3 #t #t)))
+      (checkout s c))))
+  
