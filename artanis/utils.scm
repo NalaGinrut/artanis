@@ -23,9 +23,13 @@
   #:export (regexp-split hash-keys cat bv-cat get-global-time
             get-local-time string->md5 unsafe-random string-substitute
             get-file-ext get-global-date get-local-date uri-decode
-            nfx static-filename))
+            nfx static-filename remote-info local-time-stamp))
 
 (define uri-decode (@ (web uri) uri-decode))
+
+;; This function only used for local logger
+(define (local-time-stamp)
+  (strftime "%F %T" (localtime ((@ (guile) current-time)))))
 
 ;; default time is #f, get current time
 (define* (get-global-time #:optional (time #f) (nsec 0))
@@ -127,3 +131,7 @@
 
 (define-syntax-rule (static-filename path)
   (substring/shared path 1))
+
+(define-syntax-rule (remote-info req)
+  (car (request-host req)))
+

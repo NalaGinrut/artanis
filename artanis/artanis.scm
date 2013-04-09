@@ -164,10 +164,10 @@
          (path (uri-path uri))
          (qstr (uri-query uri))
          (method (request-method req)))
+    (format port "[Remote] ~a @ ~a~%" (remote-info req) (local-time-stamp))
     (format port "[Request] method: ~a, path: ~a, qeury: ~a~%" method path qstr)
     (format port "[Response] status: ~a, MIME: ~a~%~%" status mime)))
 
-;; TODO: we need request to record client info in the future
 (define (render-sys-page status request)
   (log status 'text/html request)
   (values
@@ -312,4 +312,5 @@
 
 (define* (run #:key (port 3000))
   (format #t "Anytime you want to Quit just try Ctrl+C, thanks!~%")
+  (format #t "http://0.0.0.0:~a/~%" port)
   (run-server server-handler 'http `(#:port ,port)))
