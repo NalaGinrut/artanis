@@ -23,20 +23,46 @@
   #:export (regexp-split hash-keys cat bv-cat get-global-time
             get-local-time string->md5 unsafe-random string-substitute
             get-file-ext get-global-date get-local-date uri-decode
-            nfx static-filename remote-info local-time-stamp))
+            nfx static-filename remote-info seconds-now local-time-stamp
+            parse-date write-date make-expires export-all-from-module!
+            alist->hashtable expires->time-utc))
 
 (define uri-decode (@ (web uri) uri-decode))
+(define parse-date (@@ (web http) parse-date))
+(define write-date (@@ (web http) write-date))
+
+(define (alist->hashtable al)
+  (let ((ht (make-hash-table)))
+    (for-each (lambda (x)
+                (hash-set! ht (car x) (cadr x)))
+              al)
+    ht))
+
+(eval-when (eval load compile)
+ (define (export-all-from-module! module-name)
+   (let ((mod (resolve-module module-name)))
+         (module-for-each (lambda (s m) 
+                            (module-add! (current-module) s m)) mod))))
+ 
+(define (expires->time-utc str)
+  (date->time-utc (parse-date str)))
+
+(define (make-expires sec)
+  (get-local-time (+ (seconds-now) sec)))
+
+(define (seconds-now)
+  ((@ (guile) current-time)))
 
 ;; This function only used for local logger
 (define (local-time-stamp)
-  (strftime "%F %T" (localtime ((@ (guile) current-time)))))
+  (strftime "%F %T" (localtime (seconds-now))))
 
 ;; default time is #f, get current time
 (define* (get-global-time #:optional (time #f) (nsec 0))
   (call-with-output-string 
    (lambda (port)
      ;; NOTE: (time-utc->data t 0) to get global time.
-     ((@@ (web http) write-date) 
+     (write-date 
       (time-utc->date 
        (if time (make-time 'time-utc nsec time) (current-time))
        0)
@@ -47,7 +73,7 @@
   (call-with-output-string 
    (lambda (port)
      ;; NOTE: (time-utc->data t) to get local time.
-     ((@@ (web http) write-date) 
+     (write-date 
       (time-utc->date 
        (if time (make-time 'time-utc nsec time) (current-time)))
       port))))
@@ -134,4 +160,3 @@
 
 (define-syntax-rule (remote-info req)
   (car (request-host req)))
-

@@ -77,7 +77,7 @@
   (bt rc-bt rc-bt!) ; bindings table
   (body rc-body rc-body!) ; request body
   (date rc-mtime rc-mtime!)) ; modified time, users need to set it in handler
-  
+
 ;; compiled regexp for optimization
 (define *rule-regexp* (make-regexp ":[^\\/]+"))    
 (define *path-keys-regexp* (make-regexp "/:([^\\/]+)"))
@@ -184,7 +184,8 @@
             (handler) 
             (handler rc)))
     (lambda (status headers body mtime)
-      (log status (car (assoc-ref headers 'content-type)) (rc-req rc))
+      (let ((type (assoc-ref headers 'content-type)))
+        (and type (log status (car type) (rc-req rc))))
       (values
        (build-response #:code status
                        #:headers `((server . ,server-info)

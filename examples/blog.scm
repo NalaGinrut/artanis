@@ -10,7 +10,7 @@
 (init-server) ;; make sure call init-server at beginning
 
 (define blog-db (make <mysql> #:user "root" #:name "mmr_blog"))
-(conn blog-db "user" "") ; user is table-name, "" is the passwd of database
+(conn blog-db "123") ; "123" is the passwd of database
 
 (get "/admin"
   (lambda (rc)

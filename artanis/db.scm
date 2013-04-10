@@ -66,13 +66,13 @@
   (addr #:init-value "tcp:localhost" #:init-keyword #:addr
         #:getter db-addr #:setter db-addr!))
  
-(define-method (conn (self <mysql>) (name <string>) (passwd <string>))
+(define-method (conn (self <mysql>) (passwd <string>))
   (let ((user (db-user self))
         (name (db-name self))
         (port (db-port self))
         (addr (db-addr self)))
     (db-set! self (dbi-open "mysql"
-                            (format #f "~a:~a:~a:~a:~a:"
+                            (format #f "~a:~a:~a:~a:~a"
                                     user passwd name addr port)))
     self))
 
@@ -105,7 +105,7 @@
   (port #:init-value "5432" #:init-keyword #:port 
         #:getter db-port #:setter db-port!))
 
-(define-method (conn (self <postgresql>) (name <string>) (passwd <string>))
+(define-method (conn (self <postgresql>) (passwd <string>))
   (let ((user (db-user self))
         (name (db-name self))
         (port (db-port self))
