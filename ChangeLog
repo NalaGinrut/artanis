@@ -1,4 +1,33 @@
+2013-04-11  Nala Ginrut  <nalaginrut@gmail.com>
+
+	session update
+
+	cookie update
+
+	TODO update
+
+	Blog example works again.
+	* artanis/artanis.scm: better log info print
+	* artanis/config.scm: add *cookie-path*
+	* artanis/db.scm: fixed conn method, remove redundant 'name'
+	* artanis/utils.scm: export expires->utc-time
+	* examples/blog.scm: fixed blog example
+
+2013-04-09  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Add THANKS
+
+	Add remote info to logger
+
+	Add test-suite and cookie test
+
+	Add cookie support
+
 2013-04-08  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update BUG
+
+	add build-aux, update changelog
 
 	fix get-*-time indent
 
