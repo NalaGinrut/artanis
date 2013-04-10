@@ -19,7 +19,8 @@
   #:use-module (artanis artanis)
   #:use-module (srfi srfi-9)
   #:use-module (web request)
-  #:export (session-set! session-ref session-spawn session-destory session-restore has-auth?))
+  #:export (session-set! session-ref session-spawn session-destory 
+            session-restore has-auth?))
 
 (define *sessions-table* (make-hash-table))
 
@@ -54,7 +55,7 @@
     
 (define (session-expired? session)
   (let ((now (current-time))
-        (expires (session-ref session "expires")))
+        (expires (expires->time-utc (session-ref session "expires"))))
     (> now expires)))
 
 (define (session-destory sid)
@@ -87,3 +88,21 @@
 (define* (has-auth? rc #:key (key "sid"))
   (let ((sid (params rc key)))
     (and sid (get-session sid))))
+
+(define (session->alist session)
+  (hash-map->list list session))
+
+(define (get-cookie-file sid)
+  (let ((f (format #f "~a/~a.cookie" *cookie-path* sid)))
+    (and (file-exists? f) f)))
+
+(define (load-session-from-file sid)
+  (let ((f (get-cookie-file sid)))
+    (and f ; if cookie file exists
+         (call-with-input-file sid
+           (lambda (port)
+             (make-session (read port)))))))
+
+(define (save-session-to-file session)
+  (let ((s (session->alist session)))
+    #t))
