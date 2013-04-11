@@ -39,3 +39,7 @@
 (define current-end-sign (make-parameter " %>"))
 
 (define current-charset (make-parameter "utf-8"))
+
+(define (init-config)
+  (unless (file-exists? *sessions-path*) (mkdir *sessions-path*))
+  (unless (file-exists? *cookie-path*) (mkdir *cookie-path*)))

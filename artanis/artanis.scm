@@ -328,7 +328,8 @@
 (define (init-server)
   (sigaction SIGUSR1 site-disable)
   (sigaction SIGCONT site-enable)
-  (default-route-init))
+  (default-route-init)
+  (init-config))
 
 (define* (run #:key (port 3000))
   (format #t "Anytime you want to Quit just try Ctrl+C, thanks!~%")
