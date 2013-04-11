@@ -22,16 +22,20 @@
   #:export (session-set! session-ref session-spawn session-destory 
             session-restore has-auth?))
 
+;; TODO: now we don't have swap algorithm yet, which means all the sessions
+;;       are memcached.
+;; memcached session
 (define *sessions-table* (make-hash-table))
 
-(define (get-session id)
-  (hash-ref *sessions-table* id))
+(define (mem:get-session sid)
+  (hash-ref *sessions-table* sid))
 
-(define (store-session id session)
-  (hash-set! *sessions-table* id session))
+(define (mem:store-session sid session)
+  (hash-set! *sessions-table* sid session))
 
-(define (delete-session id)
-  (hash-remove! *sessions-table* id))
+(define (mem:delete-session sid)
+  (hash-remove! *sessions-table* sid))
+;; --- end memcached session
 
 (define (session-set! session key val)
   (hash-set! session key val))
@@ -53,13 +57,18 @@
         (me "nalaginrut"))
     (string->md5 (string-append now pid rand me))))
     
+(define (get-session sid)
+  (and (mem:get-session sid)
+       (get-session-file sid)))
+
 (define (session-expired? session)
   (let ((now (current-time))
         (expires (expires->time-utc (session-ref session "expires"))))
     (> now expires)))
 
 (define (session-destory sid)
-  (delete-session sid))
+  (mem:delete-session sid) ; delete from memcached if exists
+  (delete-session-file sid))
 
 (define (session-restore sid)
   (let ((session (get-session sid)))
@@ -92,8 +101,9 @@
 (define (session->alist session)
   (hash-map->list list session))
 
-(define (get-cookie-file sid)
-  (let ((f (format #f "~a/~a.cookie" *cookie-path* sid)))
+;; return filename if it exists, or #f
+(define (get-session-file sid)
+  (let ((f (format #f "~a/~a.session" *session-path* sid)))
     (and (file-exists? f) f)))
 
 (define (load-session-from-file sid)
@@ -103,6 +113,15 @@
            (lambda (port)
              (make-session (read port)))))))
 
-(define (save-session-to-file session)
-  (let ((s (session->alist session)))
-    #t))
+(define (save-session-to-file sid)
+  (let ((s (session->alist (get-session sid)))
+        (f (get-session-file sid)))
+    ;; if file exists, it'll be removed then create a new one
+    (and f (delete-file f)) 
+    (call-with-output-file f
+      (lambda (port)
+        (write s f)))))
+
+(define (delete-session-file sid)
+  (let ((f (get-session-file sid)))
+    (and f (delete-file f))))
