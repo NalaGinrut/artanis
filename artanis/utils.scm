@@ -19,17 +19,24 @@
   #:use-module (ice-9 regex)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-19)
+  #:use-module (ice-9 local-eval)
   #:use-module (web http)
   #:export (regexp-split hash-keys cat bv-cat get-global-time
             get-local-time string->md5 unsafe-random string-substitute
             get-file-ext get-global-date get-local-date uri-decode
             nfx static-filename remote-info seconds-now local-time-stamp
             parse-date write-date make-expires export-all-from-module!
-            alist->hashtable expires->time-utc))
+            alist->hashtable expires->time-utc local-eval-string)
+  #:re-export (the-environment))
 
 (define uri-decode (@ (web uri) uri-decode))
 (define parse-date (@@ (web http) parse-date))
 (define write-date (@@ (web http) write-date))
+
+(define-syntax-rule (local-eval-string str e)
+  (local-eval 
+   (call-with-input-string (format #f "(begin ~a)" str) read)
+   e))
 
 (define (alist->hashtable al)
   (let ((ht (make-hash-table)))
@@ -96,6 +103,7 @@
 (define (hash-keys ht)
   (hash-map->list (lambda (k v) k) ht))
 
+;; WARN: besure that you've already checked the file exists before!!!
 (define* (cat file/port #:optional (out (current-output-port)))
   (define get-string-all (@ (rnrs io ports) get-string-all))
   (if (port? file/port)
@@ -107,6 +115,7 @@
             (display str out)
             str))))
 
+;; WARN: besure that you've already checked the file exists before!!!
 (define* (bv-cat file/port #:optional (out (current-output-port)))
   (define get-bytevector-all (@ (rnrs io ports) get-bytevector-all))
   (let ((bv (if (port? file/port)

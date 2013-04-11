@@ -18,6 +18,8 @@
   #:use-module (artanis utils)
   #:use-module (artanis config)
   #:use-module (artanis mime)
+  #:use-module (artanis cookie)
+  #:use-module (artanis tpl)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-19)
@@ -31,6 +33,7 @@
   #:export (get post put patch delete params header run response-emit
             throw-auth-needed tpl->html redirect-to init-server
             generate-response-with-file emit-response-with-file
+            tpl->response
             rc-handler rc-handler!
             rc-keys rc-keys!
             rc-re rc-re!
@@ -41,7 +44,8 @@
             rc-rhk rc-rhk!
             rc-bt rc-bt!
             rc-body rc-body!
-            rc-mtime rc-mtime!))
+            rc-mtime rc-mtime!
+            rc-cookie rc-cookie!))
 
 ;; table structure:
 ;; '((rule-handler-key (handler . keys)) ...)
@@ -64,7 +68,7 @@
 
 (define-record-type route-context
   (make-route-context handler keys regexp request path 
-                      qt method rhk bt body date)
+                      qt method rhk bt body date cookie)
   route-context?
   (handler rc-handler rc-handler!) ; reqeust handler
   (keys rc-keys rc-keys!) ; rule keys
@@ -76,7 +80,8 @@
   (rhk rc-rhk rc-rhk!) ; rule handler key in handlers-table
   (bt rc-bt rc-bt!) ; bindings table
   (body rc-body rc-body!) ; request body
-  (date rc-mtime rc-mtime!)) ; modified time, users need to set it in handler
+  (date rc-mtime rc-mtime!) ; modified time, users need to set it in handler
+  (cookie rc-cookie rc-cookie!)) ; the cookie parsed from header string
 
 ;; compiled regexp for optimization
 (define *rule-regexp* (make-regexp ":[^\\/]+"))    
@@ -205,8 +210,9 @@
          ;;       though rc-method is 'GET when request-method is 'HEAD,
          ;;       sanitize-response only checks method from request
          (method (if (eq? m 'HEAD) 'GET m))
-         (rc (make-route-context #f #f #f 
-                                 request path #f method #f #f body #f)))
+         (cookie (request-cookie request))
+         (rc (make-route-context #f #f #f request path #f 
+                                 method #f #f body #f cookie)))
     ;; FIXME: maybe we don't need rhk? Throw it after get handler & keys
     (init-rule-handler-key! rc) ; set rule handler key
     (init-rule-handler-and-keys! rc) ; set handler and keys
@@ -294,16 +300,29 @@
 (define (site-enable msg)
   (set! site-workable? #t))
 
-(define (tpl->html tpl)
-  (call-with-output-string (lambda (port) (sxml->xml tpl port))))
+(define-syntax-rule (tpl->response sxml/file e)
+  (let ((html (tpl->html sxml/file e)))
+    (if html
+        (response-emit html)
+        (response-emit "" #:status 404))))
+
+(define-syntax-rule (tpl->html sxml/file e)
+  (cond
+   ((string? sxml/file) ; it's tpl filename
+    (tpl-render-from-file sxml/file e))
+   ((list? sxml/file) ; it's sxml tpl
+    (call-with-output-string (lambda (port) (sxml->xml sxml/file port))))
+   (else #f))) ; wrong param causes 404
 
 ;; I'll pass rc in, in case we need track something
-(define (redirect-to rc path)
+;; 302 for force-to-use-GET in default
+(define* (redirect-to rc path #:optional (status 302))
   (response-emit
    ""
-   #:status 303
+   #:status status
    #:headers `((location . ,(string->uri 
-                             (string-append *myhost* path))))))
+                             (string-append *myhost* path)))
+               (content-type . (text/html)))))
 
 ;; make sure to call init-server at the beginning
 (define (init-server)

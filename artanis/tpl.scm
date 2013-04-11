@@ -25,7 +25,7 @@
 (define-module (artanis tpl)
   #:use-module (artanis utils)
   #:use-module (artanis config)
-  #:export (tpl-render))
+  #:export (tpl-render tpl-render-from-file))
 
 (define start-sign (current-start-sign))
 (define startd-sign (current-startd-sign))
@@ -37,70 +37,73 @@
 
 (define tpl-outport (make-parameter #f))
 
-(define tpl->expr
-  (lambda (tpl)
-    (call-with-output-string
-     (lambda (port)
-       (letrec*
-	;; template parser
-	((tpl-parser
-	  (lambda args
-	    (let* ((str-in (apply substring/shared `(,tpl ,@args)))
-		   (pos (car args))
-		   (get-position
-		    (lambda (sign)
-		      (let ((p (string-contains str-in sign)))
-			(if p
-			    (+ p pos)
-			    p))))
-		   (s (get-position start-sign))
-		   (e (get-position end-sign))
-		   (sd (get-position startd-sign))
-		   (in-len (string-length str-in)))
-	      (cond
-	       ((= in-len 0) #t) ;; recursive exit
-	       ((and (or s sd) 
-		     (not e))
-		(error tpl-parser "can't find ending!"))
-	       ((and (and (not s) (not sd)) 
-		     e)
-		(error tpl-parser "invalid template file!"))
-	       ((and (and (not s) (not sd))
-		     (not e))
-		(write-html-to-out-buf pos))
-	       ((and sd 
-		     (or (not s) (< sd s))) ;; <%= situation FIXME: I didn't consider sd-s-e, say, no sd-e 
-		(write-html-to-out-buf pos sd)
-		(write-script-display-to-out-buf (+ sd sd-len) e)
-		(tpl-parser (+ e es-len)))
-	       (else
-		(write-html-to-out-buf pos s)
-		(write-script-to-out-buf (+ s ss-len) e)
-		(tpl-parser (+ e es-len)))))))
-	 ;; handle script display part
-	 (write-script-display-to-out-buf
-	  (lambda args
-	    (let ((script-in (apply substring/shared `(,tpl ,@args))))
-              ;; FIXME: do it more elegant
-              (format port "~a" 
-                      (string-append 
-                       " (format #t \"~a\" "
-                       script-in " ) ")))))
-	 ;; handle script part
-	 (write-script-to-out-buf
-	  (lambda args
-	    (let ((script-in (apply substring/shared `(,tpl ,@args))))
-	      (display script-in port))))
-	 ;; handle html part
-	 (write-html-to-out-buf
-	  (lambda args
-	    (let ((html-str (apply substring/shared `(,tpl ,@args))))
-	      (format port " (display ~s) " html-str)))))
-	(tpl-parser 0))))))
+(define (tpl->expr tpl)
+  (call-with-output-string
+   (lambda (port)
+     (letrec*
+         ;; template parser
+         ((tpl-parser
+           (lambda args
+             (let* ((str-in (apply substring/shared `(,tpl ,@args)))
+                    (pos (car args))
+                    (get-position
+                     (lambda (sign)
+                       (let ((p (string-contains str-in sign)))
+                         (if p
+                             (+ p pos)
+                             p))))
+                    (s (get-position start-sign))
+                    (e (get-position end-sign))
+                    (sd (get-position startd-sign))
+                    (in-len (string-length str-in)))
+               (cond
+                ((= in-len 0) #t) ;; recursive exit
+                ((and (or s sd) 
+                      (not e))
+                 (error tpl-parser "can't find ending!"))
+                ((and (and (not s) (not sd)) 
+                      e)
+                 (error tpl-parser "invalid template file!"))
+                ((and (and (not s) (not sd))
+                      (not e))
+                 (write-html-to-out-buf pos))
+                ((and sd 
+                      (or (not s) (< sd s))) ;; <%= situation FIXME: I didn't consider sd-s-e, say, no sd-e 
+                 (write-html-to-out-buf pos sd)
+                 (write-script-display-to-out-buf (+ sd sd-len) e)
+                 (tpl-parser (+ e es-len)))
+                (else
+                 (write-html-to-out-buf pos s)
+                 (write-script-to-out-buf (+ s ss-len) e)
+                 (tpl-parser (+ e es-len)))))))
+          ;; handle script display part
+          (write-script-display-to-out-buf
+           (lambda args
+             (let ((script-in (apply substring/shared `(,tpl ,@args))))
+               ;; FIXME: do it more elegant
+               (format port "~a" 
+                       (string-append 
+                        " (format #t \"~a\" "
+                        script-in " ) ")))))
+          ;; handle script part
+          (write-script-to-out-buf
+           (lambda args
+             (let ((script-in (apply substring/shared `(,tpl ,@args))))
+               (display script-in port))))
+          ;; handle html part
+          (write-html-to-out-buf
+           (lambda args
+             (let ((html-str (apply substring/shared `(,tpl ,@args))))
+               (format port " (display ~s) " html-str)))))
+       (tpl-parser 0)))))
 
-(define (tpl-render tpl)
+(define-syntax-rule (tpl-render tpl e)
   (let ((expr (tpl->expr tpl)))
     (call-with-output-string
      (lambda (port)
        (parameterize ((current-output-port port))
-         (eval-string expr))))))
+         (local-eval-string expr e))))))
+
+(define-syntax-rule (tpl-render-from-file file e)
+  (and (file-exists? file)
+       (tpl-render (cat file #f) e)))
