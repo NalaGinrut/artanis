@@ -21,7 +21,7 @@
   #:use-module (srfi srfi-9)
   #:use-module (web request)
   #:export (make-cookie cookie? cookie-set! cookie-ref
-            ->HTTP-cookie new-cookie request-cookie))
+            ->HTTP-cookie new-cookie request-cookie get-cookie-file))
 
 (define *global-cookies-table* (make-hash-table))
   
@@ -111,7 +111,7 @@
          (e (cond ((string? expires) expires) ; TODO: need validate
                   ((integer? expires) (make-expires expires))
                   (else #f))); else #f for no expires
-         (cookie (make-cookie '() e path domain secure http-only)))
+         (cookie (make-inner-cookie '() e path domain secure http-only)))
     (make-cookie ht cookie)))
 
 (define (cookie-set! cookie name value)
@@ -133,8 +133,12 @@
   (let ((cookie-str (assoc-ref (request-headers req) 'cookie)))
     (and cookie-str (head-string->cookie cookie-str))))    
 
-(define (set-cookie #:key (expires #f) (path #f) (domain #f)
+(define* (set-cookie #:key (expires #f) (path #f) (domain #f)
                     (secure #f) (http-only #t))
   (let ((cookie (current-session-cookie)))
     ;;(cookies-set! cookie  
     #t))
+
+(define (get-cookie-file cid)
+  (let ((f (format #f "~a/~a.cookie" *cookie-path* cid)))
+    (and (file-exists? f) f)))
