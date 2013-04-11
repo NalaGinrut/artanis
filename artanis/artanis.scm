@@ -306,7 +306,7 @@
         (response-emit html)
         (response-emit "" #:status 404))))
 
-(define-syntax-rule (tpl->html sxml/file e)
+(define* (tpl->html sxml/file #:optional (e (current-module)))
   (cond
    ((string? sxml/file) ; it's tpl filename
     (tpl-render-from-file sxml/file e))
