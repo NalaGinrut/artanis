@@ -25,7 +25,7 @@
 (define *error-page-path* "../pages")
 (define *updating-page* "updating.html")
 (define *cookie-path* "cookies/")
-(define *sessions-path* "session/")
+(define *session-path* "session/")
 
 (define (get-sys-page status)
   (format #f "~a/~a.html" *error-page-path* status)) 
@@ -41,5 +41,5 @@
 (define current-charset (make-parameter "utf-8"))
 
 (define (init-config)
-  (unless (file-exists? *sessions-path*) (mkdir *sessions-path*))
+  (unless (file-exists? *session-path*) (mkdir *session-path*))
   (unless (file-exists? *cookie-path*) (mkdir *cookie-path*)))
