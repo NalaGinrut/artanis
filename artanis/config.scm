@@ -25,6 +25,7 @@
 (define *error-page-path* "../pages")
 (define *updating-page* "updating.html")
 (define *cookie-path* "cookies/")
+(define *sessions-path* "session/")
 
 (define (get-sys-page status)
   (format #f "~a/~a.html" *error-page-path* status)) 
