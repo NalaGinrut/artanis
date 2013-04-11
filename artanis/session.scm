@@ -87,22 +87,18 @@
                     ("path"    . ,path)))))
 
 (define (store-session sid session)
- (format #t "store - sid:~a~%session:~a~%" sid session)
   (mem:store-session! sid session)
   (save-session-to-file sid session)
-  (format #t "store - session:~a table:~a~%" (get-session sid) *sessions-table*)
   session)
 
 (define (session-spawn rc)
   (let* ((sid (get-new-id))
          (session (or (session-restore sid)
                       (store-session sid (new-session rc)))))
-     (format #t "spawn - sid:~a~%session:~a~%" sid session)
     (values sid session)))
 
 (define* (has-auth? rc #:key (key "sid"))
   (let ((sid (params rc key)))
-    (format #t "sid:~a~%session:~a~%" sid (get-session sid))
     (and sid (get-session sid))))
 
 (define (session->alist session)
