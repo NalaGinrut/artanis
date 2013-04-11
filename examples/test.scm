@@ -3,7 +3,7 @@
 !#
 
 
-(use-modules (artanis artanis))
+(use-modules (artanis artanis) (artanis utils))
 (init-server)
 
 (define mmr "123")
@@ -17,5 +17,10 @@
 (get "/hello.scm"
   (lambda (rc)
     (response-emit "hello world!")))
+
+(get "/test"
+  (lambda (rc)
+    (let ((a 123))
+      (tpl->response "my.tpl" (the-environment)))))
 
 (run)
