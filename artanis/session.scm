@@ -17,6 +17,7 @@
 (define-module (artanis session)
   #:use-module (artanis utils)
   #:use-module (artanis artanis)
+  #:use-module (artanis config)
   #:use-module (srfi srfi-9)
   #:use-module (web request)
   #:export (session-set! session-ref session-spawn session-destory 
@@ -30,10 +31,10 @@
 (define (mem:get-session sid)
   (hash-ref *sessions-table* sid))
 
-(define (mem:store-session sid session)
+(define (mem:store-session! sid session)
   (hash-set! *sessions-table* sid session))
 
-(define (mem:delete-session sid)
+(define (mem:delete-session! sid)
   (hash-remove! *sessions-table* sid))
 ;; --- end memcached session
 
@@ -58,8 +59,8 @@
     (string->md5 (string-append now pid rand me))))
     
 (define (get-session sid)
-  (and (mem:get-session sid)
-       (get-session-file sid)))
+  (or (mem:get-session sid)
+      (load-session-from-file sid)))
 
 (define (session-expired? session)
   (let ((now (current-time))
@@ -67,35 +68,41 @@
     (> now expires)))
 
 (define (session-destory sid)
-  (mem:delete-session sid) ; delete from memcached if exists
+  (mem:delete-session! sid) ; delete from memcached if exists
   (delete-session-file sid))
 
 (define (session-restore sid)
   (let ((session (get-session sid)))
-    (cond
-     ((or (not session) (session-expired? session))
-      (session-destory sid)
-      #f) ; expired then return #f
-     (else session))))
+    (and session (if (session-expired? session) ; expired then return #f
+                     (begin (session-destory sid) #f)
+                     session)))) ; non-expired, return session
+;; no session will return #f
     
-(define (new-session rc)
-  (let ((expires (params rc "session_expires"))
-        (domain (params rc "sessioin_domain"))
-        (secure (params rc "session_secure"))
+(define* (new-session rc #:key (expires 3600) (domain *myhost*) (secure #f))
+  (let ((expires-str (make-expires expires))
         (path (rc-path rc)))
-    (make-session `(("expires" . ,expires)
+    (make-session `(("expires" . ,expires-str)
                     ("domain"  . ,domain)
                     ("secure"  . ,secure)
                     ("path"    . ,path)))))
 
+(define (store-session sid session)
+ (format #t "store - sid:~a~%session:~a~%" sid session)
+  (mem:store-session! sid session)
+  (save-session-to-file sid session)
+  (format #t "store - session:~a table:~a~%" (get-session sid) *sessions-table*)
+  session)
+
 (define (session-spawn rc)
   (let* ((sid (get-new-id))
-         (session (or (and sid (session-restore sid)) (new-session rc))))
-    (values sid 
-            (store-session sid session))))
+         (session (or (session-restore sid)
+                      (store-session sid (new-session rc)))))
+     (format #t "spawn - sid:~a~%session:~a~%" sid session)
+    (values sid session)))
 
 (define* (has-auth? rc #:key (key "sid"))
   (let ((sid (params rc key)))
+    (format #t "sid:~a~%session:~a~%" sid (get-session sid))
     (and sid (get-session sid))))
 
 (define (session->alist session)
@@ -107,20 +114,21 @@
     (and (file-exists? f) f)))
 
 (define (load-session-from-file sid)
-  (let ((f (get-cookie-file sid)))
+  (let ((f (get-session-file sid)))
     (and f ; if cookie file exists
          (call-with-input-file sid
            (lambda (port)
              (make-session (read port)))))))
 
-(define (save-session-to-file sid)
-  (let ((s (session->alist (get-session sid)))
+(define (save-session-to-file sid session)
+  (let ((s (session->alist session))
         (f (get-session-file sid)))
     ;; if file exists, it'll be removed then create a new one
-    (and f (delete-file f)) 
-    (call-with-output-file f
-      (lambda (port)
-        (write s f)))))
+    (when f 
+      (delete-file f) 
+      (call-with-output-file f
+        (lambda (port)
+          (write s f))))))
 
 (define (delete-session-file sid)
   (let ((f (get-session-file sid)))
