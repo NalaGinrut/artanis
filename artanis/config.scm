@@ -20,6 +20,8 @@
 
 (define server-info "Artanis-0.0.1")
 
+(define use-Nginx? #f)
+
 ;; FIXME: *myhost* should be dynamically generated
 (define *myhost* "http://localhost:3000")
 (define *error-page-path* "../pages")

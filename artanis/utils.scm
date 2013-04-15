@@ -16,11 +16,13 @@
 
 (define-module (artanis utils)
   #:use-module (artanis md5)
+  #:use-module (artanis config)
   #:use-module (ice-9 regex)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-19)
   #:use-module (ice-9 local-eval)
   #:use-module (web http)
+  #:use-module (web request)
   #:export (regexp-split hash-keys cat bv-cat get-global-time
             get-local-time string->md5 unsafe-random string-substitute
             get-file-ext get-global-date get-local-date uri-decode
@@ -168,4 +170,6 @@
   (substring/shared path 1))
 
 (define-syntax-rule (remote-info req)
-  (car (request-host req)))
+  (if use-Nginx?
+      (assoc-ref (request-headers req) 'x-real-ip)
+      (request-host req)))
