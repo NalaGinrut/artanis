@@ -51,9 +51,9 @@
 (define-syntax sql-where
   (syntax-rules (select in like between and is null)
     ((_ column in lst)
-     (-> "~a in (~{~s~^,~})" column lst))
+     (-> "~a in (~{~a~^,~})" column lst))
     ((_ column in (select rest ...))
-     (-> "~a in (~{~s~^,~}) in (select ~a)" column (sql-select rest ...)))
+     (-> "~a in (~{~a~^,~}) in (select ~a)" column (sql-select rest ...)))
     ((_ column like pattern)
      (-> "~a like ~s" column pattern))
     ((_ column between a and b)
@@ -61,7 +61,7 @@
     ((_ column is null)
      (-> "~a is null" column))
     ((_ lst)
-     (-> "~{~s~^,~}" lst))
+     (-> "~{~a~^,~}" lst))
     ;; FIXME: implement "where a = (select ...), ..."
     ))
 

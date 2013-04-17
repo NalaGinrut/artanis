@@ -45,6 +45,10 @@
 (define-method (get-status (self <artanis-db>))
   (dbi-get_status (db-get self)))
 
+(define-method (check-status (self <artanis-db>))
+  (let ((st (get-status self)))
+    (values (car st) (cdr st))))
+
 (define-method (get-all-rows (self <artanis-db>))
   (let ((db (db-get self)))
     (let lp((next (dbi-get_row db)) (result '()))

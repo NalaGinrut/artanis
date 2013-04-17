@@ -28,7 +28,7 @@
             get-file-ext get-global-date get-local-date uri-decode
             nfx static-filename remote-info seconds-now local-time-stamp
             parse-date write-date make-expires export-all-from-module!
-            alist->hashtable expires->time-utc local-eval-string)
+            alist->hashtable expires->time-utc local-eval-string generate-ETag)
   #:re-export (the-environment))
 
 (define uri-decode (@ (web uri) uri-decode))
@@ -173,3 +173,9 @@
   (if use-Nginx?
       (assoc-ref (request-headers req) 'x-real-ip)
       (request-host req)))
+
+(define (generate-Etag filename)
+  (and (file-exists? filename)
+       (let ((st (stat filename)))
+         (format #f "~a-~a-~a" 
+                 (stat:ino st) (stat:mtime st) (stat:size st)))))
