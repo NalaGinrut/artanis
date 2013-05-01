@@ -17,6 +17,7 @@
 (define-module (artanis utils)
   #:use-module (artanis md5)
   #:use-module (artanis config)
+  #:use-module (system foreign)
   #:use-module (ice-9 regex)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-19)
@@ -28,7 +29,8 @@
             get-file-ext get-global-date get-local-date uri-decode
             nfx static-filename remote-info seconds-now local-time-stamp
             parse-date write-date make-expires export-all-from-module!
-            alist->hashtable expires->time-utc local-eval-string generate-ETag)
+            alist->hashtable expires->time-utc local-eval-string generate-ETag
+            valid-method? mmap munmap)
   #:re-export (the-environment))
 
 (define uri-decode (@ (web uri) uri-decode))
@@ -174,8 +176,35 @@
       (assoc-ref (request-headers req) 'x-real-ip)
       (request-host req)))
 
-(define (generate-Etag filename)
-  (and (file-exists? filename)
-       (let ((st (stat filename)))
-         (format #f "~a-~a-~a" 
-                 (stat:ino st) (stat:mtime st) (stat:size st)))))
+(define (generate-ETag filename)
+  (cond
+   ((file-exists? filename)
+    (let ((st (stat filename)))
+      `((Etag . ,(format #f "~X-~X-~X" 
+                         (stat:ino st) (stat:mtime st) (stat:size st))))))
+   (else '())))
+
+(define *methods-list* '(HEAD GET POST PUT PATCH DELETE))
+(define (allowed-method? method)
+  ;; TODO: check allowed method from config
+  #t)
+(define (valid-method? method)
+  (if (and (member method *methods-list*) (allowed-method? method))
+      method
+      (throw 'artanis-err 405 "invalid HTTP method" method)))
+
+(define *libc-ffi* (dynamic-link))
+(define %mmap
+  (pointer->procedure '*
+                      (dynamic-func "mmap" *libc-ffi*)
+                      (list '* size_t int int int size_t)))
+(define %munmap
+  (pointer->procedure int
+                      (dynamic-func "munmap" *libc-ffi*)
+                      (list '* size_t)))
+(define* (mmap port #:optional size prot flags offset)
+  (let ((fd (port->fdes port)))
+    (pointer->bytevector
+     (%mmap %null-pointer size prot flags fd offset) size)))
+(define (munmap bv size)
+  (%munmap (bytevector->pointer bv size) size))
