@@ -21,20 +21,12 @@
   #:use-module (srfi srfi-9)
   #:use-module (web request)
   #:export (make-cookie cookie? cookie-set! cookie-ref
-            ->HTTP-cookie new-cookie request-cookie get-cookie-file))
-
-(define *global-cookies-table* (make-hash-table))
-  
-(define-record-type cookie
-  (make-cookie nvpt ic)
-  cookie?
-  (nvpt cookie-nvpt cookie-nvpt!) ; name-value-pairs hashtable
-  (ic cookie-inner cookie-inner!)); inner cookie
+            ->HTTP-cookie new-cookie request-cookies get-cookie-file))
 
 ;; inner cookie, you shouldn't use it directly, try new-cookie
-(define-record-type inner-cookie
-  (make-inner-cookie nvp expir path domain secure ho)
-  inner-cookie?
+(define-record-type cookie
+  (make-cookie nvp expir path domain secure ho)
+  cookie?
   (nvp cookie-nvp cookie-nvp!)          ; Name-Value-Pairs of the cookie
   (expir cookie-expir cookie-expir!)    ; The expiration in Greenwich Mean Time
   (path cookie-path cookie-path!)       ; The path the cookie is good for
@@ -42,12 +34,6 @@
   ;; keep cookie communication limited to encrypted transmission
   (secure cookie-secure cookie-secure!) ; The secure need of cookie
   (ho cookie-httponly cookie-httponly!)); http-only
-
-(define (cookie-dump cookie)
-  (let ((nvpt (cookie-nvpt cookie))
-        (ic (cookie-ic cookie)))
-    (cookie-nvp! ic (hash-map->list list nvpt))
-    ic))
 
 (define (nvp name v-ref)
   (lambda (c)
@@ -72,21 +58,22 @@
 
 ;; NOTE: string comparing has to use 'equal?' which is 'member' used.
 ;;       according to R5Rs
-(define (is-cookie-keywords? str)
-  (member *cookie-keywords*))
+(define (is-cookie-keywords? item)
+  (or (not (list? item))
+      (member (car item) *cookie-keywords* string=?)))
 
 (define (get-from-cookie al key)
   (let ((val (assoc-ref al key)))
-    (and val (cadr val))))
+    (and val (car val))))
 
 (define (head-string->cookie str)
   (let* ((ll (map (lambda (e) 
                     (if (string-contains e "=") 
-                        (string-split e #\=) 
-                        e)) 
-                  str))
-         (ntp (let lp((rest '()) (result '()))
-                (cond ((or (is-cookie-keywords? rest) (null? reset))
+                        (map string-trim-both (string-split e #\=)) 
+                        (string-trim-both e))) 
+                  (string-split str #\;)))
+         (nvp (let lp((rest ll) (result '()))
+                (cond ((or (null? rest) (is-cookie-keywords? (car rest)))
                        result) ; drop the pair after keyword-value-pair
                       (else (lp (cdr rest) (cons (car rest) result))))))
          (cookie (new-cookie #:expires (get-from-cookie ll "Expires")
@@ -94,50 +81,50 @@
                              #:domain (get-from-cookie ll "Domain")
                              #:secure (get-from-cookie ll "Secure")
                              #:http-only (get-from-cookie ll "HttpOnly"))))
-    (cookie-nvpt! cookie (alist->hashtable ntp)) ; generate a table for easy ref
-    cookie))       
+    (cookie-nvp! cookie nvp) ; insert cookie key-value pair table
+    cookie))
 
-(define (cookie->header-string inner-cookie)
+(define (cookie->header-string cookie)
   (let ((nvps (append-map
                (lambda (nvp-ref)
-                 (filter-map nvp->string (nvp-ref inner-cookie)))
+                 (filter-map nvp->string (cookie-nvp cookie)))
                nvp-accessors)))
     (string-join nvps ";")))
 
 (define* (new-cookie #:key (expires 3600) ; expires in seconds
                      (path #f) (domain #f)
                      (secure #f) (http-only #t))
-  (let* ((ht (make-hash-table))
-         (e (cond ((string? expires) expires) ; TODO: need validate
-                  ((integer? expires) (make-expires expires))
-                  (else #f))); else #f for no expires
-         (cookie (make-inner-cookie '() e path domain secure http-only)))
-    (make-cookie ht cookie)))
-
+  (let ((e (cond ((string? expires) expires) ; TODO: need validate
+                 ((integer? expires) (make-expires expires))
+                 (else #f)))); else #f for no expires
+    (make-cookie '() e path domain secure http-only)))
+    
 (define (cookie-set! cookie name value)
-  (let ((nvpt (cookie-nvpt cookie)))
-    (hash-set! nvpt name value)))
+  (let ((nvp (cookie-nvp cookie)))
+    (cookie-nvp! cookie (assoc-set! nvp name value))))
 
 (define (cookie-ref cookie name)
-  (let ((nvpt (cookie-nvpt cookie)))
-    (hash-ref nvpt name)))
+  (let* ((nvp (cookie-nvp cookie))
+         (v (assoc-ref nvp name)))
+    (and v (car v))))
 
 (define (cookie-delete! cookie name)
-  (let ((nvpt (cookie-nvpt cookie)))
-    (hash-remove! nvpt name)))
+  (let ((nvp (cookie-nvp cookie)))
+    (cookie-nvp! cookie (assoc-remove! nvp name))))
 
 (define (->HTTP-cookie cookie)
-  (cookie->header-string (cookie-dump cookie)))
+  (cookie->header-string cookie))
 
-(define (request-cookie req)
-  (let ((cookie-str (assoc-ref (request-headers req) 'cookie)))
-    (and cookie-str (head-string->cookie cookie-str))))    
+(define (header->cookies header)
+  (fold (lambda (x p)
+          (if (eqv? 'set-cookie (car x))
+              (cons (cdr x) p)
+              p))
+        '() header))
 
-(define* (set-cookie #:key (expires #f) (path #f) (domain #f)
-                    (secure #f) (http-only #t))
-  (let ((cookie (current-session-cookie)))
-    ;;(cookies-set! cookie  
-    #t))
+(define (request-cookies req)
+  (let ((cookies-str (header->cookies (request-headers req))))
+    (map head-string->cookie cookies-str)))
 
 (define (get-cookie-file cid)
   (let ((f (format #f "~a/~a.cookie" *cookie-path* cid)))
