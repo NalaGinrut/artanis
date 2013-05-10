@@ -33,7 +33,7 @@
   #:export (get post put patch delete params header run response-emit
             throw-auth-needed tpl->html redirect-to init-server
             generate-response-with-file emit-response-with-file
-            tpl->response
+            tpl->response reject-method
             rc-handler rc-handler!
             rc-keys rc-keys!
             rc-re rc-re!
@@ -205,14 +205,14 @@
 (define (new-route-context request body)
   (let* ((uri (request-uri request))
          (path (uri-path uri))
-         (m (request-method request))
+         (m (valid-method? (request-method request))) 
          ;; NOTE: sanitize-response will handle 'HEAD method
          ;;       though rc-method is 'GET when request-method is 'HEAD,
          ;;       sanitize-response only checks method from request
          (method (if (eq? m 'HEAD) 'GET m))
-         (cookie (request-cookie request))
+         (cookies (request-cookies request))
          (rc (make-route-context #f #f #f request path #f 
-                                 method #f #f body #f cookie)))
+                                 method #f #f body #f cookies)))
     ;; FIXME: maybe we don't need rhk? Throw it after get handler & keys
     (init-rule-handler-key! rc) ; set rule handler key
     (init-rule-handler-and-keys! rc) ; set handler and keys
@@ -283,7 +283,9 @@
     (lambda (mtime status bv mime)
       (cond
        ((= status 200) 
-        (response-emit bv #:status status #:headers `((content-type . ,(list mime)))
+        (response-emit bv #:status status 
+                       #:headers `((content-type . ,(list mime)) 
+                                   ,@(generate-ETag filename))
                        #:mtime mtime))
        (else (response-emit bv #:status status))))))
       
@@ -323,6 +325,9 @@
    #:headers `((location . ,(string->uri 
                              (string-append *myhost* path)))
                (content-type . (text/html)))))
+
+(define (reject-method method)
+  (throw 'artanis-err 405 "Method is not allowed" method))
 
 ;; make sure to call init-server at the beginning
 (define (init-server)
