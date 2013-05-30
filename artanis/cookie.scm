@@ -20,8 +20,8 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (web request)
-  #:export (make-cookie cookie? cookie-set! cookie-ref
-            ->HTTP-cookie new-cookie request-cookies get-cookie-file))
+  #:export (make-cookie cookie? cookie-set! cookie-ref generate-cookies
+            cookie->header-string new-cookie request-cookies cookie-expired?))
 
 ;; inner cookie, you shouldn't use it directly, try new-cookie
 (define-record-type cookie
@@ -34,6 +34,11 @@
   ;; keep cookie communication limited to encrypted transmission
   (secure cookie-secure cookie-secure!) ; The secure need of cookie
   (ho cookie-httponly cookie-httponly!)); http-only
+
+(define (cookie-expired? cookie)
+  (let ((expir (expires->time-utc (cookie-expir cookie)))
+        (now (current-time)))
+    (time>? expir now)))
 
 (define (nvp name v-ref)
   (lambda (c)
@@ -91,13 +96,17 @@
                nvp-accessors)))
     (string-join nvps ";")))
 
+(define (generate-cookies cookies)
+  (map (lambda (c) `(set-cookie . ,(cookie->header-string c))) cookies))
+
 (define* (new-cookie #:key (expires 3600) ; expires in seconds
+                     (npv '())
                      (path #f) (domain #f)
                      (secure #f) (http-only #t))
   (let ((e (cond ((string? expires) expires) ; TODO: need validate
                  ((integer? expires) (make-expires expires))
                  (else #f)))); else #f for no expires
-    (make-cookie '() e path domain secure http-only)))
+    (make-cookie npv e path domain secure http-only)))
     
 (define (cookie-set! cookie name value)
   (let ((nvp (cookie-nvp cookie)))
@@ -112,9 +121,6 @@
   (let ((nvp (cookie-nvp cookie)))
     (cookie-nvp! cookie (assoc-remove! nvp name))))
 
-(define (->HTTP-cookie cookie)
-  (cookie->header-string cookie))
-
 (define (header->cookies header)
   (fold (lambda (x p)
           (if (eqv? 'set-cookie (car x))
@@ -125,7 +131,3 @@
 (define (request-cookies req)
   (let ((cookies-str (header->cookies (request-headers req))))
     (map head-string->cookie cookies-str)))
-
-(define (get-cookie-file cid)
-  (let ((f (format #f "~a/~a.cookie" *cookie-path* cid)))
-    (and (file-exists? f) f)))

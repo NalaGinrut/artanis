@@ -5,12 +5,22 @@
 ;; This is a very simple blog example for artanis
 
 (use-modules (artanis artanis) (artanis session) (artanis utils) (artanis db)
-             (oop goops) (srfi srfi-1) (ice-9 local-eval))
+             (oop goops) (srfi srfi-1) (artanis cookie))
 
 (init-server) ;; make sure call init-server at beginning
 
 (define blog-db (make <mysql> #:user "root" #:name "mmr_blog"))
 (conn blog-db "123") ; "123" is the passwd of database
+
+(define (make-footer)
+  (tpl->html
+   `(div (@ (id "footer"))
+         (p "Colt blog-engine based on " 
+            (a (@ (href "https://github.com/NalaGinrut/artanis")) "Artanis")
+            "."))))
+
+(define blog-title "Colt blog-engine")
+(define footer (make-footer))
 
 (get "/admin"
   (lambda (rc)
@@ -30,21 +40,25 @@
 
 (get "/login"
      (lambda (rc)
-       (response-emit
-        (tpl->html
-         `(html (body
-                 (p ,(if (params rc "login_failed") "Invalid user name or password!"
-                         "Please login first!"))
-                 (form (@ (id "login") (action "/auth") (method "POST"))
-                       "user name: " (input (@ (type "text") (name "user")))(br)
-                       "password : " (input (@ (type "password") (name "passwd")))(br)
-                       (input (@ (type "submit") (value "Submit"))))))))))
+       (tpl->response "login.tpl")))
+
+(define (login-accepted? ck)
+  (let ((sid (any (lambda (x) (cookie-ref x "sid")) ck))
+        (expir (cookie-expir c)))
+    (if (cookie-expired? expir)
+        #f
+        sid)))
 
 (post "/auth"
       (lambda (rc)
         (let ((user (params rc "user"))
-              (pwd (params rc "passwd")))
+              (pwd (params rc "passwd"))
+              (keep (params rc "remember_me"))
+              (ck (request-cookies (rc-req rc))))
           (cond
+           ((login-accepted? ck)
+            (let ((sid (get-sid ck)))
+              (redirect-to (format #f "/admin/sid=~a" sid))))
            ((and user pwd)
             (query blog-db (format #f "select * from user where user=~s" user))
             (let ((line (get-one-row blog-db)))
@@ -54,7 +68,10 @@
                 (call-with-values
                     (lambda () (session-spawn rc))
                   (lambda (sid session)
-                    (redirect-to rc (format #f "/admin?sid=~a" sid))))) ; auth OK
+                    (let ((cookie (and keep (new-cookie #:npv `(("sid" ,sid)) #:path "/auth" 
+                                                        #:domain "localhost"))))
+                      (rc-cookie! rc (list cookie))
+                      (redirect-to rc (format #f "/admin?sid=~a" sid)))))) ; auth OK
                (else (redirect-to rc "/login?login_failed=true"))))) ; auth failed, relogin!
            (else ; invalid auth request
             (redirect-to rc "/login"))))))
@@ -76,18 +93,9 @@
      (lambda (rc)
        (response-emit "waiting, it's underconstruction!")))
 
-(define (make-footer)
-  (tpl->html
-   `(div (@ (id "footer"))
-         (p "Colt blog-engine based on " 
-            (a (@ (href "https://github.com/NalaGinrut/artanis")) "Artanis")
-            "."))))
-
 (get "/$"
      (lambda (rc)
-       (let ((blog-title "Colt blog-engine")
-             (all-posts (tpl->html (get-all-articles)))
-             (footer (make-footer)))
+       (let ((all-posts (tpl->html (get-all-articles))))
          (tpl->response "index.tpl" (the-environment)))))
 
 (post "/new_post"
