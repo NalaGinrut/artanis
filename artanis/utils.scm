@@ -30,7 +30,7 @@
             nfx static-filename remote-info seconds-now local-time-stamp
             parse-date write-date make-expires export-all-from-module!
             alist->hashtable expires->time-utc local-eval-string generate-ETag
-            valid-method? mmap munmap)
+            time-expired? valid-method? mmap munmap)
   #:re-export (the-environment))
 
 (define uri-decode (@ (web uri) uri-decode))
@@ -54,7 +54,11 @@
    (let ((mod (resolve-module module-name)))
          (module-for-each (lambda (s m) 
                             (module-add! (current-module) s m)) mod))))
- 
+
+(define (time-expired? expires)
+  (let ((t (expires->time-utc expires)))
+    (time>? (current-time) t)))
+
 (define (expires->time-utc str)
   (date->time-utc (parse-date str)))
 
@@ -180,7 +184,7 @@
   (cond
    ((file-exists? filename)
     (let ((st (stat filename)))
-      `((Etag . ,(format #f "~X-~X-~X" 
+      `((Etag . ,(format #f "\"~X-~X-~X\"" 
                          (stat:ino st) (stat:mtime st) (stat:size st))))))
    (else '())))
 
@@ -193,6 +197,31 @@
       method
       (throw 'artanis-err 405 "invalid HTTP method" method)))
 
+;; -------------- mmap ---------------------
+(define-public ACCESS_COPY              #x3)
+(define-public ACCESS_READ              #x1)
+(define-public ACCESS_WRITE             #x2)
+(define-public ALLOCATIONGRANULARITY #x1000)
+
+(define-public PROT_READ       #x1)       
+(define-public PROT_WRITE      #x2)       
+(define-public PROT_EXEC       #x4)       
+(define-public PROT_SEM        #x8)       
+(define-public PROT_NONE       #x0)       
+(define-public PROT_GROWSDOWN  #x01000000)
+(define-public PROT_GROWSUP    #x02000000)
+
+(define-public PAGESIZE       #x1000)
+(define-public MAP_ANON         #x20)
+(define-public MAP_DENYWRITE   #x800)
+(define-public MAP_EXECUTABLE #x1000)
+(define-public MAP_SHARED       #x01)
+(define-public MAP_PRIVATE      #x02)
+(define-public MAP_TYPE         #x0f)
+(define-public MAP_FIXED        #x10)
+(define-public MAP_ANONYMOUS    #x20)
+(define-public MAP_UNINITIALIZED 0) ;; don't support map uninitialized
+
 (define *libc-ffi* (dynamic-link))
 (define %mmap
   (pointer->procedure '*
@@ -202,9 +231,8 @@
   (pointer->procedure int
                       (dynamic-func "munmap" *libc-ffi*)
                       (list '* size_t)))
-(define* (mmap port #:optional size prot flags offset)
-  (let ((fd (port->fdes port)))
-    (pointer->bytevector
-     (%mmap %null-pointer size prot flags fd offset) size)))
+(define* (mmap size #:key (addr %null-pointer) (fd -1) (prot MAP_SHARED) 
+               (flags PROT_READ) (offset 0))
+  (pointer->bytevector (%mmap addr size prot flags fd offset) size))
 (define (munmap bv size)
   (%munmap (bytevector->pointer bv size) size))

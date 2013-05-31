@@ -36,9 +36,7 @@
   (ho cookie-httponly cookie-httponly!)); http-only
 
 (define (cookie-expired? cookie)
-  (let ((expir (expires->time-utc (cookie-expir cookie)))
-        (now (current-time)))
-    (time>? expir now)))
+  (time-expired? (cookie-expir cookie)))
 
 (define (nvp name v-ref)
   (lambda (c)
