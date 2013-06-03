@@ -41,67 +41,47 @@
   ;; no need to modify dbi, each cache only used by one db (recommended)
   (sql query-cache-sql query-cache-sql!))
 
-(define (->conditon . conds)   
-  (receive (a b) (partition keyword? conds)
-    (map (lambda (x y)
-           (format #f "~a ~a ~s" (keyword->symbol x) (car y) (cadr y)))
-         a b)))
+(define (make-inner-sql op table fields where having group-by order-by as distinct)
+  (call-with-output-string
+   (lambda (port)
+     (format port "~{~a~^ ~} ~a " op fields)
+     (and as (format port "as ~a " as)
+     (format port "from ~a " table)
+     (and where (format port "where ~a " where))
+     (and having (format port "having ~a " having))
+     (and group-by (format port "group by ~a " group-by))
+     (and order-by (format port "order by ~a " order-by))
+     (and distinct (format port "distinct ~a " distinct))
+     (display ";")))))
 
-(define (->fvs . kvs)
-  (receive (fields vals) (partition keyword? kvs)
-    (values (map keyword->symbol fields) vals)))
-
-(define (new-table db name . args)
-  (let* ((vars (receive (a b) (partition keyword? args) (map cons a b)))
-         (ops (new-ops))
-         (fprm (make-fprm db name vars ops #f)))
-    (lambda (pattern)
-      (match pattern
-        ((#:get (fields ...) conds ...) (table-ref fprm fields (apply ->condition conds)))
-        ((#:get-all conds ...) (table-ref fprm #f (apply ->condition conds)))
-        ((#:delete conds ...) (table-delete fprm (apply ->condition conds)))
-        ((#:insert kvs ...) (receive (fields vals) (->fvs kvs) (table-insert fprm fields vals)))
-        ((#:dump-cache) (new-query-cache fprm))
-        ;; TODO: finish others
-        ))))
-
-(define (table-insert fprm fields vals)
+(define* (table-insert fprm #:key (find '*) (where #f)) 
   (define db (fprm-db fprm))
   (define name (fprm-name fprm))
-  (define sql
-    (->sql insert into fields values vals))
+  (define sql (make-inner-sql '(insert into) name find 
   (query db sql)
   (receive (status reason) (check-status db)
     (if (zero? status)
         #t ; insert sucessfully
         (throw 'artanis-err 500 reason sql))))  
 
-(define (table-delete fprm . condition)
+(define* (table-delete fprm #:key (find '*) (where #f) (having #f)
+                       (group-by #f) 
   (define db (fprm-db fprm))
   (define name (fprm-name fprm))
-  (define sql 
-    (if (null? condition)
-        (->sql delete * from name) ; delete all rows
-        (->sql delete from name where condition))) ; delete rows as the condition
+  (define sql (make-inner-sql '(delete) name find where having
+                              #f #f #f #f))
   (query db sql)
   (receive (status reason) (check-status db)
     (if (zero? status)
         #t ; delete sucessfully
         (throw 'artanis-err 500 reason sql))))
 
-(define (table-ref fprm fields . condition)
+(define* (table-ref fprm #:key (find '*) (where #f) (having #f)
+                    (group-by #f) (order-by #f) (as #f) (distinct #f))
   (define db (fprm-db fprm))
   (define name (fprm-name fprm))
-  (define sql 
-    (cond 
-     ((not fields)
-      (if (null? condition)
-          (->sql select * from name)
-          (->sql select * from name where condition)))
-     (else
-      (if (null? condition)
-          (->sql select fields from name)
-          (->sql select fields from name where condition)))))
+  (define sql (make-inner-sql '(select) name find where having 
+                              group-by order-by as distinct))
   (query db sql)
   (receive (status reason) (check-status db)
     (if (zero? status)
