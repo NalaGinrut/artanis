@@ -1,11 +1,11 @@
 * theme (based on template)
 * make own favicon.ico (now use opensuse ico instead)
-* maintain my own dbi/dbd compatible with newest Guile
 * Fix SSQL bugs
 * implement expand-conds for ssql
 * write test-cases for ssql
-* design & impement FPRM 
 * add cookie's validation
 * rewrite cookie->header-string with call-with-output-string
 * implement memcached-session swap algorithm
 * implement tpl cache
+* implement allowed-method?
+* design a generic session framework with optional store method: memcached/file+RCU/Berkerley DB...
