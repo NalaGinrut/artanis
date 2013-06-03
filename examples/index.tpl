@@ -17,7 +17,7 @@
     </div>
 
     <div id="container">
-      <h1><a href="http://tech.nalaginrut.com"> <%= blog-title %> </a></h1>
+      <h1><a href="/"> <%= blog-title %> </a></h1>
       <div id="main">
         <%= all-posts %>
       </div>
