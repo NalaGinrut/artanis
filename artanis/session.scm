@@ -63,9 +63,8 @@
       (load-session-from-file sid)))
 
 (define (session-expired? session)
-  (let ((now (current-time))
-        (expires (expires->time-utc (session-ref session "expires"))))
-    (> now expires)))
+  (let ((expir (session-ref session "expires")))
+    (and expir (time-expired? expir))))
 
 (define (session-destory sid)
   (mem:delete-session! sid) ; delete from memcached if exists
