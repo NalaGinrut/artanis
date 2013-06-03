@@ -33,7 +33,7 @@
   #:export (get post put patch delete params header run response-emit
             throw-auth-needed tpl->html redirect-to init-server
             generate-response-with-file emit-response-with-file
-            tpl->response reject-method
+            tpl->response reject-method response-error-emit
             rc-handler rc-handler!
             rc-keys rc-keys!
             rc-re rc-re!
@@ -246,9 +246,13 @@
       (let ((status (car e)))
         (format-status-page status request)))))
 
+(define (response-emit-error status)
+  (response-emit "" #:status status))
+
 (define* (response-emit body #:key (status 200) 
                         (headers '((content-type . (text/html))))
                         (mtime (current-time)))
+  (format #t "~a~%" headers)
   (values status headers body 
           (cons (time-second mtime) (time-nanosecond mtime))))
 
@@ -302,8 +306,8 @@
 (define (site-enable msg)
   (set! site-workable? #t))
 
-(define-syntax-rule (tpl->response sxml/file e)
-  (let ((html (tpl->html sxml/file e)))
+(define-syntax-rule (tpl->response sxml/file ...)
+  (let ((html (tpl->html sxml/file ...)))
     (if html
         (response-emit html)
         (response-emit "" #:status 404))))
@@ -316,7 +320,6 @@
     (call-with-output-string (lambda (port) (sxml->xml sxml/file port))))
    (else #f))) ; wrong param causes 404
 
-;; I'll pass rc in, in case we need track something
 ;; 302 for force-to-use-GET in default
 (define* (redirect-to rc path #:optional (status 302))
   (response-emit
@@ -324,7 +327,8 @@
    #:status status
    #:headers `((location . ,(string->uri 
                              (string-append *myhost* path)))
-               (content-type . (text/html)))))
+               (content-type . (text/html))
+               ,@(generate-cookies (rc-cookie rc)))))
 
 (define (reject-method method)
   (throw 'artanis-err 405 "Method is not allowed" method))
@@ -336,7 +340,11 @@
   (default-route-init)
   (init-config))
 
-(define* (run #:key (port 3000))
+(define* (run #:key (port 3000) (debug #f))
   (format #t "Anytime you want to Quit just try Ctrl+C, thanks!~%")
   (format #t "http://0.0.0.0:~a/~%" port)
-  (run-server server-handler 'http `(#:port ,port)))
+  (run-server
+   (if debug
+       (lambda (r b) (format #t "~a~%~a~%" r b) (server-handler r b))
+       server-handler)
+   'http `(#:port ,port)))
