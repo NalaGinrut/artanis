@@ -21,7 +21,8 @@ easy to port to other database binding. (but I like dbi)
 First, you need Guile-2.x:
 http://www.gnu.org/software/guile/
 Or just install it with your apt-get/zypper/yum...
-I suggest you install Guile-2.0.7
+I suggest you install Guile-2.0.9 which is the best release so far.
+And Artanis will be developped based on 2.0.9 till its first official release version.
 
 You need guile-dbi to handle database:
 http://download.gna.org/guile-dbi/
