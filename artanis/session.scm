@@ -21,7 +21,7 @@
   #:use-module (srfi srfi-9)
   #:use-module (web request)
   #:export (session-set! session-ref session-spawn session-destory 
-            session-restore has-auth?))
+            session-restore get-session))
 
 ;; TODO: now we don't have swap algorithm yet, which means all the sessions
 ;;       are memcached.
@@ -95,10 +95,6 @@
          (session (or (session-restore sid)
                       (store-session sid (new-session rc)))))
     (values sid session)))
-
-(define* (has-auth? rc #:key (key "sid"))
-  (let ((sid (params rc key)))
-    (and sid (get-session sid))))
 
 (define (session->alist session)
   (hash-map->list list session))
