@@ -21,7 +21,8 @@
   #:use-module (srfi srfi-9)
   #:use-module (web request)
   #:export (make-cookie cookie? cookie-set! cookie-ref generate-cookies
-            cookie->header-string new-cookie request-cookies cookie-expired?))
+            cookie->header-string new-cookie request-cookies cookie-expired?
+            has-cookie?))
 
 ;; inner cookie, you shouldn't use it directly, try new-cookie
 (define-record-type cookie
@@ -129,3 +130,7 @@
 (define (request-cookies req)
   (let ((cookies-str (header->cookies (request-headers req))))
     (map head-string->cookie cookies-str)))
+
+(define (has-cookie? ck key)
+  (let ((c (any (lambda (x) (cookie-ref x key)) ck)))
+    (and c (not (cookie-expired? c)) c)))
