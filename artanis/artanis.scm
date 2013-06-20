@@ -252,7 +252,6 @@
 (define* (response-emit body #:key (status 200) 
                         (headers '((content-type . (text/html))))
                         (mtime (current-time)))
-  (format #t "~a~%" headers)
   (values status headers body 
           (cons (time-second mtime) (time-nanosecond mtime))))
 
@@ -320,13 +319,12 @@
     (call-with-output-string (lambda (port) (sxml->xml sxml/file port))))
    (else #f))) ; wrong param causes 404
 
-;; 302 for force-to-use-GET in default
-(define* (redirect-to rc path #:optional (status 302))
+;; 301 is good for SEO and avoid some client problem
+(define* (redirect-to rc path #:optional (status 301))
   (response-emit
    ""
    #:status status
-   #:headers `((location . ,(string->uri 
-                             (string-append *myhost* path)))
+   #:headers `((location . ,(string->uri (string-append *myhost* path)))
                (content-type . (text/html))
                ,@(generate-cookies (rc-cookie rc)))))
 
