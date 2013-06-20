@@ -10,7 +10,7 @@
 (init-server) ;; make sure call init-server at beginning
 
 (define blog-db (make <mysql> #:user "root" #:name "mmr_blog"))
-(conn blog-db "123") ; "123" is the passwd of database
+(conn blog-db "") ; "123" is the passwd of database
 
 (define (make-footer)
   (tpl->html
@@ -21,6 +21,15 @@
 
 (define blog-title "Colt blog-engine")
 (define footer (make-footer))
+
+(define* (has-auth? rc #:key (key "sid"))
+  (let* ((ck (request-cookies (rc-req rc)))
+         (c (and ck (has-cookie? ck key))))
+    (format #t "c: ~a~%" c)
+    (unless c
+            (let ((sid (params rc key)))
+              (format #t "sid: ~a~%" sid)
+              (and sid (get-session sid))))))
 
 (get "/admin"
   (lambda (rc)
@@ -42,23 +51,12 @@
      (lambda (rc)
        (tpl->response "login.tpl")))
 
-(define (login-accepted? ck)
-  (let ((sid (any (lambda (x) (cookie-ref x "sid")) ck))
-        (expir (cookie-expir c)))
-    (if (cookie-expired? expir)
-        #f
-        sid)))
-
 (post "/auth"
       (lambda (rc)
         (let ((user (params rc "user"))
               (pwd (params rc "passwd"))
-              (keep (params rc "remember_me"))
-              (ck (request-cookies (rc-req rc))))
+              (keep (params rc "remember_me")))
           (cond
-           ((login-accepted? ck)
-            (let ((sid (get-sid ck)))
-              (redirect-to (format #f "/admin/sid=~a" sid))))
            ((and user pwd)
             (query blog-db (format #f "select * from user where user=~s" user))
             (let ((line (get-one-row blog-db)))
@@ -70,7 +68,7 @@
                   (lambda (sid session)
                     (let ((cookie (and keep (new-cookie #:npv `(("sid" ,sid)) #:path "/auth" 
                                                         #:domain "localhost"))))
-                      (rc-cookie! rc (list cookie))
+                      (and cookie (rc-cookie! rc (list cookie)))
                       (redirect-to rc (format #f "/admin?sid=~a" sid)))))) ; auth OK
                (else (redirect-to rc "/login?login_failed=true"))))) ; auth failed, relogin!
            (else ; invalid auth request
