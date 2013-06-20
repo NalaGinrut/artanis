@@ -1,237 +1,427 @@
-2013-04-11  Nala Ginrut  <nalaginrut@gmail.com>
+2013-06-21  NalaGinrut <nalaginrut@gmail.com>
 
-	session update
+	* examples/blog2.scm: update example/blog2.scm for cookie
 
-	cookie update
+2013-06-21  NalaGinrut <nalaginrut@gmail.com>
 
-	TODO update
+	* artanis/session.scm: remove has-auth?
 
-	Blog example works again.
-	* artanis/artanis.scm: better log info print
-	* artanis/config.scm: add *cookie-path*
-	* artanis/db.scm: fixed conn method, remove redundant 'name'
-	* artanis/utils.scm: export expires->utc-time
-	* examples/blog.scm: fixed blog example
+2013-06-21  NalaGinrut <nalaginrut@gmail.com>
 
-2013-04-09  Nala Ginrut  <nalaginrut@gmail.com>
+	* artanis/cookie.scm: add has-cookie?
 
-	Add THANKS
+2013-06-21  NalaGinrut <nalaginrut@gmail.com>
 
-	Add remote info to logger
+	* artanis/artanis.scm: change 301 as default status of redirect-to
+	because of good for SEO
 
-	Add test-suite and cookie test
+2013-06-08  Nala Ginrut <nalaginrut@gmail.com>
 
-	Add cookie support
+	* README.md: suggest users use guile 2.0.9 *  README.md: suggest users use guile-2.0.9
 
-2013-04-08  Nala Ginrut  <nalaginrut@gmail.com>
+2013-06-03  Nala Ginrut <nalaginrut@gmail.com>
 
-	update BUG
+	* artanis/fprm.scm: redesign FPRM * artanis/fprm.scm: new design for FPRM
 
-	add build-aux, update changelog
+2013-06-03  Nala Ginrut <nalaginrut@gmail.com>
 
-	fix get-*-time indent
+	* artanis/session.scm: use time-expired? * artanis/session.scm: use time-expired? for session-expired?
 
-	add static pages handle in default
+2013-06-03  Nala Ginrut <nalaginrut@gmail.com>
 
-	Update base64.
-	TODO: update TODO
-	artanis/base64.scm: update base64
+	* examples/index.tpl, examples/login.tpl: examples update
 
-2013-04-05  Nala Ginrut  <nalaginrut@gmail.com>
+2013-06-03  Nala Ginrut <nalaginrut@gmail.com>
 
-	TODO update
+	* TODO: update TODO
 
-	add base64 support
+2013-06-03  Nala Ginrut <nalaginrut@gmail.com>
 
-2013-04-04  Nala Ginrut  <nalaginrut@gmail.com>
+	* artanis/artanis.scm: Update artanis core * artanis/artanis.scm:   Add: response-emit-error   Add: run server debug mode   Update: tpl->html better local-eval support
 
-	Add embedded-template
+2013-06-01  Nala Ginrut <nalaginrut@gmail.com>
 
-	put all log output to error-port
+	* artanis/cookie.scm, artanis/utils.scm: Add time expired checker * artanis/cookie.scm:   Add: cookie-expired? * artanis/utils.scm:   Add: time-expired?   Fixed: etag output format
 
-2013-03-29  NalaGinrut  <nalaginrut@gmail.com>
+2013-05-30  Nala Ginrut <nalaginrut@gmail.com>
 
-	update ssql: add sql-where, truncate, drop. fix where clause with sql-where
+	* artanis/cookie.scm, examples/blog2.scm: update cookie
 
-2013-03-28  Nala Ginrut  <nalaginrut@gmail.com>
+2013-05-10  Nala Ginrut <nalaginrut@gmail.com>
 
-	update ssql: alter, use, create
+	* artanis/artanis.scm: update artanis.scm * artanis/artanis.scm:   Change request-cookie to request-cookies   Add reject method support
 
-2013-03-28  NalaGinrut  <nalaginrut@gmail.com>
+2013-05-09  Nala Ginrut <nalaginrut@gmail.com>
 
-	update ssql
+	* artanis/cookie.scm: generate cookie from header string works
 
-	added nfx
+2013-05-02  Nala Ginrut <nalaginrut@gmail.com>
 
-2013-03-27  NalaGinrut  <nalaginrut@gmail.com>
+	* artanis/utils.scm: add mmap/munmap
 
-	re-export: uri-decode
+2013-05-02  Nala Ginrut <nalaginrut@gmail.com>
 
-	Added: ssql
+	* artanis/ssql.scm: fixed ssql, don't use quote for fields
 
-2013-03-20  NalaGinrut  <nalaginrut@gmail.com>
+2013-04-17  Nala Ginrut <nalaginrut@gmail.com>
 
-	Fixed config for default path.
-	modified:   artanis/artanis.scm
-	* Change mime to MIME for log.
-	* Updated default path.
-	modified:   artanis/config.scm
-	* Updated default path.
+	* artanis/db.scm, artanis/ssql.scm, artanis/utils.scm: Re-commit * artanis/db.scm: Add check-status * artanis/ssql.scm: Fixed conds output * artanis/utils.scm: Add generate-Etag
 
-	Add how to work with Nginx and a test in example
+2013-04-17  Nala Ginrut <nalaginrut@gmail.com>
 
-2013-03-18  Nala Ginrut  <nalaginrut@gmail.com>
+	* : commit cc41fb3f7136e67cb5ed29870b1d9dbf470aca13 Author: Nala
+	Ginrut <nalaginrut@gmail.com> Date:   Wed Apr 17 18:45:05 2013 +0800
 
-	Add MIME support
+2013-04-15  Nala Ginrut <nalaginrut@gmail.com>
 
-2013-03-16  Nala Ginrut  <nalaginrut@gmail.com>
+	* artanis/config.scm, artanis/utils.scm, examples/blog2.scm,
+	examples/css/common.css, examples/index.tpl: add blog2 as TPL
+	example * artanis/config.scm: add use-Nginx? * artanis/utils.scm: update remote-info new file:   blog2.scm new
+	file:   css/common.css new file:   index.tpl
 
-	delete typo in README.md
+2013-04-15  Nala Ginrut <nalaginrut@gmail.com>
 
-	Update README.md, added APIs doc
+	* artanis/config.scm, artanis/utils.scm, examples/blog2.scm,
+	examples/css/common.css, examples/index.tpl: add blog2 as TPL
+	example * artanis/config.scm: add use-Nginx? * artanis/utils.scm: update remote-info new file:   blog2.scm new
+	file:   css/common.css new file:   index.tpl
 
-	Move get-global-date & get-local-date to artanis/utils.scm
+2013-04-11  Nala Ginrut <nalaginrut@gmail.com>
 
-	Add helper functions for static page.
-	artanis/artanis.scm: Add generate-response-with-file, emit-response-with-file
-	artanis/utils.scm: update cat & bv-cat to support both port and file.
+	* artanis/session.scm: remove test piles
 
-2013-02-20  Mu Lei  <nalaginrut@gmail.com>
+2013-04-11  Nala Ginrut <nalaginrut@gmail.com>
 
-	Update TODO
-	article table for blog sample is done
+	* artanis/session.scm: fixed get-session bug
 
-	Update README.md
+2013-04-11  Nala Ginrut <nalaginrut@gmail.com>
 
-	Merge pull request #3 from mario-goulart/patch-1
-	README.md: a couple of typo fixes.
+	* artanis/config.scm: fix session path
 
-2013-02-19  Mario Domenech Goulart  <mario.goulart@gmail.com>
+2013-04-11  Nala Ginrut <nalaginrut@gmail.com>
 
-	Update README.md
-	A couple of typo fixes.
+	* artanis/artanis.scm, artanis/config.scm: add config-init
 
-2013-02-19  Nala Ginrut  <nalaginrut@gmail.com>
+2013-04-11  Nala Ginrut <nalaginrut@gmail.com>
 
-	Merge branch 'master' of github.com:NalaGinrut/artanis
+	* artanis/artanis.scm: Fixed: env in tpl->html should be optional
 
-	fixed examples/test.scm
+2013-04-11  Nala Ginrut <nalaginrut@gmail.com>
 
-2013-02-19  Mu Lei  <nalaginrut@gmail.com>
+	* examples/my.tpl, examples/test.scm: update example, add embedded
+	tpl example
 
-	Update README.md
-	add inner server description
+2013-04-11  Nala Ginrut <nalaginrut@gmail.com>
 
-	Update README.md
-	fix the indentation
+	* artanis/cookie.scm: cookie update
 
-2013-02-19  Nala Ginrut  <nalaginrut@gmail.com>
+2013-04-11  Nala Ginrut <nalaginrut@gmail.com>
 
-	update README
+	* artanis/session.scm: session update.  * artanis/session.scm:   Add: save-session-to-file, persist session to file.    Add: delete-session-file, delete session file.    Update: misc update.
 
-	mv sample to examples/
+2013-04-11  Nala Ginrut <nalaginrut@gmail.com>
 
-	blog sample works now
+	* artanis/config.scm: add *session-path*
 
-2013-02-18  Nala Ginrut  <nalaginrut@gmail.com>
+2013-04-11  Nala Ginrut <nalaginrut@gmail.com>
 
-	blog example runs
+	* artanis/artanis.scm, artanis/tpl.scm, artanis/utils.scm: TPL
+	module update.  * artanis/artanis.scm:   Add: tpl->html, convert sxml or tpl-file to HTML.    Add: tpl->response, convert sxml or tpl-file to HTML and emit it        as the response.    Fix: redirect-to, add content-type when redirect URL.  * artanis/tpl.scm:   Add: tpl-render-from-file, read tpl file then render.  * artanis/utils.scm:   Add: local-eval-string, like local-eval, but for string.
 
-2013-02-17  Nala Ginrut  <nalaginrut@gmail.com>
+2013-04-11  Nala Ginrut <nalaginrut@gmail.com>
 
-	some update
+	* TODO: update TODO
 
-	Update blog sample.
+2013-04-11  Nala Ginrut <nalaginrut@gmail.com>
 
-2013-02-17  NalaGinrut  <nalaginrut@gmail.com>
+	* artanis/auth.scm: remove artanis/auth.scm
 
-	Update: blog sample
-	modified:   blog.scm
-	new file:   blogdb.mysql
+2013-04-11  Nala Ginrut <nalaginrut@gmail.com>
 
-2013-02-16  Nala Ginrut  <nalaginrut@gmail.com>
+	* ChangeLog: ChangeLog update
 
-	blog.scm updated
-	modified:   TODO
-	artanis/artanis.scm: added redirect-to
+2013-04-11  Nala Ginrut <nalaginrut@gmail.com>
 
-	new file:   artanis/auth.scm
-	artanis/session.scm: added has-auth?
+	* artanis/session.scm: session update
+
+2013-04-11  Nala Ginrut <nalaginrut@gmail.com>
+
+	* artanis/cookie.scm, test-suite/tests/cookie.test: cookie update
+
+2013-04-11  Nala Ginrut <nalaginrut@gmail.com>
+
+	* TODO: TODO update
+
+2013-04-11  Nala Ginrut <nalaginrut@gmail.com>
+
+	* artanis/artanis.scm, artanis/config.scm, artanis/db.scm,
+	artanis/utils.scm, examples/blog.scm: Blog example works again.  * artanis/artanis.scm: better log info print * artanis/config.scm: add *cookie-path* * artanis/db.scm: fixed conn method, remove redundant 'name' * artanis/utils.scm: export expires->utc-time * examples/blog.scm: fixed blog example
+
+2013-04-09  Nala Ginrut <nalaginrut@gmail.com>
+
+	* THANKS: Add THANKS
+
+2013-04-09  Nala Ginrut <nalaginrut@gmail.com>
+
+	* artanis/artanis.scm, artanis/utils.scm: Add remote info to logger
+
+2013-04-09  Nala Ginrut <nalaginrut@gmail.com>
+
+	* test-suite/test-suite/lib.scm, test-suite/tests/cookie.test: Add
+	test-suite and cookie test
+
+2013-04-09  Nala Ginrut <nalaginrut@gmail.com>
+
+	* artanis/cookie.scm: Add cookie support
+
+2013-04-08  Nala Ginrut <nalaginrut@gmail.com>
+
+	* BUGS, build-aux/.gitignore, build-aux/announce-gen,
+	build-aux/ar-lib, build-aux/compile, build-aux/config.rpath,
+	build-aux/gendocs.sh, build-aux/git-version-gen,
+	build-aux/gitlog-to-changelog, build-aux/gnu-web-doc-update,
+	build-aux/gnupload, build-aux/install-sh,
+	build-aux/snippet/_Noreturn.h, build-aux/snippet/arg-nonnull.h,
+	build-aux/snippet/c++defs.h, build-aux/snippet/unused-parameter.h,
+	build-aux/snippet/warn-on-use.h, build-aux/useless-if-before-free,
+	build-aux/vc-list-files: update BUG
+
+2013-04-08  Nala Ginrut <nalaginrut@gmail.com>
+
+	* ChangeLog, build-aux/.gitignore, build-aux/announce-gen,
+	build-aux/ar-lib, build-aux/compile, build-aux/config.rpath,
+	build-aux/gendocs.sh, build-aux/git-version-gen,
+	build-aux/gitlog-to-changelog, build-aux/gnu-web-doc-update,
+	build-aux/gnupload, build-aux/install-sh,
+	build-aux/snippet/_Noreturn.h, build-aux/snippet/arg-nonnull.h,
+	build-aux/snippet/c++defs.h, build-aux/snippet/unused-parameter.h,
+	build-aux/snippet/warn-on-use.h, build-aux/useless-if-before-free,
+	build-aux/vc-list-files: add build-aux, update changelog
+
+2013-04-08  Nala Ginrut <nalaginrut@gmail.com>
+
+	* artanis/utils.scm: fix get-*-time indent
+
+2013-04-08  Nala Ginrut <nalaginrut@gmail.com>
+
+	* artanis/artanis.scm, artanis/config.scm, artanis/utils.scm: add
+	static pages handle in default
+
+2013-04-08  Nala Ginrut <nalaginrut@gmail.com>
+
+	* TODO, artanis/base64.scm: Update base64.  TODO: update TODO artanis/base64.scm: update base64
+
+2013-04-05  Nala Ginrut <nalaginrut@gmail.com>
+
+	* TODO: TODO update
+
+2013-04-05  Nala Ginrut <nalaginrut@gmail.com>
+
+	* artanis/base64.scm: add base64 support
+
+2013-04-04  Nala Ginrut <nalaginrut@gmail.com>
+
+	* artanis/artanis.scm, artanis/config.scm, artanis/tpl.scm: Add
+	embedded-template
+
+2013-04-04  Nala Ginrut <nalaginrut@gmail.com>
+
+	* artanis/artanis.scm: put all log output to error-port
+
+2013-03-29  NalaGinrut <nalaginrut@gmail.com>
+
+	* artanis/ssql.scm: update ssql: add sql-where, truncate, drop. fix
+	where clause with sql-where
+
+2013-03-28  Nala Ginrut <nalaginrut@gmail.com>
+
+	* artanis/ssql.scm: update ssql: alter, use, create
+
+2013-03-28  NalaGinrut <nalaginrut@gmail.com>
+
+	* ChangeLog, TODO, artanis/ssql.scm: update ssql
+
+2013-03-28  NalaGinrut <nalaginrut@gmail.com>
+
+	* artanis/utils.scm: added nfx
+
+2013-03-27  NalaGinrut <nalaginrut@gmail.com>
+
+	* artanis/utils.scm, examples/blog.scm: re-export: uri-decode
+
+2013-03-27  NalaGinrut <nalaginrut@gmail.com>
+
+	* TODO, artanis/ssql.scm: Added: ssql
+
+2013-03-20  NalaGinrut <nalaginrut@gmail.com>
+
+	* artanis/artanis.scm, artanis/config.scm: Fixed config for default
+	path.  modified:   artanis/artanis.scm * Change mime to MIME for log.  * Updated default path.  modified:   artanis/config.scm * Updated default path.
+
+2013-03-20  NalaGinrut <nalaginrut@gmail.com>
+
+	* README.md, examples/test.scm: Add how to work with Nginx and a
+	test in example
+
+2013-03-18  Nala Ginrut <nalaginrut@gmail.com>
+
+	* artanis/artanis.scm, artanis/config.scm, artanis/mime.scm: Add
+	MIME support
+
+2013-03-16  Nala Ginrut <nalaginrut@gmail.com>
+
+	* README.md: delete typo in README.md
+
+2013-03-16  Nala Ginrut <nalaginrut@gmail.com>
+
+	* README.md: Update README.md, added APIs doc
+
+2013-03-16  Nala Ginrut <nalaginrut@gmail.com>
+
+	* artanis/artanis.scm, artanis/utils.scm: Move get-global-date &
+	get-local-date to artanis/utils.scm
+
+2013-03-16  Nala Ginrut <nalaginrut@gmail.com>
+
+	* artanis/artanis.scm, artanis/utils.scm: Add helper functions for
+	static page.  artanis/artanis.scm: Add generate-response-with-file,
+	emit-response-with-file artanis/utils.scm: update cat & bv-cat to
+	support both port and file.
+
+2013-02-20  Mu Lei <nalaginrut@gmail.com>
+
+	* TODO: Update TODO article table for blog sample is done
+
+2013-02-20  Mu Lei <nalaginrut@gmail.com>
+
+	* README.md: Update README.md
+
+2013-02-19  Mu Lei <nalaginrut@gmail.com>
+
+	* : Merge pull request #3 from mario-goulart/patch-1 README.md: a couple of typo fixes.
+
+2013-02-19  Nala Ginrut <nalaginrut@gmail.com>
+
+	* : commit 23204c10c3f5f2f71ad4f2838edac7a816b7de78 Author: Nala
+	Ginrut <nalaginrut@gmail.com> Date:   Tue Feb 19 16:08:47 2013 +0800
+
+2013-02-19  Mu Lei <nalaginrut@gmail.com>
+
+	* README.md: Update README.md add inner server description
+
+2013-02-19  Mu Lei <nalaginrut@gmail.com>
+
+	* README.md: Update README.md fix the indentation
+
+2013-02-19  Nala Ginrut <nalaginrut@gmail.com>
+
+	* README.md: update README
+
+2013-02-19  Nala Ginrut <nalaginrut@gmail.com>
+
+	* README, README.md, artanis/artanis.scm, blog.scm, blogdb.mysql,
+	examples/blog.scm, examples/blogdb.mysql, examples/test.scm,
+	test.scm: mv sample to examples/
+
+2013-02-19  Nala Ginrut <nalaginrut@gmail.com>
+
+	* artanis/artanis.scm, artanis/session.scm, artanis/utils.scm,
+	blog.scm, blogdb.mysql: blog sample works now
+
+2013-02-18  Nala Ginrut <nalaginrut@gmail.com>
+
+	* artanis/artanis.scm, artanis/config.scm, artanis/session.scm,
+	blog.scm: blog example runs
+
+2013-02-17  Nala Ginrut <nalaginrut@gmail.com>
+
+	* artanis/artanis.scm: some update
+
+2013-02-17  Nala Ginrut <nalaginrut@gmail.com>
+
+	* artanis/artanis.scm, artanis/db.scm, artanis/session.scm,
+	blog.scm, blogdb.mysql: Update blog sample.
+
+2013-02-17  NalaGinrut <nalaginrut@gmail.com>
+
+	* blog.scm, blogdb.mysql: Update: blog sample modified:   blog.scm new file:   blogdb.mysql
+
+2013-02-16  Nala Ginrut <nalaginrut@gmail.com>
+
+	* TODO, artanis/artanis.scm, artanis/auth.scm, artanis/session.scm,
+	blog.scm: blog.scm updated modified:   TODO artanis/artanis.scm: added redirect-to new file:   artanis/auth.scm artanis/session.scm: added has-auth?
 	blog.scm: updated
 
-2013-02-13  Nala Ginrut  <nalaginrut@gmail.com>
+2013-02-13  Nala Ginrut <nalaginrut@gmail.com>
 
-	TODO list updated
+	* TODO: TODO list updated
 
-	add a simplest blog example
+2013-02-13  Nala Ginrut <nalaginrut@gmail.com>
 
-	test.scm updated
+	* blog.scm: add a simplest blog example
 
-	add string->md5
+2013-02-13  Nala Ginrut <nalaginrut@gmail.com>
 
-	fixed db bugs
+	* test.scm: test.scm updated
 
-	fixed params bugs
+2013-02-13  Nala Ginrut <nalaginrut@gmail.com>
 
-	add session support
+	* artanis/utils.scm: add string->md5
 
-	add md5 support
+2013-02-13  Nala Ginrut <nalaginrut@gmail.com>
 
-2013-02-07  Nala Ginrut  <nalaginrut@gmail.com>
+	* artanis/db.scm: fixed db bugs
 
-	Add: dbi support.
+2013-02-13  Nala Ginrut <nalaginrut@gmail.com>
 
-2013-02-05  Nala Ginrut  <nalaginrut@gmail.com>
+	* artanis/artanis.scm: fixed params bugs
 
-	Fixed: favicon.ico show bug.
-	modified:   TODO
-	modified:   artanis/artanis.scm
-	modified:   artanis/utils.scm
-	new file:   favicon.ico
+2013-02-13  Nala Ginrut <nalaginrut@gmail.com>
 
-2013-02-05  Nala Ginrut  <nalaginrut@gmail.com>
+	* artanis/session.scm: add session support
 
-	Add last-modified time, and fixed 'favicon.ico' fetch.
-	* Add: last-modified time
-	* Fixed: 'favicon.ico' fetch
+2013-02-13  Nala Ginrut <nalaginrut@gmail.com>
 
-	modified:   artanis/utils.scm
-	* Fixed: get-global-time
-	* Add: get-local-time
+	* artanis/md5.scm: add md5 support
 
-	modified:   test.scm
+2013-02-07  Nala Ginrut <nalaginrut@gmail.com>
 
-	new file:   BUGS
+	* ChangeLog, TODO, artanis/artanis.scm, artanis/db.scm: Add: dbi
+	support.
 
-2013-02-05  Nala Ginrut  <nalaginrut@gmail.com>
+2013-02-05  Nala Ginrut <nalaginrut@gmail.com>
 
-	ADD: site enable/disabe
+	* TODO, artanis/artanis.scm, artanis/utils.scm: Fixed: favicon.ico
+	show bug.  modified:   TODO modified:   artanis/artanis.scm modified:
+	artanis/utils.scm new file:   favicon.ico
 
-2013-02-04  Nala Ginrut  <nalaginrut@gmail.com>
+2013-02-05  Nala Ginrut <nalaginrut@gmail.com>
 
-	v-0.0.1 updated
-	modified:   artanis/artanis.scm
-	* Fixed many bugs
-	* Method HEAD provided
-	* Response header returns server-info and date
-	* Status page works now
+	* BUGS, artanis/artanis.scm, artanis/utils.scm, test.scm: Add
+	last-modified time, and fixed 'favicon.ico' fetch.  * Add: last-modified time * Fixed: 'favicon.ico' fetch modified:   artanis/utils.scm * Fixed: get-global-time * Add: get-local-time modified:   test.scm new file:   BUGS
 
-	modified:   artanis/utils.scm
-	* ADD: get-global-current-time
+2013-02-05  Nala Ginrut <nalaginrut@gmail.com>
 
-	* ADD: pages/ for status page
+	* TODO, artanis/artanis.scm, pages/updating.html, test.scm: ADD:
+	site enable/disabe
 
-	new file:   test.scm
-	* ADD: test script for example
+2013-02-04  Nala Ginrut <nalaginrut@gmail.com>
 
-2013-02-02  Nala Ginrut  <nalaginrut@gmail.com>
+	* artanis/artanis.scm, artanis/utils.scm, pages/205.html,
+	pages/301.html, pages/401.html, pages/403.html, pages/404.html,
+	pages/405.html, pages/408.html, pages/500.html, pages/502.html,
+	pages/503.html, pages/504.html, test.scm: v-0.0.1 updated modified:   artanis/artanis.scm * Fixed many bugs * Method HEAD provided * Response header returns server-info and date * Status page works now modified:   artanis/utils.scm * ADD: get-global-current-time * ADD: pages/ for status page new file:   test.scm * ADD: test script for example
 
-	Update: optimized all things.
+2013-02-02  Nala Ginrut <nalaginrut@gmail.com>
 
-2013-01-31  NalaGinrut  <nalaginrut@gmail.com>
+	* artanis/artanis.scm, artanis/utils.scm: Update: optimized all
+	things.
 
-	Works now!
+2013-01-31  NalaGinrut <nalaginrut@gmail.com>
 
-2013-01-30  Nala Ginrut  <nalaginrut@gmail.com>
+	* README, artanis/artanis.scm, artanis/utils.scm: Works now!
 
-	first commit
+2013-01-30  Nala Ginrut <nalaginrut@gmail.com>
+
+	* first commit
+
