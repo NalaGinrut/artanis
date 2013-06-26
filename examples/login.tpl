@@ -10,6 +10,10 @@
 
   <body>
 
+    <%= (if failed 
+          (tpl->html `(p (font (@ (color "red")) "Invalid username or passwd!"))))
+    %>
+
     <div id="container">
       <h1><a href="/"> <%= blog-title %> </a></h1>
       <div id="main">

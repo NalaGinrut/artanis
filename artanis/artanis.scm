@@ -45,7 +45,8 @@
             rc-bt rc-bt!
             rc-body rc-body!
             rc-mtime rc-mtime!
-            rc-cookie rc-cookie!))
+            rc-cookie rc-cookie!
+            rc-set-cookie rc-set-cookie!))
 
 ;; table structure:
 ;; '((rule-handler-key (handler . keys)) ...)
@@ -68,7 +69,7 @@
 
 (define-record-type route-context
   (make-route-context handler keys regexp request path 
-                      qt method rhk bt body date cookie)
+                      qt method rhk bt body date cookie set-cookie)
   route-context?
   (handler rc-handler rc-handler!) ; reqeust handler
   (keys rc-keys rc-keys!) ; rule keys
@@ -81,7 +82,8 @@
   (bt rc-bt rc-bt!) ; bindings table
   (body rc-body rc-body!) ; request body
   (date rc-mtime rc-mtime!) ; modified time, users need to set it in handler
-  (cookie rc-cookie rc-cookie!)) ; the cookie parsed from header string
+  (cookie rc-cookie rc-cookie!) ; the cookie parsed from header string
+  (set-cookie rc-set-cookie rc-set-cookie!)) ; the cookies needed to be set as response
 
 ;; compiled regexp for optimization
 (define *rule-regexp* (make-regexp ":[^\\/]+"))    
@@ -188,15 +190,16 @@
         (if (thunk? handler) 
             (handler) 
             (handler rc)))
-    (lambda (status headers body mtime)
-      (let ((type (assoc-ref headers 'content-type)))
+    (lambda (status pre-headers body mtime)
+      (let ((type (assoc-ref pre-headers 'content-type)))
         (and type (log status (car type) (rc-req rc))))
       (values
        (build-response #:code status
                        #:headers `((server . ,server-info)
                                    (date . ,(get-global-date))
                                    (last-modified . ,(get-local-date mtime))
-                                   ,@headers))
+                                   ,@pre-headers 
+                                   ,@(generate-cookies (rc-set-cookie rc))))
        ;; NOTE: sanitize-response will handle 'HEAD method
        ;;       though rc-method is 'GET when request-method is 'HEAD,
        ;;       sanitize-response only checks method from request
@@ -212,7 +215,7 @@
          (method (if (eq? m 'HEAD) 'GET m))
          (cookies (request-cookies request))
          (rc (make-route-context #f #f #f request path #f 
-                                 method #f #f body #f cookies)))
+                                 method #f #f body #f cookies '())))
     ;; FIXME: maybe we don't need rhk? Throw it after get handler & keys
     (init-rule-handler-key! rc) ; set rule handler key
     (init-rule-handler-and-keys! rc) ; set handler and keys
@@ -252,6 +255,7 @@
 (define* (response-emit body #:key (status 200) 
                         (headers '((content-type . (text/html))))
                         (mtime (current-time)))
+  (format #t "headers: ~a~%" headers)
   (values status headers body 
           (cons (time-second mtime) (time-nanosecond mtime))))
 
@@ -325,8 +329,7 @@
    ""
    #:status status
    #:headers `((location . ,(string->uri (string-append *myhost* path)))
-               (content-type . (text/html))
-               ,@(generate-cookies (rc-cookie rc)))))
+               (content-type . (text/html)))))
 
 (define (reject-method method)
   (throw 'artanis-err 405 "Method is not allowed" method))

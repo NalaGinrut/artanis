@@ -56,8 +56,10 @@
                             (module-add! (current-module) s m)) mod))))
 
 (define (time-expired? expires)
-  (let ((t (expires->time-utc expires)))
-    (time>? (current-time) t)))
+  (if expires
+      (let ((t (expires->time-utc expires)))
+        (time>? (current-time) t))
+      #t)) ;; no expired, means session cookie, which is always expired
 
 (define (expires->time-utc str)
   (date->time-utc (parse-date str)))

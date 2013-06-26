@@ -21,12 +21,15 @@
   #:use-module (srfi srfi-9)
   #:use-module (web request)
   #:export (make-cookie cookie? cookie-set! cookie-ref generate-cookies
-            cookie->header-string new-cookie request-cookies cookie-expired?
-            has-cookie?))
+            cookie->header-string new-cookie request-cookies
+            cookie-has-key? remove-cookie-from-client))
+
+;; NOTE: server side never check cookie expires, it's client's duty
+;;       server only check sessions expires
 
 ;; inner cookie, you shouldn't use it directly, try new-cookie
 (define-record-type cookie
-  (make-cookie nvp expir path domain secure ho)
+  (make-cookie nvp expir path domain secure http-only)
   cookie?
   (nvp cookie-nvp cookie-nvp!)          ; Name-Value-Pairs of the cookie
   (expir cookie-expir cookie-expir!)    ; The expiration in Greenwich Mean Time
@@ -34,28 +37,17 @@
   (domain cookie-domain cookie-domain!) ; The domain the cookie is good for
   ;; keep cookie communication limited to encrypted transmission
   (secure cookie-secure cookie-secure!) ; The secure need of cookie
-  (ho cookie-httponly cookie-httponly!)); http-only
-
-(define (cookie-expired? cookie)
-  (time-expired? (cookie-expir cookie)))
+  (http-only cookie-httponly cookie-httponly!)); http-only
 
 (define (nvp name v-ref)
   (lambda (c)
-  (list (list name (v-ref c)))))
+    (list (list name (v-ref c)))))
 
 (define (nvp->string nvp)
   (let ((v (cadr nvp)))
     (if (boolean? v)
          (and v (car nvp))
          (format #f "~a=~a" (car nvp) v))))
-
-(define nvp-accessors
-  (list cookie-nvp
-        (nvp "Expires" cookie-expir)
-        (nvp "Path" cookie-path)
-        (nvp "Domain" cookie-domain)
-        (nvp "Secure" cookie-secure)
-        (nvp "HttpOnly" cookie-httponly)))
 
 (define *cookie-keywords*
   '("Expires" "Path" "Domain" "Secure" "HttpOnly"))
@@ -89,11 +81,20 @@
     cookie))
 
 (define (cookie->header-string cookie)
-  (let ((nvps (append-map
-               (lambda (nvp-ref)
-                 (filter-map nvp->string (cookie-nvp cookie)))
-               nvp-accessors)))
-    (string-join nvps ";")))
+  (let ((nvps (string-join (map nvp->string (cookie-nvp cookie)) "; "))
+        (expir (cookie-expir cookie))
+        (path (cookie-path cookie))
+        (domain (cookie-domain cookie))
+        (secure (cookie-secure cookie))
+        (http-only (cookie-httponly cookie)))
+    (call-with-output-string
+     (lambda (port)
+       (format port "~a" nvps)
+       (and domain (format port "; Domain=~a" domain))
+       (and path (format port "; Path=~a" path))
+       (and expir (format port "; Expires=~a" expir))
+       (and secure (display "; Secure" port))
+       (and http-only (display "; HttpOnly" port))))))
 
 (define (generate-cookies cookies)
   (map (lambda (c) `(set-cookie . ,(cookie->header-string c))) cookies))
@@ -121,16 +122,23 @@
     (cookie-nvp! cookie (assoc-remove! nvp name))))
 
 (define (header->cookies header)
+  ;;(format #t "header==> ~a~%" header)
   (fold (lambda (x p)
-          (if (eqv? 'set-cookie (car x))
+          (if (eqv? 'cookie (car x))
               (cons (cdr x) p)
               p))
         '() header))
 
 (define (request-cookies req)
   (let ((cookies-str (header->cookies (request-headers req))))
+    ;;(format #t "cookies-str: ~a~%" cookies-str)
     (map head-string->cookie cookies-str)))
 
-(define (has-cookie? ck key)
-  (let ((c (any (lambda (x) (cookie-ref x key)) ck)))
-    (and c (not (cookie-expired? c)) c)))
+(define (cookie-has-key? ck key)
+  (if (null? ck)
+      #f ; no cookie
+      (any (lambda (x) (and (cookie-ref x key) x)) ck)))
+
+(define *the-remove-expires* "Thu, 01-Jan-70 00:00:01 GMT")
+(define (remove-cookie-from-client key)
+  (new-cookie #:npv '((key "")) #:expires *the-remove-expires*))

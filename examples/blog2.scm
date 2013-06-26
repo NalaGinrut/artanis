@@ -22,34 +22,44 @@
 (define blog-title "Colt blog-engine")
 (define footer (make-footer))
 
-(define* (has-auth? rc #:key (key "sid"))
+(define* (cookie-auth? rc #:key (key "sid"))
   (let* ((ck (request-cookies (rc-req rc)))
-         (c (and ck (has-cookie? ck key))))
+         (c (and ck (cookie-has-key? ck key))))
     (format #t "c: ~a~%" c)
-    (unless c
-            (let ((sid (params rc key)))
-              (format #t "sid: ~a~%" sid)
-              (and sid (get-session sid))))))
+    c))
+
+(define* (login-auth? rc #:key (key "sid"))
+  (let ((sid (params rc key)))
+    (format #t "sid: ~a~%" sid)
+    (and sid (get-session sid))))
+
+(define (show-admin-page)
+  (response-emit
+   (tpl->html
+    `(html (body
+            (p "edit your article")
+            (form (@ (id "post_article") (action "/new_post") (method "POST"))
+                  "title: " (input (@ (type "text") (name "title")))(br)
+                  "content:" 
+                  (textarea (@ (name "content") (rows "25") (cols "38")) 
+                            "write something")(br)
+                            (input (@ (type "submit") (value "Submit")))))))))
 
 (get "/admin"
   (lambda (rc)
     (cond
-     ((has-auth? rc)
-      (response-emit
-       (tpl->html
-        `(html (body
-                (p "edit your article")
-                (form (@ (id "post_article") (action "/new_post") (method "POST"))
-                      "title: " (input (@ (type "text") (name "title")))(br)
-                      "content:" 
-                      (textarea (@ (name "content") (rows "25") (cols "38")) 
-                                "write something")(br)
-                      (input (@ (type "submit") (value "Submit")))))))))
+     ((login-auth? rc)
+      (display "login auth!\n")
+      (show-admin-page))
+     ((cookie-auth? rc)
+      (display "cookie auth!\n")
+      (show-admin-page))
      (else (redirect-to rc "/login")))))
 
 (get "/login"
      (lambda (rc)
-       (tpl->response "login.tpl")))
+       (let ((failed (params rc "login_failed")))
+         (tpl->response "login.tpl" (the-environment)))))
 
 (post "/auth"
       (lambda (rc)
@@ -66,9 +76,8 @@
                 (call-with-values
                     (lambda () (session-spawn rc))
                   (lambda (sid session)
-                    (let ((cookie (and keep (new-cookie #:npv `(("sid" ,sid)) #:path "/auth" 
-                                                        #:domain "localhost"))))
-                      (and cookie (rc-cookie! rc (list cookie)))
+                    (let ((cookie (and keep (new-cookie #:npv `(("sid" ,sid))))))
+                      (and cookie (rc-set-cookie! rc (list cookie)))
                       (redirect-to rc (format #f "/admin?sid=~a" sid)))))) ; auth OK
                (else (redirect-to rc "/login?login_failed=true"))))) ; auth failed, relogin!
            (else ; invalid auth request
