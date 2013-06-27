@@ -30,9 +30,18 @@
             nfx static-filename remote-info seconds-now local-time-stamp
             parse-date write-date make-expires export-all-from-module!
             alist->hashtable expires->time-utc local-eval-string generate-ETag
-            time-expired? valid-method? mmap munmap)
+            time-expired? valid-method? mmap munmap get-random-from-dev)
   #:re-export (the-environment))
 
+(define* (get-random-from-dev #:key (length 8) (uppercase #f))
+  (call-with-input-file "/dev/random" 
+    (lambda (port)  
+      (let* ((bv ((@ (rnrs) get-bytevector-n) port length))
+             (str (format #f "~{~2,'0x~}" (bytevector->u8-list bv))))
+        (if uppercase
+            (string-upcase str)
+            str)))))
+           
 (define uri-decode (@ (web uri) uri-decode))
 (define parse-date (@@ (web http) parse-date))
 (define write-date (@@ (web http) write-date))
