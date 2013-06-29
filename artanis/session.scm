@@ -51,12 +51,8 @@
               args)
     ht))
 
-(define (get-new-id)
-  (let ((now (object->string (current-time)))
-        (pid (object->string (getpid)))
-        (rand (object->string (unsafe-random)))
-        (me "nalaginrut"))
-    (string->md5 (string-append now pid rand me))))
+(define (get-new-sid)
+  (get-random-from-dev))
     
 (define (get-session sid)
   (or (mem:get-session sid)
@@ -91,7 +87,7 @@
   session)
 
 (define (session-spawn rc)
-  (let* ((sid (get-new-id))
+  (let* ((sid (get-new-sid))
          (session (or (session-restore sid)
                       (store-session sid (new-session rc)))))
     (values sid session)))

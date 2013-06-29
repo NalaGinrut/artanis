@@ -37,7 +37,7 @@
   (call-with-input-file "/dev/random" 
     (lambda (port)  
       (let* ((bv ((@ (rnrs) get-bytevector-n) port length))
-             (str (format #f "~{~2,'0x~}" (bytevector->u8-list bv))))
+             (str (format #f "~{~2,'0x~}" ((@ (rnrs) bytevector->u8-list) bv))))
         (if uppercase
             (string-upcase str)
             str)))))
