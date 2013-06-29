@@ -26,7 +26,6 @@
 (define *myhost* "http://localhost:3000")
 (define *error-page-path* "../pages")
 (define *updating-page* "updating.html")
-(define *cookie-path* "cookies/")
 (define *session-path* "session/")
 
 (define (get-sys-page status)
@@ -43,5 +42,5 @@
 (define current-charset (make-parameter "utf-8"))
 
 (define (init-config)
-  (unless (file-exists? *session-path*) (mkdir *session-path*))
-  (unless (file-exists? *cookie-path*) (mkdir *cookie-path*)))
+  (unless (file-exists? *session-path*) (mkdir *session-path*)))
+
