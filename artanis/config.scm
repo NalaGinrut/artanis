@@ -35,9 +35,9 @@
   (make-parameter
    (format #f "~a/~a" *error-page-path* *updating-page*)))
   
-(define current-start-sign (make-parameter "<% "))
-(define current-startd-sign (make-parameter "<%= "))
-(define current-end-sign (make-parameter " %>"))
+(define current-start-sign (make-parameter "<%"))
+(define current-startd-sign (make-parameter "<%="))
+(define current-end-sign (make-parameter "%>"))
 
 (define current-charset (make-parameter "utf-8"))
 
