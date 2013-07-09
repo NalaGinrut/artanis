@@ -140,5 +140,8 @@
       (any (lambda (x) (and (cookie-ref x key) x)) ck)))
 
 (define *the-remove-expires* "Thu, 01-Jan-70 00:00:01 GMT")
-(define (remove-cookie-from-client key)
-  (new-cookie #:npv '((key "")) #:expires *the-remove-expires*))
+(define (remove-cookie-from-client key rc)
+  (let ((cookies (rc-set-cookie rc)))
+    (rc-set-cookie! 
+     rc
+     `(,@cookies ,(new-cookie #:npv '((key "")) #:expires *the-remove-expires*)))))
