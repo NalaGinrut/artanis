@@ -343,9 +343,9 @@
 
 (define* (run #:key (port 3000) (debug #f))
   (format #t "Anytime you want to Quit just try Ctrl+C, thanks!~%")
-  (format #t "http://0.0.0.0:~a/~%" port)
+  (format #t "http://~a:~a/~%" *host-addr* port)
   (run-server
    (if debug
        (lambda (r b) (format #t "~a~%~a~%" r b) (server-handler r b))
        server-handler)
-   'http `(#:port ,port)))
+   'http `(#:host ,*host-addr* #:port ,port)))

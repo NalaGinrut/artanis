@@ -23,7 +23,8 @@
 (define use-Nginx? #f)
 
 ;; FIXME: *myhost* should be dynamically generated
-(define *myhost* "http://localhost:3000")
+(define *host-addr* "0.0.0.0")
+(define *myhost* (format #f "~a:3000" *host-addr*))
 (define *error-page-path* "../pages")
 (define *updating-page* "updating.html")
 (define *session-path* "session/")
