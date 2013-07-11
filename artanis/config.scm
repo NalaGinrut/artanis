@@ -24,7 +24,8 @@
 
 ;; FIXME: *myhost* should be dynamically generated
 (define *host-addr* "0.0.0.0")
-(define *myhost* (format #f "~a:3000" *host-addr*))
+(define *host-port* 3000)
+(define (current-myhost) (format #f "http://~a:~a" *host-addr* *host-port*))
 (define *error-page-path* "../pages")
 (define *updating-page* "updating.html")
 (define *session-path* "session/")
@@ -44,4 +45,3 @@
 
 (define (init-config)
   (unless (file-exists? *session-path*) (mkdir *session-path*)))
-
