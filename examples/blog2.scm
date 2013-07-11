@@ -10,7 +10,7 @@
 (init-server) ;; make sure call init-server at beginning
 
 (define blog-db (make <mysql> #:user "root" #:name "mmr_blog"))
-(conn blog-db "") ; "123" is the passwd of database
+(conn blog-db "123") ; "123" is the passwd of database
 
 (define (make-footer)
   (tpl->html
@@ -54,7 +54,7 @@
      ((cookie-auth? rc)
       (display "cookie auth!\n")
       (show-admin-page))
-     (else (redirect-to rc "/login")))))
+     (else (redirect-to rc "/login" 307)))))
 
 (get "/login"
      (lambda (rc)

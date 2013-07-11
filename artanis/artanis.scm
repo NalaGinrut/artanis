@@ -255,7 +255,7 @@
 (define* (response-emit body #:key (status 200) 
                         (headers '((content-type . (text/html))))
                         (mtime (current-time)))
-  (format #t "headers: ~a~%" headers)
+  ;;(format #t "headers: ~a~%" headers)
   (values status headers body 
           (cons (time-second mtime) (time-nanosecond mtime))))
 
@@ -328,7 +328,8 @@
   (response-emit
    ""
    #:status status
-   #:headers `((location . ,(string->uri (string-append *myhost* path)))
+   #:headers `((location . ,(build-uri 'http #:path path));;,(string->uri (string-append (current-myhost) path)))
+               (content-length . 0)
                (content-type . (text/html)))))
 
 (define (reject-method method)
@@ -341,11 +342,13 @@
   (default-route-init)
   (init-config))
 
-(define* (run #:key (port 3000) (debug #f))
+(define* (run #:key (host #f) (port #f) (debug #f))
   (format #t "Anytime you want to Quit just try Ctrl+C, thanks!~%")
-  (format #t "http://~a:~a/~%" *host-addr* port)
+  (and host (set! *host-addr* host))
+  (and port (set! *host-port* port))
+  (format #t "~a~%" (current-myhost))
   (run-server
    (if debug
        (lambda (r b) (format #t "~a~%~a~%" r b) (server-handler r b))
        server-handler)
-   'http `(#:host ,*host-addr* #:port ,port)))
+   'http `(#:host ,*host-addr* #:port ,*host-port*)))
