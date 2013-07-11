@@ -73,7 +73,7 @@
                      session)))) ; non-expired, return session
 ;; no session will return #f
     
-(define* (new-session rc #:key (expires 3600) (domain *myhost*) (secure #f))
+(define* (new-session rc #:key (expires 3600) (domain (current-myhost)) (secure #f))
   (let ((expires-str (make-expires expires))
         (path (rc-path rc)))
     (make-session `(("expires" . ,expires-str)
