@@ -52,9 +52,9 @@
                          (if p
                              (+ p pos)
                              p))))
-                    (s (get-position start-sign))
+                    (sd (get-position startd-sign))                    
+                    (s (if sd #f (get-position start-sign)))
                     (e (get-position end-sign))
-                    (sd (get-position startd-sign))
                     (in-len (string-length str-in)))
                (cond
                 ((= in-len 0) #t) ;; recursive exit
