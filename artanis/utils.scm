@@ -16,6 +16,7 @@
 
 (define-module (artanis utils)
   #:use-module (artanis md5)
+  #:use-module (artanis sha-1)
   #:use-module (artanis config)
   #:use-module (system foreign)
   #:use-module (ice-9 regex)
@@ -30,7 +31,8 @@
             nfx static-filename remote-info seconds-now local-time-stamp
             parse-date write-date make-expires export-all-from-module!
             alist->hashtable expires->time-utc local-eval-string generate-ETag
-            time-expired? valid-method? mmap munmap get-random-from-dev)
+            time-expired? valid-method? mmap munmap get-random-from-dev
+            string->byteslist string->sha-1 list-slice bv-slice)
   #:re-export (the-environment))
 
 (define* (get-random-from-dev #:key (length 8) (uppercase #f))
@@ -247,3 +249,64 @@
   (pointer->bytevector (%mmap addr size prot flags fd offset) size))
 (define (munmap bv size)
   (%munmap (bytevector->pointer bv size) size))
+
+;; FIXME: what if len is not even?
+(define (string->byteslist str step base)
+  (define len (string-length str))
+  (let lp((ret '()) (i 0)) 
+    (cond 
+     ((>= i len) (reverse ret))
+     ((zero? (modulo i step)) 
+      (lp (cons (string->number (substring/shared str i (+ i step)) base) ret) (1+ i))) 
+     (else (lp ret (1+ i))))))
+
+(define (string->sha-1 str/bv)
+  (let ((in (cond
+             ((string? str/bv)
+              ((@ (rnrs) string->utf8) str/bv))
+             (((@ (rnrs) bytevector?) str/bv)
+              str/bv)
+             (else (error "need string or bytevector!" str/bv)))))
+    (sha-1->string (sha-1 in))))
+
+(define-syntax list-slice
+  (syntax-rules (:)
+    ((_ ll lo : hi)
+     (let ((len (length ll)))
+       (and (<= lo len) (>= len hi)
+	    (let lp((rest ll) (result '()) (cnt 1))
+	      (cond
+	       ((null? rest) (error "no"))
+	       ((<= cnt lo) (lp (cdr rest) result (1+ cnt)))
+	       ((> cnt hi) (reverse result))
+	       (else (lp (cdr rest) (cons (car rest) result) (1+ cnt))))))))
+    ((_ ll lo :)
+     (drop ll lo))
+    ((_ ll : hi)
+     (take ll hi))))
+
+;; TODO: 
+;; 1. (> hi (bytevector-length bv))
+;; 2. (< lo 0) wrap reference
+(define (%bv-slice bv lo hi) 
+  (let* ((len (- hi lo)) 
+         (slice ((@ (rnrs) make-bytevector) len)))
+    ((@ (rnrs) bytevector-copy!) bv lo slice 0 len) slice))
+
+;; NOT SAFE %bytevector-slice for GC, need 
+;;(define (%bytevector-slice bv lo hi)
+;;  (and (< hi lo) (error %bytevector-slice "wrong range" lo hi))
+;;  (let* ((ptr (bytevector->pointer bv))
+;;         (addr (pointer-address ptr))
+;;        (la (+ addr lo))
+;;         (len (- hi lo)))
+;;    (pointer->bytevector (make-pointer la) len)))
+  
+(define-syntax bv-slice
+  (syntax-rules (:)
+    ((_ bv lo : hi)
+     (%bv-slice bv lo hi))
+    ((_ bv lo :)
+     (%bv-slice bv lo ((@ (rnrs bytevectors) bytevector-length) bv)))
+    ((_ bv : hi)
+     (%bv-slice bv 0 hi))))
