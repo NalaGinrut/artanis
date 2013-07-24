@@ -98,11 +98,11 @@
     ((_ into table values (lst ...) select rest ...)
      (-> "into ~a values (~{~s~^,~}) select ~a"
          'table '(lst ...) (sql-select rest ...)))
-    ((_ into table fields values (lst ...))
-     (-> "into ~a (~{~a~^,~}) values (~{~s~^,~})" 'table fields '(lst ...)))
-    ((_ into table fields values (lst ...) select rest ...)
+    ((_ into table fields values lst)
+     (-> "into ~a (~{~a~^,~}) values (~{~s~^,~})" 'table fields lst))
+    ((_ into table fields values lst select rest ...)
      (-> "into ~a (~{~a~^,~}) values (~{~s~^,~}) select ~a" 
-         'table fields '(lst ...) (sql-select rest ...)))))
+         'table fields lst (sql-select rest ...)))))
 
 (define-syntax sql-update
   (syntax-rules (set where)
