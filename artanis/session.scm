@@ -31,6 +31,7 @@
 (define (mem:get-session sid)
   (hash-ref *sessions-table* sid))
 
+;; FIXME: lock needed?
 (define (mem:store-session! sid session)
   (hash-set! *sessions-table* sid session))
 
@@ -86,10 +87,14 @@
   (save-session-to-file sid session)
   session)
 
-(define (session-spawn rc)
+;; NOTE: memcache-it is a proc received two arguments, which could be used to pass
+;;       your custom memcache handler, like memcached/redis.
+;;       The default policy is all-in-memory which is an obvious naive way for that.
+(define* (session-spawn rc #:optional (memcache-it mem:store-session!))
   (let* ((sid (get-new-sid))
          (session (or (session-restore sid)
                       (store-session sid (new-session rc)))))
+    (memcache-it sid session)
     (values sid session)))
 
 (define (session->alist session)
