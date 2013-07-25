@@ -147,19 +147,16 @@ pre code {
 }
 
 
+
 p.foot {
   font: 12px Arial;
-  padding:10px 40px 10px 0;
+  padding: 8px 9px 9px 0;
   text-align:right;
   background:#444;
-  margin-bottom:0;
-  margin-top:40px;
   font-style:italic;
   color:#777;
 }
-p.foot.up {
-  margin-top:0;
-}
+
 #main p.foot a {color:#999;font-weight:normal;}
 #main p.foot a:hover {color:#fff;}
 #main .about {padding:80px 80px 0 0}

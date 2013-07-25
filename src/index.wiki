@@ -19,3 +19,8 @@ Those dying generations - at their song.
 
 (run #:port 8080)
 </enscript>
+
+<enscript language="sh">
+curl localhost:8080/hello
+==> hello world
+</enscript>

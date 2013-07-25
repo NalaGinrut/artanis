@@ -1,7 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html>
 <head>
-<title>index</title>
+<title>mmr</title>
 <meta http-equiv="Content-Style-Type" content="text/css" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <link href="css/highlight.css" rel="stylesheet" type="text/css" />
@@ -23,17 +23,19 @@
 <div id="main" class="home">
 <div class="wrap">
 <pre><code>
-<h3 id="sailing-to-devnull">Sailing to /dev/null</h3>
-<p>That is no future for mediocre coder.</p>
-<p>The hacker is one another's arm. Codes in the editors.</p>
-<p>Those dying generations - at their song.</p>
-<pre><tt class="highlight scheme-language"><span class="paren1">(<span class="default">use-modules <span class="paren2">(<span class="default">artanis artanis</span>)</span></span>)</span>
-
-<span class="paren1">(<span class="default">get <span class="string">&quot;/hello&quot;</span>
- <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default">rc</span>)</span>
-  <span class="paren3">(<span class="default">response-emit <span class="string">&quot;hello world&quot;</span></span>)</span></span>)</span></span>)</span>
-
-<span class="paren1">(<span class="default">run <span class="keyword">#:port</span> 8080</span>)</span></tt></pre>
-<pre><tt class="highlight sh-language">curl localhost:8080/hello
-==&gt; hello world</tt></pre></code></pre></div>
+<h1>Artanis</h1>
+<p>Artanis aims to be a very lightweight web framework for Scheme which is written all with GNU Guile.</p>
+<h2>Features:</h2>
+<ul>
+<li>very lightweight: the core artanis.scm almost 300 lines, easy to hack
+and learn for newbies.</li>
+<li>a relative complete web-server implementation, include error page
+throw and all the HTTP method (you have to specify your own handler)</li>
+<li>10K concurrent performance for the server, takes advantage of the
+Guile inner server. It's enough for you own site/blog.</li>
+<li>sinatra like style route, that's why it names &quot;artanis&quot; ;-)</li>
+<li>Database support (now use guile-dbi), mysql/sqlite/postgresql. But it's
+easy to port to other database binding. (but I like dbi)</li>
+<li>session support</li>
+<li>HTML template of SXML (very easy to use for Lisper)</li></ul></code></pre></div>
 <p class="foot up">Source: <a href="http://github.com/NalaGinrut/artanis">Artanis </a>powered by <a href="http://www.gnu.org/software/guile/">GNU Guile </a>This page is Powered by <a href="http://wiki.call-cc.org/eggref/4/hyde">Hyde of Chicken Scheme</a></p></div><a id="forkme" href="http://github.com/NalaGinrut/artanis">Fork me on Github</a></body></html>
