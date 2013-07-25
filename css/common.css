@@ -1,0 +1,180 @@
+@import url("http://fonts.googleapis.com/css?family=Spirax");
+
+body, ul, li, div, span, p, strong {
+  margin:0;
+  padding:0;
+  position:relative;
+}
+body {
+  background: url(../img/body.png) repeat-y 0 0;
+  font-family: 'Spirax', Helvetica, Arial, "FreeSans";
+  display:block;
+  min-width:960px;
+  position:relative;
+}
+#side,#main {
+  top:0;
+}
+#side{
+  left:0;
+  text-align:center;
+  position:fixed;
+  width:390px;
+}
+#side ul {
+  list-style-type:none;
+  margin:0;
+  padding:7px 20% 80px;
+}
+#side ul li {
+  display:block;
+  margin:0;
+}
+#side ul li a {
+  color: #000;
+  display:inline;
+  font-size: 20px;
+  text-decoration:none;
+  text-shadow:0px 1px 0px #fc9;
+  padding:4px 0px;
+  line-height:32px;
+}
+#side ul li a:hover {font-weight:bold;}
+#side ul li a.active {
+  color: #fff;
+  text-shadow:1px 1px 5px #838383;
+  font-weight: bold;
+}
+#side ul li a.active:hover {
+    color: white
+    text-shadow: 1px 3px 5px #3B6BE7;
+    font-weight: normal;
+}
+    
+h2#slogan1 {
+  font-size: 20px;
+  font-weight: normal;
+  font-style: italic;
+  margin-top: -40px;
+}
+
+h2#slogan2 {
+    font-size: 20px;
+    font-weight: normal;
+    font-style: italic;
+    margin-top: -15px;
+    margin-bottom: 40px;
+}
+
+a.github {
+  background:url(../img/public.png) no-repeat left center;
+  font-size:24px;
+  font-family: Arial;
+  color:#f87;
+  text-decoration:none;
+  padding-left:20px;
+}
+a.github:hover {color:#f50;}
+a.github:hover span {color:#444;}
+a.github span {color:#999;padding:0px 3px}
+#side p {
+  text-shadow:none;
+  margin-top:0;
+}
+#main{
+  position:absolute;
+  left:390px;
+  right:0;
+}
+#main strong {color:#fff;font-weight:normal;}
+#main a {color:#fa0;text-decoration:none;}
+#main a:hover {color:#fff;text-decoration:underline;}
+#main.home .wrap{padding-top:10px;}
+#main .wrap {
+  height:100%;
+}
+#forkme {
+  position:absolute;
+  top:0;
+  right:0;
+  background: url(../img/fork.png) no-repeat top right;
+  width:200px;
+  height:200px;
+  text-indent:-9999px;
+}
+#header div.small{
+  text-align: left;
+}
+p,h3,h4 {
+  padding: 0 30px;
+}
+
+h1 {
+  background:url(../img/logo.png) no-repeat center center;
+  width:100%;
+  height:200px;
+  text-indent:-9999px;
+  margin:0;
+}
+
+h1 .small { font-size: 0.4em; }
+
+h1 a { text-decoration: none }
+
+
+a { color: #333; }
+h3 {font-size:30px;margin:12px 0 4px;font-weight:normal;}
+h3.first {margin-top:0px;padding-top:20px;}
+p,h3,h4 {
+    text-shadow:0px 1px 0px;
+    color: #777
+}
+#main h4 a {color:#fff; text-decoration: none;}
+h4 {margin:0;padding:18px 0 5px 30px;font-weight:normal;font-size:20px;}
+p {margin:8px 10px;font-size:17px;}
+p.note{ text-align: center; font-size: 12px; font-weight: bold; }
+
+p.big_note{ text-align: center; font-size: 18px; font-weight: bold; }
+
+.clear{ clear: both; }
+/*
+
+CODE
+
+*/
+pre code {
+    line-height: 8px
+}
+
+
+p.foot {
+  font: 12px Arial;
+  padding:10px 40px 10px 0;
+  text-align:right;
+  background:#444;
+  margin-bottom:0;
+  margin-top:40px;
+  font-style:italic;
+  color:#777;
+}
+p.foot.up {
+  margin-top:0;
+}
+#main p.foot a {color:#999;font-weight:normal;}
+#main p.foot a:hover {color:#fff;}
+#main .about {padding:80px 80px 0 0}
+#main p.first {padding-right:150px}
+#main .wrap.pad {padding-top:40px;}
+#main .wrap.padder {padding-top:80px;}
+#main .mixed-pad h3, #main .mixed-pad h4, #main .mixed-pad p {padding-right:80px;}
+h4.note {padding:20px 30px 20px 70px;background:#b30 url(../img/warning.png) no-repeat 30px center;font-weight:bold;}
+a {outline:none}
+.options{ background: #000; padding-left: 30px; font-size: 12pt}
+.options thead td{font-weight: bold}
+.options td{padding: 6px 8px}
+.options tr.odd{background: #333}
+
+#the-author {
+    font: italic normal 15px/20px "Times New Roman";
+    color: #999;
+}

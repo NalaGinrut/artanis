@@ -1,0 +1,21 @@
+((title . "index")
+ (authors "Mu Lei known as NalaGinrut <nalaginrut@gmail.com>")
+ (date . 1374652887))
+
+=== Sailing to /dev/null
+
+That is no future for mediocre coder.
+
+The hacker is one another's arm. Codes in the editors.
+
+Those dying generations - at their song.
+
+<enscript language="scheme">
+(use-modules (artanis artanis))
+
+(get "/hello"
+ (lambda (rc)
+  (response-emit "hello world")))
+
+(run #:port 8080)
+</enscript>

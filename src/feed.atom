@@ -1,0 +1,13 @@
+((title . "atom")
+ (subtitle . "The atom of Artanis site")
+ (date . "2010-08-29")
+ (tag . "tag:web-artanis.com,~A:~A")
+ (entries-type . xhtml)
+ (base-uri . "www.web-artanis.com")
+ (icon . "imp/icon.png")
+ (logo . "imp/logo.png"))
+
+(pages->atom-doc (all-issues)
+                 page-date->rfc3339-string: 
+                 (lambda (s)
+                   (rfc3339->string (seconds->rfc3339 s))))

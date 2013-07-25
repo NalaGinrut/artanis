@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <generator uri="http://3e8.org/chickadee/atom" version="0.1.1">atom egg for Chicken</generator>
+  <icon>www.web-artanis.comimp/icon.png</icon>
+  <id>tag:web-artanis.com,2010-08-29:/</id>
+  <link href="www.web-artanis.com/" rel="alternate" type="text/html" />
+  <link href="www.web-artanis.com/feed.atom" rel="self" type="application/atom+xml" />
+  <logo>www.web-artanis.comimp/logo.png</logo>
+  <subtitle type="text">The atom of Artanis site</subtitle>
+  <title type="text">atom</title>
+  <updated>2013-07-24T08:01:27Z</updated>
+  <entry>
+    <author>
+      <name>Mu Lei known as NalaGinrut &lt;nalaginrut@gmail.com&gt;</name>
+    </author>
+    <content type="html">
+&lt;h3 id="sailing-to-devnull"&gt;Sailing to /dev/null&lt;/h3&gt;
+&lt;p&gt;That is no future for mediocre coder.&lt;/p&gt;
+&lt;p&gt;The hacker is one another's arm. Codes in the editors.&lt;/p&gt;
+&lt;p&gt;Those dying generations - at their song.&lt;/p&gt;
+&lt;pre&gt;&lt;tt class="highlight scheme-language"&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;use-modules &lt;span class="paren2"&gt;(&lt;span class="default"&gt;artanis artanis&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+
+&lt;span class="paren1"&gt;(&lt;span class="default"&gt;get &lt;span class="string"&gt;&amp;quot;/hello&amp;quot;&lt;/span&gt;
+ &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;lambda&lt;/span&gt;&lt;/i&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;rc&lt;/span&gt;)&lt;/span&gt;
+  &lt;span class="paren3"&gt;(&lt;span class="default"&gt;response-emit &lt;span class="string"&gt;&amp;quot;hello world&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+
+&lt;span class="paren1"&gt;(&lt;span class="default"&gt;run &lt;span class="keyword"&gt;#:port&lt;/span&gt; 8080&lt;/span&gt;)&lt;/span&gt;&lt;/tt&gt;&lt;/pre&gt;</content>
+    <id>tag:web-artanis.com,2013-07-24:/index.html</id>
+    <published>2013-07-24T08:01:27Z</published>
+    <title type="text">index</title>
+    <updated>2013-07-24T08:01:27Z</updated>
+    <link href="www.web-artanis.com/index.html" rel="alternate" type="application/xhtml+xml" />
+  </entry>
+</feed>

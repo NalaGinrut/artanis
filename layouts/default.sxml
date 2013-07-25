@@ -1,0 +1,36 @@
+()
+`((xhtml-1.0-strict)
+  (html
+   (head
+    (title ,($ 'title))
+    (meta (@ (http-equiv "Content-Style-Type") (content "text/css")))
+    (meta (@ (http-equiv "Content-Type") (content "text/html; charset=utf-8")))
+    (link (@ (href "css/highlight.css") (rel "stylesheet") (type "text/css")))
+    (link (@ (href "css/common.css") (rel "stylesheet") (type "text/css"))))     
+    (link (@ (rel "icon") (type "image/ico") (href "favicon.ico")))
+   (body
+    (div (@ (id "side"))
+     (div (@ (class "wrap"))
+      (h1 "Artanis home")
+      (h2 (@ (id "slogan1")) "A lightweight web-framework")
+      (h2 (@ (id "slogan2")) "of " (a (@ (id "slogan2") (href "http://mitpress.mit.edu/sicp/full-text/book/book.html")) "Scheme"))
+      (ul (@ (id "links"))
+       (li (a (@ (href "index.html") (class "active")) "Home"))
+       (li (a (@ (href "about.html")) "About"))
+       (li (a (@ (href "docs/index.html")) "Documents"))
+       (li (a (@ (href "contribute.html")) "Contribute"))
+       (li (@ (class "last")) (a (@ (href "donate.html")) "Donate")))
+      (h3 (@ (id "the-author")) "Authored by " 
+       (a (@ (id "the-author") (href "http://tech.nalaginrut.com")) "NalaGinrut"))))
+    (div (@ (id "main") (class "home"))
+     (div (@ (class "wrap")) (pre (code (inject ,contents))))
+     (br)(br)
+     (p (@ (class "foot up"))
+        "Source: "
+        (a (@ (href "http://github.com/NalaGinrut/artanis")) "Artanis ")
+        "powered by " (a (@ (href "http://www.gnu.org/software/guile/")) "GNU Guile ")
+        "This page is Powered by " (a (@ (href "http://wiki.call-cc.org/eggref/4/hyde")) "Hyde of Chicken Scheme")))
+    ;; fork me on github
+    (a (@ (id "forkme") (href "http://github.com/NalaGinrut/artanis")) "Fork me on Github")
+
+    )))
