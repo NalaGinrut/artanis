@@ -507,8 +507,6 @@ vec ; => #(1 2 3 4)
 
 </enscript>
 
-When you finish this tutorial, 
-
-maybe you want to read <nowiki><a href="http://mitpress.mit.edu/sicp/full-text/book/book.html" class="external">SICP</a></nowiki> for more profound learning.
+Please read [[SICP|SICP]] for more profound learning.
 
 Happy Hacking!

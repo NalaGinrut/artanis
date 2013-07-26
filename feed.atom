@@ -538,8 +538,7 @@ vec &lt;span class="comment"&gt;; =&amp;gt; #(1 2 3 4)
 &lt;span class="comment"&gt;;; this macro is broken: it generates infinite code, if you try to use
 &lt;/span&gt;&lt;span class="comment"&gt;;; it, the compiler will get in an infinite loop
 &lt;/span&gt;&lt;/tt&gt;&lt;/pre&gt;
-&lt;p&gt;When you finish this tutorial,&lt;/p&gt;
-&lt;p&gt;maybe you want to read &lt;a href="http://mitpress.mit.edu/sicp/full-text/book/book.html" class="external"&gt;SICP&lt;/a&gt; for more profound learning.&lt;/p&gt;
+&lt;p&gt;Please read &lt;a href="SICP" class="internal"&gt;SICP&lt;/a&gt; for more profound learning.&lt;/p&gt;
 &lt;p&gt;Happy Hacking!&lt;/p&gt;</content>
     <id>tag:web-artanis.com,2013-07-24:/scheme.html</id>
     <published>2013-07-24T08:01:27Z</published>
