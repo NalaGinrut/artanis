@@ -146,10 +146,10 @@
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;string-ref &lt;span class="string"&gt;&amp;quot;Apple&amp;quot;&lt;/span&gt; 0&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; #\A
 &lt;/span&gt;
 &lt;span class="comment"&gt;;; format can be used to format strings:
-&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;format &lt;span class="string"&gt;&amp;quot;~a can be ~a&amp;quot;&lt;/span&gt; &lt;span class="string"&gt;&amp;quot;strings&amp;quot;&lt;/span&gt; &lt;span class="string"&gt;&amp;quot;formatted&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;format #t &lt;span class="string"&gt;&amp;quot;~a can be ~a&amp;quot;&lt;/span&gt; &lt;span class="string"&gt;&amp;quot;strings&amp;quot;&lt;/span&gt; &lt;span class="string"&gt;&amp;quot;formatted&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 
 &lt;span class="comment"&gt;;; Printing is pretty easy
-&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;printf &lt;span class="string"&gt;&amp;quot;I&amp;#x27;m Racket. Nice to meet you!&lt;/span&gt;&lt;span class="string"&gt;\n&lt;/span&gt;&lt;span class="string"&gt;&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;display &lt;span class="string"&gt;&amp;quot;I&amp;#x27;m Racket. Nice to meet you!&lt;/span&gt;&lt;span class="string"&gt;\n&lt;/span&gt;&lt;span class="string"&gt;&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 
 &lt;span class="comment"&gt;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 &lt;/span&gt;&lt;span class="comment"&gt;;; 2. Variables
