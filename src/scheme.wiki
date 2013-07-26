@@ -113,10 +113,10 @@
 (string-ref "Apple" 0) ; => #\A
 
 ;; format can be used to format strings:
-(format "~a can be ~a" "strings" "formatted")
+(format #t "~a can be ~a" "strings" "formatted")
 
 ;; Printing is pretty easy
-(printf "I'm Racket. Nice to meet you!\n")
+(display "I'm Racket. Nice to meet you!\n")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 2. Variables
