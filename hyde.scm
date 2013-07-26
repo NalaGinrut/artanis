@@ -2,18 +2,14 @@
 (output-dir "")
 (clean-before-build #f)
 (translators (cons (list "md" markdown->html) (translators)))
-
 (require-library regex)
 (import irregex)
 
 (default-page-vars '(((: bos "" (+ any) ".wiki")
                       (layouts "default.sxml"))))
 
-(link-shortcuts '((user   . "http://wiki.call-cc.org/users/~A")
-                  (egg    . "http://wiki.call-cc.org/egg/~A")
-                  (wiki   . "http://wiki.call-cc.org/~A")
-                  (ticket . "http://bugs.call-cc.org/ticket/~A")
-                  (manual . "http://wiki.call-cc.org/manual/~A")))
+(link-shortcuts '((docs . "http://web-artanis.com/docs/~A")
+                  (SICP . "http://mitpress.mit.edu/sicp/full-text/book/book.html")))
 
 (define $ (environment-ref (page-eval-env) '$))
 

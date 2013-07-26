@@ -1,4 +1,4 @@
-((title . "index")
+((title . "Artanis web-framework")
  (authors "Mu Lei known as NalaGinrut <nalaginrut@gmail.com>")
  (date . 1374652887))
 
@@ -16,7 +16,7 @@ Those dying generations - at their song.
 (get "/hello"
  (lambda (rc)
   (response-emit "hello world")))
-
+;; run it 
 (run #:port 8080)
 </enscript>
 

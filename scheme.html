@@ -1,0 +1,529 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<head>
+<title>Learn Scheme in 15 minutes</title>
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link href="css/highlight.css" rel="stylesheet" type="text/css" />
+<link href="css/common.css" rel="stylesheet" type="text/css" /></head>
+<link rel="icon" type="image/ico" href="favicon.ico" />
+<body>
+<div id="side">
+<div class="wrap">
+<h1>Artanis home</h1>
+<h2 id="slogan1">A lightweight web-framework</h2>
+<h2 id="slogan2">of <a id="slogan2" href="scheme.html">Scheme</a></h2>
+<ul id="links">
+<li><a href="index.html">Home</a></li>
+<li><a href="about.html">About</a></li>
+<li><a href="docs/index.html">Documents</a></li>
+<li><a href="contribute.html">Contribute</a></li>
+<li class="last"><a href="donate.html">Donate</a></li></ul>
+<h3 id="the-author">Authored by <a id="the-author" href="http://tech.nalaginrut.com">NalaGinrut</a></h3></div></div>
+<div id="main" class="home">
+<div class="wrap">
+<pre><code>
+<h3 id="learn-scheme-in-15-minutes">Learn Scheme in 15 minutes</h3>
+<pre><tt class="highlight scheme-language"><span class="comment">;; This gives an introduction to Scheme in 15 minutes
+</span><span class="comment">;;
+</span><span class="comment">;; First make sure you read this text by Peter Norvig:
+</span><span class="comment">;; http://norvig.com/21-days.html
+</span><span class="comment">;;
+</span><span class="comment">;; Then install GNU Guile
+</span><span class="comment">;;
+</span><span class="comment">;; openSUSE: zypper install guile
+</span><span class="comment">;; Debian: apt-get install guile (or see your distro instructions)
+</span><span class="comment">;; MacOSX: Building Guile 2.0 on the Mac
+</span><span class="comment">;;         http://irrealblog.blogspot.hk/2011/03/building-guile-2.html
+</span><span class="comment">;; Windows try web: http://repl.it/languages/Scheme
+</span><span class="comment">;;
+</span><span class="comment">;; More general information can be found at:
+</span><span class="comment">;; http://www.gnu.org/software/guile
+</span>
+<span class="comment">;; Important warning:
+</span><span class="comment">;;
+</span><span class="comment">;; Going through this tutorial won&#x27;t damage your computer unless
+</span><span class="comment">;; you get so angry that you throw it on the floor.  In that case,
+</span><span class="comment">;; I hereby decline any responsability.  Have fun!
+</span>
+<span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span><span class="comment">;; 
+</span><span class="comment">;; Fire up Scheme:
+</span><span class="comment">;; Type &#x27;guile&#x27; for GNU Guile
+</span><span class="comment">;; Or just use the browser for web version
+</span><span class="comment">;;
+</span><span class="comment">;; Now look at the prompt:
+</span>
+<span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span><span class="comment">;;
+</span><span class="comment">;; Semi-colons start comments anywhere on a line.
+</span><span class="comment">;;
+</span><span class="comment">;; Scheme programs are made of symbolic expressions (s-exps):
+</span><span class="paren1">(<span class="default">+ 2 2</span>)</span>
+
+<span class="comment">;; This symbolic expression reads as &quot;Add 2 to 2&quot;.
+</span>
+<span class="comment">;; Sexps are enclosed into parentheses, possibly nested:
+</span><span class="paren1">(<span class="default">+ 2 <span class="paren2">(<span class="default">+ 1 1</span>)</span></span>)</span>
+
+<span class="comment">;; A symbolic expression contains atoms or other symbolic
+</span><span class="comment">;; expressions.  In the above examples, 1 and 2 are atoms,
+</span><span class="comment">;; (+ 2 (+ 1 1)) and (+ 1 1) are symbolic expressions.
+</span>
+<span class="paren1">(<span class="default">+ 3 <span class="paren2">(<span class="default">+ 1 2</span>)</span></span>)</span>
+<span class="comment">;; =&gt; 6
+</span>
+<span class="comment">;; `set!&#x27; stores a value into a variable:
+</span><span class="paren1">(<span class="default">set! my-name <span class="string">&quot;Bastien&quot;</span></span>)</span>
+
+<span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span><span class="comment">;; 1. Primitive Datatypes and Operators
+</span><span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span>
+<span class="comment">;;; Numbers
+</span>9999999999999999999999 <span class="comment">; integers
+</span>#b111                  <span class="comment">; binary =&gt; 7
+</span>#o111                  <span class="comment">; octal =&gt; 73
+</span>#x111                  <span class="comment">; hexadecimal =&gt; 273
+</span>3.14                   <span class="comment">; reals
+</span>6.02e+23
+1/2                    <span class="comment">; rationals
+</span>1+2i                   <span class="comment">; complex numbers
+</span>
+<span class="comment">;; Function application is written (f x y z ...)
+</span><span class="comment">;; where f is a function and x, y, z, ... are operands
+</span><span class="comment">;; If you want to create a literal list of data, use &#x27; to stop it from
+</span><span class="comment">;; being evaluated
+</span>&#x27;<span class="paren1">(<span class="default">+ 1 2</span>)</span> <span class="comment">; =&gt; (+ 1 2)
+</span><span class="comment">;; Now, some arithmetic operations
+</span><span class="paren1">(<span class="default">+ 1 1</span>)</span>  <span class="comment">; =&gt; 2
+</span><span class="paren1">(<span class="default">- 8 1</span>)</span>  <span class="comment">; =&gt; 7
+</span><span class="paren1">(<span class="default">* 10 2</span>)</span> <span class="comment">; =&gt; 20
+</span><span class="paren1">(<span class="default">expt 2 3</span>)</span> <span class="comment">; =&gt; 8
+</span><span class="paren1">(<span class="default">quotient 5 2</span>)</span> <span class="comment">; =&gt; 2
+</span><span class="paren1">(<span class="default">remainder 5 2</span>)</span> <span class="comment">; =&gt; 1
+</span><span class="paren1">(<span class="default">/ 35 5</span>)</span> <span class="comment">; =&gt; 7
+</span><span class="paren1">(<span class="default">/ 1 3</span>)</span> <span class="comment">; =&gt; 1/3
+</span><span class="paren1">(<span class="default">exact-&gt;inexact 1/3</span>)</span> <span class="comment">; =&gt; 0.3333333333333333
+</span><span class="paren1">(<span class="default">+ 1+2i  2-3i</span>)</span> <span class="comment">; =&gt; 3-1i
+</span>
+<span class="comment">;;; Booleans
+</span>#t <span class="comment">; for true
+</span>#f <span class="comment">; for false -- any value other than #f is true
+</span><span class="paren1">(<span class="default">not #t</span>)</span> <span class="comment">; =&gt; #f
+</span><span class="paren1">(<span class="default">and 0 #f <span class="paren2">(<span class="default">error <span class="string">&quot;doesn&#x27;t get here&quot;</span></span>)</span></span>)</span> <span class="comment">; =&gt; #f
+</span><span class="paren1">(<span class="default">or #f 0 <span class="paren2">(<span class="default">error <span class="string">&quot;doesn&#x27;t get here&quot;</span></span>)</span></span>)</span>  <span class="comment">; =&gt; 0
+</span>
+<span class="comment">;;; Characters
+</span><span class="character">#\A</span> <span class="comment">; =&gt; #\A
+</span><span class="character">#\λ</span> <span class="comment">; =&gt; #\λ
+</span><span class="character">#\u03BB</span> <span class="comment">; =&gt; #\λ
+</span>
+<span class="comment">;;; Strings are fixed-length array of characters.
+</span><span class="string">&quot;Hello, world!&quot;</span>
+<span class="string">&quot;Benjamin </span><span class="string">\&quot;</span><span class="string">Bugsy</span><span class="string">\&quot;</span><span class="string"> Siegel&quot;</span>   <span class="comment">; backslash is an escaping character
+</span><span class="string">&quot;Foo</span><span class="string">\t</span><span class="string">bar</span><span class="string">\4</span><span class="string">1</span><span class="string">\x</span><span class="string">21</span><span class="string">\u</span><span class="string">0021</span><span class="string">\a</span><span class="string">\r</span><span class="string">\n</span><span class="string">&quot;</span> <span class="comment">; includes C escapes, Unicode
+</span>
+<span class="comment">;; Strings can be added too!
+</span><span class="paren1">(<span class="default">string-append <span class="string">&quot;Hello &quot;</span> <span class="string">&quot;world!&quot;</span></span>)</span> <span class="comment">; =&gt; &quot;Hello world!&quot;
+</span>
+<span class="comment">;; A string can be treated like a list of characters
+</span><span class="paren1">(<span class="default">string-ref <span class="string">&quot;Apple&quot;</span> 0</span>)</span> <span class="comment">; =&gt; #\A
+</span>
+<span class="comment">;; format can be used to format strings:
+</span><span class="paren1">(<span class="default">format <span class="string">&quot;~a can be ~a&quot;</span> <span class="string">&quot;strings&quot;</span> <span class="string">&quot;formatted&quot;</span></span>)</span>
+
+<span class="comment">;; Printing is pretty easy
+</span><span class="paren1">(<span class="default">printf <span class="string">&quot;I&#x27;m Racket. Nice to meet you!</span><span class="string">\n</span><span class="string">&quot;</span></span>)</span>
+
+<span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span><span class="comment">;; 2. Variables
+</span><span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span><span class="comment">;; You can create a variable using define
+</span><span class="comment">;; a variable name can use any character except: ()[]{}&quot;,&#x27;`;#|\
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> some-var 5</span>)</span>
+some-var <span class="comment">; =&gt; 5
+</span>
+<span class="comment">;; Accessing a previously unassigned variable is an exception
+</span><span class="comment">; x ; =&gt; x: undefined ...
+</span>
+<span class="comment">;; Local binding: `me&#x27; is bound to &quot;Bob&quot; only within the (let ...)
+</span><span class="paren1">(<span class="default"><i><span class="symbol">let</span></i> <span class="paren2">(<span class="default"><span class="paren3">(<span class="default">me <span class="string">&quot;Bob&quot;</span></span>)</span></span>)</span>
+  <span class="string">&quot;Alice&quot;</span>
+  me</span>)</span> 
+<span class="comment">;; =&gt; &quot;Bob&quot;
+</span>
+<span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span><span class="comment">;; 3. Structs and Collections
+</span><span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span>
+<span class="comment">;; Record Type (Skip this chapter if you&#x27;re trying web version
+</span><span class="paren1">(<span class="default">use-modules <span class="paren2">(<span class="default">srfi srfi-9</span>)</span></span>)</span>
+<span class="paren1">(<span class="default"><i><span class="symbol">define-record-type</span></i> dog 
+  <span class="paren2">(<span class="default">make-dog name breed age</span>)</span>
+  dog?
+  <span class="paren2">(<span class="default">name dog-name</span>)</span>
+  <span class="paren2">(<span class="default">breed dog-breed</span>)</span>
+  <span class="paren2">(<span class="default">age dog-age</span>)</span></span>)</span>
+<span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> my-pet
+  <span class="paren2">(<span class="default">make-dog <span class="string">&quot;lassie&quot;</span> <span class="string">&quot;collie&quot;</span> 5</span>)</span></span>)</span>
+my-pet <span class="comment">; =&gt; #&lt;dog&gt;
+</span><span class="paren1">(<span class="default">dog? my-pet</span>)</span> <span class="comment">; =&gt; #t
+</span><span class="paren1">(<span class="default">dog-name my-pet</span>)</span> <span class="comment">; =&gt; &quot;lassie&quot;
+</span>
+<span class="comment">;;; Pairs (immutable)
+</span><span class="comment">;; `cons&#x27; constructs pairs, `car&#x27; and `cdr&#x27; extract the first
+</span><span class="comment">;; and second elements
+</span><span class="paren1">(<span class="default">cons 1 2</span>)</span> <span class="comment">; =&gt; &#x27;(1 . 2)
+</span><span class="paren1">(<span class="default">car <span class="paren2">(<span class="default">cons 1 2</span>)</span></span>)</span> <span class="comment">; =&gt; 1
+</span><span class="paren1">(<span class="default">cdr <span class="paren2">(<span class="default">cons 1 2</span>)</span></span>)</span> <span class="comment">; =&gt; 2
+</span>
+<span class="comment">;;; Lists
+</span>
+<span class="comment">;; Lists are linked-list data structures, made of `cons&#x27; pairs and end
+</span><span class="comment">;; with a `null&#x27; (or &#x27;()) to mark the end of the list
+</span><span class="paren1">(<span class="default">cons 1 <span class="paren2">(<span class="default">cons 2 <span class="paren3">(<span class="default">cons 3 null</span>)</span></span>)</span></span>)</span> <span class="comment">; =&gt; &#x27;(1 2 3)
+</span><span class="comment">;; `list&#x27; is a convenience variadic constructor for lists
+</span><span class="paren1">(<span class="default">list 1 2 3</span>)</span> <span class="comment">; =&gt; &#x27;(1 2 3)
+</span><span class="comment">;; and a quote can also be used for a literal list value
+</span>&#x27;<span class="paren1">(<span class="default">1 2 3</span>)</span> <span class="comment">; =&gt; &#x27;(1 2 3)
+</span>
+<span class="comment">;; Can still use `cons&#x27; to add an item to the beginning of a list
+</span><span class="paren1">(<span class="default">cons 4 &#x27;<span class="paren2">(<span class="default">1 2 3</span>)</span></span>)</span> <span class="comment">; =&gt; &#x27;(4 1 2 3)
+</span>
+<span class="comment">;; Use `append&#x27; to add lists together
+</span><span class="paren1">(<span class="default">append &#x27;<span class="paren2">(<span class="default">1 2</span>)</span> &#x27;<span class="paren2">(<span class="default">3 4</span>)</span></span>)</span> <span class="comment">; =&gt; &#x27;(1 2 3 4)
+</span>
+<span class="comment">;; Lists are a very basic type, so there is a *lot* of functionality for
+</span><span class="comment">;; them, a few examples:
+</span><span class="paren1">(<span class="default">map add1 &#x27;<span class="paren2">(<span class="default">1 2 3</span>)</span></span>)</span>          <span class="comment">; =&gt; &#x27;(2 3 4)
+</span><span class="paren1">(<span class="default">map + &#x27;<span class="paren2">(<span class="default">1 2 3</span>)</span> &#x27;<span class="paren2">(<span class="default">10 20 30</span>)</span></span>)</span> <span class="comment">; =&gt; &#x27;(11 22 33)
+</span><span class="paren1">(<span class="default">filter even? &#x27;<span class="paren2">(<span class="default">1 2 3 4</span>)</span></span>)</span>    <span class="comment">; =&gt; &#x27;(2 4)
+</span><span class="paren1">(<span class="default">count even? &#x27;<span class="paren2">(<span class="default">1 2 3 4</span>)</span></span>)</span>     <span class="comment">; =&gt; 2
+</span><span class="paren1">(<span class="default">take &#x27;<span class="paren2">(<span class="default">1 2 3 4</span>)</span> 2</span>)</span>          <span class="comment">; =&gt; &#x27;(1 2)
+</span><span class="paren1">(<span class="default">drop &#x27;<span class="paren2">(<span class="default">1 2 3 4</span>)</span> 2</span>)</span>          <span class="comment">; =&gt; &#x27;(3 4)
+</span>
+<span class="comment">;;; Vectors
+</span>
+<span class="comment">;; Vectors are fixed-length arrays
+</span>#<span class="paren1">(<span class="default">1 2 3</span>)</span> <span class="comment">; =&gt; &#x27;#(1 2 3)
+</span>
+<span class="comment">;; Use `vector-append&#x27; to add vectors together
+</span><span class="paren1">(<span class="default">vector-append #<span class="paren2">(<span class="default">1 2 3</span>)</span> #<span class="paren2">(<span class="default">4 5 6</span>)</span></span>)</span> <span class="comment">; =&gt; #(1 2 3 4 5 6)
+</span>
+<span class="comment">;;; Hashes
+</span>
+<span class="comment">;; Create an immutable hash table (mutable example below)
+</span><span class="comment">;; For GNU Guile
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> m <span class="paren2">(<span class="default">make-hash-table</span>)</span></span>)</span>
+<span class="paren1">(<span class="default">hash-set! m &#x27;a 1</span>)</span>
+<span class="paren1">(<span class="default">hash-set! m &#x27;b 2</span>)</span>
+<span class="paren1">(<span class="default">hash-set! m &#x27;c 3</span>)</span>
+
+<span class="comment">;; Retrieve a value
+</span><span class="paren1">(<span class="default">hash-ref m &#x27;a</span>)</span> <span class="comment">; =&gt; 1
+</span>
+<span class="comment">;; Retrieving a non-present value is an exception
+</span><span class="comment">; (hash-ref m &#x27;d) =&gt; no value found
+</span>
+<span class="comment">;; You can provide a default value for missing keys
+</span><span class="paren1">(<span class="default">hash-ref m &#x27;d 0</span>)</span>
+<span class="comment">;; =&gt; #f
+</span>
+<span class="comment">;; Use `hash-remove&#x27; to remove keys (functional too)
+</span><span class="paren1">(<span class="default">hash-remove! m &#x27;a</span>)</span> <span class="comment">; =&gt; ((b . 2) (c . 3))
+</span>
+<span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span><span class="comment">;; 3. Functions
+</span><span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span>
+<span class="comment">;; Use `lambda&#x27; to create functions.
+</span><span class="comment">;; A function always returns the value of its last expression
+</span><span class="paren1">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren2">(<span class="default"></span>)</span> <span class="string">&quot;Hello World&quot;</span></span>)</span> <span class="comment">; =&gt; #&lt;procedure&gt;
+</span>
+<span class="comment">;; Use parens to call all functions, including a lambda expression
+</span><span class="paren1">(<span class="default"><span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default"></span>)</span> <span class="string">&quot;Hello World&quot;</span></span>)</span></span>)</span> <span class="comment">; =&gt; &quot;Hello World&quot;
+</span><span class="paren1">(<span class="default"><span class="paren2">(<span class="default">λ <span class="paren3">(<span class="default"></span>)</span> <span class="string">&quot;Hello World&quot;</span></span>)</span></span>)</span>      <span class="comment">; =&gt; &quot;Hello World&quot;
+</span>
+<span class="comment">;; Assign a function to a var
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> hello-world <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default"></span>)</span> <span class="string">&quot;Hello World&quot;</span></span>)</span></span>)</span>
+<span class="paren1">(<span class="default">hello-world</span>)</span> <span class="comment">; =&gt; &quot;Hello World&quot;
+</span>
+<span class="comment">;; You can shorten this using the function definition syntatcic sugae:
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">hello-world2</span>)</span> <span class="string">&quot;Hello World&quot;</span></span>)</span>
+
+<span class="comment">;; The () in the above is the list of arguments for the function
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> hello
+  <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default">name</span>)</span>
+    <span class="paren3">(<span class="default">string-append <span class="string">&quot;Hello &quot;</span> name</span>)</span></span>)</span></span>)</span>
+<span class="paren1">(<span class="default">hello <span class="string">&quot;Steve&quot;</span></span>)</span> <span class="comment">; =&gt; &quot;Hello Steve&quot;
+</span><span class="comment">;; ... or equivalently, using a sugared definition:
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">hello2 name</span>)</span>
+  <span class="paren2">(<span class="default">string-append <span class="string">&quot;Hello &quot;</span> name</span>)</span></span>)</span>
+
+<span class="comment">;; You can have multi-variadic functions too, using `case-lambda&#x27;
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> hello3
+  <span class="paren2">(<span class="default">case-lambda
+    <span class="paren3">(<span class="default"><span class="paren4">(<span class="default"></span>)</span> <span class="string">&quot;Hello World&quot;</span></span>)</span>
+    <span class="paren3">(<span class="default"><span class="paren4">(<span class="default">name</span>)</span> <span class="paren4">(<span class="default">string-append <span class="string">&quot;Hello &quot;</span> name</span>)</span></span>)</span></span>)</span></span>)</span>
+<span class="paren1">(<span class="default">hello3 <span class="string">&quot;Jake&quot;</span></span>)</span> <span class="comment">; =&gt; &quot;Hello Jake&quot;
+</span><span class="paren1">(<span class="default">hello3</span>)</span> <span class="comment">; =&gt; &quot;Hello World&quot;
+</span><span class="comment">;; ... or specify optional arguments with a default value expression
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">hello4 <span class="paren3">(<span class="default">name <span class="string">&quot;World&quot;</span></span>)</span></span>)</span>
+  <span class="paren2">(<span class="default">string-append <span class="string">&quot;Hello &quot;</span> name</span>)</span></span>)</span>
+
+<span class="comment">;; Functions can pack extra arguments up in a list
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">count-args . args</span>)</span>
+  <span class="paren2">(<span class="default">format #t <span class="string">&quot;You passed ~a args: ~a&quot;</span> <span class="paren3">(<span class="default">length args</span>)</span> args</span>)</span></span>)</span>
+<span class="paren1">(<span class="default">count-args 1 2 3</span>)</span> <span class="comment">; =&gt; &quot;You passed 3 args: (1 2 3)&quot;
+</span><span class="comment">;; ... or with the unsugared `lambda&#x27; form:
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> count-args2
+  <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> args
+    <span class="paren3">(<span class="default">format #t <span class="string">&quot;You passed ~a args: ~a&quot;</span> <span class="paren4">(<span class="default">length args</span>)</span> args</span>)</span></span>)</span></span>)</span>
+
+<span class="comment">;; You can mix regular and packed arguments
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">hello-count name . args</span>)</span>
+  <span class="paren2">(<span class="default">format #t <span class="string">&quot;Hello ~a, you passed ~a extra args&quot;</span> name <span class="paren3">(<span class="default">length args</span>)</span></span>)</span></span>)</span>
+<span class="paren1">(<span class="default">hello-count <span class="string">&quot;Finn&quot;</span> 1 2 3</span>)</span>
+<span class="comment">; =&gt; &quot;Hello Finn, you passed 3 extra args&quot;
+</span><span class="comment">;; ... unsugared:
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> hello-count2
+  <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default">name . args</span>)</span>
+    <span class="paren3">(<span class="default">format #t <span class="string">&quot;Hello ~a, you passed ~a extra args&quot;</span> name <span class="paren4">(<span class="default">length args</span>)</span></span>)</span></span>)</span></span>)</span>
+
+<span class="comment">;; And with keywords
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">hello-k <span class="keyword">#:name</span> <span class="paren3">(<span class="default">name <span class="string">&quot;World&quot;</span></span>)</span> <span class="keyword">#:greeting</span> <span class="paren3">(<span class="default">g <span class="string">&quot;Hello&quot;</span></span>)</span> . args</span>)</span>
+  <span class="paren2">(<span class="default">format #t <span class="string">&quot;~a ~a, ~a extra args&quot;</span> g name <span class="paren3">(<span class="default">length args</span>)</span></span>)</span></span>)</span>
+<span class="paren1">(<span class="default">hello-k</span>)</span>                 <span class="comment">; =&gt; &quot;Hello World, 0 extra args&quot;
+</span><span class="paren1">(<span class="default">hello-k 1 2 3</span>)</span>           <span class="comment">; =&gt; &quot;Hello World, 3 extra args&quot;
+</span><span class="paren1">(<span class="default">hello-k <span class="keyword">#:greeting</span> <span class="string">&quot;Hi&quot;</span></span>)</span> <span class="comment">; =&gt; &quot;Hi World, 0 extra args&quot;
+</span><span class="paren1">(<span class="default">hello-k <span class="keyword">#:name</span> <span class="string">&quot;Finn&quot;</span> <span class="keyword">#:greeting</span> <span class="string">&quot;Hey&quot;</span></span>)</span> <span class="comment">; =&gt; &quot;Hey Finn, 0 extra args&quot;
+</span><span class="paren1">(<span class="default">hello-k 1 2 3 <span class="keyword">#:greeting</span> <span class="string">&quot;Hi&quot;</span> <span class="keyword">#:name</span> <span class="string">&quot;Finn&quot;</span> 4 5 6</span>)</span>
+                                         <span class="comment">; =&gt; &quot;Hi Finn, 6 extra args&quot;
+</span>
+<span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span><span class="comment">;; 4. Equality
+</span><span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span>
+<span class="comment">;; for numbers use `=&#x27;
+</span><span class="paren1">(<span class="default">= 3 3.0</span>)</span> <span class="comment">; =&gt; #t
+</span><span class="paren1">(<span class="default">= 2 1</span>)</span> <span class="comment">; =&gt; #f
+</span>
+<span class="comment">;; for object identity use `eq?&#x27;
+</span><span class="paren1">(<span class="default">eq? 3 3</span>)</span> <span class="comment">; =&gt; #t
+</span><span class="paren1">(<span class="default">eq? 3 3.0</span>)</span> <span class="comment">; =&gt; #f
+</span><span class="paren1">(<span class="default">eq? <span class="paren2">(<span class="default">list 3</span>)</span> <span class="paren2">(<span class="default">list 3</span>)</span></span>)</span> <span class="comment">; =&gt; #f
+</span>
+<span class="comment">;; for collections use `equal?&#x27;
+</span><span class="paren1">(<span class="default">equal? <span class="paren2">(<span class="default">list &#x27;a &#x27;b</span>)</span> <span class="paren2">(<span class="default">list &#x27;a &#x27;b</span>)</span></span>)</span> <span class="comment">; =&gt; #t
+</span><span class="paren1">(<span class="default">equal? <span class="paren2">(<span class="default">list &#x27;a &#x27;b</span>)</span> <span class="paren2">(<span class="default">list &#x27;b &#x27;a</span>)</span></span>)</span> <span class="comment">; =&gt; #f
+</span>
+<span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span><span class="comment">;; 5. Control Flow
+</span><span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span>
+<span class="comment">;;; Conditionals
+</span>
+<span class="paren1">(<span class="default"><i><span class="symbol">if</span></i> #t               <span class="comment">; test expression
+</span>    <span class="string">&quot;this is true&quot;</span>   <span class="comment">; then expression
+</span>    <span class="string">&quot;this is false&quot;</span></span>)</span> <span class="comment">; else expression
+</span><span class="comment">; =&gt; &quot;this is true&quot;
+</span>
+<span class="comment">;; In conditionals, all non-#f values are treated as true
+</span><span class="paren1">(<span class="default">member &#x27;Groucho &#x27;<span class="paren2">(<span class="default">Harpo Groucho Zeppo</span>)</span></span>)</span> <span class="comment">; =&gt; &#x27;(Groucho Zeppo)
+</span><span class="paren1">(<span class="default"><i><span class="symbol">if</span></i> <span class="paren2">(<span class="default">member &#x27;Groucho &#x27;<span class="paren3">(<span class="default">Harpo Groucho Zeppo</span>)</span></span>)</span>
+    &#x27;yep
+    &#x27;nope</span>)</span>
+<span class="comment">; =&gt; &#x27;yep
+</span>
+<span class="comment">;; `cond&#x27; chains a series of tests to select a result
+</span><span class="paren1">(<span class="default"><i><span class="symbol">cond</span></i> <span class="paren2">[<span class="default"><span class="paren3">(<span class="default">&gt; 2 2</span>)</span> <span class="paren3">(<span class="default">error <span class="string">&quot;wrong!&quot;</span></span>)</span></span>]</span>
+      <span class="paren2">[<span class="default"><span class="paren3">(<span class="default">&lt; 2 2</span>)</span> <span class="paren3">(<span class="default">error <span class="string">&quot;wrong again!&quot;</span></span>)</span></span>]</span>
+      <span class="paren2">[<span class="default">else &#x27;ok</span>]</span></span>)</span> <span class="comment">; =&gt; &#x27;ok
+</span>
+<span class="comment">;;; Pattern Matching
+</span>
+<span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">fizzbuzz? n</span>)</span>
+  <span class="paren2">(<span class="default">match <span class="paren3">(<span class="default">list <span class="paren4">(<span class="default">remainder n 3</span>)</span> <span class="paren4">(<span class="default">remainder n 5</span>)</span></span>)</span>
+    <span class="paren3">[<span class="default"><span class="paren4">(<span class="default">list 0 0</span>)</span> &#x27;fizzbuzz</span>]</span>
+    <span class="paren3">[<span class="default"><span class="paren4">(<span class="default">list 0 _</span>)</span> &#x27;fizz</span>]</span>
+    <span class="paren3">[<span class="default"><span class="paren4">(<span class="default">list _ 0</span>)</span> &#x27;buzz</span>]</span>
+    <span class="paren3">[<span class="default">_          #f</span>]</span></span>)</span></span>)</span>
+
+<span class="paren1">(<span class="default">fizzbuzz? 15</span>)</span> <span class="comment">; =&gt; &#x27;fizzbuzz
+</span><span class="paren1">(<span class="default">fizzbuzz? 37</span>)</span> <span class="comment">; =&gt; #f
+</span>
+<span class="comment">;;; Loops
+</span>
+<span class="comment">;; Looping can be done through (tail-) recursion
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default"><i><span class="symbol">loop</span></i> i</span>)</span>
+  <span class="paren2">(<span class="default">when <span class="paren3">(<span class="default">&lt; i 10</span>)</span>
+    <span class="paren3">(<span class="default">printf <span class="string">&quot;i=~a</span><span class="string">\n</span><span class="string">&quot;</span> i</span>)</span>
+    <span class="paren3">(<span class="default"><i><span class="symbol">loop</span></i> <span class="paren4">(<span class="default">add1 i</span>)</span></span>)</span></span>)</span></span>)</span>
+<span class="paren1">(<span class="default"><i><span class="symbol">loop</span></i> 5</span>)</span> <span class="comment">; =&gt; i=5, i=6, ...
+</span>
+<span class="comment">;; Similarly, with a named let
+</span><span class="paren1">(<span class="default"><i><span class="symbol">let</span></i> <i><span class="symbol">loop</span></i> <span class="paren2">(<span class="default"><span class="paren3">(<span class="default">i 0</span>)</span></span>)</span>
+  <span class="paren2">(<span class="default">when <span class="paren3">(<span class="default">&lt; i 10</span>)</span>
+    <span class="paren3">(<span class="default">printf <span class="string">&quot;i=~a</span><span class="string">\n</span><span class="string">&quot;</span> i</span>)</span>
+    <span class="paren3">(<span class="default"><i><span class="symbol">loop</span></i> <span class="paren4">(<span class="default">add1 i</span>)</span></span>)</span></span>)</span></span>)</span> <span class="comment">; =&gt; i=0, i=1, ...
+</span>
+<span class="comment">;; See below how to add a new `loop&#x27; form, but Racket already has a very
+</span><span class="comment">;; flexible `for&#x27; form for loops:
+</span><span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">(<span class="default">i 10</span>)</span></span>)</span>
+  <span class="paren2">(<span class="default">printf <span class="string">&quot;i=~a</span><span class="string">\n</span><span class="string">&quot;</span> i</span>)</span></span>)</span> <span class="comment">; =&gt; i=0, i=1, ...
+</span><span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">(<span class="default">i <span class="paren4">(<span class="default">in-range 5 10</span>)</span></span>)</span></span>)</span>
+  <span class="paren2">(<span class="default">printf <span class="string">&quot;i=~a</span><span class="string">\n</span><span class="string">&quot;</span> i</span>)</span></span>)</span> <span class="comment">; =&gt; i=5, i=6, ...
+</span>
+<span class="comment">;;; Iteration Over Other Sequences
+</span><span class="comment">;; `for&#x27; allows iteration over many other kinds of sequences:
+</span><span class="comment">;; lists, vectors, strings, sets, hash tables, etc...
+</span>
+<span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">[<span class="default">i <span class="paren4">(<span class="default">in-list &#x27;<span class="paren5">(<span class="default">l i s t</span>)</span></span>)</span></span>]</span></span>)</span>
+  <span class="paren2">(<span class="default">displayln i</span>)</span></span>)</span>
+
+<span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">[<span class="default">i <span class="paren4">(<span class="default">in-vector #<span class="paren5">(<span class="default">v e c t o r</span>)</span></span>)</span></span>]</span></span>)</span>
+  <span class="paren2">(<span class="default">displayln i</span>)</span></span>)</span>
+
+<span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">[<span class="default">i <span class="paren4">(<span class="default">in-string <span class="string">&quot;string&quot;</span></span>)</span></span>]</span></span>)</span>
+  <span class="paren2">(<span class="default">displayln i</span>)</span></span>)</span>
+
+<span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">[<span class="default">i <span class="paren4">(<span class="default">in-set <span class="paren5">(<span class="default">set &#x27;x &#x27;y &#x27;z</span>)</span></span>)</span></span>]</span></span>)</span>
+  <span class="paren2">(<span class="default">displayln i</span>)</span></span>)</span>
+
+<span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">[<span class="default"><span class="paren4">(<span class="default">k v</span>)</span> <span class="paren4">(<span class="default">in-hash <span class="paren5">(<span class="default">hash &#x27;a 1 &#x27;b 2 &#x27;c 3 </span>)</span></span>)</span></span>]</span></span>)</span>
+  <span class="paren2">(<span class="default">printf <span class="string">&quot;key:~a value:~a</span><span class="string">\n</span><span class="string">&quot;</span> k v</span>)</span></span>)</span>
+
+<span class="comment">;;; More Complex Iterations
+</span>
+<span class="comment">;; Parallel scan of multiple sequences (stops on shortest)
+</span><span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">[<span class="default">i 10</span>]</span> <span class="paren3">[<span class="default">j &#x27;<span class="paren4">(<span class="default">x y z</span>)</span></span>]</span></span>)</span> <span class="paren2">(<span class="default">printf <span class="string">&quot;~a:~a</span><span class="string">\n</span><span class="string">&quot;</span> i j</span>)</span></span>)</span>
+<span class="comment">; =&gt; 0:x 1:y 2:z
+</span>
+<span class="comment">;; Nested loops
+</span><span class="paren1">(<span class="default">for* <span class="paren2">(<span class="default"><span class="paren3">[<span class="default">i 2</span>]</span> <span class="paren3">[<span class="default">j &#x27;<span class="paren4">(<span class="default">x y z</span>)</span></span>]</span></span>)</span> <span class="paren2">(<span class="default">printf <span class="string">&quot;~a:~a</span><span class="string">\n</span><span class="string">&quot;</span> i j</span>)</span></span>)</span>
+<span class="comment">; =&gt; 0:x, 0:y, 0:z, 1:x, 1:y, 1:z
+</span>
+<span class="comment">;; Conditions
+</span><span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">[<span class="default">i 1000</span>]</span>
+      <span class="keyword">#:when</span> <span class="paren3">(<span class="default">&gt; i 5</span>)</span>
+      <span class="keyword">#:unless</span> <span class="paren3">(<span class="default">odd? i</span>)</span>
+      <span class="keyword">#:break</span> <span class="paren3">(<span class="default">&gt; i 10</span>)</span></span>)</span>
+  <span class="paren2">(<span class="default">printf <span class="string">&quot;i=~a</span><span class="string">\n</span><span class="string">&quot;</span> i</span>)</span></span>)</span>
+<span class="comment">; =&gt; i=6, i=8, i=10
+</span>
+<span class="comment">;;; Exceptions
+</span>
+<span class="comment">;; To catch exceptions, use the &#x27;catch&#x27; form
+</span><span class="paren1">(<span class="default"><i><span class="symbol">catch</span></i> &#x27;my-error 
+  <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default"></span>)</span> <span class="paren3">(<span class="default">error &#x27;my-error</span>)</span></span>)</span>
+  <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> e <span class="paren3">(<span class="default">display <span class="string">&quot;my error&quot;</span></span>)</span></span>)</span></span>)</span>
+
+<span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span><span class="comment">;; 6. Mutation
+</span><span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span>
+<span class="comment">;; Use `set!&#x27; to assign a new value to an existing variable
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> n 5</span>)</span>
+<span class="paren1">(<span class="default">set! n <span class="paren2">(<span class="default">add1 n</span>)</span></span>)</span>
+n <span class="comment">; =&gt; 6
+</span>
+<span class="comment">;; Use fluid for explicitly mutable values
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> n* <span class="paren2">(<span class="default">make-fluid 5</span>)</span></span>)</span>
+<span class="paren1">(<span class="default">fluid-set! n* <span class="paren2">(<span class="default">add1 <span class="paren3">(<span class="default">fluid-ref n*</span>)</span></span>)</span></span>)</span>
+<span class="paren1">(<span class="default">fluid-ref n*</span>)</span> <span class="comment">; =&gt; 6
+</span>
+<span class="comment">;; Many Guile datatypes are immutable (pairs, lists, etc), some come in
+</span><span class="comment">;; both mutable and immutable flavors (strings, vectors, hash tables,
+</span><span class="comment">;; etc...)
+</span>
+<span class="comment">;; Use `vector&#x27; or `make-vector&#x27; to create mutable vectors
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> vec <span class="paren2">(<span class="default">vector 2 2 3 4</span>)</span></span>)</span>
+<span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> wall <span class="paren2">(<span class="default">make-vector 100 &#x27;bottle-of-beer</span>)</span></span>)</span>
+<span class="comment">;; Use vector-set! to update a slot
+</span><span class="paren1">(<span class="default">vector-set! vec 0 1</span>)</span>
+<span class="paren1">(<span class="default">vector-set! wall 99 &#x27;down</span>)</span>
+vec <span class="comment">; =&gt; #(1 2 3 4)
+</span>
+<span class="comment">;; Create an empty mutable hash table and manipulate it
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> m3 <span class="paren2">(<span class="default">make-hash</span>)</span></span>)</span>
+<span class="paren1">(<span class="default">hash-set! m3 &#x27;a 1</span>)</span>
+<span class="paren1">(<span class="default">hash-set! m3 &#x27;b 2</span>)</span>
+<span class="paren1">(<span class="default">hash-set! m3 &#x27;c 3</span>)</span>
+<span class="paren1">(<span class="default">hash-ref m3 &#x27;a</span>)</span>   <span class="comment">; =&gt; 1
+</span><span class="paren1">(<span class="default">hash-ref m3 &#x27;d 0</span>)</span> <span class="comment">; =&gt; 0
+</span><span class="paren1">(<span class="default">hash-remove! m3 &#x27;a</span>)</span>
+
+<span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span><span class="comment">;; 7. Modules
+</span><span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span>
+<span class="comment">;; Modules let you organize code into multiple files and reusable
+</span><span class="comment">;; libraries; here we use sub-modules, nested in the whole module that
+</span><span class="comment">;; this text makes (starting from the &quot;#lang&quot; line)
+</span>
+<span class="paren1">(<span class="default"><i><span class="symbol">define-module</span></i> <span class="paren2">(<span class="default">my-cake</span>)</span> <span class="comment">; define a `cake&#x27; module based on racket/base
+</span>  <span class="keyword">#:use-module</span> <span class="paren2">(<span class="default">print-cake</span>)</span></span>)</span> <span class="comment">; function exported by the module
+</span>
+  <span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">print-cake n</span>)</span>
+    <span class="paren2">(<span class="default">show <span class="string">&quot;   ~a   &quot;</span> n <span class="character">#\.</span></span>)</span>
+    <span class="paren2">(<span class="default">show <span class="string">&quot; .-~a-. &quot;</span> n <span class="character">#\|</span></span>)</span>
+    <span class="paren2">(<span class="default">show <span class="string">&quot; | ~a | &quot;</span> n <span class="character">#\space</span></span>)</span>
+    <span class="paren2">(<span class="default">show <span class="string">&quot;---~a---&quot;</span> n <span class="character">#\-</span></span>)</span></span>)</span>
+
+  <span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">show fmt n ch</span>)</span> <span class="comment">; internal function
+</span>    <span class="paren2">(<span class="default">format #t fmt <span class="paren3">(<span class="default">make-string n ch</span>)</span></span>)</span>
+    <span class="paren2">(<span class="default">newline</span>)</span></span>)</span>)
+
+<span class="comment">;; Use `require&#x27; to get all `provide&#x27;d names from a module
+</span><span class="paren1">(<span class="default">use-modules <span class="paren2">(<span class="default">my-cake</span>)</span></span>)</span> <span class="comment">; the &#x27; is for a local submodule
+</span><span class="paren1">(<span class="default">print-cake 3</span>)</span>
+<span class="comment">; (show &quot;~a&quot; 1 #\A) ; =&gt; error, `show&#x27; was not exported
+</span>
+<span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span><span class="comment">;; 8. Classes and Objects
+</span><span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span><span class="comment">;; TODO
+</span>
+<span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span><span class="comment">;; 9. Macros
+</span><span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span>
+<span class="comment">;; Macros let you extend the syntax of the language
+</span>
+<span class="comment">;; Let&#x27;s add a while loop
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define-syntax-rule</span></i> <span class="paren2">(<span class="default">while condition body ...</span>)</span>
+  <span class="paren2">(<span class="default"><i><span class="symbol">let</span></i> <i><span class="symbol">loop</span></i> <span class="paren3">(<span class="default"></span>)</span>
+    <span class="paren3">(<span class="default">when condition
+      body ...
+      <span class="paren4">(<span class="default"><i><span class="symbol">loop</span></i></span>)</span></span>)</span></span>)</span></span>)</span>
+
+<span class="paren1">(<span class="default"><i><span class="symbol">let</span></i> <span class="paren2">(<span class="default"><span class="paren3">[<span class="default">i 0</span>]</span></span>)</span>
+  <span class="paren2">(<span class="default">while <span class="paren3">(<span class="default">&lt; i  10</span>)</span>
+    <span class="paren3">(<span class="default">displayln i</span>)</span>
+    <span class="paren3">(<span class="default">set! i <span class="paren4">(<span class="default">add1 i</span>)</span></span>)</span></span>)</span></span>)</span>
+
+<span class="comment">;; Macros are hygienic, you cannot clobber existing variables!
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define-syntax-rule</span></i> <span class="paren2">(<span class="default">swap! x y</span>)</span> <span class="comment">; -! is idomatic for mutation
+</span>  <span class="paren2">(<span class="default"><i><span class="symbol">let</span></i> <span class="paren3">(<span class="default"><span class="paren4">(<span class="default">tmp x</span>)</span></span>)</span>
+    <span class="paren3">(<span class="default">set! x y</span>)</span>
+    <span class="paren3">(<span class="default">set! y tmp</span>)</span></span>)</span></span>)</span>
+
+<span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> tmp 1</span>)</span>
+<span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> a 2</span>)</span>
+<span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> b 3</span>)</span>
+<span class="paren1">(<span class="default">swap! a b</span>)</span>
+<span class="paren1">(<span class="default">printf <span class="string">&quot;tmp = ~a; a = ~a; b = ~a</span><span class="string">\n</span><span class="string">&quot;</span> tmp a b</span>)</span> <span class="comment">; tmp is unaffected
+</span>
+<span class="comment">;; But they are still code transformations, for example:
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define-syntax-rule</span></i> <span class="paren2">(<span class="default">bad-while condition body ...</span>)</span>
+  <span class="paren2">(<span class="default">when condition
+    body ...
+    <span class="paren3">(<span class="default">bad-while condition body ...</span>)</span></span>)</span></span>)</span>
+<span class="comment">;; this macro is broken: it generates infinite code, if you try to use
+</span><span class="comment">;; it, the compiler will get in an infinite loop
+</span></tt></pre>
+<p>When you finish this tutorial,</p>
+<p>maybe you want to read <a href="http://mitpress.mit.edu/sicp/full-text/book/book.html" class="external">SICP</a> for more profound learning.</p>
+<p>Happy Hacking!</p></code></pre></div>
+<p class="foot up">Source: <a href="http://github.com/NalaGinrut/artanis">Artanis </a>powered by <a href="http://www.gnu.org/software/guile/">GNU Guile </a>This page is Powered by <a href="http://wiki.call-cc.org/eggref/4/hyde">Hyde of Chicken Scheme</a></p></div><a id="forkme" href="http://github.com/NalaGinrut/artanis/">Fork me on Github</a></body></html>
