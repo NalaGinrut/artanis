@@ -56,7 +56,7 @@
 ;; => 6
 
 ;; `set!' stores a value into a variable:
-(set! my-name "Bastien")
+(set! my-name "NalaGinrut")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 1. Primitive Datatypes and Operators
@@ -114,9 +114,12 @@
 
 ;; format can be used to format strings:
 (format #t "~a can be ~a" "strings" "formatted")
+;; ==> print "strings can be formatted" on screen
+(define str (format #f "~a can be ~a" "strings" "formatted"))
+;; str was assigned to "strings can be formatted"
 
 ;; Printing is pretty easy
-(display "I'm Racket. Nice to meet you!\n")
+(display "I'm Guile. Nice to meet you!\n")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 2. Variables
@@ -225,7 +228,7 @@ my-pet ; => #<dog>
 
 ;; Use parens to call all functions, including a lambda expression
 ((lambda () "Hello World")) ; => "Hello World"
-((λ () "Hello World"))      ; => "Hello World"
+((lambda (x) (+ x x)) 5)      ; => 10
 
 ;; Assign a function to a var
 (define hello-world (lambda () "Hello World"))
@@ -324,13 +327,13 @@ my-pet ; => #<dog>
       [else 'ok]) ; => 'ok
 
 ;;; Pattern Matching
-
+(use-modules (ice-9 match)) ; use match module
 (define (fizzbuzz? n)
   (match (list (remainder n 3) (remainder n 5))
-    [(list 0 0) 'fizzbuzz]
-    [(list 0 _) 'fizz]
-    [(list _ 0) 'buzz]
-    [_          #f]))
+    ((list 0 0) 'fizzbuzz)
+    ((list 0 _) 'fizz)
+    ((list _ 0) 'buzz)
+    (else #f)))
 
 (fizzbuzz? 15) ; => 'fizzbuzz
 (fizzbuzz? 37) ; => #f
@@ -338,61 +341,57 @@ my-pet ; => #<dog>
 ;;; Loops
 
 ;; Looping can be done through (tail-) recursion
-(define (loop i)
+(define (lp i)
   (when (< i 10)
-    (printf "i=~a\n" i)
-    (loop (add1 i))))
-(loop 5) ; => i=5, i=6, ...
+    (format #t "i=~a\n" i)
+    (lp (1+ i))))
+(lp 5) ; => i=5, i=6, ...
 
 ;; Similarly, with a named let
-(let loop ((i 0))
+(let lp ((i 0))
   (when (< i 10)
-    (printf "i=~a\n" i)
-    (loop (add1 i)))) ; => i=0, i=1, ...
+    (format #t "i=~a\n" i)
+    (lp (1+ i)))) ; => i=0, i=1, ...
 
-;; See below how to add a new `loop' form, but Racket already has a very
-;; flexible `for' form for loops:
-(for ((i 10))
-  (printf "i=~a\n" i)) ; => i=0, i=1, ...
-(for ((i (in-range 5 10)))
-  (printf "i=~a\n" i)) ; => i=5, i=6, ...
+;; how to get a range? just like range(0, 9)?
+;; the original 'iota' only accept one para
+(iota 10) ; ==> (0 1 2 3 4 5 6 7 8 9)
+;; the 'iota' in srfi-1 was extended 
+(use-modules (srfi srfi-1))
+;; #<procedure iota (count #:optional start step)>
+(iota 5 10) ; => (10 11 12 13 14) 
+;; means from 10 count 5 times, each step +1 (plus one is default)
+(iota 5 10 2) ; => (10 12 14 16 18)
+;; from 10 count 5 times, each step +2
+;; If you need a Python like range(5, 10) ==> (5 6 7 8 9), try:
+(define (range from to) (map (lambda (x) (+ from x)) (iota (- to from))))
+(range 5 10) ; => (5 6 7 8 9)
+
+;; how to do iteration?
+(for-each display '(1 2 3 4 5))
+;; => 12345
+(for-each (lambda (i) (format #t "i=~a\n" i))
+          (iota 10)) ; => i=0, i=1, ...
+(for-each (lambda (i) (format #t "i=~a\n" i))
+          (range 5 10)) ; => i=5, i=6, ...
 
 ;;; Iteration Over Other Sequences
 ;; `for' allows iteration over many other kinds of sequences:
 ;; lists, vectors, strings, sets, hash tables, etc...
-
-(for ([i (in-list '(l i s t))])
-  (displayln i))
-
-(for ([i (in-vector #(v e c t o r))])
-  (displayln i))
-
-(for ([i (in-string "string")])
-  (displayln i))
-
-(for ([i (in-set (set 'x 'y 'z))])
-  (displayln i))
-
-(for ([(k v) (in-hash (hash 'a 1 'b 2 'c 3 ))])
-  (printf "key:~a value:~a\n" k v))
-
+(for-each display '(l i s t))
+;; => list
+(define vector-for-each (@ (rnrs) vector-for-each))
+;; export vector-for-each from rnrs only
+(vector-for-each display #(v e c t o r))
+;; => vector
+(string-for-each display "string")
+;; => string
 ;;; More Complex Iterations
-
 ;; Parallel scan of multiple sequences (stops on shortest)
-(for ([i 10] [j '(x y z)]) (printf "~a:~a\n" i j))
+(do ((i 10) (j '(x y z) (cdr j))) 
+    ((null? j)) ; if j is '(), just end the loop
+  (format #t "~a:~a\n" i (car j)))
 ; => 0:x 1:y 2:z
-
-;; Nested loops
-(for* ([i 2] [j '(x y z)]) (printf "~a:~a\n" i j))
-; => 0:x, 0:y, 0:z, 1:x, 1:y, 1:z
-
-;; Conditions
-(for ([i 1000]
-      #:when (> i 5)
-      #:unless (odd? i)
-      #:break (> i 10))
-  (printf "i=~a\n" i))
-; => i=6, i=8, i=10
 
 ;;; Exceptions
 
@@ -441,23 +440,30 @@ vec ; => #(1 2 3 4)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Modules let you organize code into multiple files and reusable
-;; libraries; here we use sub-modules, nested in the whole module that
-;; this text makes (starting from the "#lang" line)
-
+;; libraries; Make sure put all the module code in one file, since 
+;; the modules split as files. And the module name should be same 
+;; with the filename, say, module named (my-cake) is 'my-cake.scm',
+;; and module named (mods my-cake) is 'mods/my-cake.scm',
+;; (mods submods my-cake) ==> 'mods/submods/my-cake.scm'.
+;; ---begin my-cake.scm---
 (define-module (my-cake) ; define a `cake' module based on racket/base
-  #:use-module (print-cake)) ; function exported by the module
+  #:use-modules (ice-9 format) ; the pre-requisition of current module
+  #:export (print-cake)) ; function exported by the module
+
+  (define (show fmt n ch) ; internal function
+    (format #t fmt (make-string n ch))
+    (newline)))
 
   (define (print-cake n)
     (show "   ~a   " n #\.)
     (show " .-~a-. " n #\|)
     (show " | ~a | " n #\space)
     (show "---~a---" n #\-))
+;; --end my-cake.scm---
 
-  (define (show fmt n ch) ; internal function
-    (format #t fmt (make-string n ch))
-    (newline)))
-
-;; Use `require' to get all `provide'd names from a module
+;; Be sure that the path of 'my-cake.scm' is in your current 
+;; %load-path list. Use `use-modules' to get all `provide'd names 
+;; from a module.
 (use-modules (my-cake)) ; the ' is for a local submodule
 (print-cake 3)
 ; (show "~a" 1 #\A) ; => error, `show' was not exported
@@ -466,7 +472,6 @@ vec ; => #(1 2 3 4)
 ;; 8. Classes and Objects
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TODO
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 9. Macros
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -495,7 +500,7 @@ vec ; => #(1 2 3 4)
 (define a 2)
 (define b 3)
 (swap! a b)
-(printf "tmp = ~a; a = ~a; b = ~a\n" tmp a b) ; tmp is unaffected
+(format #t "tmp = ~a; a = ~a; b = ~a\n" tmp a b) ; tmp is unaffected
 
 ;; But they are still code transformations, for example:
 (define-syntax-rule (bad-while condition body ...)

@@ -74,7 +74,7 @@
 <span class="comment">;; =&gt; 6
 </span>
 <span class="comment">;; `set!&#x27; stores a value into a variable:
-</span><span class="paren1">(<span class="default">set! my-name <span class="string">&quot;Bastien&quot;</span></span>)</span>
+</span><span class="paren1">(<span class="default">set! my-name <span class="string">&quot;NalaGinrut&quot;</span></span>)</span>
 
 <span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 </span><span class="comment">;; 1. Primitive Datatypes and Operators
@@ -132,9 +132,12 @@
 </span>
 <span class="comment">;; format can be used to format strings:
 </span><span class="paren1">(<span class="default">format #t <span class="string">&quot;~a can be ~a&quot;</span> <span class="string">&quot;strings&quot;</span> <span class="string">&quot;formatted&quot;</span></span>)</span>
-
+<span class="comment">;; ==&gt; print &quot;strings can be formatted&quot; on screen
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> str <span class="paren2">(<span class="default">format #f <span class="string">&quot;~a can be ~a&quot;</span> <span class="string">&quot;strings&quot;</span> <span class="string">&quot;formatted&quot;</span></span>)</span></span>)</span>
+<span class="comment">;; str was assigned to &quot;strings can be formatted&quot;
+</span>
 <span class="comment">;; Printing is pretty easy
-</span><span class="paren1">(<span class="default">display <span class="string">&quot;I&#x27;m Racket. Nice to meet you!</span><span class="string">\n</span><span class="string">&quot;</span></span>)</span>
+</span><span class="paren1">(<span class="default">display <span class="string">&quot;I&#x27;m Guile. Nice to meet you!</span><span class="string">\n</span><span class="string">&quot;</span></span>)</span>
 
 <span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 </span><span class="comment">;; 2. Variables
@@ -243,7 +246,7 @@ my-pet <span class="comment">; =&gt; #&lt;dog&gt;
 </span>
 <span class="comment">;; Use parens to call all functions, including a lambda expression
 </span><span class="paren1">(<span class="default"><span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default"></span>)</span> <span class="string">&quot;Hello World&quot;</span></span>)</span></span>)</span> <span class="comment">; =&gt; &quot;Hello World&quot;
-</span><span class="paren1">(<span class="default"><span class="paren2">(<span class="default">λ <span class="paren3">(<span class="default"></span>)</span> <span class="string">&quot;Hello World&quot;</span></span>)</span></span>)</span>      <span class="comment">; =&gt; &quot;Hello World&quot;
+</span><span class="paren1">(<span class="default"><span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default">x</span>)</span> <span class="paren3">(<span class="default">+ x x</span>)</span></span>)</span> 5</span>)</span>      <span class="comment">; =&gt; 10
 </span>
 <span class="comment">;; Assign a function to a var
 </span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> hello-world <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default"></span>)</span> <span class="string">&quot;Hello World&quot;</span></span>)</span></span>)</span>
@@ -342,13 +345,13 @@ my-pet <span class="comment">; =&gt; #&lt;dog&gt;
       <span class="paren2">[<span class="default">else &#x27;ok</span>]</span></span>)</span> <span class="comment">; =&gt; &#x27;ok
 </span>
 <span class="comment">;;; Pattern Matching
-</span>
-<span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">fizzbuzz? n</span>)</span>
+</span><span class="paren1">(<span class="default">use-modules <span class="paren2">(<span class="default">ice-9 match</span>)</span></span>)</span> <span class="comment">; use match module
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">fizzbuzz? n</span>)</span>
   <span class="paren2">(<span class="default">match <span class="paren3">(<span class="default">list <span class="paren4">(<span class="default">remainder n 3</span>)</span> <span class="paren4">(<span class="default">remainder n 5</span>)</span></span>)</span>
-    <span class="paren3">[<span class="default"><span class="paren4">(<span class="default">list 0 0</span>)</span> &#x27;fizzbuzz</span>]</span>
-    <span class="paren3">[<span class="default"><span class="paren4">(<span class="default">list 0 _</span>)</span> &#x27;fizz</span>]</span>
-    <span class="paren3">[<span class="default"><span class="paren4">(<span class="default">list _ 0</span>)</span> &#x27;buzz</span>]</span>
-    <span class="paren3">[<span class="default">_          #f</span>]</span></span>)</span></span>)</span>
+    <span class="paren3">(<span class="default"><span class="paren4">(<span class="default">list 0 0</span>)</span> &#x27;fizzbuzz</span>)</span>
+    <span class="paren3">(<span class="default"><span class="paren4">(<span class="default">list 0 _</span>)</span> &#x27;fizz</span>)</span>
+    <span class="paren3">(<span class="default"><span class="paren4">(<span class="default">list _ 0</span>)</span> &#x27;buzz</span>)</span>
+    <span class="paren3">(<span class="default">else #f</span>)</span></span>)</span></span>)</span>
 
 <span class="paren1">(<span class="default">fizzbuzz? 15</span>)</span> <span class="comment">; =&gt; &#x27;fizzbuzz
 </span><span class="paren1">(<span class="default">fizzbuzz? 37</span>)</span> <span class="comment">; =&gt; #f
@@ -356,61 +359,57 @@ my-pet <span class="comment">; =&gt; #&lt;dog&gt;
 <span class="comment">;;; Loops
 </span>
 <span class="comment">;; Looping can be done through (tail-) recursion
-</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default"><i><span class="symbol">loop</span></i> i</span>)</span>
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">lp i</span>)</span>
   <span class="paren2">(<span class="default">when <span class="paren3">(<span class="default">&lt; i 10</span>)</span>
-    <span class="paren3">(<span class="default">printf <span class="string">&quot;i=~a</span><span class="string">\n</span><span class="string">&quot;</span> i</span>)</span>
-    <span class="paren3">(<span class="default"><i><span class="symbol">loop</span></i> <span class="paren4">(<span class="default">add1 i</span>)</span></span>)</span></span>)</span></span>)</span>
-<span class="paren1">(<span class="default"><i><span class="symbol">loop</span></i> 5</span>)</span> <span class="comment">; =&gt; i=5, i=6, ...
+    <span class="paren3">(<span class="default">format #t <span class="string">&quot;i=~a</span><span class="string">\n</span><span class="string">&quot;</span> i</span>)</span>
+    <span class="paren3">(<span class="default">lp <span class="paren4">(<span class="default">1+ i</span>)</span></span>)</span></span>)</span></span>)</span>
+<span class="paren1">(<span class="default">lp 5</span>)</span> <span class="comment">; =&gt; i=5, i=6, ...
 </span>
 <span class="comment">;; Similarly, with a named let
-</span><span class="paren1">(<span class="default"><i><span class="symbol">let</span></i> <i><span class="symbol">loop</span></i> <span class="paren2">(<span class="default"><span class="paren3">(<span class="default">i 0</span>)</span></span>)</span>
+</span><span class="paren1">(<span class="default"><i><span class="symbol">let</span></i> lp <span class="paren2">(<span class="default"><span class="paren3">(<span class="default">i 0</span>)</span></span>)</span>
   <span class="paren2">(<span class="default">when <span class="paren3">(<span class="default">&lt; i 10</span>)</span>
-    <span class="paren3">(<span class="default">printf <span class="string">&quot;i=~a</span><span class="string">\n</span><span class="string">&quot;</span> i</span>)</span>
-    <span class="paren3">(<span class="default"><i><span class="symbol">loop</span></i> <span class="paren4">(<span class="default">add1 i</span>)</span></span>)</span></span>)</span></span>)</span> <span class="comment">; =&gt; i=0, i=1, ...
+    <span class="paren3">(<span class="default">format #t <span class="string">&quot;i=~a</span><span class="string">\n</span><span class="string">&quot;</span> i</span>)</span>
+    <span class="paren3">(<span class="default">lp <span class="paren4">(<span class="default">1+ i</span>)</span></span>)</span></span>)</span></span>)</span> <span class="comment">; =&gt; i=0, i=1, ...
 </span>
-<span class="comment">;; See below how to add a new `loop&#x27; form, but Racket already has a very
-</span><span class="comment">;; flexible `for&#x27; form for loops:
-</span><span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">(<span class="default">i 10</span>)</span></span>)</span>
-  <span class="paren2">(<span class="default">printf <span class="string">&quot;i=~a</span><span class="string">\n</span><span class="string">&quot;</span> i</span>)</span></span>)</span> <span class="comment">; =&gt; i=0, i=1, ...
-</span><span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">(<span class="default">i <span class="paren4">(<span class="default">in-range 5 10</span>)</span></span>)</span></span>)</span>
-  <span class="paren2">(<span class="default">printf <span class="string">&quot;i=~a</span><span class="string">\n</span><span class="string">&quot;</span> i</span>)</span></span>)</span> <span class="comment">; =&gt; i=5, i=6, ...
+<span class="comment">;; how to get a range? just like range(0, 9)?
+</span><span class="comment">;; the original &#x27;iota&#x27; only accept one para
+</span><span class="paren1">(<span class="default">iota 10</span>)</span> <span class="comment">; ==&gt; (0 1 2 3 4 5 6 7 8 9)
+</span><span class="comment">;; the &#x27;iota&#x27; in srfi-1 was extended 
+</span><span class="paren1">(<span class="default">use-modules <span class="paren2">(<span class="default">srfi srfi-1</span>)</span></span>)</span>
+<span class="comment">;; #&lt;procedure iota (count #:optional start step)&gt;
+</span><span class="paren1">(<span class="default">iota 5 10</span>)</span> <span class="comment">; =&gt; (10 11 12 13 14) 
+</span><span class="comment">;; means from 10 count 5 times, each step +1 (plus one is default)
+</span><span class="paren1">(<span class="default">iota 5 10 2</span>)</span> <span class="comment">; =&gt; (10 12 14 16 18)
+</span><span class="comment">;; from 10 count 5 times, each step +2
+</span><span class="comment">;; If you need a Python like range(5, 10) ==&gt; (5 6 7 8 9), try:
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">range from to</span>)</span> <span class="paren2">(<span class="default">map <span class="paren3">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren4">(<span class="default">x</span>)</span> <span class="paren4">(<span class="default">+ from x</span>)</span></span>)</span> <span class="paren3">(<span class="default">iota <span class="paren4">(<span class="default">- to from</span>)</span></span>)</span></span>)</span></span>)</span>
+<span class="paren1">(<span class="default">range 5 10</span>)</span> <span class="comment">; =&gt; (5 6 7 8 9)
+</span>
+<span class="comment">;; how to do iteration?
+</span><span class="paren1">(<span class="default">for-each display &#x27;<span class="paren2">(<span class="default">1 2 3 4 5</span>)</span></span>)</span>
+<span class="comment">;; =&gt; 12345
+</span><span class="paren1">(<span class="default">for-each <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default">i</span>)</span> <span class="paren3">(<span class="default">format #t <span class="string">&quot;i=~a</span><span class="string">\n</span><span class="string">&quot;</span> i</span>)</span></span>)</span>
+          <span class="paren2">(<span class="default">iota 10</span>)</span></span>)</span> <span class="comment">; =&gt; i=0, i=1, ...
+</span><span class="paren1">(<span class="default">for-each <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default">i</span>)</span> <span class="paren3">(<span class="default">format #t <span class="string">&quot;i=~a</span><span class="string">\n</span><span class="string">&quot;</span> i</span>)</span></span>)</span>
+          <span class="paren2">(<span class="default">range 5 10</span>)</span></span>)</span> <span class="comment">; =&gt; i=5, i=6, ...
 </span>
 <span class="comment">;;; Iteration Over Other Sequences
 </span><span class="comment">;; `for&#x27; allows iteration over many other kinds of sequences:
 </span><span class="comment">;; lists, vectors, strings, sets, hash tables, etc...
-</span>
-<span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">[<span class="default">i <span class="paren4">(<span class="default">in-list &#x27;<span class="paren5">(<span class="default">l i s t</span>)</span></span>)</span></span>]</span></span>)</span>
-  <span class="paren2">(<span class="default">displayln i</span>)</span></span>)</span>
-
-<span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">[<span class="default">i <span class="paren4">(<span class="default">in-vector #<span class="paren5">(<span class="default">v e c t o r</span>)</span></span>)</span></span>]</span></span>)</span>
-  <span class="paren2">(<span class="default">displayln i</span>)</span></span>)</span>
-
-<span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">[<span class="default">i <span class="paren4">(<span class="default">in-string <span class="string">&quot;string&quot;</span></span>)</span></span>]</span></span>)</span>
-  <span class="paren2">(<span class="default">displayln i</span>)</span></span>)</span>
-
-<span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">[<span class="default">i <span class="paren4">(<span class="default">in-set <span class="paren5">(<span class="default">set &#x27;x &#x27;y &#x27;z</span>)</span></span>)</span></span>]</span></span>)</span>
-  <span class="paren2">(<span class="default">displayln i</span>)</span></span>)</span>
-
-<span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">[<span class="default"><span class="paren4">(<span class="default">k v</span>)</span> <span class="paren4">(<span class="default">in-hash <span class="paren5">(<span class="default">hash &#x27;a 1 &#x27;b 2 &#x27;c 3 </span>)</span></span>)</span></span>]</span></span>)</span>
-  <span class="paren2">(<span class="default">printf <span class="string">&quot;key:~a value:~a</span><span class="string">\n</span><span class="string">&quot;</span> k v</span>)</span></span>)</span>
-
-<span class="comment">;;; More Complex Iterations
-</span>
-<span class="comment">;; Parallel scan of multiple sequences (stops on shortest)
-</span><span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">[<span class="default">i 10</span>]</span> <span class="paren3">[<span class="default">j &#x27;<span class="paren4">(<span class="default">x y z</span>)</span></span>]</span></span>)</span> <span class="paren2">(<span class="default">printf <span class="string">&quot;~a:~a</span><span class="string">\n</span><span class="string">&quot;</span> i j</span>)</span></span>)</span>
+</span><span class="paren1">(<span class="default">for-each display &#x27;<span class="paren2">(<span class="default">l i s t</span>)</span></span>)</span>
+<span class="comment">;; =&gt; list
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> vector-for-each <span class="paren2">(<span class="default">@ <span class="paren3">(<span class="default">rnrs</span>)</span> vector-for-each</span>)</span></span>)</span>
+<span class="comment">;; export vector-for-each from rnrs only
+</span><span class="paren1">(<span class="default">vector-for-each display #<span class="paren2">(<span class="default">v e c t o r</span>)</span></span>)</span>
+<span class="comment">;; =&gt; vector
+</span><span class="paren1">(<span class="default">string-for-each display <span class="string">&quot;string&quot;</span></span>)</span>
+<span class="comment">;; =&gt; string
+</span><span class="comment">;;; More Complex Iterations
+</span><span class="comment">;; Parallel scan of multiple sequences (stops on shortest)
+</span><span class="paren1">(<span class="default">do <span class="paren2">(<span class="default"><span class="paren3">(<span class="default">i 10</span>)</span> <span class="paren3">(<span class="default">j &#x27;<span class="paren4">(<span class="default">x y z</span>)</span> <span class="paren4">(<span class="default">cdr j</span>)</span></span>)</span></span>)</span> 
+    <span class="paren2">(<span class="default"><span class="paren3">(<span class="default">null? j</span>)</span></span>)</span> <span class="comment">; if j is &#x27;(), just end the loop
+</span>  <span class="paren2">(<span class="default">format #t <span class="string">&quot;~a:~a</span><span class="string">\n</span><span class="string">&quot;</span> i <span class="paren3">(<span class="default">car j</span>)</span></span>)</span></span>)</span>
 <span class="comment">; =&gt; 0:x 1:y 2:z
-</span>
-<span class="comment">;; Nested loops
-</span><span class="paren1">(<span class="default">for* <span class="paren2">(<span class="default"><span class="paren3">[<span class="default">i 2</span>]</span> <span class="paren3">[<span class="default">j &#x27;<span class="paren4">(<span class="default">x y z</span>)</span></span>]</span></span>)</span> <span class="paren2">(<span class="default">printf <span class="string">&quot;~a:~a</span><span class="string">\n</span><span class="string">&quot;</span> i j</span>)</span></span>)</span>
-<span class="comment">; =&gt; 0:x, 0:y, 0:z, 1:x, 1:y, 1:z
-</span>
-<span class="comment">;; Conditions
-</span><span class="paren1">(<span class="default">for <span class="paren2">(<span class="default"><span class="paren3">[<span class="default">i 1000</span>]</span>
-      <span class="keyword">#:when</span> <span class="paren3">(<span class="default">&gt; i 5</span>)</span>
-      <span class="keyword">#:unless</span> <span class="paren3">(<span class="default">odd? i</span>)</span>
-      <span class="keyword">#:break</span> <span class="paren3">(<span class="default">&gt; i 10</span>)</span></span>)</span>
-  <span class="paren2">(<span class="default">printf <span class="string">&quot;i=~a</span><span class="string">\n</span><span class="string">&quot;</span> i</span>)</span></span>)</span>
-<span class="comment">; =&gt; i=6, i=8, i=10
 </span>
 <span class="comment">;;; Exceptions
 </span>
@@ -459,23 +458,30 @@ vec <span class="comment">; =&gt; #(1 2 3 4)
 </span><span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 </span>
 <span class="comment">;; Modules let you organize code into multiple files and reusable
-</span><span class="comment">;; libraries; here we use sub-modules, nested in the whole module that
-</span><span class="comment">;; this text makes (starting from the &quot;#lang&quot; line)
+</span><span class="comment">;; libraries; Make sure put all the module code in one file, since 
+</span><span class="comment">;; the modules split as files. And the module name should be same 
+</span><span class="comment">;; with the filename, say, module named (my-cake) is &#x27;my-cake.scm&#x27;,
+</span><span class="comment">;; and module named (mods my-cake) is &#x27;mods/my-cake.scm&#x27;,
+</span><span class="comment">;; (mods submods my-cake) ==&gt; &#x27;mods/submods/my-cake.scm&#x27;.
+</span><span class="comment">;; ---begin my-cake.scm---
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define-module</span></i> <span class="paren2">(<span class="default">my-cake</span>)</span> <span class="comment">; define a `cake&#x27; module based on racket/base
+</span>  <span class="keyword">#:use-modules</span> <span class="paren2">(<span class="default">ice-9 format</span>)</span> <span class="comment">; the pre-requisition of current module
+</span>  <span class="keyword">#:export</span> <span class="paren2">(<span class="default">print-cake</span>)</span></span>)</span> <span class="comment">; function exported by the module
 </span>
-<span class="paren1">(<span class="default"><i><span class="symbol">define-module</span></i> <span class="paren2">(<span class="default">my-cake</span>)</span> <span class="comment">; define a `cake&#x27; module based on racket/base
-</span>  <span class="keyword">#:use-module</span> <span class="paren2">(<span class="default">print-cake</span>)</span></span>)</span> <span class="comment">; function exported by the module
-</span>
+  <span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">show fmt n ch</span>)</span> <span class="comment">; internal function
+</span>    <span class="paren2">(<span class="default">format #t fmt <span class="paren3">(<span class="default">make-string n ch</span>)</span></span>)</span>
+    <span class="paren2">(<span class="default">newline</span>)</span></span>)</span>)
+
   <span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">print-cake n</span>)</span>
     <span class="paren2">(<span class="default">show <span class="string">&quot;   ~a   &quot;</span> n <span class="character">#\.</span></span>)</span>
     <span class="paren2">(<span class="default">show <span class="string">&quot; .-~a-. &quot;</span> n <span class="character">#\|</span></span>)</span>
     <span class="paren2">(<span class="default">show <span class="string">&quot; | ~a | &quot;</span> n <span class="character">#\space</span></span>)</span>
     <span class="paren2">(<span class="default">show <span class="string">&quot;---~a---&quot;</span> n <span class="character">#\-</span></span>)</span></span>)</span>
-
-  <span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">show fmt n ch</span>)</span> <span class="comment">; internal function
-</span>    <span class="paren2">(<span class="default">format #t fmt <span class="paren3">(<span class="default">make-string n ch</span>)</span></span>)</span>
-    <span class="paren2">(<span class="default">newline</span>)</span></span>)</span>)
-
-<span class="comment">;; Use `require&#x27; to get all `provide&#x27;d names from a module
+<span class="comment">;; --end my-cake.scm---
+</span>
+<span class="comment">;; Be sure that the path of &#x27;my-cake.scm&#x27; is in your current 
+</span><span class="comment">;; %load-path list. Use `use-modules&#x27; to get all `provide&#x27;d names 
+</span><span class="comment">;; from a module.
 </span><span class="paren1">(<span class="default">use-modules <span class="paren2">(<span class="default">my-cake</span>)</span></span>)</span> <span class="comment">; the &#x27; is for a local submodule
 </span><span class="paren1">(<span class="default">print-cake 3</span>)</span>
 <span class="comment">; (show &quot;~a&quot; 1 #\A) ; =&gt; error, `show&#x27; was not exported
@@ -484,8 +490,7 @@ vec <span class="comment">; =&gt; #(1 2 3 4)
 </span><span class="comment">;; 8. Classes and Objects
 </span><span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 </span><span class="comment">;; TODO
-</span>
-<span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+</span><span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 </span><span class="comment">;; 9. Macros
 </span><span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 </span>
@@ -513,7 +518,7 @@ vec <span class="comment">; =&gt; #(1 2 3 4)
 <span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> a 2</span>)</span>
 <span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> b 3</span>)</span>
 <span class="paren1">(<span class="default">swap! a b</span>)</span>
-<span class="paren1">(<span class="default">printf <span class="string">&quot;tmp = ~a; a = ~a; b = ~a</span><span class="string">\n</span><span class="string">&quot;</span> tmp a b</span>)</span> <span class="comment">; tmp is unaffected
+<span class="paren1">(<span class="default">format #t <span class="string">&quot;tmp = ~a; a = ~a; b = ~a</span><span class="string">\n</span><span class="string">&quot;</span> tmp a b</span>)</span> <span class="comment">; tmp is unaffected
 </span>
 <span class="comment">;; But they are still code transformations, for example:
 </span><span class="paren1">(<span class="default"><i><span class="symbol">define-syntax-rule</span></i> <span class="paren2">(<span class="default">bad-while condition body ...</span>)</span>
