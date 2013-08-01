@@ -512,6 +512,6 @@ vec ; => #(1 2 3 4)
 
 </enscript>
 
-Please read [[SICP|SICP]] for more profound learning.
+Please read [[http://mitpress.mit.edu/sicp/full-text/book/book.html|SICP]] for more profound learning.
 
 Happy Hacking!

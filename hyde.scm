@@ -8,8 +8,7 @@
 (default-page-vars '(((: bos "" (+ any) ".wiki")
                       (layouts "default.sxml"))))
 
-(link-shortcuts '((docs . "http://web-artanis.com/docs/~A")
-                  (SICP . "http://mitpress.mit.edu/sicp/full-text/book/book.html")))
+(link-shortcuts '((docs . "http://web-artanis.com/docs/~A")))
 
 (define $ (environment-ref (page-eval-env) '$))
 
