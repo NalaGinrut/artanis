@@ -38,6 +38,6 @@ play Ruby-on-Rails.
 
 And any other related project could be work with them, just like [redis](https://github.com/aconchillo/guile-redis), 
 [dbi](http://home.gna.org/guile-dbi/), [json](https://github.com/aconchillo/guile-json)...
-All of them will consist the so-called GLOW.
+All of them will compose the so-called GLOW.
 
 
