@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
   <generator uri="http://3e8.org/chickadee/atom" version="0.1.1">atom egg for Chicken</generator>
-  <icon>www.web-artanis.comimp/icon.png</icon>
-  <id>tag:web-artanis.com,2010-08-29:/</id>
+  <icon>www.web-artanis.comimg/icon.png</icon>
+  <id>tag:web-artanis.com,2013-08-01:/</id>
   <link href="www.web-artanis.com/" rel="alternate" type="text/html" />
   <link href="www.web-artanis.com/feed.atom" rel="self" type="application/atom+xml" />
-  <logo>www.web-artanis.comimp/logo.png</logo>
+  <logo>www.web-artanis.comimg/logo.png</logo>
   <subtitle type="text">The atom of Artanis site</subtitle>
   <title type="text">atom</title>
   <updated>2013-07-24T08:01:27Z</updated>

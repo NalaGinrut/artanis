@@ -24,7 +24,7 @@
       (h3 (@ (id "the-author")) "Authored by " 
        (a (@ (id "the-author") (href "http://tech.nalaginrut.com")) "NalaGinrut"))))
     (div (@ (id "main") (class "home"))
-     (div (@ (class "wrap")) (pre (code (inject ,contents))))
+     (div (@ (class "wrap")) (about-text (inject ,contents)))
 
      (p (@ (class "foot up"))
         "Source: "

@@ -1,11 +1,11 @@
 ((title . "atom")
  (subtitle . "The atom of Artanis site")
- (date . "2010-08-29")
+ (date . "2013-08-01")
  (tag . "tag:web-artanis.com,~A:~A")
  (entries-type . xhtml)
  (base-uri . "www.web-artanis.com")
- (icon . "imp/icon.png")
- (logo . "imp/logo.png"))
+ (icon . "img/icon.png")
+ (logo . "img/logo.png"))
 
 (pages->atom-doc (all-issues)
                  page-date->rfc3339-string: 
