@@ -36,6 +36,9 @@
 (define current-update-page
   (make-parameter
    (format #f "~a/~a" *error-page-path* *updating-page*)))
+
+(define current-upload-path
+  (make-parameter "upload/"))   
   
 (define current-start-sign (make-parameter "<%"))
 (define current-startd-sign (make-parameter "<%="))

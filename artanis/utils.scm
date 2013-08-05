@@ -32,7 +32,8 @@
             parse-date write-date make-expires export-all-from-module!
             alist->hashtable expires->time-utc local-eval-string generate-ETag
             time-expired? valid-method? mmap munmap get-random-from-dev
-            string->byteslist string->sha-1 list-slice bv-slice)
+            string->byteslist string->sha-1 list-slice bv-slice uni-basename
+            checkout-the-path)
   #:re-export (the-environment))
 
 (define* (get-random-from-dev #:key (length 8) (uppercase #f))
@@ -310,3 +311,31 @@
      (%bv-slice bv lo ((@ (rnrs bytevectors) bytevector-length) bv)))
     ((_ bv : hi)
      (%bv-slice bv 0 hi))))
+
+;; get the unified basename both POSIX and WINDOWS
+(define (uni-basename filename)
+  (substring filename
+   (1+ 
+    (string-index-right filename 
+                        (lambda (c) (or (char=? c #\\) (char=? c #\/)))))))
+
+;; FIXME: checkout-the-path only support POSIX file path
+;; FIXME: what's the proper default mode for the dir?
+(define* (checkout-the-path path #:optional (mode #o775))
+  (let ((paths (string-split path #\/)))
+    (let lp((next paths) (last ""))
+      (cond
+       ((null? next) #t)
+       ((string-null? (car next)) (lp (cdr next) last))
+       (else 
+        (let ((now-path (string-append last (car next) "/")))
+          (cond
+           ((file-exists? now-path)
+            (lp (cdr next) now-path))
+           (else
+            (dynamic-wind
+             (lambda () #t)
+             (lambda () 
+               (mkdir now-path mode)
+               (lp (cdr next) now-path))
+             (lambda () (error 'artanis-err "can't create upload path" now-path)))))))))))
