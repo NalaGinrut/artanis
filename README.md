@@ -214,9 +214,9 @@ redirect it to localhost:3000 or other port you specified.
 ;; 8. run
 ;;    Run web server
 ;; Usage:
-(init-server #:port) ; #:port is optional, 3000 in default.
+(run #:port) ; #:port is optional, 3000 in default.
 ;; E.g:
-(init-server #:port 1234) ; now you need to visit "localhost:1234/"
+(run #:port 1234) ; now you need to visit "localhost:1234/"
 ```
 
 Enjoy.
