@@ -333,9 +333,5 @@
            ((file-exists? now-path)
             (lp (cdr next) now-path))
            (else
-            (dynamic-wind
-             (lambda () #t)
-             (lambda () 
-               (mkdir now-path mode)
-               (lp (cdr next) now-path))
-             (lambda () (error 'artanis-err "can't create upload path" now-path)))))))))))
+            (mkdir now-path mode)
+            (lp (cdr next) now-path)))))))))

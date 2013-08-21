@@ -17,14 +17,16 @@
 (define-module (artanis upload)
   #:use-module (artanis utils)
   #:use-module (artanis config)
+  #:use-module (artanis irregex)
   #:use-module (ice-9 regex)
   #:use-module (ice-9 rdelim)
+  #:use-module (ice-9 iconv)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-9 gnu)
   #:use-module (srfi srfi-1)
   #:use-module ((rnrs) #:select (get-bytevector-all utf8->string put-bytevector))
   #:use-module (web request)
-  #:export (mfd-simple-dump make-mfd-dumper content-type-is-mfd?
+  #:export (mfd-simple-dump make-mfd-dumper content-type-is-mfd? parse-mfd-body
             <mfd> get-mfd-data fine-mfd make-mfd is-mfd? mfds-count
             mfd-dispos mfd-name mfd-filename mfd-data mfd-type
             mfd-simple-dump-all))
@@ -130,12 +132,13 @@
            (lp (cdr next) `(,@mfd ,@ret))))
      (else (error 'artanis-err 422 "Wrong multipart form body!"))))) 
 
-;; utf8->string will allocate a new string, which is inefficient for large upload
+;; bytevector->string will allocate a new string, which is inefficient for large upload
 ;; file, maybe optimize later, but it's better to write a brand new uploader from
 ;; scratch for a new project.
+;; NOTE: we use iso8859-1 or we can't handle general binary file
 (define (parse-mfd-body boundary body)
-  (let* ((str (utf8->string body))
-         (ll (regexp-split boundary str)))
+  (let* ((str (bytevector->string body "iso8859-1"))
+         (ll (irregex-split boundary str)))
     (mfd-parser (cdr ll)))) ; use cdr skip the first "--"
 
 (define* (make-mfd-dumper #:key (path (current-upload-path)))
