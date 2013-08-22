@@ -87,7 +87,7 @@
   (close self)
   (conn self passwd))
 
-(define-class <sqlite3> ()
+(define-class <sqlite3> (<artanis-db>)
   (db-name #:init-value "artanis" #:init-keyword #:db-name #:getter db-name))
 
 (define-method (conn (self <sqlite3>))
