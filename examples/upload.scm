@@ -18,13 +18,10 @@
 
 (post "/upload"
       (lambda (rc)
-        (cond
-         ((content-type-is-mfd? rc)
-          => (lambda (boundry)
-               (let ((mfds (parse-mfd-body boundry (rc-body rc))))
-                 (mfd-simple-dump-all mfds)
-                 (response-emit "upload succeeded!"))))
-         (else (response-emit "No uploaded files!")))))
+        (case (store-uploaded-files rc)
+          ((success) (response-emit "upload succeeded!"))
+          ((none) (response-emit "No uploaded files!"))
+          (else (response-emit "Impossible! please report bug!")))))
 
 (run)
 

@@ -29,7 +29,7 @@
   #:export (mfd-simple-dump make-mfd-dumper content-type-is-mfd? parse-mfd-body
             <mfd> get-mfd-data fine-mfd make-mfd is-mfd? mfds-count
             mfd-dispos mfd-name mfd-filename mfd-data mfd-type
-            mfd-simple-dump-all))
+            mfd-simple-dump-all store-uploaded-files))
 
 ;; NOTE: mfd stands for "Multipart Form Data"
 
@@ -138,21 +138,24 @@
 ;; NOTE: we use iso8859-1 or we can't handle general binary file
 (define (parse-mfd-body boundary body)
   (let* ((str (bytevector->string body "iso8859-1"))
-         (ll (irregex-split boundary str)))
-    (mfd-parser (cdr ll)))) ; use cdr skip the first "--"
+         (ll (irregex-split (format #f "(\n|\r\n)?(--)?~a" boundary) str)))
+    (mfd-parser ll)))
 
-(define* (make-mfd-dumper #:key (path (current-upload-path)))
+(define* (make-mfd-dumper #:key (path (current-upload-path))
+                          (mode #o664) (path-mode #o775) (sync #f))
   (lambda* (mfd #:key (rename #f) (repath #f))
     (let* ((filename (or rename (mfd-filename mfd)))
            (target-path (or repath path))
            (data (mfd-data mfd)))
       (when filename ; if the mfd is a file
-       (let ((real-path (format #f "~a/~a" target-path (dirname filename))))
-         (checkout-the-path real-path)     
-         (call-with-output-file 
-             (format #f "~a/~a" real-path filename)
+       (let* ((real-path (format #f "~a/~a" target-path (dirname filename)))
+              (des-file (format #f "~a/~a" real-path filename)))
+         (checkout-the-path real-path path-mode)
+         (call-with-output-file des-file
           (lambda (port)
-            (put-bytevector port data))))))))
+            (put-bytevector port data)
+            (and sync (force-output port))))
+         (chmod des-file mode))))))
 
 (define (mfds-count mfds)
   (car mfds))
@@ -164,3 +167,18 @@
 
 (define (mfd-simple-dump-all mfds)
   (for-each mfd-simple-dump (cdr mfds)))
+
+;; NOTE: we won't limit file size here, since it should be done in server reader
+(define* (store-uploaded-files rc #:key (path (current-upload-path))
+                               (mode #o664) (path-mode #o775) (sync #f))
+  (cond
+   ((content-type-is-mfd? rc)
+    => (lambda (boundry)
+         (let ((mfds (parse-mfd-body boundry ((@ (artanis artanis) rc-body) rc)))
+               (dumper (make-mfd-dumper #:path path #:mode mode 
+                                        #:path-mode path-mode #:sync sync)))
+           (catch #t
+             (lambda () (for-each dumper (cdr mfds)))
+             (lambda e (error 'artanis-err 500 "Failed to dump mfds!" e)))
+           'success)))
+   (else 'none)))
