@@ -99,7 +99,7 @@
   (close self)
   (conn self))
 
-(define-class <postgresql> ()
+(define-class <postgresql> (<artanis-db>)
   (user #:init-value "artanis" #:init-keyword #:user
         #:getter db-user #:setter db-user!)
   (name #:init-value "artanis" #:init-keyword #:name
