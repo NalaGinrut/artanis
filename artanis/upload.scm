@@ -91,10 +91,10 @@
   (get-bytevector-all port)) ; all the rest is the data
 
 (define (blank-line? line)
-  (string=? line "\r"))
+  (string-match "^\n|\n\r$" line))
 
 (define (end-line? line)
-  (string=? line "--\r"))
+  (string-match "^--[\n|\n\r]+$" line))
 
 (define (parse-mfd-data str)
   (call-with-input-string str
