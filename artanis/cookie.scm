@@ -29,12 +29,12 @@
 
 ;; inner cookie, you shouldn't use it directly, try new-cookie
 (define-record-type cookie
-  (make-cookie nvp expir path domain secure http-only)
+  (make-cookie nvp expir domain path secure http-only)
   cookie?
   (nvp cookie-nvp cookie-nvp!)          ; Name-Value-Pairs of the cookie
   (expir cookie-expir cookie-expir!)    ; The expiration in Greenwich Mean Time
-  (path cookie-path cookie-path!)       ; The path the cookie is good for
   (domain cookie-domain cookie-domain!) ; The domain the cookie is good for
+  (path cookie-path cookie-path!)       ; The path the cookie is good for
   ;; keep cookie communication limited to encrypted transmission
   (secure cookie-secure cookie-secure!) ; The secure need of cookie
   (http-only cookie-httponly cookie-httponly!)); http-only
@@ -81,7 +81,7 @@
     cookie))
 
 (define (cookie->header-string cookie)
-  (let ((nvps (string-join (map nvp->string (cookie-nvp cookie)) "; "))
+  (let ((nvps (string-join (map nvp->string (cookie-nvp cookie)) ";"))
         (expir (cookie-expir cookie))
         (path (cookie-path cookie))
         (domain (cookie-domain cookie))
@@ -90,11 +90,11 @@
     (call-with-output-string
      (lambda (port)
        (format port "~a" nvps)
-       (and domain (format port "; Domain=~a" domain))
-       (and path (format port "; Path=~a" path))
-       (and expir (format port "; Expires=~a" expir))
-       (and secure (display "; Secure" port))
-       (and http-only (display "; HttpOnly" port))))))
+       (and expir (format port ";Expires=~a" expir))
+       (and domain (format port ";Domain=~a" domain))
+       (and path (format port ";Path=~a" path))
+       (and secure (display ";Secure" port))
+       (and http-only (display ";HttpOnly" port))))))
 
 (define (generate-cookies cookies)
   (map (lambda (c) `(set-cookie . ,(cookie->header-string c))) cookies))
@@ -106,7 +106,7 @@
   (let ((e (cond ((string? expires) expires) ; TODO: need validate
                  ((integer? expires) (make-expires expires))
                  (else #f)))); else #f for no expires
-    (make-cookie npv e path domain secure http-only)))
+    (make-cookie npv e domain path secure http-only)))
     
 (define (cookie-set! cookie name value)
   (let ((nvp (cookie-nvp cookie)))
@@ -141,7 +141,7 @@
 
 (define *the-remove-expires* "Thu, 01-Jan-70 00:00:01 GMT")
 (define (remove-cookie-from-client key rc)
-  (let ((cookies (rc-set-cookie rc)))
-    (rc-set-cookie! 
+  (let ((cookies ((@ (artanis artanis) rc-set-cookie) rc)))
+    ((@ (artanis artanis) rc-set-cookie!) 
      rc
      `(,@cookies ,(new-cookie #:npv '((key "")) #:expires *the-remove-expires*)))))
