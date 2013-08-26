@@ -339,7 +339,7 @@
 (define *stpl-SRE* '(or (=> tilde "~")
                         (=> dollar "$$")
                         (: "${" (=> name (+ (~ #\}))) "}")))
-(define* (make-string-template str #:optional (mode #f) . opts)
+(define* (make-string-template str . opts)
   (define ll '()) ; list for all keywords
   (define lv '()) ; list for default value
   (define template
@@ -351,16 +351,13 @@
         ((irregex-match-substring m 'dollar) "$")
         ((irregex-match-substring m 'tilde) "~~")
         (else
-         (let* ((var (irregex-match-substring m 1))
-                (key (symbol->keyword (string->symbol 
+         (let* ((key (symbol->keyword (string->symbol 
                                        (irregex-match-substring m 'name))))
                 (v (kw-arg-ref opts key)))
            (and v (set! lv (cons (cons key v) lv))) ; default value
            (set! ll (cons key ll))
-           (set! lk (cons var lk))
            "~a"))))))
   (lambda args
     (let ((vals (map (lambda (x) 
-                       (or (kw-arg-ref args x) (assoc-ref lv x)
-                           (if mode (assoc-ref lk x) "NONE"))) ll)))
+                       (or (kw-arg-ref args x) (assoc-ref lv x) "NONE")) ll)))
     (format #f "~?" template (reverse vals)))))
