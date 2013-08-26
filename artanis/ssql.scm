@@ -16,6 +16,7 @@
 
 (define-module (artanis ssql)
   #:use-module (artanis utils)
+  #:use-module (ice-9 match)
   #:export (->sql))
 
 ;; ENHANCE: 
@@ -48,6 +49,20 @@
 (define-syntax-rule (->lst pairs)
   (map (lambda (l) (-> "~{~a~^=~s~}" l)) pairs))
 
+(define (->cond lst)
+  (define (->logical and/or ll)
+    (string-join (map ->cond ll) (format #f " ~a " and/or)))
+  (define (->op2 op a1 a2) (-> "~a~a~s" a1 op a2))
+  (define (->opn opn . ll) (-> "~a ~{~s~^ ~}" opn ll))
+  (match lst
+   (('and ll ...) (->logical 'and ll))
+   (('or ll ...) (->logical 'or ll))
+   ((op2 a1 a2) (->op2 op2 a1 a2))
+   ((opn ll ...) (->opn opn ll))
+   (((l1 ...) ll ...) (map ->cond (cons l1 ll)))
+   (() "")
+   (else (error 'artanis-err 500 "invalid sql syntax!" (car lst)))))
+
 (define-syntax sql-where
   (syntax-rules (select in like between and is null)
     ((_ column in (lst ...))
@@ -60,9 +75,10 @@
      (-> "~a between ~s and ~s" 'column a b))
     ((_ column is null)
      (-> "~a is null" 'column))
+    ;; e.g.   (->sql select * from 'user where (and (= user "name") (> age 15)))
+    ;;        ==>  "select * from user where user=\"name\" and age>15;"
     ((_ (lst ...))
-     (-> "~{~a~^,~}" '(lst ...)))
-    ;; FIXME: implement "where a = (select ...), ..."
+     (-> "~a" (->cond '(lst ...))))
     ))
 
 (define-syntax sql-select
