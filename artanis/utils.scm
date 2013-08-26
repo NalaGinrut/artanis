@@ -18,6 +18,7 @@
   #:use-module (artanis md5)
   #:use-module (artanis sha-1)
   #:use-module (artanis config)
+  #:use-module (artanis irregex)
   #:use-module (system foreign)
   #:use-module (ice-9 regex)
   #:use-module (srfi srfi-1)
