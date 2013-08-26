@@ -18,7 +18,11 @@
   #:export (irregex-match irregex-search irregex string->irregex sre->irregex
             string->sre mabe-string->sre irregex? irregex-match-data? 
             irregex-match-substring irregex-match-start-index irregex-match-end-index
-            irregex-match-valid-index? irregex-split))
+            irregex-match-valid-index? irregex-split irregex-match-chunker irregex-match-tag
+            irregex-num-submatches irregex-num-submatches irregex-length irregex-name
+            irregex-match-num-submatches irregex-reset-matches! irregex-new-matches
+            irregex-match-start-chunk irregex-match-start-index-set! irregex-match-names
+            irregex-copy-matches irregex-apply-match irregex-replace irregex-replace/all))
 
 (define irregex-tag '*irregex-tag*)
 
