@@ -22,7 +22,8 @@
             irregex-num-submatches irregex-num-submatches irregex-length irregex-name
             irregex-match-num-submatches irregex-reset-matches! irregex-new-matches
             irregex-match-start-chunk irregex-match-start-index-set! irregex-match-names
-            irregex-copy-matches irregex-apply-match irregex-replace irregex-replace/all))
+            irregex-copy-matches irregex-apply-match irregex-replace irregex-replace/all
+            irregex-fold))
 
 (define irregex-tag '*irregex-tag*)
 

@@ -24,6 +24,7 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-19)
   #:use-module (ice-9 local-eval)
+  #:use-module (ice-9 receive)
   #:use-module (web http)
   #:use-module (web request)
   #:export (regexp-split hash-keys cat bv-cat get-global-time
@@ -34,7 +35,7 @@
             alist->hashtable expires->time-utc local-eval-string generate-ETag
             time-expired? valid-method? mmap munmap get-random-from-dev
             string->byteslist string->sha-1 list-slice bv-slice uni-basename
-            checkout-the-path)
+            checkout-the-path make-string-template)
   #:re-export (the-environment))
 
 (define* (get-random-from-dev #:key (length 8) (uppercase #f))
@@ -337,28 +338,75 @@
             (mkdir now-path mode)
             (lp (cdr next) now-path)))))))))
 
-(define *stpl-SRE* '(or (=> tilde "~")
-                        (=> dollar "$$")
-                        (: "${" (=> name (+ (~ #\}))) "}")))
-(define* (make-string-template str . opts)
-  (define ll '()) ; list for all keywords
-  (define lv '()) ; list for default value
-  (define template
-    (irregex-replace/all 
-     ;;"(\\$\\{([^$])+\\})"
-     *stpl-SRE* str
-     (lambda (m) 
-       (cond
-        ((irregex-match-substring m 'dollar) "$")
-        ((irregex-match-substring m 'tilde) "~~")
-        (else
-         (let* ((key (symbol->keyword (string->symbol 
-                                       (irregex-match-substring m 'name))))
-                (v (kw-arg-ref opts key)))
-           (and v (set! lv (cons (cons key v) lv))) ; default value
-           (set! ll (cons key ll))
-           "~a"))))))
-  (lambda args
-    (let ((vals (map (lambda (x) 
-                       (or (kw-arg-ref args x) (assoc-ref lv x) "NONE")) ll)))
-    (format #f "~?" template (reverse vals)))))
+;; NOTE: This my original verion of make-string-template
+
+;; (define *stpl-SRE* '(or (=> tilde "~")
+;;                         (=> dollar "$$")
+;;                         (: "${" (=> name (+ (~ #\}))) "}")))
+
+;; (define* (make-string-template str #:optional (mode #f) . opts)
+;;   (define ll '()) ; list for all keywords
+;;   (define lv '()) ; list for default value
+;;   (define template
+;;     (irregex-replace/all 
+;;      ;;"(\\$\\{([^$])+\\})"
+;;      *stpl-SRE* str
+;;      (lambda (m) 
+;;        (cond
+;;         ((irregex-match-substring m 'dollar) "$")
+;;         ((irregex-match-substring m 'tilde) "~~")
+;;         (else
+;;          (let* ((var (irregex-match-substring m 1))
+;;                 (key (symbol->keyword (string->symbol 
+;;                                        (irregex-match-substring m 'name))))
+;;                 (v (kw-arg-ref opts key)))
+;;            (and v (set! lv (cons (cons key v) lv))) ; default value
+;;            (set! ll (cons key ll))
+;;            (set! lk (cons var lk))
+;;            "~a"))))))
+;;   (lambda args
+;;     (let ((vals (map (lambda (x) 
+;;                        (or (kw-arg-ref args x) (assoc-ref lv x)
+;;                            (if mode (assoc-ref lk x) "NONE"))) ll)))
+;;     (format #f "~?" template (reverse vals)))))
+
+;; NOTE: This is mark_weaver version for efficiency, Thanks mark!
+(define (make-string-template template . defaults)
+  (define irx (sre->irregex '(or (=> dollar "$$")
+                                 (: "${" (=> var (+ (~ #\}))) "}"))))
+  (define (optimize rev-items tail)
+    (cond ((null? rev-items) tail)
+          ((not (string? (car rev-items)))
+           (optimize (cdr rev-items)
+                     (cons (car rev-items) tail)))
+          (else (receive (strings rest) (span string? rev-items)
+                  (let ((s (string-concatenate-reverse strings)))
+                    (if (string-null? s)
+                        (optimize rest tail)
+                        (optimize rest (cons s tail))))))))
+  (define (match->item m)
+    (or (and (irregex-match-substring m 'dollar) "$")
+        (let* ((name (irregex-match-substring m 'var))
+               (key (symbol->keyword (string->symbol name))))
+          (cons key (kw-arg-ref defaults key)))))
+  (let* ((rev-items (irregex-fold
+                     irx
+                     (lambda (idx m tail)
+                       (cons* (match->item m)
+                              (substring template
+                                         idx
+                                         (irregex-match-start-index m 0))
+                              tail))
+                     '()
+                     template
+                     (lambda (idx tail)
+                       (cons (substring template idx) tail))))
+         (items (optimize rev-items '())))
+    (lambda keyword-args
+      (define (item->string item)
+        (if (string? item)
+            item
+            (or (kw-arg-ref keyword-args (car item))
+                (cdr item)
+                (error "Missing keyword" (car item)))))
+      (string-concatenate (map item->string items)))))
