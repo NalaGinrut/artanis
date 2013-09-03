@@ -31,71 +31,45 @@
 (define startd-sign (current-startd-sign))
 (define end-sign (current-end-sign))
 
-(define ss-len (string-length start-sign))
-(define sd-len (string-length startd-sign))
-(define es-len (string-length end-sign))
-
 (define tpl-outport (make-parameter #f))
 
+(define *tpl-irx* 
+  (sre->irregex `(or (: ,startd-sign (=> disp-code (+ (~ #\% #\>))) ,end-sign)
+                     (: ,start-sign (=> code (+ (~ #\% #\>))) ,end-sign))))
 (define (tpl->expr tpl)
-  (call-with-output-string
-   (lambda (port)
-     (letrec*
-         ;; template parser
-         ((tpl-parser
-           (lambda args
-             (let* ((str-in (apply substring/shared `(,tpl ,@args)))
-                    (pos (car args))
-                    (get-position
-                     (lambda (sign)
-                       (let ((p (string-contains str-in sign)))
-                         (if p
-                             (+ p pos)
-                             p))))
-                    (sd (get-position startd-sign))                    
-                    (s (if sd #f (get-position start-sign)))
-                    (e (get-position end-sign))
-                    (in-len (string-length str-in)))
-               (cond
-                ((= in-len 0) #t) ;; recursive exit
-                ((and (or s sd) 
-                      (not e))
-                 (error tpl-parser "can't find ending!"))
-                ((and (and (not s) (not sd)) 
-                      e)
-                 (error tpl-parser "invalid template file!"))
-                ((and (and (not s) (not sd))
-                      (not e))
-                 (write-html-to-out-buf pos))
-                ((and sd 
-                      (or (not s) (< sd s))) ;; <%= situation FIXME: I didn't consider sd-s-e, say, no sd-e 
-                 (write-html-to-out-buf pos sd)
-                 (write-script-display-to-out-buf (+ sd sd-len) e)
-                 (tpl-parser (+ e es-len)))
-                (else
-                 (write-html-to-out-buf pos s)
-                 (write-script-to-out-buf (+ s ss-len) e)
-                 (tpl-parser (+ e es-len)))))))
-          ;; handle script display part
-          (write-script-display-to-out-buf
-           (lambda args
-             (let ((script-in (apply substring/shared `(,tpl ,@args))))
-               ;; FIXME: do it more elegant
-               (format port "~a" 
-                       (string-append 
-                        " (format #t \"~a\" "
-                        script-in " ) ")))))
-          ;; handle script part
-          (write-script-to-out-buf
-           (lambda args
-             (let ((script-in (apply substring/shared `(,tpl ,@args))))
-               (display script-in port))))
-          ;; handle html part
-          (write-html-to-out-buf
-           (lambda args
-             (let ((html-str (apply substring/shared `(,tpl ,@args))))
-               (format port " (display ~s) " html-str)))))
-       (tpl-parser 0)))))
+  (define (optimize rev-items tail)
+    (cond ((null? rev-items) tail)
+          ((not (string? (car rev-items)))
+           (optimize (cdr rev-items)
+                     (cons (car rev-items) tail)))
+          (else (receive (strings rest) (span string? rev-items)
+                  (let ((s (string-concatenate-reverse strings)))
+                    (if (string-null? s)
+                        (optimize rest tail)
+                        (optimize rest (cons s tail))))))))
+  (define* (emit-code idx m code #:optional (disp #f))
+    (let ((pre (substring tpl idx (irregex-match-start-index m))))
+      (if disp 
+          (string-concatenate `("(display \"" ,pre "\")(display " ,code ")"))
+          (string-concatenate `("(display \"" ,pre "\")" ,code)))))
+  (define (match->item idx m)
+    (cond
+     ((irregex-match-substring m 'disp-code)
+      => (lambda (code)
+           (emit-code idx m code 1)))
+     ((irregex-match-substring m 'code)
+      => (lambda (code)
+           (emit-code idx m code)))
+     (else (error 'artanis-err 500 "wrong template!" tpl))))
+  (let* ((rev-items
+          (irregex-fold 
+           *tpl-irx*  
+           (lambda (idx m tail)
+             (cons* (match->item idx m) "" tail))
+           '() tpl
+           (lambda (idx tail) tail)))             ;;(cons (substring tpl idx) tail))))
+         (items (optimize rev-items '())))
+    (car items)))
 
 (define-syntax-rule (tpl-render tpl e)
   (let ((expr (tpl->expr tpl)))
