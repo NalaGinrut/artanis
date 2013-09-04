@@ -25,6 +25,9 @@
 (define-module (artanis tpl)
   #:use-module (artanis utils)
   #:use-module (artanis config)
+  #:use-module (artanis irregex)
+  #:use-module (ice-9 receive)
+  #:use-module (srfi srfi-1)
   #:export (tpl-render tpl-render-from-file))
 
 (define start-sign (current-start-sign))
@@ -33,6 +36,11 @@
 
 (define tpl-outport (make-parameter #f))
 
+;; Now we have this very fast template engine, borrowed some ideas from
+;; Mark Weaver's string template.
+;; As a simple test result on my machine, for 130944 bytes HTML template:
+;; old engine: 6.55s
+;; new engine: 0.54s
 (define *tpl-irx* 
   (sre->irregex `(or (: ,startd-sign (=> disp-code (+ (~ #\% #\>))) ,end-sign)
                      (: ,start-sign (=> code (+ (~ #\% #\>))) ,end-sign))))
