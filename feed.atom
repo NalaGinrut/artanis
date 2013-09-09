@@ -21,8 +21,7 @@
 &lt;pre&gt;&lt;tt class="highlight scheme-language"&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;use-modules &lt;span class="paren2"&gt;(&lt;span class="default"&gt;artanis artanis&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 
 &lt;span class="paren1"&gt;(&lt;span class="default"&gt;get &lt;span class="string"&gt;&amp;quot;/hello&amp;quot;&lt;/span&gt;
- &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;lambda&lt;/span&gt;&lt;/i&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;rc&lt;/span&gt;)&lt;/span&gt;
-  &lt;span class="paren3"&gt;(&lt;span class="default"&gt;response-emit &lt;span class="string"&gt;&amp;quot;hello world&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+ &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;lambda&lt;/span&gt;&lt;/i&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="string"&gt;&amp;quot;hello world&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 &lt;span class="comment"&gt;;; run it 
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;run &lt;span class="keyword"&gt;#:port&lt;/span&gt; 8080&lt;/span&gt;)&lt;/span&gt;&lt;/tt&gt;&lt;/pre&gt;
 &lt;pre&gt;&lt;tt class="highlight sh-language"&gt;curl localhost:8080/hello

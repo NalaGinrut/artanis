@@ -14,8 +14,7 @@ Those dying generations - at their song.
 (use-modules (artanis artanis))
 
 (get "/hello"
- (lambda (rc)
-  (response-emit "hello world")))
+ (lambda () "hello world"))
 ;; run it 
 (run #:port 8080)
 </enscript>

@@ -30,8 +30,7 @@
 <pre><tt class="highlight scheme-language"><span class="paren1">(<span class="default">use-modules <span class="paren2">(<span class="default">artanis artanis</span>)</span></span>)</span>
 
 <span class="paren1">(<span class="default">get <span class="string">&quot;/hello&quot;</span>
- <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default">rc</span>)</span>
-  <span class="paren3">(<span class="default">response-emit <span class="string">&quot;hello world&quot;</span></span>)</span></span>)</span></span>)</span>
+ <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default"></span>)</span> <span class="string">&quot;hello world&quot;</span></span>)</span></span>)</span>
 <span class="comment">;; run it 
 </span><span class="paren1">(<span class="default">run <span class="keyword">#:port</span> 8080</span>)</span></tt></pre>
 <pre><tt class="highlight sh-language">curl localhost:8080/hello
