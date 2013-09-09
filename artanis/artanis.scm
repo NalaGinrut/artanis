@@ -190,7 +190,10 @@
         (if (thunk? handler) 
             (handler) 
             (handler rc)))
-    (lambda (status pre-headers body mtime)
+    (lambda* (body #:key (pre-headers '((content-type . (text/html))))
+                   (status 200) 
+                   (mtime (let ((t (current-time))) 
+                            (cons (time-second t) (time-nanosecond t)))))
       (let ((type (assoc-ref pre-headers 'content-type)))
         (and type (log status (car type) (rc-req rc))))
       (values
@@ -256,8 +259,8 @@
                         (headers '((content-type . (text/html))))
                         (mtime (current-time)))
   ;;(format #t "headers: ~a~%" headers)
-  (values status headers body 
-          (cons (time-second mtime) (time-nanosecond mtime))))
+  (values body #:pre-headers headers #:status status 
+          #:mtime (cons (time-second mtime) (time-nanosecond mtime))))
 
 (define (throw-auth-needed)
   (values 401 '((WWW-Authenticate . "Basic realm=\"Secure Area\"")) ""))

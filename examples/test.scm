@@ -23,4 +23,8 @@
     (let ((a 123))
       (tpl->response "my.tpl" (the-environment)))))
 
+(get "/new"
+  (lambda ()
+    "hello world"))
+
 (run)
