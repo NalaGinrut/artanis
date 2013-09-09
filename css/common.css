@@ -25,7 +25,7 @@ body {
 #side ul {
   list-style-type:none;
   margin:0;
-  padding:7px 20% 80px;
+  padding:7px 20% 40px;
 }
 #side ul li {
   display:block;
@@ -136,6 +136,10 @@ p {margin:8px 10px;font-size:17px;}
 p.note{ text-align: center; font-size: 12px; font-weight: bold; }
 
 p.big_note{ text-align: center; font-size: 18px; font-weight: bold; }
+
+#counter {
+
+}
 
 .clear{ clear: both; }
 /*

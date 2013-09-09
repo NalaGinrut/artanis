@@ -20,10 +20,23 @@
        (li (a (@ (href "docs/index.html")) "Documents"))
        (li (a (@ (href "contribute.html")) "Contribute"))
        (li (@ (class "last")) (a (@ (href "donate.html")) "Donate")))
-      (h3 (@ (id "the-author")) "Authored by " 
-       (a (@ (id "the-author") (href "http://tech.nalaginrut.com")) "NalaGinrut"))))
+
+
+    (h3 (@ (id "the-author")) "Authored by " 
+       (a (@ (id "the-author") (href "http://tech.nalaginrut.com")) "NalaGinrut"))
+    (br)
+    ;; hitwebcounter Code START
+    (a (@ (id "counter") (href "http://www.hitwebcounter.com/") (target "_blank"))
+           (img (@ (src "http://hitwebcounter.com/counter/counter.php?page=5071476&style=0006&nbdigits=9&type=page&initCount=0") (title "counter with different designs")
+                   (Alt "counter with different designs") (border "0"))))
+))
+
+
     (div (@ (id "main") (class "home"))
-     (div (@ (class "wrap")) (pre (code (inject ,contents))))
+     (div (@ (class "wrap")) 
+          (pre (code (inject ,contents)))
+
+          )
 
      (p (@ (class "foot up"))
         "Source: "
@@ -32,5 +45,6 @@
         "This page is Powered by " (a (@ (href "http://wiki.call-cc.org/eggref/4/hyde")) "Hyde of Chicken Scheme")))
     ;; fork me on github
     (a (@ (id "forkme") (href "http://github.com/NalaGinrut/artanis/")) "Fork me on Github")
+
 
     )))
