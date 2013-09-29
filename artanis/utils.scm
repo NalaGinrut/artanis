@@ -19,6 +19,7 @@
   #:use-module (artanis sha-1)
   #:use-module (artanis config)
   #:use-module (artanis irregex)
+  #:use-module (artanis mime)
   #:use-module (system foreign)
   #:use-module (ice-9 regex)
   #:use-module (srfi srfi-1)
@@ -35,7 +36,7 @@
             alist->hashtable expires->time-utc local-eval-string generate-ETag
             time-expired? valid-method? mmap munmap get-random-from-dev
             string->byteslist string->sha-1 list-slice bv-slice uni-basename
-            checkout-the-path make-string-template)
+            checkout-the-path make-string-template guess-mime)
   #:re-export (the-environment))
 
 (define* (get-random-from-dev #:key (length 8) (uppercase #f))
@@ -410,3 +411,6 @@
                 (cdr item)
                 (error "Missing keyword" (car item)))))
       (string-concatenate (map item->string items)))))
+
+(define (guess-mime filename)
+  (mime-guess (get-file-ext filename)))

@@ -17,7 +17,6 @@
 (define-module (artanis artanis)
   #:use-module (artanis utils)
   #:use-module (artanis config)
-  #:use-module (artanis mime)
   #:use-module (artanis cookie)
   #:use-module (artanis tpl)
   #:use-module (srfi srfi-1)
@@ -271,9 +270,6 @@
   (if site-workable?
       (work-with-request request request-body)
       (format-updating-page)))
-
-(define (guess-mime filename)
-  (mime-guess (get-file-ext filename)))
 
 ;; proc must return the content-in-bytevector
 (define (generate-response-with-file filename proc)
