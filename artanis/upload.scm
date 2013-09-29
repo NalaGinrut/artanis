@@ -44,7 +44,7 @@
 
 (set-record-type-printer! <mfd>
   (lambda (record port)
-    (format port "~%#<mfd dispos: ~a~%      name: ~a~%      filename: ~a~%      type: ~a~%      data: ..."
+    (format port "~%#<mfd dispos: ~a~%      name: ~a~%      filename: ~a~%      type: ~a~%      data: ...>"
             (mfd-dispos record) (mfd-name record) (mfd-filename record) (mfd-type record))))
 
 (define (find-mfd name mfd-table)
