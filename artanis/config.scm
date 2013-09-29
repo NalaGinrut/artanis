@@ -30,6 +30,7 @@
 (define *updating-page* "updating.html")
 (define *session-path* "session/")
 
+;; TODO: support dynamic rule for sys page
 (define (get-sys-page status)
   (format #f "~a/~a.html" *error-page-path* status)) 
 
@@ -43,6 +44,8 @@
 (define current-start-sign (make-parameter "<%"))
 (define current-startd-sign (make-parameter "<%="))
 (define current-end-sign (make-parameter "%>"))
+
+(define current-mail-sender (make-parameter "/usr/sbin/sendmail"))
 
 (define current-charset (make-parameter "utf-8"))
 
