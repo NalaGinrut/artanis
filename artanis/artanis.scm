@@ -189,7 +189,7 @@
         (if (thunk? handler) 
             (handler) 
             (handler rc)))
-    (lambda* (body #:key (pre-headers '((content-type . (text/html))))
+    (lambda* (body #:key (pre-headers (prepare-headers body '()))
                    (status 200) 
                    (mtime (let ((t (current-time))) 
                             (cons (time-second t) (time-nanosecond t)))))
@@ -255,10 +255,10 @@
   (response-emit "" #:status status))
 
 (define* (response-emit body #:key (status 200) 
-                        (headers '((content-type . (text/html))))
+                        (headers '())
                         (mtime (current-time)))
   ;;(format #t "headers: ~a~%" headers)
-  (values body #:pre-headers headers #:status status 
+  (values body #:pre-headers (prepare-headers body headers) #:status status 
           #:mtime (cons (time-second mtime) (time-nanosecond mtime))))
 
 (define (throw-auth-needed)

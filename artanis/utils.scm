@@ -36,7 +36,7 @@
             alist->hashtable expires->time-utc local-eval-string generate-ETag
             time-expired? valid-method? mmap munmap get-random-from-dev
             string->byteslist string->sha-1 list-slice bv-slice uni-basename
-            checkout-the-path make-string-template guess-mime)
+            checkout-the-path make-string-template guess-mime prepare-headers)
   #:re-export (the-environment))
 
 (define* (get-random-from-dev #:key (length 8) (uppercase #f))
@@ -51,6 +51,7 @@
 (define uri-decode (@ (web uri) uri-decode))
 (define parse-date (@@ (web http) parse-date))
 (define write-date (@@ (web http) write-date))
+(define bytevector? (@ (rnrs) bytevector?))
 
 (define-syntax-rule (local-eval-string str e)
   (local-eval 
@@ -414,3 +415,15 @@
 
 (define (guess-mime filename)
   (mime-guess (get-file-ext filename)))
+
+(define (bytevector-null? bv)
+  ((@ (rnrs bytevectors) bytevector=?) bv #u8()))
+
+(define *default-header* '((content-type . (text/html))))
+(define (prepare-headers body headers)
+  ;; FIXME: the latest Guile fixed content-length:0 bug, but 2.0.9 is not,
+  ;;        so remove it when next release.
+  (let* ((check (cond ((bytevector? body) bytevector-null?)
+                      ((string? body) string-null?)))
+         (len (if (check body) '((content-length . 0)) '())))
+    `(,@*default-header* ,@headers ,@len)))
