@@ -44,7 +44,9 @@
 (define *tpl-irx* 
   (sre->irregex `(or (: ,startd-sign (=> disp-code (+ (~ #\% #\>))) ,end-sign)
                      (: ,start-sign (=> code (+ (~ #\% #\>))) ,end-sign))))
-(define (tpl->expr tpl)
+(define (tpl->expr ori-tpl)
+  (define (fix str) (irregex-replace/all "\"" str "\\\""))
+  (define tpl (fix ori-tpl))
   (define (optimize rev-items tail)
     (cond ((null? rev-items) tail)
           ((not (string? (car rev-items)))
@@ -78,6 +80,7 @@
            (lambda (idx tail) tail)))             ;;(cons (substring tpl idx) tail))))
          (items (optimize rev-items '())))
     (car items)))
+
 
 (define-syntax-rule (tpl-render tpl e)
   (let ((expr (tpl->expr tpl)))
