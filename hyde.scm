@@ -10,6 +10,7 @@
 
 (link-shortcuts '((docs . "http://web-artanis.com/docs/~A")))
 
+(define keyword-contents "guile tutorial,scheme tutorial,guile scheme,guile,web,web app,framework,scheme language,scheme")
 (define $ (environment-ref (page-eval-env) '$))
 
 (define (page-updated page)
