@@ -297,10 +297,10 @@
       
 (define (default-route-init)
   ;; avoid a common warn
-  (get "/$" (lambda () (response-emit "no index.html but it works!")))
+  (get "/$" (lambda () "no index.html but it works!"))
   (get "/.+\\.(png|jpg|jpeg|ico|html|js|css)$" 
-       (lambda (rc) 
-         (emit-response-with-file (static-filename (rc-path rc))))))
+   (lambda (rc) 
+     (emit-response-with-file (static-filename (rc-path rc))))))
 
 (define (site-disable msg)
   (set! site-workable? #f))
