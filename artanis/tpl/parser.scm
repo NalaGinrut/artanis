@@ -25,7 +25,7 @@
 (define (make-parser)
   (lalr-parser
    (code disp-code html)
-   (tpl (tpl tpl) : (string-append $1 $2)
+   (tpl (tpl tpl) : (string-concatenate (list $1 $2))
         (html) : $1
         (program) : $1
         () : "")
