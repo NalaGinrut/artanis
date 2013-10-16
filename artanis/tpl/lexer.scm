@@ -103,8 +103,6 @@
                    (set! last-char c)
                    (next-token port))))
       (cond
-       ((is-whitespace? c)
-        (next)) ; skip whitespace
        ((eof-object? c) '*eoi*)
        ((or (and (not (char=? last-char #\\)) (char=? c #\")) (char=? c #\')) 
         ;; not an escaped double-quote
@@ -121,13 +119,6 @@
         (unget-char1 c port) ; #\<
         (return port 'html (get-the-html port)))))))
 
-(define (tpl-tokenizer port)
-  (let lp ((out '()))
-    (let ((tok (next-token port)))
-      (if (eq? tok '*eoi*)
-          out ; no need to reverse it for tpl
-          (lp (cons tok out))))))
-
 (define (make-tpl-tokenizer port)
   (lambda ()
-    (tpl-tokenizer port)))
+    (next-token port)))

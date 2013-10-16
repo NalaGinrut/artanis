@@ -24,63 +24,15 @@
 
 (define-module (artanis tpl)
   #:use-module (artanis utils)
+  #:use-module (artanis tpl parser)
   #:use-module (artanis config)
   #:use-module (artanis irregex)
   #:use-module (ice-9 receive)
   #:use-module (srfi srfi-1)
   #:export (tpl-render tpl-render-from-file))
 
-(define start-sign (current-start-sign))
-(define startd-sign (current-startd-sign))
-(define end-sign (current-end-sign))
-
-(define tpl-outport (make-parameter #f))
-
-;; Now we have this very fast template engine, borrowed some ideas from
-;; Mark Weaver's string template.
-;; As a simple test result on my machine, for 130944 bytes HTML template:
-;; old engine: 6.55s
-;; new engine: 0.54s
-(define *tpl-irx* 
-  (sre->irregex `(or (: ,startd-sign (=> disp-code (+ (~ #\% #\>))) ,end-sign)
-                     (: ,start-sign (=> code (+ (~ #\% #\>))) ,end-sign))))
-(define (tpl->expr ori-tpl)
-  (define (fix str) (irregex-replace/all "\"" str "\\\""))
-  (define tpl (fix ori-tpl))
-  (define (optimize rev-items tail)
-    (cond ((null? rev-items) tail)
-          ((not (string? (car rev-items)))
-           (optimize (cdr rev-items)
-                     (cons (car rev-items) tail)))
-          (else (receive (strings rest) (span string? rev-items)
-                  (let ((s (string-concatenate-reverse strings)))
-                    (if (string-null? s)
-                        (optimize rest tail)
-                        (optimize rest (cons s tail))))))))
-  (define* (emit-code idx m code #:optional (disp #f))
-    (let ((pre (substring tpl idx (irregex-match-start-index m))))
-      (if disp 
-          (string-concatenate `("(display \"" ,pre "\")(display " ,code ")"))
-          (string-concatenate `("(display \"" ,pre "\")" ,code)))))
-  (define (match->item idx m)
-    (cond
-     ((irregex-match-substring m 'disp-code)
-      => (lambda (code)
-           (emit-code idx m code 1)))
-     ((irregex-match-substring m 'code)
-      => (lambda (code)
-           (emit-code idx m code)))
-     (else (error 'artanis-err 500 "wrong template!" tpl))))
-  (let* ((rev-items
-          (irregex-fold 
-           *tpl-irx*  
-           (lambda (idx m tail)
-             (cons* (match->item idx m) "" tail))
-           '() tpl
-           (lambda (idx tail) tail)))             ;;(cons (substring tpl idx) tail))))
-         (items (optimize rev-items '())))
-    (car items)))
-
+(define (tpl->expr tpl)
+  (call-with-input-string tpl tpl-read))
 
 (define-syntax-rule (tpl-render tpl e)
   (let ((expr (tpl->expr tpl)))
@@ -90,5 +42,7 @@
          (local-eval-string expr e))))))
 
 (define-syntax-rule (tpl-render-from-file file e)
-  (and (file-exists? file)
-       (tpl-render (cat file #f) e)))
+  (cond
+   ((file-exists? file)
+    (tpl-render (cat file #f) e))
+   (else (error 'artanis-err 500 "No such a tpl file" file))))

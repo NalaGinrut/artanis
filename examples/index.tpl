@@ -10,12 +10,6 @@
 
   <body>
 
-    <div id="skiplinks">
-      <a href="#navigation">Jump to navigation</a>
-      <a href="#content">Jump to main content</a>
-      <a href="#searchform">Jump to search form</a>
-    </div>
-
     <div id="container">
       <h1><a href="/"> <%= blog-title %> </a></h1>
       <div id="main">
