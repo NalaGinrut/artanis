@@ -171,7 +171,7 @@
          (qstr (uri-query uri))
          (method (request-method req)))
     (format port "[Remote] ~a @ ~a~%" (remote-info req) (local-time-stamp))
-    (format port "[Request] method: ~a, path: ~a, qeury: ~a~%" method path qstr)
+    (format port "[Request] method: ~a, path: ~a, query: ~a~%" method path qstr)
     (format port "[Response] status: ~a, MIME: ~a~%~%" status mime)))
 
 (define (render-sys-page status request)
