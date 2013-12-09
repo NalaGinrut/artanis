@@ -42,6 +42,11 @@
 (define-method (query (self <artanis-db>) (sql <string>))
   (dbi-query (db-get self) sql))
 
+(define *status-list*
+  '(ok))
+;; TODO: finish other status values
+(define-syntax-rule (status->symbol status)
+  (list-ref *status-list* (car status)))
 (define-method (get-status (self <artanis-db>))
   (dbi-get_status (db-get self)))
 

@@ -25,6 +25,3 @@
   #:use-module (ice-9 match)
   #:export (new-table))
 
-(define-class <db-table> ()
-  (fields #:init-value '() #:accessor table:fields)
-  

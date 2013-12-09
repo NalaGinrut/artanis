@@ -40,7 +40,8 @@
             checkout-the-path make-string-template guess-mime prepare-headers
             new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
             stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
-            queue-empty? list->stack list->queue stack-remove! queue-remove!)
+            queue-empty? list->stack list->queue stack-remove! queue-remove!
+            orm:log)
   #:re-export (the-environment))
 
 (define* (get-random-from-dev #:key (length 8) (uppercase #f))
@@ -439,7 +440,7 @@
 
 (define (%q-remove-with-key! q key)
   (assoc-remove! (car q) key)
-  (sync-q!))
+  (sync-q! q))
 
 (define stack-pop! q-pop!)
 (define stack-push! q-push!)
@@ -461,3 +462,9 @@
 (define* (list->queue lst #:optional (queue (new-queue)))
   (for-each (lambda (x) (queue-in! queue x)) lst)
   queue)
+
+(define (orm:log fmt . args)
+  (display "[ORM]: " (current-output-port))
+  (apply format (current-error-port)
+         fmt args)
+  (newline (current-error-port)))

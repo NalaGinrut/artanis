@@ -137,9 +137,10 @@
 
 (define-syntax sql-create
   (syntax-rules (table as select)
-    ;;(->sql create table 'mmr '((id "number(10)" "not null") (name "varchar(10)")))
-    ((_ table name pairs)
-     (-> end "create table ~a (~{~a~^,~})" name (->lst pairs)))
+    ;; NOTE: don't use it directly, please take advantage of (orm column)
+    ;;(->sql create table tablename '("\"name\" \"varchar(10)\"" "\"age\" \"int\""))
+    ((_ table name columns)
+     (-> end "create table ~a (~{~a~^,~})" name columns))
     ;;(->sql create view 'mmr select '(a b) from 'tmp where "a=1 and b=2")
     ((_ view name as select rest ...)
      (-> end "create view ~a as select ~a" (sql-select rest ...)))))
