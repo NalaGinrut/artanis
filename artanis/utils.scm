@@ -26,6 +26,7 @@
   #:use-module (srfi srfi-19)
   #:use-module (ice-9 local-eval)
   #:use-module (ice-9 receive)
+  #:use-module (ice-9 q)
   #:use-module (web http)
   #:use-module (web request)
   #:export (regexp-split hash-keys cat bv-cat get-global-time
@@ -36,7 +37,10 @@
             alist->hashtable expires->time-utc local-eval-string generate-ETag
             time-expired? valid-method? mmap munmap get-random-from-dev
             string->byteslist string->sha-1 list-slice bv-slice uni-basename
-            checkout-the-path make-string-template guess-mime prepare-headers)
+            checkout-the-path make-string-template guess-mime prepare-headers
+            new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
+            stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
+            queue-empty? list->stack list->queue stack-remove! queue-remove!)
   #:re-export (the-environment))
 
 (define* (get-random-from-dev #:key (length 8) (uppercase #f))
@@ -427,3 +431,33 @@
                       ((string? body) string-null?)))
          (len (if (check body) '((content-length . 0)) '())))
     `(,@*default-header* ,@headers ,@len)))
+
+(define new-stack make-q)
+(define new-queue make-q)
+(define stack-slots car)
+(define queue-slots car)
+
+(define (%q-remove-with-key! q key)
+  (assoc-remove! (car q) key)
+  (sync-q!))
+
+(define stack-pop! q-pop!)
+(define stack-push! q-push!)
+(define stack-top q-front)
+(define stack-remove! %q-remove-with-key!)
+(define stack-empty? q-empty?) 
+
+(define queue-out! q-pop!)
+(define queue-in! enq!)
+(define queue-head q-front)
+(define queue-tail q-rear)
+(define queue-remove! %q-remove-with-key!)
+(define queue-empty? q-empty?)
+
+(define* (list->stack lst #:optional (stk (new-stack))) ; NOTE: make-stack exists in Guile
+  (for-each (lambda (x) (stack-push! stk x)) lst)
+  stk)
+
+(define* (list->queue lst #:optional (queue (new-queue)))
+  (for-each (lambda (x) (queue-in! queue x)) lst)
+  queue)
