@@ -20,9 +20,10 @@
   #:use-module (artanis ssql)
   #:use-module (oop goops)
   #:export (<db-table> create-table table:dirty-set! table:dirty-clear! table:cache-add!
-            table:cache-clear! table:cache-set! table:column-add! table:column-remove!
+            table:cache-clear! table:cache-set! table:new-column-add! table:column-remove!
             table:column-clear! table:drop! table:column-drop! table:create table:async!
-            table:column-get-all table:result-fetch table:dump table:dump-result))
+            table:column-get-all table:result-fetch! table:dump table:dump-result
+            table:column-set!))
 
 (define-class <db-table> ()
   (name #:init-keyword #:name #:accessor db-table:name)
@@ -35,7 +36,10 @@
   ;; each time the table is modified, the dirty flag will be set
   (dirty #:init-value #f)
   ;; the parsed result from DBI
-  (result #:init-value #f))
+  (result #:init-value #f)
+  ;; the mutex 
+  ;; NOTE: make the methods thread safe,  it'd be caller's duty.
+  (mutex #:init-thunk make-mutex #:accessor db-table:mutex))
 
 (define-method (create-table (self <db-table>) (name <string>))
   (make <db-table> #:name name))
@@ -59,20 +63,21 @@
 (define-method (table:cache-set! (self <db-table>) (sql <string>))
   (set! (db-table:cache self) sql))
 
-;;-------------add columns--------------------
+;;-------------add new columns--------------------
+;; NOTE: these methods only for adding new columns
 (define* (%add-column! table name type #:optional (constraint #f))
   (stack-push! (db-table:columns table) (create-db-column name type constraint))
   (table:dirty-set! table) ; it's dirty!
   table)
 
-(define-method (table:column-add! (self <db-table>) (name <symbol>) (type <symbol>))
+(define-method (table:new-column-add! (self <db-table>) (name <symbol>) (type <symbol>))
   (%add-column! self name type))
 
-(define-method (table:column-add! (self <db-table>) (name <symbol>) (type <symbol>) (constraint <string>))
+(define-method (table:new-column-add! (self <db-table>) (name <symbol>) (type <symbol>) (constraint <string>))
   (%add-column! self name type constraint))
 
 ;; columns MUST be '((name (varchar 10)) (age (int 3))) or similar
-(define-method (table:column-add! (self <db-table>) (columns <list>))
+(define-method (table:new-column-add! (self <db-table>) (columns <list>))
   (for-each %add-column! columns)
   self)
 
@@ -104,7 +109,7 @@
 
 ;;-------------dump table-----------------
 ;; run sql with the dbi
-(define-method (table:result-fetch (self <db-table>))
+(define-method (table:result-fetch! (self <db-table>))
   (let ((db (db-table:db self)))
     (slot-set! self 'result (get-all-rows db))))
 
@@ -112,13 +117,13 @@
   (let* ((db (db-table:db self))
          (sql (db-table:cache self))
          (status (get-status db)))
+    (arm:log "~a" (cdr (status))) ; print status message
     (case (status->symbol status)
       ((ok)
-       (orm:log "~a" (cdr status)) ; show message
-       (orm:log "sql: ~a" sql)
-       (table:result-fetch self))
+       (orm:log "sql: ~a" sql) ; for DEBUG
+       (table:result-fetch! self))
       ;; TODO: finish the rest status check
-      (else (throw 'artanis-err 500 "DB has fatal error!" sql)))))
+      (else (throw 'artanis-err 500 "[ORM] DB has fatal error!" sql)))))
 
 (define-method (table:dump-result (self <db-table>))
   ;; TODO: should parse then wrap to some objects, rather than pure assoc-list
@@ -133,6 +138,12 @@
     (table:dump self)
     (table:dump-result self)))
 
+;; set column name & value
+(define-method (table:column-set! (self <db-name>) (name <symbol>) (value <top>))
+  (assoc-set! (db-table:columns self) name value)
+  (table:dirty-set! self)
+  value)
+  
 ;;-------------create table---------------------
 (define-method (table:create (self <db-table>))
   (let* ((name (db-table:name self))
