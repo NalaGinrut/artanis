@@ -19,16 +19,21 @@
   #:use-module (artanis db)
   #:use-module (artanis ssql)
   #:use-module (oop goops)
-  #:export (<db-table> create-table table:dirty-set! table:dirty-clear! table:cache-add!
-            table:cache-clear! table:cache-set! table:new-column-add! table:column-remove!
-            table:column-clear! table:drop! table:column-drop! table:create table:async!
-            table:column-get-all table:result-fetch! table:dump table:dump-result
-            table:column-set!))
+  #:export (<db-table> create-table table:dirty-set! table:dirty-clear! 
+            table:cache-add! table:cache-clear! table:cache-set!
+            table:new-column-add! table:new-column-remove!
+            table:new-column-clear! table:columns-clear! table:drop!
+            table:column-drop! table:create table:async!
+            table:column-get-all table:result-fetch! table:dump 
+            table:dump-result table:column-set! table:column-remove!))
 
 (define-class <db-table> ()
   (name #:init-keyword #:name #:accessor db-table:name)
   (db #:init-keyword #:db #:accessor db-table:db)
-  (columns #:init-thunk new-stack #:accessor db-table:columns)
+  ;; NOTE: this new-columns only for adding new columns, not for query
+  (new-columns #:init-thunk new-stack #:accessor db-table:new-columns)
+  ;; NOTE: ref-columns used for quering columns from table
+  (ref-columns #:init-thunk '() #:accessor db-table:ref-columns)
   ;; We use cache to hold the compiled SQL string, to avoid compile SQL each time.
   ;; It's necessary for users to update this cache each time they modified the attributes of table.
   ;; table:sync! is a good tool for that.
@@ -66,7 +71,7 @@
 ;;-------------add new columns--------------------
 ;; NOTE: these methods only for adding new columns
 (define* (%add-column! table name type #:optional (constraint #f))
-  (stack-push! (db-table:columns table) (create-db-column name type constraint))
+  (stack-push! (db-table:new-columns table) (create-db-column name type constraint))
   (table:dirty-set! table) ; it's dirty!
   table)
 
@@ -86,14 +91,14 @@
 ;; NOTE: we don't set dirty flag here, because we don't use 1this function during SQL generation on the fly.
 ;;       If you really need it on the fly, which means you understand this ORM totally wrong!
 ;;       Maybe you need table:column-drop! or table:drop! actually!
-(define* (%remove-column! table name)
-  (stack-remove! (db-table:column table) name))
+(define* (%remove-new-column! table name)
+  (stack-remove! (db-table:new-columns table) name))
 
-(define-method (table:column-remove! (self <db-table>) (name <symbol>))
+(define-method (table:new-column-remove! (self <db-table>) (name <symbol>))
   (%remove-column! self name))
 
-(define-method (table:column-clear! (self <db-table>))
-  (set! (db-table:columns self) '()))
+(define-method (table:new-column-clear! (self <db-table>))
+  (set! (db-table:new-columns self) '()))
 
 ;;-------------drop table------------------
 (define-method (table:drop! (self <db-table>))
@@ -132,25 +137,33 @@
 ;;-------------get column------------------
 ;; NOTE: This function should be run-at-once, which means there's no other succeed sql in the cache.
 ;;       Or it doesn't make sense.
-(define-method (table:column-get-all (self <db-name>) (name <symbol>))
+(define-method (table:column-get-all (self <db-table>) (name <symbol>))
   (let ((sql (->sql select * from name)))
     (table:cache-add! self sql)
     (table:dump self)
     (table:dump-result self)))
 
 ;; set column name & value
-(define-method (table:column-set! (self <db-name>) (name <symbol>) (value <top>))
-  (assoc-set! (db-table:columns self) name value)
+(define-method (table:column-set! (self <db-table>) (name <symbol>) (value <top>))
+  (assoc-set! (db-table:ref-columns self) name value)
   (table:dirty-set! self)
   value)
-  
+
+;; clear ref-columns
+(define-method (table:columns-clear! (self <db-table>))
+  (set! (db-table:ref-columns self) '()))
+
+;; remove a column from the query request
+(define-method (table:column-remove! (self <db-table>) (name <symbol>))
+  (assoc-remove! (db-table:ref-columns self) name))
+
 ;;-------------create table---------------------
 (define-method (table:create (self <db-table>))
   (let* ((name (db-table:name self))
-         (columns (for-each db-column:dump (db-table:columns self)))
+         (columns (for-each db-column:dump (db-table:new-columns self)))
          (sql (->sql create table name columns)))
     ;; reasonably, create should be the first operation, if no, it's illlogic
-    (table:cache-set! self sql) 
+    (table:cache-set! self sql)
     (table:dirty-set! self)
     sql))
 
