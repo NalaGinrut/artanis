@@ -41,7 +41,7 @@
             new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
             stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
             queue-empty? list->stack list->queue stack-remove! queue-remove!
-            orm:log)
+            orm:log plist->alist make-orm-string-template)
   #:re-export (the-environment))
 
 (define* (get-random-from-dev #:key (length 8) (uppercase #f))
@@ -378,9 +378,16 @@
 ;;     (format #f "~?" template (reverse vals)))))
 
 ;; NOTE: This is mark_weaver version for efficiency, Thanks mark!
-(define (make-string-template template . defaults)
+(define (%make-string-template mode template . defaults)
   (define irx (sre->irregex '(or (=> dollar "$$")
                                  (: "${" (=> var (+ (~ #\}))) "}"))))
+  (define (get-the-val lst key)
+    (let ((str (kw-arg-ref lst key)))
+      (case mode
+        ((normal) str)
+        ((orm) (string-concatenate (list "\"" (->string str) "\"")))
+        (else (throw 'artanis-err 500 "%make-string-template: invalid mode" mode)))))
+  (define (->string obj) (if (string? obj) obj (object->string obj)))
   (define (optimize rev-items tail)
     (cond ((null? rev-items) tail)
           ((not (string? (car rev-items)))
@@ -411,12 +418,21 @@
          (items (optimize rev-items '())))
     (lambda keyword-args
       (define (item->string item)
+        (format #t "aaa: ~a~%" item)
         (if (string? item)
             item
-            (or (kw-arg-ref keyword-args (car item))
+            (or (and=> (get-the-val keyword-args (car item)) ->string)
                 (cdr item)
                 (error "Missing keyword" (car item)))))
       (string-concatenate (map item->string items)))))
+
+;; the normal mode, no double quotes for vals
+(define (make-string-template tmp . vals)
+  (apply %make-string-template 'normal tmp vals))
+
+;; ORM str tpl will treat all values with double quotes, for SQL
+(define (make-orm-string-template tmp . vals)
+  (apply %make-string-template 'orm tmp vals))
 
 (define (guess-mime filename)
   (mime-guess (get-file-ext filename)))
@@ -468,3 +484,7 @@
   (apply format (current-error-port)
          fmt args)
   (newline (current-error-port)))
+
+(define (plist->alist pl)
+  (define (p k v) (cons (keyword->symbol k) v))
+  (receive (k v) (partition keyword? pl) (map p k v)))
