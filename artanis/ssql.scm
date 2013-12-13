@@ -55,16 +55,18 @@
   (define (->op2 op a1 a2) (-> "~a~a~s" a1 op a2))
   (define (->opn opn . ll) (-> "~a ~{~s~^ ~}" opn ll))
   (match lst
+   (() "")
    (('and ll ...) (->logical 'and ll))
    (('or ll ...) (->logical 'or ll))
    ((op2 a1 a2) (->op2 op2 a1 a2))
    ((opn ll ...) (->opn opn ll))
    (((l1 ...) ll ...) (map ->cond (cons l1 ll)))
-   (() "")
    (else (error 'artanis-err 500 "invalid sql syntax!" lst))))
 
 (define-syntax sql-where
-  (syntax-rules (select in like between and is null)
+  (syntax-rules (select in like between and is null limit)
+    ((_ limit n)
+     (-> "limit ~a" n))
     ((_ column in (lst ...))
      (-> "~a in (~{~a~^,~})" 'column '(lst ...)))
     ((_ column in (select rest ...))
