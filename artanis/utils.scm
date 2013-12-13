@@ -22,6 +22,7 @@
   #:use-module (artanis mime)
   #:use-module (system foreign)
   #:use-module (ice-9 regex)
+  #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-19)
   #:use-module (ice-9 local-eval)
@@ -41,7 +42,8 @@
             new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
             stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
             queue-empty? list->stack list->queue stack-remove! queue-remove!
-            orm:log plist->alist make-orm-string-template)
+            orm:log plist->alist make-orm-string-template non-list?
+            keyword->string range)
   #:re-export (the-environment))
 
 (define* (get-random-from-dev #:key (length 8) (uppercase #f))
@@ -418,7 +420,6 @@
          (items (optimize rev-items '())))
     (lambda keyword-args
       (define (item->string item)
-        (format #t "aaa: ~a~%" item)
         (if (string? item)
             item
             (or (and=> (get-the-val keyword-args (car item)) ->string)
@@ -479,12 +480,33 @@
   (for-each (lambda (x) (queue-in! queue x)) lst)
   queue)
 
-(define (orm:log fmt . args)
-  (display "[ORM]: " (current-output-port))
-  (apply format (current-error-port)
-         fmt args)
-  (newline (current-error-port)))
+(define current-prefix (make-parameter "[ORM]: "))
+(define* (orm:log . args)
+  (define out (current-error-port))
+  (define (->level lev)
+    (case lev
+      ((normal) "")
+      ((warning error fatal) (format #f " ~:@(~a~)" lev))
+      (else (throw 'artanis-err "Invalid log level you specified!" lev))))
+  (match args
+    (((? symbol? level) . rest)
+     (parameterize ((current-prefix (string-append "[ORM" (->level level) "]: ")))
+       (apply orm:log rest)))
+    (((? string? fmt) . rest)
+     (display (current-prefix) out)
+     (apply format out fmt rest)
+     (newline out))
+    (else (throw 'artanis-error 500 "orm:log Invalid args" args))))
 
-(define (plist->alist pl)
-  (define (p k v) (cons (keyword->symbol k) v))
-  (receive (k v) (partition keyword? pl) (map p k v)))
+;; NOTE: keyword could be the value, so this version is correct.
+(define (plist->alist lst)
+  (let lp((next lst) (ret '()))
+    (match next
+      (() (reverse ret))
+      ((k v . rest) (lp (cddr next) (acons (keyword->symbol k) v ret))))))
+
+(define-syntax-rule (non-list? x) (not (list? x)))
+(define-syntax-rule (keyword->string x) (symbol->string (keyword->symbol x)))
+
+(define* (range from to #:optional (step 1))
+  (iota (- to from) from step))
