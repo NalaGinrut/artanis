@@ -51,3 +51,10 @@
 
 (define (init-config)
   (unless (file-exists? *session-path*) (mkdir *session-path*)))
+
+(define (artanis-check-if-current-DB-support sym)
+  (let ((feature (symbol-apppend 'db- sym))
+        (db (current-artanis-db)))
+    (if db
+        (assoc feature (db-supported-features db))
+        (orm:log "You don't use DB, or you haven't registered DB monitor!"))))

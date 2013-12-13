@@ -20,7 +20,11 @@
   #:use-module (oop goops))
 
 (module-export-all! (current-module))
- 
+
+;; monitor of DB, you have to register the DB you choosed before you use 
+;; <artanis-db> serial classes. Or it can't be monitored.
+(define current-artanis-db (make-parameter #f)) 
+
 (define-class <artanis-db> ()
   (db #:init-value #f #:getter db-get #:setter db-set!))
 
