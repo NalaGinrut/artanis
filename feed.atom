@@ -88,7 +88,9 @@
 &lt;span class="comment"&gt;;; =&amp;gt; 6
 &lt;/span&gt;
 &lt;span class="comment"&gt;;; `set!&amp;#x27; stores a value into a variable:
-&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;set! my-name &lt;span class="string"&gt;&amp;quot;NalaGinrut&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;span class="comment"&gt;;; Please define my-name first, or you can&amp;#x27;t assign it.
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define&lt;/span&gt;&lt;/i&gt; my-name &lt;span class="string"&gt;&amp;quot;unknown&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+&lt;span class="paren1"&gt;(&lt;span class="default"&gt;set! my-name &lt;span class="string"&gt;&amp;quot;NalaGinrut&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 
 &lt;span class="comment"&gt;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 &lt;/span&gt;&lt;span class="comment"&gt;;; 1. Primitive Datatypes and Operators

@@ -1,0 +1,148 @@
+/*
+THEME NAME: veryplaintxt
+THEME URI: http://www.plaintxt.org/themes/veryplaintxt/
+DESCRIPTION: A fluid two-column layout&mdash;the original &ldquo;plain text&rdquo; theme. An exceptionally clean, content-centered theme. Think <cite><a href="http://www.mcsweeneys.net/" title="Timothy McSweeny's Internet Tendency">McSweeny's</a></cite>. For WordPress 2.6.x.
+VERSION: 4.6.1
+AUTHOR: Scott Allan Wallick
+AUTHOR URI: http://scottwallick.com/
+TAGS: variable width, fixed width, two columns, widgets, theme options, options page, white, black, blue, newspaper, microformats, hatom, hcard
+*/
+a,a:link{color:#000;outline:none;text-decoration:none;}
+div.entry-content a,div.entry-content a:link,body.single div.entry-meta a,div.single div.entry-meta a:link,div.comments ol.commentlist a,div.comments ol.commentlist a:link{color:#003;text-decoration:underline;}
+a:visited,div.entry-content a:visited,body.single div.entry-meta a:visited,div.comments ol.commentlist a:visited{color:#555;}
+a:hover,div.entry-content a:hover,body.single div.entry-meta a:hover,div.comments ol.commentlist a:hover{color:#00f;}
+a:active,div.entry-content a:active,body.single div.entry-meta a:active,div.comments ol.commentlist a:active{color:#aaa;}
+body{background:#fff;color:#000;line-height:133%;margin:0 1em;padding:0;}
+body div#container{width:100%;}
+body div#wrapper{margin:0 auto;}
+body div.sidebar{margin:3em 0 2em;overflow:hidden;width:180px;}
+body.archive .entry-content div.entry-content br{display:block;margin:0.2em 0;}
+body.archive div.entry-meta span,body.search div.entry-meta span{font-size:0.7em;}
+body.archive div.entry-meta span.meta-sep,body.search div.entry-meta span.meta-sep{margin:0 0.2em;}
+body.home div.entry-meta span{font-size:0.8em;}
+body.home div.entry-meta span.meta-sep{margin:0 0.3em;}
+body.home div.entry-meta,body.archive div.entry-meta,body.search div.entry-meta{margin:-0.5em 0 2.5em;}
+body.home div#globalnav,body.archive div#globalnav,body.search div#globalnav,body.four04 div#globalnav,body div#globalnav ul li ul,div.access,body.single div.sidebar,body.page div.sidebar,span#theme-link span.additional-name,span#theme-link span.family-name{display:none;}
+body.home div#blog-description,body.archive div#blog-description,body.search div#blog-description,body.four04 div#blog-description{border-bottom:2px solid #000;}
+body.page div.comments{margin:2em 0;}
+body.page p.entry-edit{clear:both;width:100%;}
+body div#content div.entry-meta{clear:both;width:100%;}
+body.single div#container,body.page div#container{margin:0 0 2em;}
+body.single div.entry-meta{border-bottom:2px solid #000;border-top:1px solid #000;margin:2em auto;padding:0.5em;width:75%;}
+body.single h2.entry-title,body.page h2.entry-title,body.search h2.entry-title{margin:1em 0 -0.5em;}
+body.single div#content,body.page div#content{margin:3em 0 0;}
+body.archive div.archive-meta{font-style:italic;letter-spacing:1px;}
+body.archive div.p1{margin-top:2em;}
+div.entry-content .clearer{clear:both;width:99%;}
+div#wrapper div.entry-content .html,div#wrapper div.entry-content .download,div#wrapper div.entry-content .pdf,div#wrapper div.entry-content .zip{margin-left:2px;padding:2px 0 2px 19px;}
+div#wrapper div.entry-content .download{background:url(images/file-download.png) no-repeat center left;}
+div#wrapper div.entry-content .html{background:url(images/file-html.png) no-repeat center left;}
+div#wrapper div.entry-content .pdf{background:url(images/file-pdf.png) no-repeat center left;}
+div#wrapper div.entry-content .zip{background:url(images/file-zip.png) no-repeat center left;}
+div#wrapper .important{background:#f5f5dc url(images/important.png) no-repeat 0.5em center;border-bottom:1px solid #d0d0bb;border-top:1px solid #d0d0bb;padding:0.2em 0.5em 0.2em 2.3em;}
+div.entry-content abbr,div.comments ol.commentlist abbr{border-bottom:1px dotted #333;cursor:help;}
+div.entry-content blockquote,div.comments ol.commentlist blockquote{background:url(images/blockquote.png) no-repeat top left;margin-left:0;margin-right:3em;padding:0 0 0 2em;}
+div.entry-content cite,div.comments ol.commentlist cite{border-bottom:1px dotted #999;cursor:help;}
+div.entry-content code,div.entry-content pre,div.comments ol.commentlist code,div.comments ol.commentlist pre{font:1em/130% "courier new",courier,monospace;}
+div.entry-content del,div.comments ol.commentlist del{color:#999;}
+div.entry-content div.page-link{font-size:1em;margin:-0.5em 0 1em;}
+div.entry-content h2,div.entry-content h3{font-size:1.2em;margin:1.5em 0 -0.6em;}
+div.entry-content h4{font-size:1.1em;margin:1.5em 0 -0.7em;}
+div.entry-content h5,div.entry-content h6{font-size:1em;margin:1.5em 0 -0.8em;}
+div.entry-content img.alignleft,div.entry-content img.alignright,div.entry-content img.center{border:1px solid #000;padding:0.2em;}
+div.entry-content img{max-width:99%;}
+div.entry-content .alignleft{float:left;margin:0.5em 1em 0.5em 0;}
+div.entry-content .alignright{float:right;margin:0.5em 0 0.5em 1em;}
+div.entry-content .aligncenter,div.entry-content .center{display:block;margin:1em auto;}
+div.entry-content .content-column{width:40%;}
+div.entry-content .full-column{clear:both;width:100%;}
+div.entry-content ins,div.comments ol.commentlist ins{border-bottom:1px solid #000;color:#666;text-decoration:none;}
+div.entry-content .caps,div.comments ol.commentlist .caps{font-size:1em;font-variant:small-caps;}
+div.entry-content span.more-link{font-size:0.8em;letter-spacing:2px;font-weight:700;text-transform:uppercase;}
+div.entry-content ul li{list-style:square;}
+div.entry-content ul li ul{margin-bottom:0.2em;}
+div.entry-content ul li ul li{list-style:circle;}
+div.entry-content ul#linkcats li h3{margin-bottom:0.1em;}
+div.entry-content ul#linkcats li ul li{font-style:normal;list-style:square;}
+div.entry-content ul#linkcats li,div.sidebar ul li{list-style:none;}
+div.entry-content .wp-caption-text{font-style:italic;margin:0.2em auto 1em auto;text-align:center;color:#444;}
+div.entry-content div.gallery{clear:both;float:left;margin:1em auto;text-align:center;width:100%;}
+div.entry-content div.gallery dl{float:left;margin:0 auto;text-align:center;}
+div.entry-content div.gallery dl.gallery-columns-2{width:49%;}
+div.entry-content div.gallery dl.gallery-columns-3{width:33%;}
+div.entry-content div.gallery dl.gallery-columns-4{width:24%;}
+div.entry-content div.gallery dl.gallery-columns-5{width:19%;}
+div.entry-content div.gallery dd{font-style:italic;margin:0 auto 1em auto;text-align:center;}
+div.entry-content div.gallery *{margin:0;padding:0;}
+body.attachment div#content div.attachment .entry-title{margin:2em 0 0.5em 0;text-align:center;}
+div.entry-content div.entry-caption{margin:1em 0 2em 0;text-transform:uppercase;}
+div.entry-content div.entry-attachment,div.entry-content div.entry-caption{text-align:center;}
+div.entry-attachment img,div#nav-images div img{overflow:hidden;}
+body.attachment div#wrapper div#content div#nav-images{clear:both;margin:0;width:100%;}
+body.attachment div#nav-images div{margin:0;padding:2em 2%;width:45%;}
+body.attachment div#nav-images div.nav-previous{text-align:right;}
+body.attachment div#nav-images div.nav-next{text-align:left;}
+body.single div.entry-meta,body.attachment div.entry-meta{clear:both;}
+div.entry-date abbr.published{border:none;display:block;margin:0.3em 0 -0.5em;}
+div#content div.navigation{letter-spacing:1px;margin:1em auto;}
+div#content div.navigation div{display:inline;font-weight:700;}
+div#content div.navigation div.nav-previous{margin:0 1em 0 0;}
+form#searchform input#searchsubmit,body.page div.contactform div.contactright input#contactsubmit,div.formcontainer form#commentform div.form-submit input#submit{background:#ddd;border:1px solid #000;font:1em/normal "times new roman",times,serif;}
+div.sidebar ul li input#searchsubmit{background:#ddd;border:1px solid #000;font:0.9em/normal "times new roman",times,serif;}
+body.page div.contactform div.contactright input#contactsubmit{margin:0 0 0 10em;}
+div.formcontainer form#commentform div.form-submit input#submit{margin:0.5em 0 0 7em;}
+div#content h2,div#content h3,div#content h4,div#content h5,div#content h6,div#header h1#blog-title,div.sidebar ul li h3{font-weight:400;line-height:130%;}
+div#content .entry-title,div#content .page-title{letter-spacing:1px;margin:0;}
+div#content h2.entry-title,div#content h2.page-title{font-size:1.3em;}
+div#content h3.entry-title{font-size:1.1em;}
+div#footer{border-bottom:2px solid #000;border-top:1px solid #000;clear:both;font-size:0.7em;margin:0 0 2em;padding:0.5em 0;width:100%;}
+div#footer span.meta-sep{padding:0 0.5em;}
+div#globalnav{border-bottom:2px solid #000;border-top:1px solid #000;}
+div#globalnav ul,div#globalnav ul li{display:inline;list-style:none;}
+div#globalnav ul li{line-height:200%;margin:0 1em;}
+div#header div#blog-description,div#header h1#blog-title{letter-spacing:3px;text-transform:uppercase;}
+div#header div#blog-description{border-top:1px solid #000;line-height:200%;}
+div#header h1#blog-title{font-size:3.5em;font-weight:400;margin:0.2em 0 0.1em;padding:0;}
+div.comments{margin:3em 0;width:89%;}
+div.comments span.req-field{color:red;}
+div.comments span.unapproved{color:#800;font-style:italic;}
+div.comments h3{font-size:1.2em;font-weight:400;}
+div.comments ol#comments li{background:#f4f4f4;border-bottom:2px solid #333;border-top:1px solid #333;}
+div.comments ol#comments div.comment-author span.fn,div.comments ol#pingbacks div.comment-meta span.fn{font-size:0.9em;font-style:normal;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
+div.comments ol#comments div.comment-meta{font-size:1em;}
+div.comments ol#comments li p{margin:0.7em 0;}
+div.comments ol#comments li.alt{background:#fafafa;color:#222;}
+div.comments ol#comments li.bypostauthor{background:#eee;border-left:1px solid #333;border-right:1px solid #333;color:#111;}
+div.comments ol#pingbacks li{background:#fcfcfc;border-bottom:2px solid #777;border-top:1px solid #777;color:#666;}
+div.comments ol#pingbacks li p{margin:0.5em 0;}
+div.comments ol.commentlist{margin:0 0 3em 1.5em;padding:0;}
+div.comments ol.commentlist li{margin:0 0 1.5em;padding:0.5em;}
+div.comments ol.commentlist li img.photo{margin:0.3em 0.3em 1em 1em;float:right;border:1px solid #000;}
+div.formcontainer form#commentform div#loggedin{margin:0 0 1em;}
+div.formcontainer form#commentform div#loggedin a.fn{font-style:normal;}
+div.formcontainer form#commentform div.form-label{float:left;padding:0 0.3em 0 0;text-align:right;width:7em;}
+div.formcontainer form#commentform label{line-height:180%;}
+div.formcontainer form#commentform label,div.formcontainer form#commentform input{margin:0 0 0.4em;}
+div.sidebar ul li form{margin:0.2em 0 1.5em;}
+div.sidebar ul li h3{font-size:1em;font-weight:400;letter-spacing:2px;margin:0;text-decoration:underline;text-transform:uppercase;}
+div#content form#searchform input#s{padding:1px;width:5em;}
+div.formcontainer form#commentform div.form-input input,div.formcontainer form#commentform div.form-textarea textarea{padding:2px;margin-bottom:10px;width:50%;}
+div.formcontainer form#commentform div.form-textarea textarea{height:10em;overflow:auto;}
+div.sidebar ul li.widget_calendar table#wp-calendar{margin:0 0 1.5em;width:80%;}
+div.sidebar ul li.widget_calendar table#wp-calendar caption{font-weight:700;margin:0.2em 0 0;}
+div.sidebar ul li.widget_calendar table#wp-calendar tbody tr a{font-weight:700;text-decoration:underline;}
+div.sidebar ul li ul li ul{margin:0 0 0.2em;}
+div#header h1#blog-title a:visited,div#header h1#blog-title a:hover{color:#000;}
+body img,div.entry-meta abbr.published{border:none;}
+body.date h2.page-title,body.search h2.page-title,div.sidebar ul li ul,div.sidebar ul li.widget_text div{margin:0 0 1.5em;}
+body.page div.contactform form,div.entry-content form,body.archive div.archive-meta p,form#searchform input#searchsubmit{margin:0;}
+div.entry-content a:hover img.alignleft,div.entry-content a:hover img.alignright,div.entry-content a:hover img.center,div.formcontainer form#commentform div.form-input input:focus,div.sidebar ul li input#s:focus,div.formcontainer form#commentform div.form-textarea textarea:focus{border:1px solid #00f;}
+div.formcontainer div#comment-notes em,div.entry-content div.page-link a,div.comments div.nopassword,div.sidebar ul li.widget_calendar table#wp-calendar tfoot{font-weight:700;}
+input#s,div.formcontainer form#commentform div.form-input input,div.formcontainer form#commentform div.form-textarea textarea{border:1px solid #000;font:0.9em/normal "courier new",courier,monospace;}
+body.archive div.entry-meta span,body.search div.entry-meta span,body.home div.entry-meta span,body.page div.contactform form div.contactleft,div#footer,body.page div.contactform form div.contactleft label,div.entry-content form p label,div.formcontainer form#commentform div#loggedin a.fn,div.formcontainer form#commentform div.form-label{letter-spacing:1px;text-transform:uppercase;}
+body.home div.entry-meta,body.archive div.entry-meta,body.search div.entry-meta,body.single div.entry-meta,div.entry-content img.center,div.navigation,div#footer,div#globalnav,div#header{text-align:center;}
+body.attachment div.entry-content p.attachment-name,body.page div.contactform form div.contactleft,body.single div.entry-meta,div.entry-content strong,div.comments ol.commentlist li strong,body div.navigation,div#globalnav ul li,div#header div#blog-description,div.formcontainer form#commentform div#loggedin a.fn,div.formcontainer form#commentform div.form-label,div.sidebar ul li ul li ul{font-size:0.9em;}
+body.attachment div#content p.attachment-name,body.page div.contactform form div.contactright,body.single div#content div.entry-meta,div#content div.entry-content div.page-link,div#content div.entry-content q,div.comments ol#comments li div.comment-author,div.comments ol#pingbacks li div.comment-meta,div#content div.entry-content ul li ul li,div#content div.entry-date abbr.published,div#content div.navigation,div#globalnav ul li,div.comments ol#comments li div.comment-meta,div.formcontainer form#commentform div#comment-notes,div.formcontainer form#commentform div#loggedin,div.sidebar ul li.widget_calendar table#wp-calendar tfoot,div.sidebar ul li ul li ul{font-style:italic;}
+div#globalnav ul,div.sidebar ul,div.sidebar ul li,div#content div.entry-content ul#linkcats,div.formcontainer form#commentform{margin:0;padding:0;}
+div.comments h3#respond,div.formcontainer div#comment-notes,div.sidebar ul li.widget_text div p{margin:0 0 0.5em;}
+div.comments h3.comment-header,body.single div.navigation,div.entry-content p,div.sidebar ul li#home-link h3{margin:1em 0;}

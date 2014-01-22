@@ -56,6 +56,8 @@
 ;; => 6
 
 ;; `set!' stores a value into a variable:
+;; Please define my-name first, or you can't assign it.
+(define my-name "unknown")
 (set! my-name "NalaGinrut")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

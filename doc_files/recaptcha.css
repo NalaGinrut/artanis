@@ -1,0 +1,72 @@
+/* RECAPTCHA STYLING */
+.recaptcha-error {
+   font-size: 1.8em;
+   padding-bottom: 8px;
+}
+/* END RECAPTCHA STYLING */
+
+/* MAILHIDE STYLING */
+
+/* This is for plain text emails i.e. haha@lol.com - TEXT*/
+.mh-plaintext {
+   background:transparent url(email.png) no-repeat scroll left center;
+   border:medium none;
+   color:#2277DD;
+   height:16px;
+   padding:2px 2px 4px 20px;
+}
+
+/* This is for plain text emails i.e. haha@lol.com - DOTS*/
+.mh-plaintext a, .mh-plaintext a:hover, .mh-plaintext a:visited, .mh-plaintext a:visited:hover {
+   color: #FF7700;
+   font-weight: bolder;
+   text-decoration: none;
+   border: 0;
+   background-color: transparent !important;
+}
+
+/* This is for hyperlinked emails i.e. <a href="mailto:ohnoes@pwnies.com">TEXT</a> - TEXT*/
+.mh-hyperlinked {
+   background:transparent url(email.png) no-repeat scroll left center;
+   border:medium none;
+   color:#2277DD;
+   height:16px;
+   padding:2px 2px 4px 20px;
+}
+
+/* This is for hyperlinked emails i.e. <a href="mailto:ohnoes@pwnies.com">TEXT</a> - DOTS*/
+.mh-hyperlinked a, .mh-hyperlinked a:hover, .mh-hyperlinked a:visited, .mh-hyperlinked a:visited:hover {
+   color: #FF7700;
+   font-weight: bolder;
+   text-decoration: none;
+   border: 0;
+}
+/* END MAILHIDE STYLING */
+
+/* ADMINISTRATION SETTINGS RECAPTCHA */
+.lang-select label, .theme-select label {
+   vertical-align: middle !important;
+}
+
+.lang-select select, .theme-select select {
+   vertical-align: middle !important;
+}
+
+.recaptcha-form {
+   margin: auto !important;
+   width: 25em !important;
+}
+
+.recaptcha-options td {
+   vertical-align: top !important;
+}
+
+.which-key label {
+   font-weight: bold;
+}
+
+.copyright {
+   text-align: center;
+   font-size: .85em;
+}
+/* END ADMINISTRATION SETTINGS RECAPTCHA */

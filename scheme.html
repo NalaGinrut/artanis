@@ -76,7 +76,9 @@
 <span class="comment">;; =&gt; 6
 </span>
 <span class="comment">;; `set!&#x27; stores a value into a variable:
-</span><span class="paren1">(<span class="default">set! my-name <span class="string">&quot;NalaGinrut&quot;</span></span>)</span>
+</span><span class="comment">;; Please define my-name first, or you can&#x27;t assign it.
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> my-name <span class="string">&quot;unknown&quot;</span></span>)</span>
+<span class="paren1">(<span class="default">set! my-name <span class="string">&quot;NalaGinrut&quot;</span></span>)</span>
 
 <span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 </span><span class="comment">;; 1. Primitive Datatypes and Operators
