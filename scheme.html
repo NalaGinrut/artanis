@@ -216,6 +216,10 @@ my-pet <span class="comment">; =&gt; #&lt;dog&gt;
 </span>#<span class="paren1">(<span class="default">1 2 3</span>)</span> <span class="comment">; =&gt; &#x27;#(1 2 3)
 </span>
 <span class="comment">;; Use `vector-append&#x27; to add vectors together
+</span><span class="comment">;; NOTE: vector-append is in SRFI-43 which is not supported in Guile-2.0.9
+</span><span class="comment">;;       or earlier. And it may not be added in Guile-2.0.10.
+</span><span class="comment">;;       But it&#x27;s proposed in R7RS, and there&#x27;s a r7rs branch in Guile upstream.
+</span><span class="comment">;;       If your Guile doesn&#x27;t support vector-append, please skip this step.
 </span><span class="paren1">(<span class="default">vector-append #<span class="paren2">(<span class="default">1 2 3</span>)</span> #<span class="paren2">(<span class="default">4 5 6</span>)</span></span>)</span> <span class="comment">; =&gt; #(1 2 3 4 5 6)
 </span>
 <span class="comment">;;; Hashes
