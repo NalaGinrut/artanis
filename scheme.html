@@ -303,14 +303,26 @@ my-pet <span class="comment">; =&gt; #&lt;dog&gt;
     <span class="paren3">(<span class="default">format #t <span class="string">&quot;Hello ~a, you passed ~a extra args&quot;</span> name <span class="paren4">(<span class="default">length args</span>)</span></span>)</span></span>)</span></span>)</span>
 
 <span class="comment">;; And with keywords
-</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">hello-k <span class="keyword">#:name</span> <span class="paren3">(<span class="default">name <span class="string">&quot;World&quot;</span></span>)</span> <span class="keyword">#:greeting</span> <span class="paren3">(<span class="default">g <span class="string">&quot;Hello&quot;</span></span>)</span> . args</span>)</span>
-  <span class="paren2">(<span class="default">format #t <span class="string">&quot;~a ~a, ~a extra args&quot;</span> g name <span class="paren3">(<span class="default">length args</span>)</span></span>)</span></span>)</span>
-<span class="paren1">(<span class="default">hello-k</span>)</span>                 <span class="comment">; =&gt; &quot;Hello World, 0 extra args&quot;
-</span><span class="paren1">(<span class="default">hello-k 1 2 3</span>)</span>           <span class="comment">; =&gt; &quot;Hello World, 3 extra args&quot;
-</span><span class="paren1">(<span class="default">hello-k <span class="keyword">#:greeting</span> <span class="string">&quot;Hi&quot;</span></span>)</span> <span class="comment">; =&gt; &quot;Hi World, 0 extra args&quot;
-</span><span class="paren1">(<span class="default">hello-k <span class="keyword">#:name</span> <span class="string">&quot;Finn&quot;</span> <span class="keyword">#:greeting</span> <span class="string">&quot;Hey&quot;</span></span>)</span> <span class="comment">; =&gt; &quot;Hey Finn, 0 extra args&quot;
-</span><span class="paren1">(<span class="default">hello-k 1 2 3 <span class="keyword">#:greeting</span> <span class="string">&quot;Hi&quot;</span> <span class="keyword">#:name</span> <span class="string">&quot;Finn&quot;</span> 4 5 6</span>)</span>
-                                         <span class="comment">; =&gt; &quot;Hi Finn, 6 extra args&quot;
+</span><span class="comment">;; the keywords are those like this #:its-name, sometimes you may see
+</span><span class="comment">;; :its-name without &#x27;#&#x27; in certain Scheme implementation.
+</span><span class="comment">;; NOTE: keywords is not in any Scheme standards like RnRs.
+</span><span class="comment">;;       But mainstream Scheme implementation often contains it. 
+</span><span class="comment">;;	 This truth also means that different implementation may has
+</span><span class="comment">;;	 different result.
+</span><span class="comment">;;       The code below will follow Guile situation.
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define*</span></i> <span class="paren2">(<span class="default">hello <span class="keyword">#:key</span> <span class="paren3">(<span class="default">name <span class="string">&quot;World&quot;</span></span>)</span> <span class="paren3">(<span class="default">greeting <span class="string">&quot;Hello&quot;</span></span>)</span> . args</span>)</span>
+  <span class="paren2">(<span class="default">format #t <span class="string">&quot;~a ~a, ~a extra args~%&quot;</span> greeting name <span class="paren3">(<span class="default">length args</span>)</span></span>)</span></span>)</span>
+<span class="comment">;; &#x27;define*&#x27; is similar with &#x27;define&#x27;, but you may use it for defining
+</span><span class="comment">;; optional args or using keyword to specify the value to specified argument.
+</span><span class="paren1">(<span class="default">hello</span>)</span>                 <span class="comment">; =&gt; &quot;Hello World, 0 extra args&quot;
+</span><span class="paren1">(<span class="default">hello 1 2 3</span>)</span>           <span class="comment">; =&gt; &quot;Hello World, 3 extra args&quot;
+</span><span class="paren1">(<span class="default">hello <span class="keyword">#:greeting</span> <span class="string">&quot;Hi&quot;</span></span>)</span> <span class="comment">; =&gt; &quot;Hi World, 2 extra args&quot;
+</span><span class="comment">;; NOTE: In Guile, all the keyword-value pairs are countered as the rest args.
+</span><span class="comment">;;       It means &#x27;args&#x27; here will be (#:greeting &quot;Hi&quot;), so its length is 2.
+</span><span class="comment">;;       If you are in Racket, it&#x27;s different, so the result will be 0.
+</span><span class="comment">;;       Because it&#x27;s not defined in RnRs, so it&#x27;s implementation specific.
+</span><span class="paren1">(<span class="default">hello <span class="keyword">#:name</span> <span class="string">&quot;Finn&quot;</span> <span class="keyword">#:greeting</span> <span class="string">&quot;Hey&quot;</span></span>)</span> <span class="comment">; =&gt; &quot;Hey Finn, 4 extra args&quot;
+</span><span class="paren1">(<span class="default">hello 1 2 3 <span class="keyword">#:greeting</span> <span class="string">&quot;Hi&quot;</span> <span class="keyword">#:name</span> <span class="string">&quot;Finn&quot;</span> 4 5 6</span>)</span> <span class="comment">; =&gt; &quot;Hi Finn, 10 extra args&quot;
 </span>
 <span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 </span><span class="comment">;; 4. Equality

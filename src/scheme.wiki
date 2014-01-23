@@ -283,14 +283,26 @@ my-pet ; => #<dog>
     (format #t "Hello ~a, you passed ~a extra args" name (length args))))
 
 ;; And with keywords
-(define (hello-k #:name (name "World") #:greeting (g "Hello") . args)
-  (format #t "~a ~a, ~a extra args" g name (length args)))
-(hello-k)                 ; => "Hello World, 0 extra args"
-(hello-k 1 2 3)           ; => "Hello World, 3 extra args"
-(hello-k #:greeting "Hi") ; => "Hi World, 0 extra args"
-(hello-k #:name "Finn" #:greeting "Hey") ; => "Hey Finn, 0 extra args"
-(hello-k 1 2 3 #:greeting "Hi" #:name "Finn" 4 5 6)
-                                         ; => "Hi Finn, 6 extra args"
+;; the keywords are those like this #:its-name, sometimes you may see
+;; :its-name without '#' in certain Scheme implementation.
+;; NOTE: keywords is not in any Scheme standards like RnRs.
+;;       But mainstream Scheme implementation often contains it. 
+;;	 This truth also means that different implementation may has
+;;	 different result.
+;;       The code below will follow Guile situation.
+(define* (hello #:key (name "World") (greeting "Hello") . args)
+  (format #t "~a ~a, ~a extra args~%" greeting name (length args)))
+;; 'define*' is similar with 'define', but you may use it for defining
+;; optional args or using keyword to specify the value to specified argument.
+(hello)                 ; => "Hello World, 0 extra args"
+(hello 1 2 3)           ; => "Hello World, 3 extra args"
+(hello #:greeting "Hi") ; => "Hi World, 2 extra args"
+;; NOTE: In Guile, all the keyword-value pairs are countered as the rest args.
+;;       It means 'args' here will be (#:greeting "Hi"), so its length is 2.
+;;       If you are in Racket, it's different, so the result will be 0.
+;;       Because it's not defined in RnRs, so it's implementation specific.
+(hello #:name "Finn" #:greeting "Hey") ; => "Hey Finn, 4 extra args"
+(hello 1 2 3 #:greeting "Hi" #:name "Finn" 4 5 6) ; => "Hi Finn, 10 extra args"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 4. Equality
