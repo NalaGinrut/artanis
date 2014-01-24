@@ -102,14 +102,18 @@
 (or #f 0 (error "doesn't get here"))  ; => 0
 
 ;;; Characters
+;; According to RnRs, characters only have two notations:
+;; #\ and #\x
+;; Racket support #\u, but it's never Scheme.
 #\A ; => #\A
 #\λ ; => #\λ
-#\u03BB ; => #\λ
+#\x03BB ; => #\λ
 
 ;;; Strings are fixed-length array of characters.
 "Hello, world!"
 "Benjamin \"Bugsy\" Siegel"   ; backslash is an escaping character
-"Foo\tbar\41\x21\u0021\a\r\n" ; includes C escapes, Unicode
+"Foo\tbar\x21\a\r\n" ; includes C escapes (only support hex)
+;; try to print the string above with 'display'
 
 ;; Strings can be added too!
 (string-append "Hello " "world!") ; => "Hello world!"

@@ -122,14 +122,18 @@
 </span><span class="paren1">(<span class="default">or #f 0 <span class="paren2">(<span class="default">error <span class="string">&quot;doesn&#x27;t get here&quot;</span></span>)</span></span>)</span>  <span class="comment">; =&gt; 0
 </span>
 <span class="comment">;;; Characters
+</span><span class="comment">;; According to RnRs, characters only have two notations:
+</span><span class="comment">;; #\ and #\x
+</span><span class="comment">;; Racket support #\u, but it&#x27;s never Scheme.
 </span><span class="character">#\A</span> <span class="comment">; =&gt; #\A
 </span><span class="character">#\λ</span> <span class="comment">; =&gt; #\λ
-</span><span class="character">#\u03BB</span> <span class="comment">; =&gt; #\λ
+</span><span class="character">#\x03BB</span> <span class="comment">; =&gt; #\λ
 </span>
 <span class="comment">;;; Strings are fixed-length array of characters.
 </span><span class="string">&quot;Hello, world!&quot;</span>
 <span class="string">&quot;Benjamin </span><span class="string">\&quot;</span><span class="string">Bugsy</span><span class="string">\&quot;</span><span class="string"> Siegel&quot;</span>   <span class="comment">; backslash is an escaping character
-</span><span class="string">&quot;Foo</span><span class="string">\t</span><span class="string">bar</span><span class="string">\4</span><span class="string">1</span><span class="string">\x</span><span class="string">21</span><span class="string">\u</span><span class="string">0021</span><span class="string">\a</span><span class="string">\r</span><span class="string">\n</span><span class="string">&quot;</span> <span class="comment">; includes C escapes, Unicode
+</span><span class="string">&quot;Foo</span><span class="string">\t</span><span class="string">bar</span><span class="string">\x</span><span class="string">21</span><span class="string">\a</span><span class="string">\r</span><span class="string">\n</span><span class="string">&quot;</span> <span class="comment">; includes C escapes (only support hex)
+</span><span class="comment">;; try to print the string above with &#x27;display&#x27;
 </span>
 <span class="comment">;; Strings can be added too!
 </span><span class="paren1">(<span class="default">string-append <span class="string">&quot;Hello &quot;</span> <span class="string">&quot;world!&quot;</span></span>)</span> <span class="comment">; =&gt; &quot;Hello world!&quot;

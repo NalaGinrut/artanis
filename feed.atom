@@ -134,14 +134,18 @@
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;or #f 0 &lt;span class="paren2"&gt;(&lt;span class="default"&gt;error &lt;span class="string"&gt;&amp;quot;doesn&amp;#x27;t get here&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;  &lt;span class="comment"&gt;; =&amp;gt; 0
 &lt;/span&gt;
 &lt;span class="comment"&gt;;;; Characters
+&lt;/span&gt;&lt;span class="comment"&gt;;; According to RnRs, characters only have two notations:
+&lt;/span&gt;&lt;span class="comment"&gt;;; #\ and #\x
+&lt;/span&gt;&lt;span class="comment"&gt;;; Racket support #\u, but it&amp;#x27;s never Scheme.
 &lt;/span&gt;&lt;span class="character"&gt;#\A&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; #\A
 &lt;/span&gt;&lt;span class="character"&gt;#\λ&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; #\λ
-&lt;/span&gt;&lt;span class="character"&gt;#\u03BB&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; #\λ
+&lt;/span&gt;&lt;span class="character"&gt;#\x03BB&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; #\λ
 &lt;/span&gt;
 &lt;span class="comment"&gt;;;; Strings are fixed-length array of characters.
 &lt;/span&gt;&lt;span class="string"&gt;&amp;quot;Hello, world!&amp;quot;&lt;/span&gt;
 &lt;span class="string"&gt;&amp;quot;Benjamin &lt;/span&gt;&lt;span class="string"&gt;\&amp;quot;&lt;/span&gt;&lt;span class="string"&gt;Bugsy&lt;/span&gt;&lt;span class="string"&gt;\&amp;quot;&lt;/span&gt;&lt;span class="string"&gt; Siegel&amp;quot;&lt;/span&gt;   &lt;span class="comment"&gt;; backslash is an escaping character
-&lt;/span&gt;&lt;span class="string"&gt;&amp;quot;Foo&lt;/span&gt;&lt;span class="string"&gt;\t&lt;/span&gt;&lt;span class="string"&gt;bar&lt;/span&gt;&lt;span class="string"&gt;\4&lt;/span&gt;&lt;span class="string"&gt;1&lt;/span&gt;&lt;span class="string"&gt;\x&lt;/span&gt;&lt;span class="string"&gt;21&lt;/span&gt;&lt;span class="string"&gt;\u&lt;/span&gt;&lt;span class="string"&gt;0021&lt;/span&gt;&lt;span class="string"&gt;\a&lt;/span&gt;&lt;span class="string"&gt;\r&lt;/span&gt;&lt;span class="string"&gt;\n&lt;/span&gt;&lt;span class="string"&gt;&amp;quot;&lt;/span&gt; &lt;span class="comment"&gt;; includes C escapes, Unicode
+&lt;/span&gt;&lt;span class="string"&gt;&amp;quot;Foo&lt;/span&gt;&lt;span class="string"&gt;\t&lt;/span&gt;&lt;span class="string"&gt;bar&lt;/span&gt;&lt;span class="string"&gt;\x&lt;/span&gt;&lt;span class="string"&gt;21&lt;/span&gt;&lt;span class="string"&gt;\a&lt;/span&gt;&lt;span class="string"&gt;\r&lt;/span&gt;&lt;span class="string"&gt;\n&lt;/span&gt;&lt;span class="string"&gt;&amp;quot;&lt;/span&gt; &lt;span class="comment"&gt;; includes C escapes (only support hex)
+&lt;/span&gt;&lt;span class="comment"&gt;;; try to print the string above with &amp;#x27;display&amp;#x27;
 &lt;/span&gt;
 &lt;span class="comment"&gt;;; Strings can be added too!
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;string-append &lt;span class="string"&gt;&amp;quot;Hello &amp;quot;&lt;/span&gt; &lt;span class="string"&gt;&amp;quot;world!&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; &amp;quot;Hello world!&amp;quot;
