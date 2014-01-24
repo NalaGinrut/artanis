@@ -44,6 +44,9 @@
 &lt;/span&gt;&lt;span class="comment"&gt;;; http://norvig.com/21-days.html
 &lt;/span&gt;&lt;span class="comment"&gt;;;
 &lt;/span&gt;&lt;span class="comment"&gt;;; Then install GNU Guile
+&lt;/span&gt;&lt;span class="comment"&gt;;; NOTE: I won&amp;#x27;t encourage using Racket but if you really want,
+&lt;/span&gt;&lt;span class="comment"&gt;;;       I still give you some hints in this tutorial. But the
+&lt;/span&gt;&lt;span class="comment"&gt;;;       tutorial will base on Guile and RnRs.
 &lt;/span&gt;&lt;span class="comment"&gt;;;
 &lt;/span&gt;&lt;span class="comment"&gt;;; openSUSE: zypper install guile
 &lt;/span&gt;&lt;span class="comment"&gt;;; Debian: apt-get install guile (or see your distro instructions)

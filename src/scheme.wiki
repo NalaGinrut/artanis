@@ -12,6 +12,9 @@
 ;; http://norvig.com/21-days.html
 ;;
 ;; Then install GNU Guile
+;; NOTE: I won't encourage using Racket but if you really want,
+;;       I still give you some hints in this tutorial. But the
+;;       tutorial will base on Guile and RnRs.
 ;;
 ;; openSUSE: zypper install guile
 ;; Debian: apt-get install guile (or see your distro instructions)
