@@ -441,7 +441,9 @@ my-pet &lt;span class="comment"&gt;; =&amp;gt; #&amp;lt;dog&amp;gt;
 &lt;/span&gt;&lt;span class="comment"&gt;;; from 10 count 5 times, each step +2
 &lt;/span&gt;&lt;span class="comment"&gt;;; If you need a Python like range(5, 10) ==&amp;gt; (5 6 7 8 9), try:
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define&lt;/span&gt;&lt;/i&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;range from to&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;map &lt;span class="paren3"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;lambda&lt;/span&gt;&lt;/i&gt; &lt;span class="paren4"&gt;(&lt;span class="default"&gt;x&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren4"&gt;(&lt;span class="default"&gt;+ from x&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;iota &lt;span class="paren4"&gt;(&lt;span class="default"&gt;- to from&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
-&lt;span class="paren1"&gt;(&lt;span class="default"&gt;range 5 10&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; (5 6 7 8 9)
+&lt;span class="comment"&gt;;; EXECISE: you may find this &amp;#x27;range&amp;#x27; implementation is not so good,
+&lt;/span&gt;&lt;span class="comment"&gt;;;          please optimize it if you can.
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;range 5 10&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; (5 6 7 8 9)
 &lt;/span&gt;
 &lt;span class="comment"&gt;;; how to do iteration?
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;for-each display &amp;#x27;&lt;span class="paren2"&gt;(&lt;span class="default"&gt;1 2 3 4 5&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;

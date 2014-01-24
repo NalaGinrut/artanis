@@ -429,7 +429,9 @@ my-pet <span class="comment">; =&gt; #&lt;dog&gt;
 </span><span class="comment">;; from 10 count 5 times, each step +2
 </span><span class="comment">;; If you need a Python like range(5, 10) ==&gt; (5 6 7 8 9), try:
 </span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">range from to</span>)</span> <span class="paren2">(<span class="default">map <span class="paren3">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren4">(<span class="default">x</span>)</span> <span class="paren4">(<span class="default">+ from x</span>)</span></span>)</span> <span class="paren3">(<span class="default">iota <span class="paren4">(<span class="default">- to from</span>)</span></span>)</span></span>)</span></span>)</span>
-<span class="paren1">(<span class="default">range 5 10</span>)</span> <span class="comment">; =&gt; (5 6 7 8 9)
+<span class="comment">;; EXECISE: you may find this &#x27;range&#x27; implementation is not so good,
+</span><span class="comment">;;          please optimize it if you can.
+</span><span class="paren1">(<span class="default">range 5 10</span>)</span> <span class="comment">; =&gt; (5 6 7 8 9)
 </span>
 <span class="comment">;; how to do iteration?
 </span><span class="paren1">(<span class="default">for-each display &#x27;<span class="paren2">(<span class="default">1 2 3 4 5</span>)</span></span>)</span>
