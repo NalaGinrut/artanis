@@ -113,7 +113,11 @@
 "Hello, world!"
 "Benjamin \"Bugsy\" Siegel"   ; backslash is an escaping character
 "Foo\tbar\x21\a\r\n" ; includes C escapes (only support hex)
-;; try to print the string above with 'display'
+;; try to print the above string
+;; Printing is pretty easy
+(display "I'm Guile. Nice to meet you!\n")
+;; and unicode escapes
+"\u004B" ; => K
 
 ;; Strings can be added too!
 (string-append "Hello " "world!") ; => "Hello world!"
@@ -126,9 +130,6 @@
 ;; ==> print "strings can be formatted" on screen
 (define str (format #f "~a can be ~a" "strings" "formatted"))
 ;; str was assigned to "strings can be formatted"
-
-;; Printing is pretty easy
-(display "I'm Guile. Nice to meet you!\n")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 2. Variables

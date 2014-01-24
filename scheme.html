@@ -133,7 +133,11 @@
 </span><span class="string">&quot;Hello, world!&quot;</span>
 <span class="string">&quot;Benjamin </span><span class="string">\&quot;</span><span class="string">Bugsy</span><span class="string">\&quot;</span><span class="string"> Siegel&quot;</span>   <span class="comment">; backslash is an escaping character
 </span><span class="string">&quot;Foo</span><span class="string">\t</span><span class="string">bar</span><span class="string">\x</span><span class="string">21</span><span class="string">\a</span><span class="string">\r</span><span class="string">\n</span><span class="string">&quot;</span> <span class="comment">; includes C escapes (only support hex)
-</span><span class="comment">;; try to print the string above with &#x27;display&#x27;
+</span><span class="comment">;; try to print the above string
+</span><span class="comment">;; Printing is pretty easy
+</span><span class="paren1">(<span class="default">display <span class="string">&quot;I&#x27;m Guile. Nice to meet you!</span><span class="string">\n</span><span class="string">&quot;</span></span>)</span>
+<span class="comment">;; and unicode escapes
+</span><span class="string">&quot;</span><span class="string">\u</span><span class="string">004B&quot;</span> <span class="comment">; =&gt; K
 </span>
 <span class="comment">;; Strings can be added too!
 </span><span class="paren1">(<span class="default">string-append <span class="string">&quot;Hello &quot;</span> <span class="string">&quot;world!&quot;</span></span>)</span> <span class="comment">; =&gt; &quot;Hello world!&quot;
@@ -147,9 +151,6 @@
 </span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> str <span class="paren2">(<span class="default">format #f <span class="string">&quot;~a can be ~a&quot;</span> <span class="string">&quot;strings&quot;</span> <span class="string">&quot;formatted&quot;</span></span>)</span></span>)</span>
 <span class="comment">;; str was assigned to &quot;strings can be formatted&quot;
 </span>
-<span class="comment">;; Printing is pretty easy
-</span><span class="paren1">(<span class="default">display <span class="string">&quot;I&#x27;m Guile. Nice to meet you!</span><span class="string">\n</span><span class="string">&quot;</span></span>)</span>
-
 <span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 </span><span class="comment">;; 2. Variables
 </span><span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

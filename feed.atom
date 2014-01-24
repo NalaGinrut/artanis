@@ -145,7 +145,11 @@
 &lt;/span&gt;&lt;span class="string"&gt;&amp;quot;Hello, world!&amp;quot;&lt;/span&gt;
 &lt;span class="string"&gt;&amp;quot;Benjamin &lt;/span&gt;&lt;span class="string"&gt;\&amp;quot;&lt;/span&gt;&lt;span class="string"&gt;Bugsy&lt;/span&gt;&lt;span class="string"&gt;\&amp;quot;&lt;/span&gt;&lt;span class="string"&gt; Siegel&amp;quot;&lt;/span&gt;   &lt;span class="comment"&gt;; backslash is an escaping character
 &lt;/span&gt;&lt;span class="string"&gt;&amp;quot;Foo&lt;/span&gt;&lt;span class="string"&gt;\t&lt;/span&gt;&lt;span class="string"&gt;bar&lt;/span&gt;&lt;span class="string"&gt;\x&lt;/span&gt;&lt;span class="string"&gt;21&lt;/span&gt;&lt;span class="string"&gt;\a&lt;/span&gt;&lt;span class="string"&gt;\r&lt;/span&gt;&lt;span class="string"&gt;\n&lt;/span&gt;&lt;span class="string"&gt;&amp;quot;&lt;/span&gt; &lt;span class="comment"&gt;; includes C escapes (only support hex)
-&lt;/span&gt;&lt;span class="comment"&gt;;; try to print the string above with &amp;#x27;display&amp;#x27;
+&lt;/span&gt;&lt;span class="comment"&gt;;; try to print the above string
+&lt;/span&gt;&lt;span class="comment"&gt;;; Printing is pretty easy
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;display &lt;span class="string"&gt;&amp;quot;I&amp;#x27;m Guile. Nice to meet you!&lt;/span&gt;&lt;span class="string"&gt;\n&lt;/span&gt;&lt;span class="string"&gt;&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+&lt;span class="comment"&gt;;; and unicode escapes
+&lt;/span&gt;&lt;span class="string"&gt;&amp;quot;&lt;/span&gt;&lt;span class="string"&gt;\u&lt;/span&gt;&lt;span class="string"&gt;004B&amp;quot;&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; K
 &lt;/span&gt;
 &lt;span class="comment"&gt;;; Strings can be added too!
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;string-append &lt;span class="string"&gt;&amp;quot;Hello &amp;quot;&lt;/span&gt; &lt;span class="string"&gt;&amp;quot;world!&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; &amp;quot;Hello world!&amp;quot;
@@ -159,9 +163,6 @@
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define&lt;/span&gt;&lt;/i&gt; str &lt;span class="paren2"&gt;(&lt;span class="default"&gt;format #f &lt;span class="string"&gt;&amp;quot;~a can be ~a&amp;quot;&lt;/span&gt; &lt;span class="string"&gt;&amp;quot;strings&amp;quot;&lt;/span&gt; &lt;span class="string"&gt;&amp;quot;formatted&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 &lt;span class="comment"&gt;;; str was assigned to &amp;quot;strings can be formatted&amp;quot;
 &lt;/span&gt;
-&lt;span class="comment"&gt;;; Printing is pretty easy
-&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;display &lt;span class="string"&gt;&amp;quot;I&amp;#x27;m Guile. Nice to meet you!&lt;/span&gt;&lt;span class="string"&gt;\n&lt;/span&gt;&lt;span class="string"&gt;&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
-
 &lt;span class="comment"&gt;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 &lt;/span&gt;&lt;span class="comment"&gt;;; 2. Variables
 &lt;/span&gt;&lt;span class="comment"&gt;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
