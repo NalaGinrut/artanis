@@ -227,7 +227,7 @@ my-pet &lt;span class="comment"&gt;; =&amp;gt; #&amp;lt;dog&amp;gt;
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;map add1 &amp;#x27;&lt;span class="paren2"&gt;(&lt;span class="default"&gt;1 2 3&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;          &lt;span class="comment"&gt;; =&amp;gt; &amp;#x27;(2 3 4)
 &lt;/span&gt;&lt;span class="comment"&gt;;; For Guile users:
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;map 1+ &amp;#x27;&lt;span class="paren2"&gt;(&lt;span class="default"&gt;1 2 3&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;	     &lt;span class="comment"&gt;; =&amp;gt; &amp;#x27;(2 3 4)
-&lt;/span&gt;&lt;span class="comment"&gt;;; add1 or 1+ is not a standard primitive, so it&amp;#x27;s depends on implementations.
+&lt;/span&gt;&lt;span class="comment"&gt;;; add1 or 1+ is not a standard primitive, so it depends on implementations.
 &lt;/span&gt;
 &lt;span class="paren1"&gt;(&lt;span class="default"&gt;map + &amp;#x27;&lt;span class="paren2"&gt;(&lt;span class="default"&gt;1 2 3&lt;/span&gt;)&lt;/span&gt; &amp;#x27;&lt;span class="paren2"&gt;(&lt;span class="default"&gt;10 20 30&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; &amp;#x27;(11 22 33)
 &lt;/span&gt;

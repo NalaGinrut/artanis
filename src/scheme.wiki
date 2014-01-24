@@ -195,7 +195,7 @@ my-pet ; => #<dog>
 (map add1 '(1 2 3))          ; => '(2 3 4)
 ;; For Guile users:
 (map 1+ '(1 2 3))	     ; => '(2 3 4)
-;; add1 or 1+ is not a standard primitive, so it's depends on implementations.
+;; add1 or 1+ is not a standard primitive, so it depends on implementations.
 
 (map + '(1 2 3) '(10 20 30)) ; => '(11 22 33)
 
