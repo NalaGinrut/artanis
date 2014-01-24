@@ -259,11 +259,12 @@ my-pet &lt;span class="comment"&gt;; =&amp;gt; #&amp;lt;dog&amp;gt;
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;hash-ref m &amp;#x27;a&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; 1
 &lt;/span&gt;
 &lt;span class="comment"&gt;;; Retrieving a non-present value is an exception
-&lt;/span&gt;&lt;span class="comment"&gt;; (hash-ref m &amp;#x27;d) =&amp;gt; no value found
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;hash-ref m &amp;#x27;d&lt;/span&gt;)&lt;/span&gt; 
+&lt;span class="comment"&gt;;; =&amp;gt; #f 
 &lt;/span&gt;
 &lt;span class="comment"&gt;;; You can provide a default value for missing keys
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;hash-ref m &amp;#x27;d 0&lt;/span&gt;)&lt;/span&gt;
-&lt;span class="comment"&gt;;; =&amp;gt; #f
+&lt;span class="comment"&gt;;; =&amp;gt; 0
 &lt;/span&gt;
 &lt;span class="comment"&gt;;; Use `hash-remove&amp;#x27; to remove keys (functional too)
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;hash-remove! m &amp;#x27;a&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; ((b . 2) (c . 3))

@@ -247,11 +247,12 @@ my-pet <span class="comment">; =&gt; #&lt;dog&gt;
 </span><span class="paren1">(<span class="default">hash-ref m &#x27;a</span>)</span> <span class="comment">; =&gt; 1
 </span>
 <span class="comment">;; Retrieving a non-present value is an exception
-</span><span class="comment">; (hash-ref m &#x27;d) =&gt; no value found
+</span><span class="paren1">(<span class="default">hash-ref m &#x27;d</span>)</span> 
+<span class="comment">;; =&gt; #f 
 </span>
 <span class="comment">;; You can provide a default value for missing keys
 </span><span class="paren1">(<span class="default">hash-ref m &#x27;d 0</span>)</span>
-<span class="comment">;; =&gt; #f
+<span class="comment">;; =&gt; 0
 </span>
 <span class="comment">;; Use `hash-remove&#x27; to remove keys (functional too)
 </span><span class="paren1">(<span class="default">hash-remove! m &#x27;a</span>)</span> <span class="comment">; =&gt; ((b . 2) (c . 3))
