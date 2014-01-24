@@ -183,8 +183,20 @@ my-pet ; => #<dog>
 
 ;; Lists are a very basic type, so there is a *lot* of functionality for
 ;; them, a few examples:
+;; For Racket users:
 (map add1 '(1 2 3))          ; => '(2 3 4)
+;; For Guile users:
+(map 1+ '(1 2 3))	     ; => '(2 3 4)
+;; add1 or 1+ is not a standard primitive, so it's depends on implementations.
+
 (map + '(1 2 3) '(10 20 30)) ; => '(11 22 33)
+
+;; filter/count/take/drop are dwell in SRFI-1, so you have to load it first.
+;; For Racket users:
+(require srfi/1)
+;; For Guile users:
+(use-modules (srfi srfi-1))
+
 (filter even? '(1 2 3 4))    ; => '(2 4)
 (count even? '(1 2 3 4))     ; => 2
 (take '(1 2 3 4) 2)          ; => '(1 2)
@@ -215,11 +227,12 @@ my-pet ; => #<dog>
 (hash-ref m 'a) ; => 1
 
 ;; Retrieving a non-present value is an exception
-; (hash-ref m 'd) => no value found
+(hash-ref m 'd) 
+;; => #f 
 
 ;; You can provide a default value for missing keys
 (hash-ref m 'd 0)
-;; => #f
+;; => 0
 
 ;; Use `hash-remove' to remove keys (functional too)
 (hash-remove! m 'a) ; => ((b . 2) (c . 3))

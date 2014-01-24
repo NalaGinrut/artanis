@@ -203,9 +203,21 @@ my-pet <span class="comment">; =&gt; #&lt;dog&gt;
 </span>
 <span class="comment">;; Lists are a very basic type, so there is a *lot* of functionality for
 </span><span class="comment">;; them, a few examples:
+</span><span class="comment">;; For Racket users:
 </span><span class="paren1">(<span class="default">map add1 &#x27;<span class="paren2">(<span class="default">1 2 3</span>)</span></span>)</span>          <span class="comment">; =&gt; &#x27;(2 3 4)
-</span><span class="paren1">(<span class="default">map + &#x27;<span class="paren2">(<span class="default">1 2 3</span>)</span> &#x27;<span class="paren2">(<span class="default">10 20 30</span>)</span></span>)</span> <span class="comment">; =&gt; &#x27;(11 22 33)
-</span><span class="paren1">(<span class="default">filter even? &#x27;<span class="paren2">(<span class="default">1 2 3 4</span>)</span></span>)</span>    <span class="comment">; =&gt; &#x27;(2 4)
+</span><span class="comment">;; For Guile users:
+</span><span class="paren1">(<span class="default">map 1+ &#x27;<span class="paren2">(<span class="default">1 2 3</span>)</span></span>)</span>	     <span class="comment">; =&gt; &#x27;(2 3 4)
+</span><span class="comment">;; add1 or 1+ is not a standard primitive, so it&#x27;s depends on implementations.
+</span>
+<span class="paren1">(<span class="default">map + &#x27;<span class="paren2">(<span class="default">1 2 3</span>)</span> &#x27;<span class="paren2">(<span class="default">10 20 30</span>)</span></span>)</span> <span class="comment">; =&gt; &#x27;(11 22 33)
+</span>
+<span class="comment">;; filter/count/take/drop are dwell in SRFI-1, so you have to load it first.
+</span><span class="comment">;; For Racket users:
+</span><span class="paren1">(<span class="default">require srfi/1</span>)</span>
+<span class="comment">;; For Guile users:
+</span><span class="paren1">(<span class="default">use-modules <span class="paren2">(<span class="default">srfi srfi-1</span>)</span></span>)</span>
+
+<span class="paren1">(<span class="default">filter even? &#x27;<span class="paren2">(<span class="default">1 2 3 4</span>)</span></span>)</span>    <span class="comment">; =&gt; &#x27;(2 4)
 </span><span class="paren1">(<span class="default">count even? &#x27;<span class="paren2">(<span class="default">1 2 3 4</span>)</span></span>)</span>     <span class="comment">; =&gt; 2
 </span><span class="paren1">(<span class="default">take &#x27;<span class="paren2">(<span class="default">1 2 3 4</span>)</span> 2</span>)</span>          <span class="comment">; =&gt; &#x27;(1 2)
 </span><span class="paren1">(<span class="default">drop &#x27;<span class="paren2">(<span class="default">1 2 3 4</span>)</span> 2</span>)</span>          <span class="comment">; =&gt; &#x27;(3 4)

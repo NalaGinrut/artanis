@@ -215,9 +215,21 @@ my-pet &lt;span class="comment"&gt;; =&amp;gt; #&amp;lt;dog&amp;gt;
 &lt;/span&gt;
 &lt;span class="comment"&gt;;; Lists are a very basic type, so there is a *lot* of functionality for
 &lt;/span&gt;&lt;span class="comment"&gt;;; them, a few examples:
+&lt;/span&gt;&lt;span class="comment"&gt;;; For Racket users:
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;map add1 &amp;#x27;&lt;span class="paren2"&gt;(&lt;span class="default"&gt;1 2 3&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;          &lt;span class="comment"&gt;; =&amp;gt; &amp;#x27;(2 3 4)
-&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;map + &amp;#x27;&lt;span class="paren2"&gt;(&lt;span class="default"&gt;1 2 3&lt;/span&gt;)&lt;/span&gt; &amp;#x27;&lt;span class="paren2"&gt;(&lt;span class="default"&gt;10 20 30&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; &amp;#x27;(11 22 33)
-&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;filter even? &amp;#x27;&lt;span class="paren2"&gt;(&lt;span class="default"&gt;1 2 3 4&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;    &lt;span class="comment"&gt;; =&amp;gt; &amp;#x27;(2 4)
+&lt;/span&gt;&lt;span class="comment"&gt;;; For Guile users:
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;map 1+ &amp;#x27;&lt;span class="paren2"&gt;(&lt;span class="default"&gt;1 2 3&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;	     &lt;span class="comment"&gt;; =&amp;gt; &amp;#x27;(2 3 4)
+&lt;/span&gt;&lt;span class="comment"&gt;;; add1 or 1+ is not a standard primitive, so it&amp;#x27;s depends on implementations.
+&lt;/span&gt;
+&lt;span class="paren1"&gt;(&lt;span class="default"&gt;map + &amp;#x27;&lt;span class="paren2"&gt;(&lt;span class="default"&gt;1 2 3&lt;/span&gt;)&lt;/span&gt; &amp;#x27;&lt;span class="paren2"&gt;(&lt;span class="default"&gt;10 20 30&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; &amp;#x27;(11 22 33)
+&lt;/span&gt;
+&lt;span class="comment"&gt;;; filter/count/take/drop are dwell in SRFI-1, so you have to load it first.
+&lt;/span&gt;&lt;span class="comment"&gt;;; For Racket users:
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;require srfi/1&lt;/span&gt;)&lt;/span&gt;
+&lt;span class="comment"&gt;;; For Guile users:
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;use-modules &lt;span class="paren2"&gt;(&lt;span class="default"&gt;srfi srfi-1&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+
+&lt;span class="paren1"&gt;(&lt;span class="default"&gt;filter even? &amp;#x27;&lt;span class="paren2"&gt;(&lt;span class="default"&gt;1 2 3 4&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;    &lt;span class="comment"&gt;; =&amp;gt; &amp;#x27;(2 4)
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;count even? &amp;#x27;&lt;span class="paren2"&gt;(&lt;span class="default"&gt;1 2 3 4&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;     &lt;span class="comment"&gt;; =&amp;gt; 2
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;take &amp;#x27;&lt;span class="paren2"&gt;(&lt;span class="default"&gt;1 2 3 4&lt;/span&gt;)&lt;/span&gt; 2&lt;/span&gt;)&lt;/span&gt;          &lt;span class="comment"&gt;; =&amp;gt; &amp;#x27;(1 2)
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;drop &amp;#x27;&lt;span class="paren2"&gt;(&lt;span class="default"&gt;1 2 3 4&lt;/span&gt;)&lt;/span&gt; 2&lt;/span&gt;)&lt;/span&gt;          &lt;span class="comment"&gt;; =&amp;gt; &amp;#x27;(3 4)
