@@ -293,7 +293,7 @@ my-pet <span class="comment">; =&gt; #&lt;dog&gt;
 <span class="paren1">(<span class="default">hello3 <span class="string">&quot;Jake&quot;</span></span>)</span> <span class="comment">; =&gt; &quot;Hello Jake&quot;
 </span><span class="paren1">(<span class="default">hello3</span>)</span> <span class="comment">; =&gt; &quot;Hello World&quot;
 </span><span class="comment">;; ... or specify optional arguments with a default value expression
-</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">hello4 <span class="paren3">(<span class="default">name <span class="string">&quot;World&quot;</span></span>)</span></span>)</span>
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define*</span></i> <span class="paren2">(<span class="default">hello4 <span class="keyword">#:key</span> <span class="paren3">(<span class="default">name <span class="string">&quot;World&quot;</span></span>)</span></span>)</span>
   <span class="paren2">(<span class="default">string-append <span class="string">&quot;Hello &quot;</span> name</span>)</span></span>)</span>
 
 <span class="comment">;; Functions can pack extra arguments up in a list

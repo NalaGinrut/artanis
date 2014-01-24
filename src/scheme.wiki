@@ -273,7 +273,7 @@ my-pet ; => #<dog>
 (hello3 "Jake") ; => "Hello Jake"
 (hello3) ; => "Hello World"
 ;; ... or specify optional arguments with a default value expression
-(define (hello4 (name "World"))
+(define* (hello4 #:key (name "World"))
   (string-append "Hello " name))
 
 ;; Functions can pack extra arguments up in a list
