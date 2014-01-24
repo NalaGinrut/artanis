@@ -390,12 +390,22 @@ my-pet &lt;span class="comment"&gt;; =&amp;gt; #&amp;lt;dog&amp;gt;
       &lt;span class="paren2"&gt;[&lt;span class="default"&gt;else &amp;#x27;ok&lt;/span&gt;]&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; &amp;#x27;ok
 &lt;/span&gt;
 &lt;span class="comment"&gt;;;; Pattern Matching
-&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;use-modules &lt;span class="paren2"&gt;(&lt;span class="default"&gt;ice-9 match&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; use match module
+&lt;/span&gt;&lt;span class="comment"&gt;;; For Racket users:
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;require racket/match&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; use match module
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define&lt;/span&gt;&lt;/i&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;fizzbuzz? n&lt;/span&gt;)&lt;/span&gt;
   &lt;span class="paren2"&gt;(&lt;span class="default"&gt;match &lt;span class="paren3"&gt;(&lt;span class="default"&gt;list &lt;span class="paren4"&gt;(&lt;span class="default"&gt;remainder n 3&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren4"&gt;(&lt;span class="default"&gt;remainder n 5&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
     &lt;span class="paren3"&gt;(&lt;span class="default"&gt;&lt;span class="paren4"&gt;(&lt;span class="default"&gt;list 0 0&lt;/span&gt;)&lt;/span&gt; &amp;#x27;fizzbuzz&lt;/span&gt;)&lt;/span&gt;
     &lt;span class="paren3"&gt;(&lt;span class="default"&gt;&lt;span class="paren4"&gt;(&lt;span class="default"&gt;list 0 _&lt;/span&gt;)&lt;/span&gt; &amp;#x27;fizz&lt;/span&gt;)&lt;/span&gt;
     &lt;span class="paren3"&gt;(&lt;span class="default"&gt;&lt;span class="paren4"&gt;(&lt;span class="default"&gt;list _ 0&lt;/span&gt;)&lt;/span&gt; &amp;#x27;buzz&lt;/span&gt;)&lt;/span&gt;
+    &lt;span class="paren3"&gt;(&lt;span class="default"&gt;else #f&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+
+&lt;span class="comment"&gt;;; For Guile users:
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;use-modules &lt;span class="paren2"&gt;(&lt;span class="default"&gt;ice-9 match&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; use match module
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define&lt;/span&gt;&lt;/i&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;fizzbuzz? n&lt;/span&gt;)&lt;/span&gt;
+  &lt;span class="paren2"&gt;(&lt;span class="default"&gt;match &lt;span class="paren3"&gt;(&lt;span class="default"&gt;list &lt;span class="paren4"&gt;(&lt;span class="default"&gt;remainder n 3&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren4"&gt;(&lt;span class="default"&gt;remainder n 5&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+    &lt;span class="paren3"&gt;(&lt;span class="default"&gt;&lt;span class="paren4"&gt;(&lt;span class="default"&gt;0 0&lt;/span&gt;)&lt;/span&gt; &amp;#x27;fizzbuzz&lt;/span&gt;)&lt;/span&gt;
+    &lt;span class="paren3"&gt;(&lt;span class="default"&gt;&lt;span class="paren4"&gt;(&lt;span class="default"&gt;0 _&lt;/span&gt;)&lt;/span&gt; &amp;#x27;fizz&lt;/span&gt;)&lt;/span&gt;
+    &lt;span class="paren3"&gt;(&lt;span class="default"&gt;&lt;span class="paren4"&gt;(&lt;span class="default"&gt;_ 0&lt;/span&gt;)&lt;/span&gt; &amp;#x27;buzz&lt;/span&gt;)&lt;/span&gt;
     &lt;span class="paren3"&gt;(&lt;span class="default"&gt;else #f&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 
 &lt;span class="paren1"&gt;(&lt;span class="default"&gt;fizzbuzz? 15&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; &amp;#x27;fizzbuzz

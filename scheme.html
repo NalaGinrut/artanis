@@ -378,12 +378,22 @@ my-pet <span class="comment">; =&gt; #&lt;dog&gt;
       <span class="paren2">[<span class="default">else &#x27;ok</span>]</span></span>)</span> <span class="comment">; =&gt; &#x27;ok
 </span>
 <span class="comment">;;; Pattern Matching
-</span><span class="paren1">(<span class="default">use-modules <span class="paren2">(<span class="default">ice-9 match</span>)</span></span>)</span> <span class="comment">; use match module
+</span><span class="comment">;; For Racket users:
+</span><span class="paren1">(<span class="default">require racket/match</span>)</span> <span class="comment">; use match module
 </span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">fizzbuzz? n</span>)</span>
   <span class="paren2">(<span class="default">match <span class="paren3">(<span class="default">list <span class="paren4">(<span class="default">remainder n 3</span>)</span> <span class="paren4">(<span class="default">remainder n 5</span>)</span></span>)</span>
     <span class="paren3">(<span class="default"><span class="paren4">(<span class="default">list 0 0</span>)</span> &#x27;fizzbuzz</span>)</span>
     <span class="paren3">(<span class="default"><span class="paren4">(<span class="default">list 0 _</span>)</span> &#x27;fizz</span>)</span>
     <span class="paren3">(<span class="default"><span class="paren4">(<span class="default">list _ 0</span>)</span> &#x27;buzz</span>)</span>
+    <span class="paren3">(<span class="default">else #f</span>)</span></span>)</span></span>)</span>
+
+<span class="comment">;; For Guile users:
+</span><span class="paren1">(<span class="default">use-modules <span class="paren2">(<span class="default">ice-9 match</span>)</span></span>)</span> <span class="comment">; use match module
+</span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">fizzbuzz? n</span>)</span>
+  <span class="paren2">(<span class="default">match <span class="paren3">(<span class="default">list <span class="paren4">(<span class="default">remainder n 3</span>)</span> <span class="paren4">(<span class="default">remainder n 5</span>)</span></span>)</span>
+    <span class="paren3">(<span class="default"><span class="paren4">(<span class="default">0 0</span>)</span> &#x27;fizzbuzz</span>)</span>
+    <span class="paren3">(<span class="default"><span class="paren4">(<span class="default">0 _</span>)</span> &#x27;fizz</span>)</span>
+    <span class="paren3">(<span class="default"><span class="paren4">(<span class="default">_ 0</span>)</span> &#x27;buzz</span>)</span>
     <span class="paren3">(<span class="default">else #f</span>)</span></span>)</span></span>)</span>
 
 <span class="paren1">(<span class="default">fizzbuzz? 15</span>)</span> <span class="comment">; =&gt; &#x27;fizzbuzz

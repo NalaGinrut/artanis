@@ -358,12 +358,22 @@ my-pet ; => #<dog>
       [else 'ok]) ; => 'ok
 
 ;;; Pattern Matching
-(use-modules (ice-9 match)) ; use match module
+;; For Racket users:
+(require racket/match) ; use match module
 (define (fizzbuzz? n)
   (match (list (remainder n 3) (remainder n 5))
     ((list 0 0) 'fizzbuzz)
     ((list 0 _) 'fizz)
     ((list _ 0) 'buzz)
+    (else #f)))
+
+;; For Guile users:
+(use-modules (ice-9 match)) ; use match module
+(define (fizzbuzz? n)
+  (match (list (remainder n 3) (remainder n 5))
+    ((0 0) 'fizzbuzz)
+    ((0 _) 'fizz)
+    ((_ 0) 'buzz)
     (else #f)))
 
 (fizzbuzz? 15) ; => 'fizzbuzz
