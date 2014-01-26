@@ -469,11 +469,10 @@ my-pet &lt;span class="comment"&gt;; =&amp;gt; #&amp;lt;dog&amp;gt;
 &lt;span class="comment"&gt;;; =&amp;gt; vector
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;string-for-each display &lt;span class="string"&gt;&amp;quot;string&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 &lt;span class="comment"&gt;;; =&amp;gt; string
-&lt;/span&gt;&lt;span class="comment"&gt;;;; More Complex Iterations
-&lt;/span&gt;&lt;span class="comment"&gt;;; Parallel scan of multiple sequences (stops on shortest)
-&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;do &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;span class="paren3"&gt;(&lt;span class="default"&gt;i 10&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;j &amp;#x27;&lt;span class="paren4"&gt;(&lt;span class="default"&gt;x y z&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren4"&gt;(&lt;span class="default"&gt;cdr j&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; 
+&lt;/span&gt;&lt;span class="comment"&gt;;;; More Iterations
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;do &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;span class="paren3"&gt;(&lt;span class="default"&gt;i 10 &lt;span class="paren4"&gt;(&lt;span class="default"&gt;1+ i&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;j &amp;#x27;&lt;span class="paren4"&gt;(&lt;span class="default"&gt;x y z&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren4"&gt;(&lt;span class="default"&gt;cdr j&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; 
     &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;span class="paren3"&gt;(&lt;span class="default"&gt;null? j&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; if j is &amp;#x27;(), just end the loop
-&lt;/span&gt;  &lt;span class="paren2"&gt;(&lt;span class="default"&gt;format #t &lt;span class="string"&gt;&amp;quot;~a:~a&lt;/span&gt;&lt;span class="string"&gt;\n&lt;/span&gt;&lt;span class="string"&gt;&amp;quot;&lt;/span&gt; i &lt;span class="paren3"&gt;(&lt;span class="default"&gt;car j&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+&lt;/span&gt;  &lt;span class="paren2"&gt;(&lt;span class="default"&gt;format #t &lt;span class="string"&gt;&amp;quot;~a:~a &amp;quot;&lt;/span&gt; i &lt;span class="paren3"&gt;(&lt;span class="default"&gt;car j&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 &lt;span class="comment"&gt;; =&amp;gt; 0:x 1:y 2:z
 &lt;/span&gt;
 &lt;span class="comment"&gt;;;; Exceptions

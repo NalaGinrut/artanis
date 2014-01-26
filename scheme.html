@@ -457,11 +457,10 @@ my-pet <span class="comment">; =&gt; #&lt;dog&gt;
 <span class="comment">;; =&gt; vector
 </span><span class="paren1">(<span class="default">string-for-each display <span class="string">&quot;string&quot;</span></span>)</span>
 <span class="comment">;; =&gt; string
-</span><span class="comment">;;; More Complex Iterations
-</span><span class="comment">;; Parallel scan of multiple sequences (stops on shortest)
-</span><span class="paren1">(<span class="default">do <span class="paren2">(<span class="default"><span class="paren3">(<span class="default">i 10</span>)</span> <span class="paren3">(<span class="default">j &#x27;<span class="paren4">(<span class="default">x y z</span>)</span> <span class="paren4">(<span class="default">cdr j</span>)</span></span>)</span></span>)</span> 
+</span><span class="comment">;;; More Iterations
+</span><span class="paren1">(<span class="default">do <span class="paren2">(<span class="default"><span class="paren3">(<span class="default">i 10 <span class="paren4">(<span class="default">1+ i</span>)</span></span>)</span> <span class="paren3">(<span class="default">j &#x27;<span class="paren4">(<span class="default">x y z</span>)</span> <span class="paren4">(<span class="default">cdr j</span>)</span></span>)</span></span>)</span> 
     <span class="paren2">(<span class="default"><span class="paren3">(<span class="default">null? j</span>)</span></span>)</span> <span class="comment">; if j is &#x27;(), just end the loop
-</span>  <span class="paren2">(<span class="default">format #t <span class="string">&quot;~a:~a</span><span class="string">\n</span><span class="string">&quot;</span> i <span class="paren3">(<span class="default">car j</span>)</span></span>)</span></span>)</span>
+</span>  <span class="paren2">(<span class="default">format #t <span class="string">&quot;~a:~a &quot;</span> i <span class="paren3">(<span class="default">car j</span>)</span></span>)</span></span>)</span>
 <span class="comment">; =&gt; 0:x 1:y 2:z
 </span>
 <span class="comment">;;; Exceptions

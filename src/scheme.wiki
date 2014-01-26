@@ -437,11 +437,10 @@ my-pet ; => #<dog>
 ;; => vector
 (string-for-each display "string")
 ;; => string
-;;; More Complex Iterations
-;; Parallel scan of multiple sequences (stops on shortest)
-(do ((i 10) (j '(x y z) (cdr j))) 
+;;; More Iterations
+(do ((i 10 (1+ i)) (j '(x y z) (cdr j))) 
     ((null? j)) ; if j is '(), just end the loop
-  (format #t "~a:~a\n" i (car j)))
+  (format #t "~a:~a " i (car j)))
 ; => 0:x 1:y 2:z
 
 ;;; Exceptions
