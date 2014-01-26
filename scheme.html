@@ -477,12 +477,12 @@ my-pet <span class="comment">; =&gt; #&lt;dog&gt;
 </span>
 <span class="comment">;; Use `set!&#x27; to assign a new value to an existing variable
 </span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> n 5</span>)</span>
-<span class="paren1">(<span class="default">set! n <span class="paren2">(<span class="default">add1 n</span>)</span></span>)</span>
+<span class="paren1">(<span class="default">set! n <span class="paren2">(<span class="default">1+ n</span>)</span></span>)</span>
 n <span class="comment">; =&gt; 6
 </span>
 <span class="comment">;; Use fluid for explicitly mutable values
 </span><span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> n* <span class="paren2">(<span class="default">make-fluid 5</span>)</span></span>)</span>
-<span class="paren1">(<span class="default">fluid-set! n* <span class="paren2">(<span class="default">add1 <span class="paren3">(<span class="default">fluid-ref n*</span>)</span></span>)</span></span>)</span>
+<span class="paren1">(<span class="default">fluid-set! n* <span class="paren2">(<span class="default">1+ <span class="paren3">(<span class="default">fluid-ref n*</span>)</span></span>)</span></span>)</span>
 <span class="paren1">(<span class="default">fluid-ref n*</span>)</span> <span class="comment">; =&gt; 6
 </span>
 <span class="comment">;; Many Guile datatypes are immutable (pairs, lists, etc), some come in
@@ -556,10 +556,10 @@ vec <span class="comment">; =&gt; #(1 2 3 4)
       body ...
       <span class="paren4">(<span class="default"><i><span class="symbol">loop</span></i></span>)</span></span>)</span></span>)</span></span>)</span>
 
-<span class="paren1">(<span class="default"><i><span class="symbol">let</span></i> <span class="paren2">(<span class="default"><span class="paren3">[<span class="default">i 0</span>]</span></span>)</span>
+<span class="paren1">(<span class="default"><i><span class="symbol">let</span></i> <span class="paren2">(<span class="default"><span class="paren3">(<span class="default">i 0</span>)</span></span>)</span>
   <span class="paren2">(<span class="default">while <span class="paren3">(<span class="default">&lt; i  10</span>)</span>
     <span class="paren3">(<span class="default">displayln i</span>)</span>
-    <span class="paren3">(<span class="default">set! i <span class="paren4">(<span class="default">add1 i</span>)</span></span>)</span></span>)</span></span>)</span>
+    <span class="paren3">(<span class="default">set! i <span class="paren4">(<span class="default">1+ i</span>)</span></span>)</span></span>)</span></span>)</span>
 
 <span class="comment">;; Macros are hygienic, you cannot clobber existing variables!
 </span><span class="paren1">(<span class="default"><i><span class="symbol">define-syntax-rule</span></i> <span class="paren2">(<span class="default">swap! x y</span>)</span> <span class="comment">; -! is idomatic for mutation

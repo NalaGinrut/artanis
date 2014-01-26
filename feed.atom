@@ -489,12 +489,12 @@ my-pet &lt;span class="comment"&gt;; =&amp;gt; #&amp;lt;dog&amp;gt;
 &lt;/span&gt;
 &lt;span class="comment"&gt;;; Use `set!&amp;#x27; to assign a new value to an existing variable
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define&lt;/span&gt;&lt;/i&gt; n 5&lt;/span&gt;)&lt;/span&gt;
-&lt;span class="paren1"&gt;(&lt;span class="default"&gt;set! n &lt;span class="paren2"&gt;(&lt;span class="default"&gt;add1 n&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+&lt;span class="paren1"&gt;(&lt;span class="default"&gt;set! n &lt;span class="paren2"&gt;(&lt;span class="default"&gt;1+ n&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 n &lt;span class="comment"&gt;; =&amp;gt; 6
 &lt;/span&gt;
 &lt;span class="comment"&gt;;; Use fluid for explicitly mutable values
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define&lt;/span&gt;&lt;/i&gt; n* &lt;span class="paren2"&gt;(&lt;span class="default"&gt;make-fluid 5&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
-&lt;span class="paren1"&gt;(&lt;span class="default"&gt;fluid-set! n* &lt;span class="paren2"&gt;(&lt;span class="default"&gt;add1 &lt;span class="paren3"&gt;(&lt;span class="default"&gt;fluid-ref n*&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+&lt;span class="paren1"&gt;(&lt;span class="default"&gt;fluid-set! n* &lt;span class="paren2"&gt;(&lt;span class="default"&gt;1+ &lt;span class="paren3"&gt;(&lt;span class="default"&gt;fluid-ref n*&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 &lt;span class="paren1"&gt;(&lt;span class="default"&gt;fluid-ref n*&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; 6
 &lt;/span&gt;
 &lt;span class="comment"&gt;;; Many Guile datatypes are immutable (pairs, lists, etc), some come in
@@ -568,10 +568,10 @@ vec &lt;span class="comment"&gt;; =&amp;gt; #(1 2 3 4)
       body ...
       &lt;span class="paren4"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;loop&lt;/span&gt;&lt;/i&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 
-&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;let&lt;/span&gt;&lt;/i&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;span class="paren3"&gt;[&lt;span class="default"&gt;i 0&lt;/span&gt;]&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;let&lt;/span&gt;&lt;/i&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;span class="paren3"&gt;(&lt;span class="default"&gt;i 0&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
   &lt;span class="paren2"&gt;(&lt;span class="default"&gt;while &lt;span class="paren3"&gt;(&lt;span class="default"&gt;&amp;lt; i  10&lt;/span&gt;)&lt;/span&gt;
     &lt;span class="paren3"&gt;(&lt;span class="default"&gt;displayln i&lt;/span&gt;)&lt;/span&gt;
-    &lt;span class="paren3"&gt;(&lt;span class="default"&gt;set! i &lt;span class="paren4"&gt;(&lt;span class="default"&gt;add1 i&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+    &lt;span class="paren3"&gt;(&lt;span class="default"&gt;set! i &lt;span class="paren4"&gt;(&lt;span class="default"&gt;1+ i&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 
 &lt;span class="comment"&gt;;; Macros are hygienic, you cannot clobber existing variables!
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define-syntax-rule&lt;/span&gt;&lt;/i&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;swap! x y&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; -! is idomatic for mutation

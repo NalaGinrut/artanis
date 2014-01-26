@@ -457,12 +457,12 @@ my-pet ; => #<dog>
 
 ;; Use `set!' to assign a new value to an existing variable
 (define n 5)
-(set! n (add1 n))
+(set! n (1+ n))
 n ; => 6
 
 ;; Use fluid for explicitly mutable values
 (define n* (make-fluid 5))
-(fluid-set! n* (add1 (fluid-ref n*)))
+(fluid-set! n* (1+ (fluid-ref n*)))
 (fluid-ref n*) ; => 6
 
 ;; Many Guile datatypes are immutable (pairs, lists, etc), some come in
@@ -536,10 +536,10 @@ vec ; => #(1 2 3 4)
       body ...
       (loop))))
 
-(let ([i 0])
+(let ((i 0))
   (while (< i  10)
     (displayln i)
-    (set! i (add1 i))))
+    (set! i (1+ i))))
 
 ;; Macros are hygienic, you cannot clobber existing variables!
 (define-syntax-rule (swap! x y) ; -! is idomatic for mutation
