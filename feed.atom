@@ -479,9 +479,10 @@ my-pet &lt;span class="comment"&gt;; =&amp;gt; #&amp;lt;dog&amp;gt;
 &lt;/span&gt;
 &lt;span class="comment"&gt;;; To catch exceptions, use the &amp;#x27;catch&amp;#x27; form
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;catch&lt;/span&gt;&lt;/i&gt; &amp;#x27;my-error 
-  &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;lambda&lt;/span&gt;&lt;/i&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;error &amp;#x27;my-error&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
-  &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;lambda&lt;/span&gt;&lt;/i&gt; e &lt;span class="paren3"&gt;(&lt;span class="default"&gt;display &lt;span class="string"&gt;&amp;quot;my error&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
-
+  &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;lambda&lt;/span&gt;&lt;/i&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;throw&lt;/span&gt;&lt;/i&gt; &amp;#x27;my-error&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+  &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;lambda&lt;/span&gt;&lt;/i&gt; e &lt;span class="paren3"&gt;(&lt;span class="default"&gt;display &lt;span class="string"&gt;&amp;quot;oh~my error!&lt;/span&gt;&lt;span class="string"&gt;\n&lt;/span&gt;&lt;span class="string"&gt;&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+&lt;span class="comment"&gt;; =&amp;gt; oh~my error!
+&lt;/span&gt;
 &lt;span class="comment"&gt;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 &lt;/span&gt;&lt;span class="comment"&gt;;; 6. Mutation
 &lt;/span&gt;&lt;span class="comment"&gt;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

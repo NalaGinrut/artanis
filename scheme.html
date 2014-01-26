@@ -467,9 +467,10 @@ my-pet <span class="comment">; =&gt; #&lt;dog&gt;
 </span>
 <span class="comment">;; To catch exceptions, use the &#x27;catch&#x27; form
 </span><span class="paren1">(<span class="default"><i><span class="symbol">catch</span></i> &#x27;my-error 
-  <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default"></span>)</span> <span class="paren3">(<span class="default">error &#x27;my-error</span>)</span></span>)</span>
-  <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> e <span class="paren3">(<span class="default">display <span class="string">&quot;my error&quot;</span></span>)</span></span>)</span></span>)</span>
-
+  <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default"></span>)</span> <span class="paren3">(<span class="default"><i><span class="symbol">throw</span></i> &#x27;my-error</span>)</span></span>)</span>
+  <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> e <span class="paren3">(<span class="default">display <span class="string">&quot;oh~my error!</span><span class="string">\n</span><span class="string">&quot;</span></span>)</span></span>)</span></span>)</span>
+<span class="comment">; =&gt; oh~my error!
+</span>
 <span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 </span><span class="comment">;; 6. Mutation
 </span><span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

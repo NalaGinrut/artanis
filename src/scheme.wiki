@@ -447,8 +447,9 @@ my-pet ; => #<dog>
 
 ;; To catch exceptions, use the 'catch' form
 (catch 'my-error 
-  (lambda () (error 'my-error))
-  (lambda e (display "my error")))
+  (lambda () (throw 'my-error))
+  (lambda e (display "oh~my error!\n")))
+; => oh~my error!
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 6. Mutation
