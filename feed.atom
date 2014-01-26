@@ -510,7 +510,7 @@ n &lt;span class="comment"&gt;; =&amp;gt; 6
 vec &lt;span class="comment"&gt;; =&amp;gt; #(1 2 3 4)
 &lt;/span&gt;
 &lt;span class="comment"&gt;;; Create an empty mutable hash table and manipulate it
-&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define&lt;/span&gt;&lt;/i&gt; m3 &lt;span class="paren2"&gt;(&lt;span class="default"&gt;make-hash&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define&lt;/span&gt;&lt;/i&gt; m3 &lt;span class="paren2"&gt;(&lt;span class="default"&gt;make-hash-table&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 &lt;span class="paren1"&gt;(&lt;span class="default"&gt;hash-set! m3 &amp;#x27;a 1&lt;/span&gt;)&lt;/span&gt;
 &lt;span class="paren1"&gt;(&lt;span class="default"&gt;hash-set! m3 &amp;#x27;b 2&lt;/span&gt;)&lt;/span&gt;
 &lt;span class="paren1"&gt;(&lt;span class="default"&gt;hash-set! m3 &amp;#x27;c 3&lt;/span&gt;)&lt;/span&gt;

@@ -478,7 +478,7 @@ n ; => 6
 vec ; => #(1 2 3 4)
 
 ;; Create an empty mutable hash table and manipulate it
-(define m3 (make-hash))
+(define m3 (make-hash-table))
 (hash-set! m3 'a 1)
 (hash-set! m3 'b 2)
 (hash-set! m3 'c 3)
