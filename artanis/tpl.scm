@@ -45,4 +45,4 @@
   (cond
    ((file-exists? file)
     (tpl-render (cat file #f) e))
-   (else (error 'artanis-err 500 "No such a tpl file" file))))
+   (else (throw 'artanis-err 500 "No such a tpl file" file))))

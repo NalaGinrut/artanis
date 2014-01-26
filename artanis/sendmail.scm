@@ -55,7 +55,7 @@
 
 (define-syntax-rule (add-attachment sm file-with-path)
   (if (not (file-exists? file-with-path)) 
-      (error 'artanis-err 500 "can't find attachment file" file-with-path)
+      (throw 'artanis-err 500 "can't find attachment file" file-with-path)
       (let* ((file (basename file-with-path))
              (bv (bv-cat file #f))
              (al (sendmail-attachements sm)))
@@ -118,13 +118,13 @@
          (port (open-pipe* OPEN_WRITE sender "-i" "-t")))
     (display t port)
     (unless (zero? (status:exit-val (close-pipe port)))
-      (error 'artanis-err 500 "mail command failed" sm))))
+      (throw 'artanis-err 500 "mail command failed" sm))))
 
 (define-syntax-rule (no-attachments? sm)
   (null? (sendmail-attachements sm)))
 
 (define (send-the-mail sm)
-  (and (not (sendmail? sm)) (error 'artanis-err 500 "invalid <sendmail> object" sm))
+  (and (not (sendmail? sm)) (throw 'artanis-err 500 "invalid <sendmail> object" sm))
   (let ((t (if (no-attachments? sm) 
                (dump-as-normal-mail sm)
                (dump-as-attachments-mail sm))))
@@ -136,7 +136,7 @@
     (lambda* (message #:key (attachements #f) (header #f) (subject #f))
       (if (string? message) 
           (sendmail-message! sm message)
-          (error 'artanis-err 500 "invalid message format, must be string!" message)) 
+          (throw 'artanis-err 500 "invalid message format, must be string!" message)) 
       (and attachements (sendmail-attachements! sm attachements))
       (and subject (sendmail-subject! sm subject))
       (and header (sendmail-headers! sm header))

@@ -117,7 +117,7 @@
                      (data (get-data port))
                      (mfd (make-mfd dispos name filename data type)))
               (lp (read-line port) (cons mfd ret)))))
-        (else (error 'artanis-err 500 "invalid MFD header!" (read-line port))))))))
+        (else (throw 'artanis-err 500 "invalid MFD header!" (read-line port))))))))
 
 ;; result: (len . parsed-data)
 (define (mfd-parser ll)
@@ -130,7 +130,7 @@
      ((parse-mfd-data (car next))
       => (lambda (mfd)
            (lp (cdr next) `(,@mfd ,@ret))))
-     (else (error 'artanis-err 422 "Wrong multipart form body!"))))) 
+     (else (throw 'artanis-err 422 "Wrong multipart form body!"))))) 
 
 ;; bytevector->string will allocate a new string, which is inefficient for large upload
 ;; file, maybe optimize later, but it's better to write a brand new uploader from
@@ -179,6 +179,6 @@
                                         #:path-mode path-mode #:sync sync)))
            (catch #t
              (lambda () (for-each dumper (cdr mfds)))
-             (lambda e (error 'artanis-err 500 "Failed to dump mfds!" e)))
+             (lambda e (throw 'artanis-err 500 "Failed to dump mfds!" e)))
            'success)))
    (else 'none)))

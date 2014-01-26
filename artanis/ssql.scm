@@ -61,7 +61,7 @@
    ((op2 a1 a2) (->op2 op2 a1 a2))
    ((opn ll ...) (->opn opn ll))
    (((l1 ...) ll ...) (map ->cond (cons l1 ll)))
-   (else (error 'artanis-err 500 "invalid sql syntax!" lst))))
+   (else (throw 'artanis-err 500 "invalid sql syntax!" lst))))
 
 (define-syntax sql-where
   (syntax-rules (select in like between and is null limit)
@@ -80,7 +80,7 @@
     ;; e.g.   (->sql select * from 'user where (and (= user "name") (> age 15)))
     ;;        ==>  "select * from user where user=\"name\" and age>15;"
     ((_ (lst ...))
-     (-> "~a" (->cond '(lst ...))))))
+     (-> "~a" (->cond `(,lst ...))))))
 
 (define-syntax sql-select
   (syntax-rules (* where from distinct order by group having as)
