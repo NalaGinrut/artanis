@@ -518,7 +518,7 @@ vec <span class="comment">; =&gt; #(1 2 3 4)
 </span><span class="comment">;; (mods submods my-cake) ==&gt; &#x27;mods/submods/my-cake.scm&#x27;.
 </span><span class="comment">;; ---begin my-cake.scm---
 </span><span class="paren1">(<span class="default"><i><span class="symbol">define-module</span></i> <span class="paren2">(<span class="default">my-cake</span>)</span> <span class="comment">; define a `cake&#x27; module based on racket/base
-</span>  <span class="keyword">#:use-modules</span> <span class="paren2">(<span class="default">ice-9 format</span>)</span> <span class="comment">; the pre-requisition of current module
+</span>  <span class="keyword">#:use-module</span> <span class="paren2">(<span class="default">ice-9 format</span>)</span> <span class="comment">; the pre-requisition of current module
 </span>  <span class="keyword">#:export</span> <span class="paren2">(<span class="default">print-cake</span>)</span></span>)</span> <span class="comment">; function exported by the module
 </span>
   <span class="paren1">(<span class="default"><i><span class="symbol">define</span></i> <span class="paren2">(<span class="default">show fmt n ch</span>)</span> <span class="comment">; internal function

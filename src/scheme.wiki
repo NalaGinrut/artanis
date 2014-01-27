@@ -498,7 +498,7 @@ vec ; => #(1 2 3 4)
 ;; (mods submods my-cake) ==> 'mods/submods/my-cake.scm'.
 ;; ---begin my-cake.scm---
 (define-module (my-cake) ; define a `cake' module based on racket/base
-  #:use-modules (ice-9 format) ; the pre-requisition of current module
+  #:use-module (ice-9 format) ; the pre-requisition of current module
   #:export (print-cake)) ; function exported by the module
 
   (define (show fmt n ch) ; internal function

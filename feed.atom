@@ -530,7 +530,7 @@ vec &lt;span class="comment"&gt;; =&amp;gt; #(1 2 3 4)
 &lt;/span&gt;&lt;span class="comment"&gt;;; (mods submods my-cake) ==&amp;gt; &amp;#x27;mods/submods/my-cake.scm&amp;#x27;.
 &lt;/span&gt;&lt;span class="comment"&gt;;; ---begin my-cake.scm---
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define-module&lt;/span&gt;&lt;/i&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;my-cake&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; define a `cake&amp;#x27; module based on racket/base
-&lt;/span&gt;  &lt;span class="keyword"&gt;#:use-modules&lt;/span&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;ice-9 format&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; the pre-requisition of current module
+&lt;/span&gt;  &lt;span class="keyword"&gt;#:use-module&lt;/span&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;ice-9 format&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; the pre-requisition of current module
 &lt;/span&gt;  &lt;span class="keyword"&gt;#:export&lt;/span&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;print-cake&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; function exported by the module
 &lt;/span&gt;
   &lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define&lt;/span&gt;&lt;/i&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;show fmt n ch&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; internal function
