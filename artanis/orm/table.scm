@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013
+;;  Copyright (C) 2013,2014
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -19,13 +19,28 @@
   #:use-module (artanis db)
   #:use-module (artanis ssql)
   #:use-module (oop goops)
-  #:export (<db-table> create-table table:dirty-set! table:dirty-clear! 
-            table:cache-add! table:cache-clear! table:cache-set!
-            table:new-column-add! table:new-column-remove!
-            table:new-column-clear! table:columns-clear! table:drop!
-            table:column-drop! table:create table:async!
-            table:column-get-all table:result-fetch! table:dump 
-            table:dump-result table:column-set! table:column-remove!))
+  #:export (<db-table> create-table 
+            table:dirty-set! 
+            table:dirty-clear! 
+            table:cache-add! 
+            table:cache-clear! 
+            table:cache-set!
+            table:new-column-add! 
+            table:new-column-remove!
+            table:new-column-clear! 
+            table:columns-clear! 
+            table:drop!
+            table:column-drop! 
+            table:create
+            table:async!
+            table:column-get-all
+            table:column-get-first
+            table:column-get
+            table:result-fetch!
+            table:dump 
+            table:dump-result
+            table:column-set!
+            table:column-remove!))
 
 (define-class <db-table> ()
   (name #:init-keyword #:name #:accessor db-table:name)
@@ -137,11 +152,27 @@
 ;;-------------get column------------------
 ;; NOTE: This function should be run-at-once, which means there's no other succeed sql in the cache.
 ;;       Or it doesn't make sense.
+(define* (%column-get tb name #:optional (num #f))
+  (define sql
+    (if num
+        (->sql select * from name limit num)
+        (->sql select * from name)))
+  (table:cache-add! tb sql)
+  (table:dump tb)
+  (table:dump-result tb))  
+
 (define-method (table:column-get-all (self <db-table>) (name <symbol>))
-  (let ((sql (->sql select * from name)))
-    (table:cache-add! self sql)
-    (table:dump self)
-    (table:dump-result self)))
+  (%column-get self name))
+
+(define-method (table:column-get-first (self <db-table>) (name <symbol>))
+  (%column-get self name 1))
+
+;; The same with get-all
+(define-method (table:column-get (self <db-table>) (name <symbol>))
+  (%column-get self name))
+
+(define-method (table:column-get (self <db-table>) (name <symbol>) (num <integer>))
+  (%column-get self name num))
 
 ;; set column name & value
 (define-method (table:column-set! (self <db-table>) (name <symbol>) (value <top>))

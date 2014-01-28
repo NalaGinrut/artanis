@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013
+;;  Copyright (C) 2013,2014
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -41,6 +41,7 @@
 
 ;; 'where' is used to generate condition string of SQL
 ;; There're several modes in it, and can be composited.
+;; FIXME: Have to checkout sql-injection in the field value, especially '--'
 (define (where . conds)
   (define (->string obj) (if (string? obj) obj (object->string obj)))
   (define (->range lst) 
@@ -82,13 +83,15 @@
     (else (throw 'artanis-err 500 "[ORM] where: invalid condition pattern" conds))))
 
 (define-method (ar:result-fetch (self <active-record>))
-  
+
 )
 
 (define (%find-first ar name value)
+  
   )
 
 (define-method (find-first (self <active-record>) (name <symbol>) (value <top>))
+  
 )
 
 (define-method (find-first (self <active-record>) (name <symbol>) (value <top>) (conds <string>))
