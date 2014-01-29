@@ -535,7 +535,7 @@ vec &lt;span class="comment"&gt;; =&amp;gt; #(1 2 3 4)
 &lt;/span&gt;
   &lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define&lt;/span&gt;&lt;/i&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;show fmt n ch&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; internal function
 &lt;/span&gt;    &lt;span class="paren2"&gt;(&lt;span class="default"&gt;format #t fmt &lt;span class="paren3"&gt;(&lt;span class="default"&gt;make-string n ch&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
-    &lt;span class="paren2"&gt;(&lt;span class="default"&gt;newline&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;)
+    &lt;span class="paren2"&gt;(&lt;span class="default"&gt;newline&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 
   &lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define&lt;/span&gt;&lt;/i&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;print-cake n&lt;/span&gt;)&lt;/span&gt;
     &lt;span class="paren2"&gt;(&lt;span class="default"&gt;show &lt;span class="string"&gt;&amp;quot;   ~a   &amp;quot;&lt;/span&gt; n &lt;span class="character"&gt;#\.&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
