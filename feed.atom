@@ -49,7 +49,7 @@
 &lt;/span&gt;&lt;span class="comment"&gt;;;       tutorial will base on Guile and RnRs.
 &lt;/span&gt;&lt;span class="comment"&gt;;;
 &lt;/span&gt;&lt;span class="comment"&gt;;; openSUSE: zypper install guile
-&lt;/span&gt;&lt;span class="comment"&gt;;; Debian: apt-get install guile (or see your distro instructions)
+&lt;/span&gt;&lt;span class="comment"&gt;;; Debian: apt-get install guile-2.0 (or see your distro instructions)
 &lt;/span&gt;&lt;span class="comment"&gt;;; MacOSX: Building Guile 2.0 on the Mac
 &lt;/span&gt;&lt;span class="comment"&gt;;;         http://irrealblog.blogspot.hk/2011/03/building-guile-2.html
 &lt;/span&gt;&lt;span class="comment"&gt;;; Windows try web: http://repl.it/languages/Scheme
