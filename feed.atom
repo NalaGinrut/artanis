@@ -293,9 +293,10 @@ my-pet &lt;span class="comment"&gt;; =&amp;gt; #&amp;lt;dog&amp;gt;
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define&lt;/span&gt;&lt;/i&gt; hello-world &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;lambda&lt;/span&gt;&lt;/i&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="string"&gt;&amp;quot;Hello World&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 &lt;span class="paren1"&gt;(&lt;span class="default"&gt;hello-world&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; &amp;quot;Hello World&amp;quot;
 &lt;/span&gt;
-&lt;span class="comment"&gt;;; You can shorten this using the function definition syntatcic sugae:
+&lt;span class="comment"&gt;;; You can shorten this using the function definition syntatcic sugar:
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define&lt;/span&gt;&lt;/i&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;hello-world2&lt;/span&gt;)&lt;/span&gt; &lt;span class="string"&gt;&amp;quot;Hello World&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
-
+&lt;span class="paren1"&gt;(&lt;span class="default"&gt;hello-world2&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; &amp;quot;Hello World&amp;quot;
+&lt;/span&gt;
 &lt;span class="comment"&gt;;; The () in the above is the list of arguments for the function
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define&lt;/span&gt;&lt;/i&gt; hello
   &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;lambda&lt;/span&gt;&lt;/i&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;name&lt;/span&gt;)&lt;/span&gt;

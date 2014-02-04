@@ -261,8 +261,9 @@ my-pet ; => #<dog>
 (define hello-world (lambda () "Hello World"))
 (hello-world) ; => "Hello World"
 
-;; You can shorten this using the function definition syntatcic sugae:
+;; You can shorten this using the function definition syntatcic sugar:
 (define (hello-world2) "Hello World")
+(hello-world2) ; => "Hello World"
 
 ;; The () in the above is the list of arguments for the function
 (define hello
