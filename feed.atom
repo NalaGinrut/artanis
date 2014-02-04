@@ -366,14 +366,39 @@ my-pet &lt;span class="comment"&gt;; =&amp;gt; #&amp;lt;dog&amp;gt;
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;= 3 3.0&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; #t
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;= 2 1&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; #f
 &lt;/span&gt;
+&lt;span class="comment"&gt;;; for characters use `char=?&amp;#x27;
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;char=? &lt;span class="character"&gt;#\c&lt;/span&gt; &lt;span class="character"&gt;#\c&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; #t
+&lt;/span&gt;
 &lt;span class="comment"&gt;;; for object identity use `eq?&amp;#x27;
-&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;eq? 3 3&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; #t
-&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;eq? 3 3.0&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; #f
-&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;eq? &lt;span class="paren2"&gt;(&lt;span class="default"&gt;list 3&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;list 3&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; #f
+&lt;/span&gt;&lt;span class="comment"&gt;;; WARNING: don&amp;#x27;t use `eq?&amp;#x27; on numbers and characters, the reason is very simple:
+&lt;/span&gt;&lt;span class="comment"&gt;;;          because RnRs treat this rule as undefined! 
+&lt;/span&gt;&lt;span class="comment"&gt;;;(eq? 3 3) ; =&amp;gt; Wrong! it&amp;#x27;s undefined! So it depends on implementation!
+&lt;/span&gt;&lt;span class="comment"&gt;;; No matter if you got #t from above, it&amp;#x27;s a wrong usage!!!
+&lt;/span&gt;&lt;span class="comment"&gt;;; Should use (= 3 3) or (eqv? 3 3)
+&lt;/span&gt;
+&lt;span class="paren1"&gt;(&lt;span class="default"&gt;eq? &lt;span class="paren2"&gt;(&lt;span class="default"&gt;list 3&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;list 3&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; #f
+&lt;/span&gt;&lt;span class="comment"&gt;;; Why it&amp;#x27;s #f? Because comparison between objects depends on their head-pointers.
+&lt;/span&gt;&lt;span class="comment"&gt;;; These two lists are different objects, and they have different head-pointers.
+&lt;/span&gt;
+&lt;span class="paren1"&gt;(&lt;span class="default"&gt;eq? &amp;#x27;a &amp;#x27;a&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; #t
+&lt;/span&gt;&lt;span class="comment"&gt;;; Symbols are the typical objects to compare with their head-pointers
+&lt;/span&gt;
+&lt;span class="comment"&gt;;; eqv?
+&lt;/span&gt;&lt;span class="comment"&gt;;; The difference between `eqv?&amp;#x27; and `eq&amp;#x27;:
+&lt;/span&gt;&lt;span class="comment"&gt;;; You can compare numbers and characters with `eqv?&amp;#x27;
+&lt;/span&gt;&lt;span class="comment"&gt;;; When you use `eqv?&amp;#x27; for any objects other than numbers&amp;amp;characters, it&amp;#x27;s the
+&lt;/span&gt;&lt;span class="comment"&gt;;; same with `eq?&amp;#x27;.
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;eqv? 3 3&lt;/span&gt;)&lt;/span&gt;     &lt;span class="comment"&gt;; =&amp;gt; #t
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;eqv? &lt;span class="character"&gt;#\c&lt;/span&gt; &lt;span class="character"&gt;#\c&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; #t
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;eqv? &amp;#x27;a &amp;#x27;a&lt;/span&gt;)&lt;/span&gt;   &lt;span class="comment"&gt;; =&amp;gt; #t
 &lt;/span&gt;
 &lt;span class="comment"&gt;;; for collections use `equal?&amp;#x27;
+&lt;/span&gt;&lt;span class="comment"&gt;;; `equal?&amp;#x27; will compare all the values in a collections type like record or list.
+&lt;/span&gt;&lt;span class="comment"&gt;;; You can compare any objects with `equal?&amp;#x27; safely, but inefficiency.
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;equal? &lt;span class="paren2"&gt;(&lt;span class="default"&gt;list &amp;#x27;a &amp;#x27;b&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;list &amp;#x27;a &amp;#x27;b&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; #t
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;equal? &lt;span class="paren2"&gt;(&lt;span class="default"&gt;list &amp;#x27;a &amp;#x27;b&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;list &amp;#x27;b &amp;#x27;a&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; #f
+&lt;/span&gt;
+&lt;span class="comment"&gt;;; Choosing proper equal pred for you code, is one of the art in Scheme programming!
 &lt;/span&gt;
 &lt;span class="comment"&gt;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 &lt;/span&gt;&lt;span class="comment"&gt;;; 5. Control Flow

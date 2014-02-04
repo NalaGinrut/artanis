@@ -334,14 +334,39 @@ my-pet ; => #<dog>
 (= 3 3.0) ; => #t
 (= 2 1) ; => #f
 
+;; for characters use `char=?'
+(char=? #\c #\c) ; => #t
+
 ;; for object identity use `eq?'
-(eq? 3 3) ; => #t
-(eq? 3 3.0) ; => #f
+;; WARNING: don't use `eq?' on numbers and characters, the reason is very simple:
+;;          because RnRs treat this rule as undefined! 
+;;(eq? 3 3) ; => Wrong! it's undefined! So it depends on implementation!
+;; No matter if you got #t from above, it's a wrong usage!!!
+;; Should use (= 3 3) or (eqv? 3 3)
+
 (eq? (list 3) (list 3)) ; => #f
+;; Why it's #f? Because comparison between objects depends on their head-pointers.
+;; These two lists are different objects, and they have different head-pointers.
+
+(eq? 'a 'a) ; => #t
+;; Symbols are the typical objects to compare with their head-pointers
+
+;; eqv?
+;; The difference between `eqv?' and `eq':
+;; You can compare numbers and characters with `eqv?'
+;; When you use `eqv?' for any objects other than numbers&characters, it's the
+;; same with `eq?'.
+(eqv? 3 3)     ; => #t
+(eqv? #\c #\c) ; => #t
+(eqv? 'a 'a)   ; => #t
 
 ;; for collections use `equal?'
+;; `equal?' will compare all the values in a collections type like record or list.
+;; You can compare any objects with `equal?' safely, but inefficiency.
 (equal? (list 'a 'b) (list 'a 'b)) ; => #t
 (equal? (list 'a 'b) (list 'b 'a)) ; => #f
+
+;; Choosing proper equal pred for you code, is one of the art in Scheme programming!
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 5. Control Flow

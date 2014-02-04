@@ -354,14 +354,39 @@ my-pet <span class="comment">; =&gt; #&lt;dog&gt;
 </span><span class="paren1">(<span class="default">= 3 3.0</span>)</span> <span class="comment">; =&gt; #t
 </span><span class="paren1">(<span class="default">= 2 1</span>)</span> <span class="comment">; =&gt; #f
 </span>
+<span class="comment">;; for characters use `char=?&#x27;
+</span><span class="paren1">(<span class="default">char=? <span class="character">#\c</span> <span class="character">#\c</span></span>)</span> <span class="comment">; =&gt; #t
+</span>
 <span class="comment">;; for object identity use `eq?&#x27;
-</span><span class="paren1">(<span class="default">eq? 3 3</span>)</span> <span class="comment">; =&gt; #t
-</span><span class="paren1">(<span class="default">eq? 3 3.0</span>)</span> <span class="comment">; =&gt; #f
-</span><span class="paren1">(<span class="default">eq? <span class="paren2">(<span class="default">list 3</span>)</span> <span class="paren2">(<span class="default">list 3</span>)</span></span>)</span> <span class="comment">; =&gt; #f
+</span><span class="comment">;; WARNING: don&#x27;t use `eq?&#x27; on numbers and characters, the reason is very simple:
+</span><span class="comment">;;          because RnRs treat this rule as undefined! 
+</span><span class="comment">;;(eq? 3 3) ; =&gt; Wrong! it&#x27;s undefined! So it depends on implementation!
+</span><span class="comment">;; No matter if you got #t from above, it&#x27;s a wrong usage!!!
+</span><span class="comment">;; Should use (= 3 3) or (eqv? 3 3)
+</span>
+<span class="paren1">(<span class="default">eq? <span class="paren2">(<span class="default">list 3</span>)</span> <span class="paren2">(<span class="default">list 3</span>)</span></span>)</span> <span class="comment">; =&gt; #f
+</span><span class="comment">;; Why it&#x27;s #f? Because comparison between objects depends on their head-pointers.
+</span><span class="comment">;; These two lists are different objects, and they have different head-pointers.
+</span>
+<span class="paren1">(<span class="default">eq? &#x27;a &#x27;a</span>)</span> <span class="comment">; =&gt; #t
+</span><span class="comment">;; Symbols are the typical objects to compare with their head-pointers
+</span>
+<span class="comment">;; eqv?
+</span><span class="comment">;; The difference between `eqv?&#x27; and `eq&#x27;:
+</span><span class="comment">;; You can compare numbers and characters with `eqv?&#x27;
+</span><span class="comment">;; When you use `eqv?&#x27; for any objects other than numbers&amp;characters, it&#x27;s the
+</span><span class="comment">;; same with `eq?&#x27;.
+</span><span class="paren1">(<span class="default">eqv? 3 3</span>)</span>     <span class="comment">; =&gt; #t
+</span><span class="paren1">(<span class="default">eqv? <span class="character">#\c</span> <span class="character">#\c</span></span>)</span> <span class="comment">; =&gt; #t
+</span><span class="paren1">(<span class="default">eqv? &#x27;a &#x27;a</span>)</span>   <span class="comment">; =&gt; #t
 </span>
 <span class="comment">;; for collections use `equal?&#x27;
+</span><span class="comment">;; `equal?&#x27; will compare all the values in a collections type like record or list.
+</span><span class="comment">;; You can compare any objects with `equal?&#x27; safely, but inefficiency.
 </span><span class="paren1">(<span class="default">equal? <span class="paren2">(<span class="default">list &#x27;a &#x27;b</span>)</span> <span class="paren2">(<span class="default">list &#x27;a &#x27;b</span>)</span></span>)</span> <span class="comment">; =&gt; #t
 </span><span class="paren1">(<span class="default">equal? <span class="paren2">(<span class="default">list &#x27;a &#x27;b</span>)</span> <span class="paren2">(<span class="default">list &#x27;b &#x27;a</span>)</span></span>)</span> <span class="comment">; =&gt; #f
+</span>
+<span class="comment">;; Choosing proper equal pred for you code, is one of the art in Scheme programming!
 </span>
 <span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 </span><span class="comment">;; 5. Control Flow
