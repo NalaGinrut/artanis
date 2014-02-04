@@ -176,8 +176,8 @@ my-pet ; => #<dog>
 ;;; Lists
 
 ;; Lists are linked-list data structures, made of `cons' pairs and end
-;; with a `null' (or '()) to mark the end of the list
-(cons 1 (cons 2 (cons 3 null))) ; => '(1 2 3)
+;; with a '() to mark the end of the list
+(cons 1 (cons 2 (cons 3 '()))) ; => '(1 2 3)
 ;; `list' is a convenience variadic constructor for lists
 (list 1 2 3) ; => '(1 2 3)
 ;; and a quote can also be used for a literal list value

@@ -196,8 +196,8 @@ my-pet <span class="comment">; =&gt; #&lt;dog&gt;
 <span class="comment">;;; Lists
 </span>
 <span class="comment">;; Lists are linked-list data structures, made of `cons&#x27; pairs and end
-</span><span class="comment">;; with a `null&#x27; (or &#x27;()) to mark the end of the list
-</span><span class="paren1">(<span class="default">cons 1 <span class="paren2">(<span class="default">cons 2 <span class="paren3">(<span class="default">cons 3 null</span>)</span></span>)</span></span>)</span> <span class="comment">; =&gt; &#x27;(1 2 3)
+</span><span class="comment">;; with a &#x27;() to mark the end of the list
+</span><span class="paren1">(<span class="default">cons 1 <span class="paren2">(<span class="default">cons 2 <span class="paren3">(<span class="default">cons 3 &#x27;<span class="paren4">(<span class="default"></span>)</span></span>)</span></span>)</span></span>)</span> <span class="comment">; =&gt; &#x27;(1 2 3)
 </span><span class="comment">;; `list&#x27; is a convenience variadic constructor for lists
 </span><span class="paren1">(<span class="default">list 1 2 3</span>)</span> <span class="comment">; =&gt; &#x27;(1 2 3)
 </span><span class="comment">;; and a quote can also be used for a literal list value
