@@ -388,6 +388,12 @@ my-pet <span class="comment">; =&gt; #&lt;dog&gt;
 </span>
 <span class="comment">;; Choosing proper equal pred for you code, is one of the art in Scheme programming!
 </span>
+<span class="paren1">(<span class="default">eqv? <span class="string">&quot;abcd&quot;</span> <span class="string">&quot;abcd&quot;</span></span>)</span> <span class="comment">; =&gt; unspecified
+</span><span class="comment">;; Obviously, strings are collections type, so...it&#x27;s your EXECISE now!
+</span>
+<span class="comment">;; Another EXECISE, what&#x27;s the proper &#x27;equal-pred&#x27; for functions?
+</span><span class="paren1">(<span class="default">what-to-use? <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default">x</span>)</span> <span class="paren3">(<span class="default">1+ x</span>)</span></span>)</span> <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default">x</span>)</span> <span class="paren3">(<span class="default">1+ x</span>)</span></span>)</span></span>)</span>
+
 <span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 </span><span class="comment">;; 5. Control Flow
 </span><span class="comment">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

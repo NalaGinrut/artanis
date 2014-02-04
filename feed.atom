@@ -400,6 +400,12 @@ my-pet &lt;span class="comment"&gt;; =&amp;gt; #&amp;lt;dog&amp;gt;
 &lt;/span&gt;
 &lt;span class="comment"&gt;;; Choosing proper equal pred for you code, is one of the art in Scheme programming!
 &lt;/span&gt;
+&lt;span class="paren1"&gt;(&lt;span class="default"&gt;eqv? &lt;span class="string"&gt;&amp;quot;abcd&amp;quot;&lt;/span&gt; &lt;span class="string"&gt;&amp;quot;abcd&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; unspecified
+&lt;/span&gt;&lt;span class="comment"&gt;;; Obviously, strings are collections type, so...it&amp;#x27;s your EXECISE now!
+&lt;/span&gt;
+&lt;span class="comment"&gt;;; Another EXECISE, what&amp;#x27;s the proper &amp;#x27;equal-pred&amp;#x27; for functions?
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;what-to-use? &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;lambda&lt;/span&gt;&lt;/i&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;x&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;1+ x&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;lambda&lt;/span&gt;&lt;/i&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;x&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;1+ x&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+
 &lt;span class="comment"&gt;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 &lt;/span&gt;&lt;span class="comment"&gt;;; 5. Control Flow
 &lt;/span&gt;&lt;span class="comment"&gt;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

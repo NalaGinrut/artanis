@@ -368,6 +368,12 @@ my-pet ; => #<dog>
 
 ;; Choosing proper equal pred for you code, is one of the art in Scheme programming!
 
+(eqv? "abcd" "abcd") ; => unspecified
+;; Obviously, strings are collections type, so...it's your EXECISE now!
+
+;; Another EXECISE, what's the proper 'equal-pred' for functions?
+(what-to-use? (lambda (x) (1+ x)) (lambda (x) (1+ x)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 5. Control Flow
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
