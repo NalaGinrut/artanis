@@ -256,7 +256,7 @@ my-pet &lt;span class="comment"&gt;; =&amp;gt; #&amp;lt;dog&amp;gt;
 &lt;/span&gt;
 &lt;span class="comment"&gt;;;; Hashes
 &lt;/span&gt;
-&lt;span class="comment"&gt;;; Create an immutable hash table (mutable example below)
+&lt;span class="comment"&gt;;; Create mutable hash table
 &lt;/span&gt;&lt;span class="comment"&gt;;; For GNU Guile
 &lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;define&lt;/span&gt;&lt;/i&gt; m &lt;span class="paren2"&gt;(&lt;span class="default"&gt;make-hash-table&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 &lt;span class="paren1"&gt;(&lt;span class="default"&gt;hash-set! m &amp;#x27;a 1&lt;/span&gt;)&lt;/span&gt;

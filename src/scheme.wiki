@@ -224,7 +224,7 @@ my-pet ; => #<dog>
 
 ;;; Hashes
 
-;; Create an immutable hash table (mutable example below)
+;; Create mutable hash table
 ;; For GNU Guile
 (define m (make-hash-table))
 (hash-set! m 'a 1)
