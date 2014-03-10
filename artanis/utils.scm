@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013
+;;  Copyright (C) 2013,2014
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -42,12 +42,13 @@
             new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
             stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
             queue-empty? list->stack list->queue stack-remove! queue-remove!
-            orm:log plist->alist make-orm-string-template non-list?
-            keyword->string range)
+            orm:log plist->alist make-db-string-template non-list?
+            keyword->string range oah->handler oah->opts string->keyword)
   #:re-export (the-environment))
 
+;; There's a famous rumor that 'urandom' is safer, so we pick it.
 (define* (get-random-from-dev #:key (length 8) (uppercase #f))
-  (call-with-input-file "/dev/random" 
+  (call-with-input-file "/dev/urandom" 
     (lambda (port)  
       (let* ((bv ((@ (rnrs) get-bytevector-n) port length))
              (str (format #f "~{~2,'0x~}" ((@ (rnrs) bytevector->u8-list) bv))))
@@ -387,7 +388,7 @@
     (let ((str (kw-arg-ref lst key)))
       (case mode
         ((normal) str)
-        ((orm) (string-concatenate (list "\"" (->string str) "\"")))
+        ((db) (string-concatenate (list "\"" (->string str) "\"")))
         (else (throw 'artanis-err 500 "%make-string-template: invalid mode" mode)))))
   (define (->string obj) (if (string? obj) obj (object->string obj)))
   (define (optimize rev-items tail)
@@ -428,12 +429,12 @@
       (string-concatenate (map item->string items)))))
 
 ;; the normal mode, no double quotes for vals
-(define (make-string-template tmp . vals)
-  (apply %make-string-template 'normal tmp vals))
+(define (make-string-template tpl . vals)
+  (apply %make-string-template 'normal tpl vals))
 
-;; ORM str tpl will treat all values with double quotes, for SQL
-(define (make-orm-string-template tmp . vals)
-  (apply %make-string-template 'orm tmp vals))
+;; DB str tpl will treat all values with double quotes, for SQL
+(define (make-db-string-template tpl . vals)
+  (apply %make-string-template 'db tpl vals))
 
 (define (guess-mime filename)
   (mime-guess (get-file-ext filename)))
@@ -510,3 +511,24 @@
 
 (define* (range from to #:optional (step 1))
   (iota (- to from) from step))
+
+(define (oah->handler opts-and-handler)
+  (let lp((rest opts-and-handler))
+    (cond
+     ((null? rest) 
+      (error oah->handler "You have to specify a handler for this rule!"))
+     ((keyword? (car rest))
+      (lp (cddr rest))) ; jump kw-pair
+     (else (car rest))))) ; return handler
+
+;; get all kw-args from the middle of args
+(define (oah->opts opts-and-handler)
+  (let lp((next opts-and-handler) (kl '()) (vl '()))
+    (match next
+      (((? keyword? k) v rest ...)
+       (lp rest (cons k kl) (cons v vl)))
+      ((? null?) (list kl vl))
+      (else (lp (cdr next) kl vl)))))
+
+(define (string->keyword str)
+  (symbol->keyword (string->symbol str)))

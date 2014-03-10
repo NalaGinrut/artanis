@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013
+;;  Copyright (C) 2013,2014
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -53,18 +53,30 @@
 ;; `(("GET \"/photo/:id/edit\"" (,(lambda (req ..) ...) . id)))  
 (define *handlers-table* (make-hash-table))
 
-(define (define-handler method rule handler)
+(define-record-type handler-rc
+  (make-handler-rc handler keys oht)
+  handler-rc?
+  (hander handler-rc-handler)
+  (keys handler-rc-keys)
+  (oht handler-rc-oht))
+
+(define (get-handler-rc handler-key)
+  (hash-ref *handlers-table* handler-key))
+
+(define (define-handler method rule opts-and-handler)
   (let ((keys (rule->keys rule))
-        (path-regexp (compile-rule rule)))
+        (path-regexp (compile-rule rule))
+        (opts (oah->opts opts-and-handler))
+        (handler (oah->handler opts-and-handler)))
     (hash-set! *handlers-table*
                (string-append method " " path-regexp)
-               (cons handler keys))))
+               (make-handler-rc handler keys (new-oht ots #:rule rule #:keys keys)))))
 
-(define (get rule handler) (define-handler "GET" rule handler))
-(define (post rule handler) (define-handler "POST" rule handler))
-(define (put rule handler) (define-handler "PUT" rule handler))
-(define (patch rule handler) (define-handler "PATCH" rule handler))
-(define (delete rule handler) (define-handler "DELETE" rule handler))
+(define (get rule opts-and-handler) (define-handler "GET" rule opts-and-handler))
+(define (post rule opts-and-handler) (define-handler "POST" rule opts-and-handler))
+(define (put rule opts-and-handler) (define-handler "PUT" rule opts-and-handler))
+(define (patch rule opts-and-handler) (define-handler "PATCH" rule opts-and-handler))
+(define (delete rule opts-and-handler) (define-handler "DELETE" rule opts-and-handler))
 
 (define-record-type route-context
   (make-route-context handler keys regexp request path 
@@ -117,11 +129,11 @@
 ;; find&set! the rule handler to rc
 (define (init-rule-handler-and-keys! rc)
   (let* ((handler-key (rc-rhk rc))
-         (hkp (if handler-key  ; get handler-keys pair
-                  (hash-ref *handlers-table* handler-key)
+         (hrc (if handler-key  ; get handler-keys pair
+                  (get-handler-rc handler-key)
                   (throw 'artanis-err 404 "invalid handler key" handler-key))))
-    (rc-handler! rc (car hkp))
-    (rc-keys! rc (cdr hkp))))
+    (rc-handler! rc (handler-rc-handler hrc))
+    (rc-keys! rc (handler-rc-keys hrc))))
 
 (define (init-rule-path-regexp! rc)
   (rc-re! rc (caddr (regexp-split *key-regexp* (rc-rhk rc)))))
@@ -202,7 +214,7 @@
                                    (last-modified . ,(get-local-date mtime))
                                    ,@pre-headers 
                                    ,@(generate-cookies (rc-set-cookie rc))))
-       ;; NOTE: sanitize-response will handle 'HEAD method
+       ;; NOTE: For inner-server, sanitize-response will handle 'HEAD method
        ;;       though rc-method is 'GET when request-method is 'HEAD,
        ;;       sanitize-response only checks method from request
        body))))
@@ -248,7 +260,10 @@
             (handler-render handler rc)
             (render-sys-page 404 rc))))
     (lambda (k . e)
-      (let ((status (car e)))
+      (let ((status (car e))
+            (reason (cadr e))
+            (info (caddr e)))
+        (format (current-error-port) "[ERR Reason]: ~a,~a~%" reason info)
         (format-status-page status request)))))
 
 (define (response-emit-error status)
