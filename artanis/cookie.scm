@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013
+;;  Copyright (C) 2013,2014
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -22,7 +22,8 @@
   #:use-module (web request)
   #:export (make-cookie cookie? cookie-set! cookie-ref generate-cookies
             cookie->header-string new-cookie request-cookies
-            cookie-has-key? remove-cookie-from-client))
+            cookie-has-key? remove-cookie-from-client
+            cookies-maker))
 
 ;; NOTE: server side never check cookie expires, it's client's duty
 ;;       server only check sessions expires
@@ -145,3 +146,14 @@
     ((@ (artanis artanis) rc-set-cookie!) 
      rc
      `(,@cookies ,(new-cookie #:npv '((key "")) #:expires *the-remove-expires*)))))
+
+(define (cookies-maker val rule keys)
+  (let ((ckt (make-hash-table)))
+    (for-each 
+     (lambda (ck) (hash-set! ckt ck (new-cookie)))
+     val)
+    (lambda (op)
+      (case op
+        ((set) (lambda (ck k v) (cookie-set! (hash-ref ckt ck) k v)))
+        ((ref) (lambda (ck k) (cookie-ref (hash-ref ckt ck) k)))
+        (else (error cookies-maker "Invalid operation!" op))))))

@@ -22,6 +22,7 @@
   #:use-module (artanis utils)
   #:use-module ((artanis artanis) #:select (get-handler-rc rc-rhk))
   #:use-module (artanis sql-mapping)
+  #:use-module (artanis cookie)
   #:use-module (srfi srfi-1)
   #:export (new-oht))
 
@@ -33,41 +34,47 @@
          (h (assoq-ref oht opt)))
     (h rc args ...)))
 
-(define (path-maker rule keys)
-  #t)
+(define (str-maker val rule keys)
+  (let ((tpl (apply make-string-template fmt)))
+    (lambda (rc . args)
+      (apply tpl (alist->kblist (rc-bt rc))))))
 
-(define (str-maker rule keys)
-  #t)
-
-(define (bind-maker rule keys)
-  #t)
-
-(define (cookies-maker rule keys)
-  #t)
-
-;; NOTE: these handler should never be exported!
-;; (handler arg rule keys)
+;; NOTE: these handlers should never be exported!
+;; ((handler arg rule keys) rc . args)
 (define *opions-meta-handler-table*
   `(;; a short way for sql-mapping from the bindings in rule
+    ;; e.g #:sql-mapping "select * from table where id=${:id}"
     (#:sql-mapping . sql-mapping-maker)
     ;; generate a string from the bindings in rule
+    ;; e.g (get "/get/:who" #:str "hello ${:who}" ...)
     (#:str . str-maker)
-    ;; bind the key-bindings to specified identifier  
-    (#:bind . bind-maker)
+    ;; short-cut for authentication
+    ;; e.g (get "/login" #:auth "select passwd from users where usr=${usr}"
+    ;;      (lambda (rc)
+    ;;       (:auth #:usr (params rc "usr") #:passwd (params rc "passwd"))))
+    ;; TODO: working on this
+    (#:auth . auth-maker)
     ;; short-cut to set cookies
+    ;; e.g (get "/" #:cookies (ca cb)
+    ;;      (lambda (rc)
+    ;;       (:cookies-set! ca "sid" "1231231")))
     (#:cookies . cookies-maker)))
 
-(define-syntax-rule (:sql-mapping rc args ...)
-  (=> #:sql-mapping rc args ...))
+(define-macro (meta-handler-register what)
+  `(define-syntax-rule (,(symbol-append ': 'what) rc args ...)
+     (=> ,(symbol->keyword what) rc args ...)))
 
-(define-syntax-rule (:str rc args ...)
-  (=> #:str rc args ...))
+;; register all the meta handler
+(meta-handler-register sql-mapping)
+(meta-handler-register str)
+(meta-handler-register cookies)
+(define-syntax-rule (:cookies-set! ck k v)
+  ((:cookies 'set) ck k v))
+(define-syntax-rule (:cookies-ref ck k)
+  ((:cookies 'ref) ck k))
 
-(define-syntax-rule (:bind rc args ...)
-  (=> #:bind rc args ...))
-
-(define-syntax-rule (:cookies rc args ...)
-  (=> #:cookies rc args ...))
+(for-each (lambda (x) (meta-handler-register (car x)))
+          *opions-meta-handler-table*)
 
 (define-syntax-rule (oh-ref o)
   (assoq *opions-meta-handler-table* o))

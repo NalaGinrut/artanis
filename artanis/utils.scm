@@ -43,7 +43,8 @@
             stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
             queue-empty? list->stack list->queue stack-remove! queue-remove!
             orm:log plist->alist make-db-string-template non-list?
-            keyword->string range oah->handler oah->opts string->keyword)
+            keyword->string range oah->handler oah->opts string->keyword
+            alist->klist alist->kblist)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -532,3 +533,21 @@
 
 (define (string->keyword str)
   (symbol->keyword (string->symbol str)))
+
+(define (alist->klist al)
+  (let lp((next al) (ret '()))
+    (cond
+     ((null? next) ret)
+     (else
+      (let ((k (symbol->keyword (car (car next))))
+            (v (cdr (car next))))
+        (lp (cdr next) (cons k (cons v ret))))))))
+
+(define (alist->kblist al)
+  (let lp((next al) (ret '()))
+    (cond
+     ((null? next) ret)
+     (else
+      (let ((k (symbol->keyword (symbol-append ': (car (car next)))))
+            (v (cdr (car next))))
+        (lp (cdr next) (cons k (cons v ret))))))))
