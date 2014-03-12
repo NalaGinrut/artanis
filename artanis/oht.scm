@@ -51,9 +51,17 @@
     ;; short-cut for authentication
     ;; e.g (get "/login" #:auth "select passwd from users where usr=${usr}"
     ;;      (lambda (rc)
-    ;;       (:auth #:usr (params rc "usr") #:passwd (params rc "passwd"))))
+    ;;       (:auth #:usr (params rc "usrname") #:passwd (params rc "passwd"))))
     ;; TODO: working on this
     (#:auth . auth-maker)
+    ;; request a connection from connection-pool
+    ;; NOTE: if you use #:sql-mapping short-cut, there's already a connect picked
+    ;;       from pool, so #:sql-mapping implies #:conn is set to #t.
+    ;; TODO: add recycling step after rule handler returning.
+    ;; e.g (get "/show-all" #:conn #t
+    ;;      (lambda (rc)
+    ;;       (:conn "select * from articles")))
+    (#:conn . conn-maker)
     ;; short-cut to set cookies
     ;; e.g (get "/" #:cookies (ca cb)
     ;;      (lambda (rc)
