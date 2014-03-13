@@ -14,47 +14,25 @@
 ;;  You should have received a copy of the GNU General Public License
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-module (artanis config))
-
-(module-export-all! (current-module))
+(define-module (artanis config)
+  #:use-module (ice-9 rdelim)
+  #:use-module (ice-9 match)
+  #:export (init-config))
 
 (define server-info "Artanis-0.0.1")
 
-(define use-Nginx? #f)
+(define (parse-config-item item)
+  (match item
+    (('db rest ...) (parse-namespace-db item))
+    (('server rest ...) (parse-namespace-server item))
+    (('host rest ...) (parse-namespace-host item))
+    (('error rest ...) (parse-namespace-error item))
+    (('session rest ...) (parse-namespace-session item))
+    (('upload rest ...) (parse-namespace-upload item))
+    (('mail rest ...) (parse-namespace-mail item))
+    (else (error parse-config-item "Unsupported config namespace!" item))))
 
-;; FIXME: *myhost* should be dynamically generated
-(define *host-addr* "0.0.0.0")
-(define *host-port* 3000)
-(define (current-myhost) (format #f "http://~a:~a" *host-addr* *host-port*))
-(define *error-page-path* "../pages")
-(define *updating-page* "updating.html")
-(define *session-path* "session/")
-
-;; TODO: support dynamic rule for sys page
-(define (get-sys-page status)
-  (format #f "~a/~a.html" *error-page-path* status)) 
-
-(define current-update-page
-  (make-parameter
-   (format #f "~a/~a" *error-page-path* *updating-page*)))
-
-(define current-upload-path
-  (make-parameter "upload/"))   
-  
-(define current-start-sign (make-parameter "<%"))
-(define current-startd-sign (make-parameter "<%="))
-(define current-end-sign (make-parameter "%>"))
-
-(define current-mail-sender (make-parameter "/usr/sbin/sendmail"))
-
-(define current-charset (make-parameter "utf-8"))
+;; TODO: implement all parser
 
 (define (init-config)
-  (unless (file-exists? *session-path*) (mkdir *session-path*)))
-
-(define (artanis-check-if-current-DB-support sym)
-  (let ((feature (symbol-apppend 'db- sym))
-        (db (current-artanis-db)))
-    (if db
-        (assoc feature (db-supported-features db))
-        (orm:log "You don't use DB, or you haven't registered DB monitor!"))))
+  #t)
