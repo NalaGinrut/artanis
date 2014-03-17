@@ -19,6 +19,7 @@
   #:use-module (artanis config)
   #:use-module (artanis cookie)
   #:use-module (artanis tpl)
+  #:use-module (artanis db)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-19)
@@ -166,7 +167,7 @@
       
 ;; parse params while needed
 ;; the params will be searched in param-list first, then search from qstr/post
-;; ENHANCE: do we need query hashtable?
+;; TODO: qstr/post should be independent from rules binding.
 (define (params rc key)
   (unless (rc-bt rc) (init-rule-key-bindings! rc))
   (or (assoc-ref (rc-bt rc) key)
@@ -242,15 +243,6 @@
   (display "rendering a sys page for it...\n") 
   (render-sys-page status request))
 
-(define (format-updating-page)
-  (display "site is temporarily down!\n" (current-error-port))
-  (values
-   (build-response #:code 200
-                   #:headers `((server . ,server-info)
-                               (content-type . (text/html))))
-   (lambda (port)
-     (page-show (current-update-page) port))))
-
 (define (work-with-request request body)
   (catch 'artanis-err
     (lambda ()
@@ -279,12 +271,9 @@
 (define (throw-auth-needed)
   (values 401 '((WWW-Authenticate . "Basic realm=\"Secure Area\"")) ""))
 
-(define site-workable? #t)
-
 (define (server-handler request request-body)
-  (if site-workable?
-      (work-with-request request request-body)
-      (format-updating-page)))
+  ;; ENHANCE: could put some stat hook here
+  (work-with-request request request-body))
 
 ;; proc must return the content-in-bytevector
 (define (generate-response-with-file filename proc)
@@ -317,12 +306,6 @@
    (lambda (rc) 
      (emit-response-with-file (static-filename (rc-path rc))))))
 
-(define (site-disable msg)
-  (set! site-workable? #f))
-
-(define (site-enable msg)
-  (set! site-workable? #t))
-
 (define-syntax-rule (tpl->response sxml/file ...)
   (let ((html (tpl->html sxml/file ...)))
     (if html
@@ -351,8 +334,6 @@
 
 ;; make sure to call init-server at the beginning
 (define (init-server)
-  (sigaction SIGUSR1 site-disable)
-  (sigaction SIGCONT site-enable)
   (default-route-init)
   (init-config))
 
