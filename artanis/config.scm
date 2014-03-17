@@ -43,16 +43,22 @@
     ((none null #{}#) "")
     (else x)))
 
-  (if (string=? x "none"
+(define-syntax-rule (->integer x)
+  (let ((i (string->number x)))
+    (if (>= i 0)
+        i
+        (error "Invalid integer!" x))))
+
 (define (parse-namespace-db item)
   (match item
     (('dbd dbd) (conf-set! '(db dbd) dbd))
-    (('port port) (conf-set! '(db port) (string->number port)))
+    (('port port) (conf-set! '(db port) (->integer port)))
     (('addr addr) (conf-set! '(db addr) addr))
     (('name name) (conf-set! '(db name) name))
     (('socket sock) (conf-set '(db sock) sock))
     (('username username) (conf-set! '(db username) username))
     (('passwd passwd) (conf-set! '(db passwd) passwd))
+    (('pool 'size size) (conf-set! '(db pool size) (->integer size)))
     (else (error parse-namespace-db "Config: Invalid item" item))))
 
 (define (parse-namespace-server item)
@@ -60,13 +66,13 @@
     (('info info) (conf-set! '(server info) (->none/str info)))
     (('nginx nginx) (conf-set! '(server nginx) (->bool nginx)))
     (('charset charset) (conf-set! '(server charset) charset))
-    (('workers workers) (conf-set! '(server workers) (string->number workers)))
+    (('workers workers) (conf-set! '(server workers) (->integer workers)))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 
 (define (parse-namespace-host item)
   (match item
     (('addr addr) (conf-set! '(host addr) addr))
-    (('port port) (conf-set! '(host port) (string->number port)))
+    (('port port) (conf-set! '(host port) (->integer port)))
     (else (error parse-namespace-host "Config: Invalid item" item))))
 
 (define (parse-namespace-error item)
