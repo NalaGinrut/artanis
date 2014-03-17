@@ -80,8 +80,8 @@
 (define (delete rule opts-and-handler) (define-handler "DELETE" rule opts-and-handler))
 
 (define-record-type route-context
-  (make-route-context handler keys regexp request path 
-                      qt method rhk bt body date cookie set-cookie)
+  (make-route-context handler keys regexp request path qt method rhk bt 
+                      body date cookie set-cookie conn)
   route-context?
   (handler rc-handler rc-handler!) ; reqeust handler
   (keys rc-keys rc-keys!) ; rule keys
@@ -95,7 +95,9 @@
   (body rc-body rc-body!) ; request body
   (date rc-mtime rc-mtime!) ; modified time, users need to set it in handler
   (cookie rc-cookie rc-cookie!) ; the cookie parsed from header string
-  (set-cookie rc-set-cookie rc-set-cookie!)) ; the cookies needed to be set as response
+  (set-cookie rc-set-cookie rc-set-cookie!) ; the cookies needed to be set as response
+  ;; auto connection doesn't need users to close it, it's auto closed when request is over.
+  (conn rc-conn rc-conn!)) ; auto connection from pool
 
 ;; compiled regexp for optimization
 (define *rule-regexp* (make-regexp ":[^\\/]+"))    
@@ -196,6 +198,14 @@
                                (charset . ,(current-charset))))
    (page-show (get-sys-page status) #f)))
 
+(define (handler-pre-hook rq body)
+  ;; Add your pre hook here
+  #t)
+
+(define (handler-post-hook rc body)
+  ;; Add your post hook here
+  (clear-conn-from-rc! rc))
+  
 (define (handler-render handler rc)
   (call-with-values
       (lambda ()
@@ -206,6 +216,7 @@
                    (status 200) 
                    (mtime (let ((t (current-time))) 
                             (cons (time-second t) (time-nanosecond t)))))
+      (handler-post-hook rc body)
       (let ((type (assoc-ref pre-headers 'content-type)))
         (and type (log status (car type) (rc-req rc))))
       (values
@@ -229,8 +240,8 @@
          ;;       sanitize-response only checks method from request
          (method (if (eq? m 'HEAD) 'GET m))
          (cookies (request-cookies request))
-         (rc (make-route-context #f #f #f request path #f 
-                                 method #f #f body #f cookies '())))
+         (rc (make-route-context #f #f #f request path #f method #f #f
+                                 body #f cookies '() #f)))
     ;; FIXME: maybe we don't need rhk? Throw it after get handler & keys
     (init-rule-handler-key! rc) ; set rule handler key
     (init-rule-handler-and-keys! rc) ; set handler and keys
@@ -273,6 +284,7 @@
 
 (define (server-handler request request-body)
   ;; ENHANCE: could put some stat hook here
+  (handler-pre-hook request request-body)
   (work-with-request request request-body))
 
 ;; proc must return the content-in-bytevector

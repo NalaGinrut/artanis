@@ -22,6 +22,7 @@
   #:use-module (artanis utils)
   #:use-module ((artanis artanis) #:select (get-handler-rc rc-rhk))
   #:use-module (artanis sql-mapping)
+  #:use-module (artanis db)
   #:use-module (artanis cookie)
   #:use-module (srfi srfi-1)
   #:export (new-oht))
@@ -29,39 +30,63 @@
 (define-syntax-rule (get-oht rc)
   (get-handler-rc (rc-rhk rc)))
 
+;; returns #f if there's no such keyword was specified 
 (define-syntax-rule (=> opt rc args ...)
   (let* ((oht (get-oht rc))
-         (h (assoq-ref oht opt)))
-    (h rc args ...)))
+         (h (and oht (assoc-ref oht opt))))
+    (and h (h rc args ...))))
 
-(define (str-maker val rule keys)
+;; delay to open conn iff it's required.
+(define-syntax-rule (try-open-a-connection-for-rc rc)
+  (let ((conn ((@ (artanis artanis) re-conn) rc)))
+    (if conn
+        conn
+        (let ((conn (DB-open)))
+          ((@ (artanis artanis) rc-conn!) rc conn)
+          conn))))
+
+(define (str-maker fmt rule keys)
   (let ((tpl (apply make-string-template fmt)))
     (lambda (rc . args)
-      (apply tpl (alist->kblist (rc-bt rc))))))
+      (and tpl (apply tpl (alist->kblist (rc-bt rc)))))))
 
+;; returns a queried conn, users have to get result by themselves.
+(define (conn-maker yes? rule keys)
+  (and yes?
+       (lambda (rc sql)
+         (let ((conn (try-open-a-connection-for-rc rc)))
+           (DB-query conn sql)
+           conn))))
+  
 ;; NOTE: these handlers should never be exported!
 ;; ((handler arg rule keys) rc . args)
+;; NOTE: If the keyword wasn't specified, the handler should return #f
 (define *opions-meta-handler-table*
   `(;; a short way for sql-mapping from the bindings in rule
     ;; e.g #:sql-mapping "select * from table where id=${:id}"
     (#:sql-mapping . sql-mapping-maker)
+
     ;; generate a string from the bindings in rule
     ;; e.g (get "/get/:who" #:str "hello ${:who}" ...)
     (#:str . str-maker)
+
     ;; short-cut for authentication
     ;; e.g (get "/login" #:auth "select passwd from users where usr=${usr}"
     ;;      (lambda (rc)
     ;;       (:auth #:usr (params rc "usrname") #:passwd (params rc "passwd"))))
     ;; TODO: working on this
     (#:auth . auth-maker)
-    ;; request a connection from connection-pool
+
+    ;; Auto connection
+    ;; request a connection from connection-pool, and close automatically.
     ;; NOTE: if you use #:sql-mapping short-cut, there's already a connect picked
     ;;       from pool, so #:sql-mapping implies #:conn is set to #t.
     ;; TODO: add recycling step after rule handler returning.
     ;; e.g (get "/show-all" #:conn #t
     ;;      (lambda (rc)
-    ;;       (:conn "select * from articles")))
+    ;;       (:conn rc "select * from articles")))
     (#:conn . conn-maker)
+
     ;; short-cut to set cookies
     ;; e.g (get "/" #:cookies (ca cb)
     ;;      (lambda (rc)
@@ -75,6 +100,7 @@
 ;; register all the meta handler
 (meta-handler-register sql-mapping)
 (meta-handler-register str)
+(meta-handler-register conn)
 (meta-handler-register cookies)
 (define-syntax-rule (:cookies-set! ck k v)
   ((:cookies 'set) ck k v))
@@ -87,15 +113,18 @@
 (define-syntax-rule (oh-ref o)
   (assoq *opions-meta-handler-table* o))
 
+;; return #f when there's no opt specified
 (define* (new-oht opts #:key (rule 'no-rules) (keys 'no-keys))
-  (let ((oht (make-hash-table)))
-    (apply for-each
-           (lambda (k v)
-             (let ((h (oh-ref k)))
-               (cond
-                ((or h (eq? k #:handler))
-                 ;; #:handler is user customed handler
-                 (hash-set! oht k (h v rule keys)))
-                (else #f))))
-           opts)
+  (if (null? opts)
+      #f
+      (let ((oht (make-hash-table)))
+        (apply for-each
+               (lambda (k v)
+                 (let ((h (oh-ref k)))
+                   (cond
+                    ((or h (eq? k #:handler))
+                     ;; #:handler is user customed handler
+                     (hash-set! oht k (h v rule keys)))
+                    (else #f))))
+               opts))
     oht))
