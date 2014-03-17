@@ -60,6 +60,7 @@
     (('info info) (conf-set! '(server info) (->none/str info)))
     (('nginx nginx) (conf-set! '(server nginx) (->bool nginx)))
     (('charset charset) (conf-set! '(server charset) charset))
+    (('workers workers) (conf-set! '(server workers) (string->number workers)))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 
 (define (parse-namespace-host item)
