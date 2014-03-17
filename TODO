@@ -4,8 +4,9 @@
 * implement expand-conds for ssql
 * write test-cases for ssql
 * add cookie's validation
-* rewrite cookie->header-string with call-with-output-string
 * implement memcached-session swap algorithm
 * implement tpl cache
 * implement allowed-method?
 * design a generic session framework with optional store method: memcached/file+RCU/Berkerley DB...
+* Implement co-operative server with delimited-continuation
+* Format a patch to guile-dbi for supporting non-blocking
