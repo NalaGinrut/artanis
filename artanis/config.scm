@@ -18,7 +18,9 @@
   #:use-module (artanis version)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 match)
-  #:export (init-config get-conf))
+  #:export (init-config 
+            get-conf
+            current-conf-file))
 
 (define server-info artanis-version)
 (define *default-conf-file* "/etc/artanis/default.conf")
@@ -158,10 +160,17 @@
 (define (init-inner-config-items)
   (init-inner-database-item))
 
-(define (init-config conf-file)
-  (define fp (open-input-file 
+;; Could be used by cli for specifying user customized config file.
+;; TODO: Users don't have to call init-config themselves, but call cli:
+;;       art run -c ./my.conf
+;; And init-server should be called automatically.
+(define current-conf-file (make-parameter #f))
+
+(define (init-config)
+  (define conf-file (current-conf-file))
+  (define fp (open-input-file
               (cond
-               ((file-exists? conf-file) conf-file)
+               ((and conf-file (file-exists? conf-file)) conf-file)
                ((file-exists? *default-conf-file*) *default-conf-file*)
                (else 
                 (error init-config 
