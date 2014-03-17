@@ -17,11 +17,17 @@
 (define-module (artanis db)
   #:use-module (artanis utils)
   #:use-module (artanis config)
+  #:use-module (artanis server)
   #:use-module (dbi dbi)
   #:use-module (ice-9 match)
-  #:use-module ((rnrs) #:select (define-record-type)))
-
-;; TODO: add init-db in init-server for initializing connection pool
+  #:use-module ((rnrs) #:select (define-record-type))
+  #:export (DB-open
+            DB-close
+            DB-query
+            DB-result-status
+            DB-get-all-rows
+            init-DB
+            clear-conn-from-rc!))
 
 ;; NOTE:
 ;; <db> is only used for store connect config info, it doens't contain
@@ -69,32 +75,22 @@
     (else (error 'postgresql "Wrong connection config!" postgresql))))
 
 ;; NOTE:
-;; DB-conn! returns dbi connection object
-;; Use dbi-query on it!
-(define (DB-conn! db)
-  (cond
-   ((<mysql>? db) (dbi-open "mysql" (->mysql db)))
-   ((<sqlite3>? db) (dbi-open "sqlite3" (->sqlite3 db)))
-   ((<postgresql>? db) (dbi-open "postgresql" (->postgresql db)))
-   (else (error DB-conn! "Invalid DB!" db))))
+;; DB-do-conn! returns <connection> object
+;; All the conn are initilized as 'closed, set 'open iff it's out of pool
+(define (DB-do-conn! db)
+  (define conn
+    (cond
+     ((<mysql>? db) (dbi-open "mysql" (->mysql db)))
+     ((<sqlite3>? db) (dbi-open "sqlite3" (->sqlite3 db)))
+     ((<postgresql>? db) (dbi-open "postgresql" (->postgresql db)))
+     (else (error DB-conn! "Invalid DB!" db))))
+  (make-<connection> 'closed conn))
 
-;; ---------------------conn operations-------------------------------
-;; NOTE: conn objects are actually dbi object!
-(define DB-query dbi-query)
-
-;; NOTE: actually it never close the connection, just recycle it.
-(define (DB-close conn)
-  ;; TODO: implemnt current-connection-pool
-  (conn-pool-in! (current-connection-pool) conn)) 
-
-(define DB-status dbi-get_status)
-
-(define (DB-get-all-rows conn)
-  (let lp((next (dbi-get_row conn)) (result '()))
-    (if next
-        (lp (dbi-get_row conn) (cons next result))
-        (reverse result))))
-;;--------------------------------------------------------------------
+(define-record-type <connection>
+  (fields 
+   ;; status provides a simple way to avoid reopen or reclose
+   (mutable status) ; open or closed
+   conn))
 
 (define (new-DB)
   ;; TODO: 
@@ -119,6 +115,8 @@
    ;; mutex ; maybe it's unecessary for green-thread
    (mutable pool)))
 
+(define *conn-pools* (make-vector (get-conf '(server workers))))
+  
 (define (conn-pool-out! cp)
   (let ((size (<connection-pool>-size cp))
         (pool (<connection-pool>-pool cp)))
@@ -135,16 +133,74 @@
 (define (new-connection-pool)
   (let* ((pool-size (get-conf 'pool-size))
          (db (new-DB))
-         (conns (map (lambda (i) (DB-conn! db)) (iota pool-size)))
+         (conns (map (lambda (i) (DB-do-conn! db)) (iota pool-size)))
          (pool (list->queue conns)))
     (make-<connection-pool> pool-size pool)))
 
 (define (init-connection-pool)
-  ;; TODO: create pool and add it to global
-  )
+  (display "connection pools are initilizing...")
+  (for-each 
+   (lambda (i)
+     (vector-set! *conn-pools* i (new-connection-pool)))
+   (iota (get-conf '(server wokers))))
+  (display "ok\n")
+  (format #t "Each size of pool is ~a, ~a pools in total.~%" 
+          (get-conf 'pool-size) (get-conf 'workers)))
+
+;; ---------------------conn operations-------------------------------
+;; Actually, it's not `open', but get a conn from pool.
+(define (DB-open)
+  (let* ((pool (vector-ref *conn-pools* (current-worker)))
+         (conn (conn-pool-out! pool)))
+    (<connection>-status-set! conn 'open)
+    conn))
+  
+(define (DB-query conn sql)
+  (cond
+   ((not (<connection>? conn))
+    (throw 'artanis-err 500 "DB-query: Invalid DB connection!" conn))
+   ((not (eq? (<connection>-status conn) 'open))
+    (throw 'artanis-err 500 "DB-query: Can't query from a closed connection!" conn))
+   ((not (string? sql))
+    (throw 'artanis-err 500 "DB-query: Invalid SQL string!" sql))
+   (else (dbi-query (<connection>-conn conn) sql))))
+
+;; NOTE: actually it never close the connection, just recycle it.
+(define (DB-close conn)
+  (cond
+   ((not (<connection>? conn))
+    (throw 'artanis-err 500 "DB-close: Invalid DB connection!" conn))   
+   ((eq? (<connection>-status conn) 'closed)
+    (throw 'artanis-err 500 "DB-close: the connection is already closed!" conn))
+   (else
+    (<connection>-status-set! conn 'closed)
+    (conn-pool-in! (current-connection-pool) conn))))
+
+(define (DB-result-status conn)
+  (cond
+   ((not (<connection>? conn))
+    (throw 'artanis-err 500 "DB-result-status: Invalid DB connection!" conn))
+   ((not (eq? (<connection>-status conn) 'open))
+    (throw 'artanis-err 500 "DB-result-status: Can't query from a closed connection!" conn))
+   (else (dbi-get_status (<connection>-conn conn)))))
+
+(define (DB-get-all-rows conn)
+  (cond
+   ((not (<connection>? conn))
+    (throw 'artanis-err 500 "DB-get-all-rows: Invalid DB connection!" conn))
+   ((not (eq? (<connection>-status conn) 'open))
+    (throw 'artanis-err 500 "DB-get-all-rows: Can't query from a closed connection!" conn))
+   (else
+    (let lp((next (dbi-get_row (<connection>-conn conn))) (result '()))
+      (if next
+          (lp (dbi-get_row (<connection>-conn conn)) (cons next result))
+          (reverse result))))))
+;;--------------------------------------------------------------------
 
 (define (init-DB)
-  ;; TODO:
-  ;; 1. create a new db object
-  ;; 2. create a new connection pool
-  )
+  (init-connection-pool))
+
+;; Clear auto connection here
+(define (clear-conn-from-rc! rc)
+  (DB-close ((@ (artanis artanis) rc-conn) rc))
+  ((@ (artanis artanis) rc-conn!) rc #f))
