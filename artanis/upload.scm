@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013
+;;  Copyright (C) 2013,2014
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -18,18 +18,39 @@
   #:use-module (artanis utils)
   #:use-module (artanis config)
   #:use-module (artanis irregex)
+  #:use-module (artanis mime)
   #:use-module (ice-9 regex)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 iconv)
+  #:use-module (ice-9 match)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-9 gnu)
   #:use-module (srfi srfi-1)
-  #:use-module ((rnrs) #:select (get-bytevector-all utf8->string put-bytevector))
+  #:use-module ((rnrs)
+                #:select (get-bytevector-all utf8->string put-bytevector
+                          call-with-bytevector-output-port
+                          bytevector-length))
   #:use-module (web request)
-  #:export (mfd-simple-dump make-mfd-dumper content-type-is-mfd? parse-mfd-body
-            <mfd> get-mfd-data fine-mfd make-mfd is-mfd? mfds-count
-            mfd-dispos mfd-name mfd-filename mfd-data mfd-type
-            mfd-simple-dump-all store-uploaded-files))
+  #:use-module (web client)
+  #:use-module (web uri)
+  #:export (mfd-simple-dump
+            make-mfd-dumper
+            content-type-is-mfd?
+            parse-mfd-body
+            <mfd>
+            get-mfd-data
+            fine-mfd
+            make-mfd
+            is-mfd?
+            mfds-count
+            mfd-dispos
+            mfd-name
+            mfd-filename
+            mfd-data
+            mfd-type
+            mfd-simple-dump-all
+            store-uploaded-files
+            upload-files-to))
 
 ;; NOTE: mfd stands for "Multipart Form Data"
 
@@ -182,3 +203,76 @@
              (lambda e (throw 'artanis-err 500 "Failed to dump mfds!" e)))
            'success)))
    (else 'none)))
+
+(define (mfds->body mfds boundary)
+  (call-with-bytevector-output-port
+   (lambda (port)
+     (for-each
+      (lambda (mfd)
+        (when (not (is-mfd? mfd))
+          (throw 'artanis-err 500 "mfds->body: Invalid <mfd> type!" mfd))
+        (display (mfd-dispos mfd) port)
+        (put-bytevector port (mfd-data mfd)))
+      mfds)
+     (display (string-append "\r\n--" boundary "--\r\n") port))))
+
+;; FIXME: This is a temp path, should use (get-conf "upload") instead
+(define current-upload-path (make-parameter "upload/"))
+
+;; Usage: the pattern should be:
+;; '((file filelist ...) (data datalist ...))
+;; e.g
+;;  '((data ("data1" "hello world"))
+;;    (file ("name2" "filename") ("name2" "filename2")))
+;; You may ignore `data' part if you just want to upload files.
+(define (upload-files-to uri pattern)
+  (define boundary "----------Artanis0xDEADBEEF")
+  (define-syntax-rule (->dispos name filename mime)
+    (call-with-output-string
+     (lambda (port)
+       (format port "--~a\r\n" boundary)
+       (format port "Content-Disposition: form-data; name=~s" name)
+       (and filename
+            (format port "; filename=~s" filename))
+            ;;(format port "Content-Length: ~a~%" (stat:size (stat file))))
+       (and mime (format port "\r\nContent-Type: ~a" mime))
+       (display "\r\n\r\n" port))))
+  (define-syntax-rule (->file file)
+    (if (file-exists? file)
+        (call-with-input-file file get-bytevector-all)
+        (throw 'artanis-err 500 "This file doesn't exist!" file)))
+  (define (->mfds pattern)
+    (define-syntax-rule (-> w builder)
+      (if w (map builder w) '()))
+    (let ((files (assoc-ref pattern 'file))
+          (datas (assoc-ref pattern 'data)))
+      (append (-> files build-file-mfd)
+              (-> datas build-data-mfd))))
+  (define (build-data-mfd p)
+    (match p
+      ((name value)
+       (make-mfd (->dispos name #f #f)
+                 name
+                 #f
+                 value
+                 #f))
+      (else (throw 'artanis-err 500 "build-data-mfd: Invalid pattern"))))
+  (define (build-file-mfd p)
+    (match p
+      ((name filename)
+       (let ((mime (mime-guess (get-file-ext filename))))
+         (make-mfd (->dispos name filename mime)
+                   name
+                   filename
+                   (->file filename)
+                   mime)))
+      (else (throw 'artanis-err 500 "build-file-mfd: Invalid pattern"))))
+  (let* ((mfds (->mfds pattern))
+         (ct (format #f "multipart/form-data; boundary=~a" boundary))
+         (body (mfds->body mfds boundary)))
+    ;; NOTE:
+    ;; Content-Length contains body length only
+    ;; Guile web module will count Content-Length for you.
+    (http-post uri
+               #:body body
+               #:headers `((Content-Type . ,ct)))))
