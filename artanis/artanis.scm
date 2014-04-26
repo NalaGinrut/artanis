@@ -57,7 +57,7 @@
 (define-record-type handler-rc
   (make-handler-rc handler keys oht)
   handler-rc?
-  (hander handler-rc-handler)
+  (handler handler-rc-handler)
   (keys handler-rc-keys)
   (oht handler-rc-oht))
 
