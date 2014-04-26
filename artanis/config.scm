@@ -15,13 +15,13 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis config)
-  #:use-module (artanis version)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 match)
   #:export (init-config 
             get-conf
             current-conf-file))
 
+(include "version.scm")
 (define server-info artanis-version)
 (define *default-conf-file* "/etc/artanis/default.conf")
 
