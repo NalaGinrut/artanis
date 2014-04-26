@@ -19,6 +19,7 @@
   #:use-module (artanis config)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
+  #:use-module (srfi srfi-26)
   #:use-module (web request)
   #:export (make-cookie cookie? cookie-set! cookie-ref generate-cookies
             cookie->header-string new-cookie request-cookies
@@ -148,12 +149,26 @@
      `(,@cookies ,(new-cookie #:npv '((key "")) #:expires *the-remove-expires*)))))
 
 (define (cookies-maker val rule keys)
-  (let ((ckt (make-hash-table)))
-    (for-each 
-     (lambda (ck) (hash-set! ckt ck (new-cookie)))
-     val)
-    (lambda (op)
-      (case op
-        ((set) (lambda (ck k v) (cookie-set! (hash-ref ckt ck) k v)))
-        ((ref) (lambda (ck k) (cookie-ref (hash-ref ckt ck) k)))
-        (else (error cookies-maker "Invalid operation!" op))))))
+  (define ckl '())
+  (define (cget ck)
+    (let ((c (assoc-ref ckl ck)))
+      (if c
+          c
+          (throw 'artansi-err 500 "Undefined cookie name" ck))))
+  (define (cset! ck k v)
+    (and=> (cget ck) (cut cookie-set! <> k v)))
+  (define (cref ck k)
+    (and=> (cget ck) (cut cookie-ref <> k)))
+  (define (update rc)
+    ((@ (artanis artanis) rc-set-cookie!) rc
+     (map cdr rc)))
+  (for-each 
+   (lambda (ck) 
+     (set! ckt (cons (cons ck (new-cookie)) ckl)))
+   val)
+  (lambda (op)
+    (case op
+      ((set) cset!)
+      ((ref) cref)
+      ((update) update)
+      (else (throw 'artanis-err "cookies-maker: Invalid operation!" op)))))
