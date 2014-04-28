@@ -35,7 +35,7 @@
             get-file-ext get-global-date get-local-date uri-decode
             nfx static-filename remote-info seconds-now local-time-stamp
             parse-date write-date make-expires export-all-from-module!
-            alist->hashtable expires->time-utc local-eval-string generate-ETag
+            alist->hashtable expires->time-utc local-eval-string
             time-expired? valid-method? mmap munmap get-random-from-dev
             string->byteslist string->sha-1 list-slice bv-slice uni-basename
             checkout-the-path make-string-template guess-mime prepare-headers
@@ -206,14 +206,6 @@
   (if use-Nginx?
       (assoc-ref (request-headers req) 'x-real-ip)
       (request-host req)))
-
-(define (generate-ETag filename)
-  (cond
-   ((file-exists? filename)
-    (let ((st (stat filename)))
-      `((Etag . ,(format #f "\"~X-~X-~X\"" 
-                         (stat:ino st) (stat:mtime st) (stat:size st))))))
-   (else '())))
 
 (define *methods-list* '(HEAD GET POST PUT PATCH DELETE))
 (define (allowed-method? method)
