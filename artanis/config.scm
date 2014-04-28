@@ -98,6 +98,11 @@
     (('sender sender) (conf-set! '(mail sender) sender))
     (else (error parse-namespace-mail "Config: Invalid item" item))))
 
+(define (parse-namespace-cache item)
+  (match item
+    (('maxage maxage) (conf-set! '(cache maxage) (->integer maxage)))
+    (else (error parse-namespace-mail "Config: Invalid item" item))))
+
 (define (parse-config-item item)
   (match item
     (('db rest ...) (parse-namespace-db rest))
@@ -107,6 +112,7 @@
     (('session rest ...) (parse-namespace-session rest))
     (('upload rest ...) (parse-namespace-upload rest))
     (('mail rest ...) (parse-namespace-mail rest))
+    (('cache rest ...) (parse-namespace-cache rest))
     (() #t) ; skip
     (else (error parse-config-item "Unsupported config namespace!" item))))
 
