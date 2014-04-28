@@ -298,7 +298,8 @@
         (values mtime 200 (proc port) mime))
       (values #f 404 "" #f)))
 
-(define (emit-response-with-file filename)
+;; emit static file with no cache(ETag)
+(define* (emit-response-with-file filename #:optional (headers '()))
   (call-with-values
       (lambda ()
         (generate-response-with-file filename (lambda (p) (bv-cat p #f))))
@@ -306,11 +307,11 @@
       (cond
        ((= status 200) 
         (response-emit bv #:status status 
-                       #:headers `((content-type . ,(list mime)) 
-                                   ,@(generate-ETag filename))
+                       #:headers `((content-type . ,(list mime))
+                                   ,@headers)
                        #:mtime mtime))
        (else (response-emit bv #:status status))))))
-      
+
 (define (default-route-init)
   ;; avoid a common warn
   (get "/$" (lambda () "no index.html but it works!"))
