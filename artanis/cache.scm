@@ -117,11 +117,13 @@
        (not (request-if-range request))
        (not (request-if-unmodified-since request))))
 
-(define (cacheable-response? response)
-  (and (not (memq 'no-cache (response-pragma response)))
-       (not (member '(no-cache . #t) (response-cache-control response)))
-       (memq (response-code response) '(200 301 304 404 410))
-       (null? (response-vary response))))
+(define *lookaside-table* (make-hash-table))
+(define-syntax-rule (get-from-tlb path)
+  (hash-ref *lookaside-table* path))
+(define-syntax-rule (store-to-tlb! path hash)
+  (hash-set! *lookaside-table* path hash))
+(define-syntax-rule (cache-to-tlb! rc hash)
+  (store-to-tlb! (request-path (rc-req rc)) hash))
 
 (define (try-to-cache-dynamic-content rc body etag opts)
   (define (->cc o)
@@ -136,13 +138,9 @@
        (let ((m (if (null? maxage) (get-conf '(cache maxage)) (car maxage))))
            (foramt #f "private,max-age=~a" m)))
       (else (throw 'artanis-err "->cc: Invalid opts!" o))))
+  (cache-to-tlb! rc etag) ; cache the hash the TLB 
   (response-emit body #:headers `((ETag . ,etag)
                                   (Cache-Control . (->cc opts)))))
-
-;; TODO:
-;; Add a memory cache for quicker hash comparing, rather than get file stat
-;; each time from disk.
-;; say, (path . hash) table
 
 (define (generate-ETag filename)
   (cond
@@ -168,9 +166,12 @@
 
 ;; ETag for dynamic content is content based
 (define (try-to-cache-body rc body . opts)
+  (define-syntax-rule (get-proper-hash)
+    (and (get-from-tlb (request-path (rc-req rc))) ; get hash from TLB
+         (string->md5 body))) ; or generate new hash
   (cond
    ((cacheable-response? (rc-req rc))
-    (let ((etag (string->md5 body)))
+    (let ((etag (get-proper-hash)))
       (if (content-hit? rc etag)
           (emit-HTTP-304)
           (try-to-cache-dynamic-content rc body etag opts))))
@@ -197,18 +198,12 @@
           (emit-static-file-with-cache file etag status max-age))))
    (else (emit-static-file-without-cache file))))
 
-;; NOTE: maxage1 will overwrite maxage0
-(define-syntax-rule (->maxage maxage0 maxage1)
-  (begin
-    (when (or (not (list? maxage0)) (not (list? maxage1)))
-      (throw 'artanis-err "->maxage: Invalid maxage!" maxage0 maxage1))
-    (if (null? maxage1) ; maxage1 wasn't specified
-        (if (null? maxage0) ; use maxage0
-            (get-conf '(cache maxage)) ; get default maxage
-            (car maxage0)) ; set as maxage
-        (if (null? maxage1) ; use maxage1
-            (get-conf '(cache maxage))
-            (car maxage1)))))
+(define-syntax-rule (->maxage maxage)
+  (match maxage
+    ((? integer? m) m)
+    (((? integer? m)) m)
+    (() (get-conf '(cache maxage)))
+    (else (throw 'artanis-err "->maxage: Invalid maxage!" maxage))))
       
 (define (non-cache rc body) body)
 
@@ -216,14 +211,14 @@
   (match pattern
     ((#f) non-cache)
     (((? string=? file) . maxage0)
-     (lambda (rc . maxage1)
-       (try-to-cache-static-file rc file "public" (->maxage maxage0 maxage1))))
+     (lambda* (rc #:key (maxage (->maxage maxage0)))
+       (try-to-cache-static-file rc file "public" maxage)))
     (('public (? string=? file) . maxage0)
-     (lambda (rc . maxage1)
-       (try-to-cache-static-file rc file "public" (->maxage maxage0 maxage1))))
+     (lambda* (rc #:key (maxage (->maxage maxage0)))
+       (try-to-cache-static-file rc file "public" maxage)))
     (('private (? string=? file) . maxage0)
-     (lambda (rc . maxage1)
-       (try-to-cache-static-file rc file "private" (->maxage maxage0 maxage1))))
+     (lambda* (rc #:key (maxage (->maxage maxage0)))
+       (try-to-cache-static-file rc file "private" maxage)))
     ((or (? boolean? opts) (? list? opts))
      (lambda (rc body) (try-to-cache-body rc body opts)))
     (else (throw 'artanis-err "cache-maker: invalid pattern!" pattern))))
