@@ -251,7 +251,7 @@
 (define (format-status-page status request)
   (format (current-error-port) "[EXCEPTION] ~a is abnormal request, status: ~a, "
           (uri-path (request-uri request)) status)
-  (display "rendering a sys page for it...\n") 
+  (display "rendering a sys page for it...\n" (current-error-port)) 
   (render-sys-page status request))
 
 (define (work-with-request request body)
@@ -266,7 +266,7 @@
       (let ((status (car e))
             (reason (cadr e))
             (info (caddr e)))
-        (format (current-error-port) "[ERR Reason]: ~a,~a~%" reason info)
+        (format (current-error-port) "[ERR Reason]: ~a ~a~%" reason info)
         (format-status-page status request)))))
 
 (define (response-emit-error status)
