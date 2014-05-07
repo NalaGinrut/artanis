@@ -19,7 +19,6 @@
   #:use-module (artanis config)
   #:use-module (artanis irregex)
   #:use-module (artanis mime)
-  #:use-module (ice-9 regex)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 iconv)
   #:use-module (ice-9 match)
@@ -92,13 +91,13 @@
 (define (content-type-is-mfd? rc)
   (%content-type-is-mfd? ((@ (artanis artanis) rc-req) rc)))
 
-(define *valid-meta-header* (make-regexp "Content-Disposition:"))
+(define *valid-meta-header* (string->irregex "Content-Disposition:"))
 
 (define (header-trim s)
   (string-trim-both s (lambda (c) (member c '(#\sp #\" #\return)))))
 
 (define (headline? line)
-  (if (regexp-exec *valid-meta-header* line)
+  (if (irregex-search *valid-meta-header* line)
       (map (lambda (p) (map header-trim (string-split p #\=)))
                 (string-split line #\;))
       #f))
@@ -112,10 +111,10 @@
   (get-bytevector-all port)) ; all the rest is the data
 
 (define (blank-line? line)
-  (string-match "^\n|\n\r$" line))
+  (string-null? (string-trim-both line)))
 
 (define (end-line? line)
-  (string-match "^--[\n|\n\r]+$" line))
+  (string=? "--" (string-trim-both line)))
 
 (define (parse-mfd-data str)
   (call-with-input-string str
@@ -138,7 +137,7 @@
                      (data (get-data port))
                      (mfd (make-mfd dispos name filename data type)))
               (lp (read-line port) (cons mfd ret)))))
-        (else (throw 'artanis-err 500 "invalid MFD header!" (read-line port))))))))
+        (else (throw 'artanis-err 500 "invalid MFD header!" line)))))))
 
 ;; result: (len . parsed-data)
 (define (mfd-parser ll)
