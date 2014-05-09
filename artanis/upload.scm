@@ -178,7 +178,7 @@
     (mfd-parser ll)))
 
 (define (handle-proper-owner file uid gid)
-  (chown file (or uid 1000) (or gid 1000)))
+  (chown file (or uid (getuid)) (or gid (getgid))))
 
 (define* (make-mfd-dumper #:key (path (current-upload-path))
                           (uid #f) (gid #f)
