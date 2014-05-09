@@ -94,18 +94,12 @@
 (define *valid-meta-header* (string->irregex "Content-Disposition:"))
 
 (define (header-trim s)
+  ;; NOTE: We need to trim #\return.
+  ;;       Since sometimes we encounter "\n\r" rather than "\n" as newline.
   (string-trim-both s (lambda (c) (member c '(#\sp #\" #\return)))))
 
 (define (headline? line)
-  (if (irregex-search *valid-meta-header* line)
-      (map (lambda (p) (map header-trim (string-split p #\=)))
-                (string-split line #\;))
-      #f))
-
-(define (get-type port)
-  (let ((type (map header-trim (string-split (read-line port) #\:))))
-    (read-line port) ; skip one blank line
-    type))
+  (irregex-search *valid-meta-header* line))
 
 (define (get-data port)
   (get-bytevector-all port)) ; all the rest is the data
@@ -116,7 +110,32 @@
 (define (end-line? line)
   (string=? "--" (string-trim-both line)))
 
+(define (->mfd-headers line port)
+  (define (-> l)
+    (define (-? x) (= 1 (length x)))
+    (let lp((n l) (ret '()))
+      (cond
+       ((null? n) (reverse! ret))
+       (else
+        (let* ((p (car n))
+               (z (string-split p #\=))
+               (y (if (-? z)
+                      (string-trim-both p)
+                      (map header-trim z))))
+          (lp (cdr n) (cons y ret)))))))
+  (define (->p ll)
+    (match (string-split ll #\:)
+      ((k v)
+       (-> `(,k ,@(string-split v #\;))))
+      (else (throw 'artanis-err 400 "->mfd-headers: Invalid MFD header!" ll))))
+  (let lp((l (read-line port)) (ret (list (->p line))))
+    (cond
+     ((blank-line? l) ret)
+     (else
+      (lp (read-line port) (cons (->p l) ret))))))
+
 (define (parse-mfd-data str)
+  (define-syntax-rule (-> h k) (and=> (assoc-ref h k) car))
   (call-with-input-string str
    (lambda (port)
      (let lp((line (read-line port)) (ret '()))
@@ -126,18 +145,15 @@
          ;; jump first blank line, it shouldn't effect the blank line in data
          (lp (read-line port) ret))
         ((headline? line)
-         => (lambda (ll)
-              (let* ((dispos-line (list (map header-trim (string-split (caar ll) #\:))))
-                     (dispos (car (assoc-ref dispos-line "Content-Disposition")))
-                     (name (car (assoc-ref ll "name")))
-                     (filename (cond ((assoc-ref ll "filename") 
-                                      => (lambda (x) (and x (car x))))
-                                     (else #f)))
-                     (type (and filename (get-type port)))
-                     (data (get-data port))
-                     (mfd (make-mfd dispos name filename data type)))
-              (lp (read-line port) (cons mfd ret)))))
-        (else (throw 'artanis-err 500 "invalid MFD header!" line)))))))
+         (let* ((headers (->mfd-headers line port))
+                (data (get-data port))
+                (dispos (assoc-ref headers "Content-Disposition"))
+                (filename (-> dispos "filename"))
+                (name (-> dispos "name"))
+                (type (-> headers "Content-Type"))
+                (mfd (make-mfd (car dispos) name filename data type)))
+           (lp (read-line port) (cons mfd ret))))
+        (else (throw 'artanis-err 400 "Invalid Multi Form Data header!" line)))))))
 
 ;; result: (len . parsed-data)
 (define (mfd-parser ll)
@@ -161,20 +177,27 @@
          (ll (irregex-split (format #f "(\n|\r\n)?(--)?~a" boundary) str)))
     (mfd-parser ll)))
 
+(define (handle-proper-owner file uid gid)
+  (chown file (or uid 1000) (or gid 1000)))
+
 (define* (make-mfd-dumper #:key (path (current-upload-path))
+                          (uid #f) (gid #f)
                           (mode #o664) (path-mode #o775) (sync #f))
   (lambda* (mfd #:key (rename #f) (repath #f))
-    (let* ((filename (or rename (mfd-filename mfd)))
-           (target-path (or repath path))
-           (data (mfd-data mfd)))
+    (let ((filename (or rename (mfd-filename mfd)))
+          (target-path (or repath path))
+          (data (mfd-data mfd)))
       (when filename ; if the mfd is a file
        (let* ((real-path (format #f "~a/~a" target-path (dirname filename)))
               (des-file (format #f "~a/~a" real-path filename)))
          (checkout-the-path real-path path-mode)
+         (when (file-exists? des-file)
+           (delete-file des-file))
          (call-with-output-file des-file
           (lambda (port)
             (put-bytevector port data)
             (and sync (force-output port))))
+         (handle-proper-owner des-file uid gid)
          (chmod des-file mode))))))
 
 (define (mfds-count mfds)
@@ -190,12 +213,13 @@
 
 ;; NOTE: we won't limit file size here, since it should be done in server reader
 (define* (store-uploaded-files rc #:key (path (current-upload-path))
+                               (uid #f) (gid #f)
                                (mode #o664) (path-mode #o775) (sync #f))
   (cond
    ((content-type-is-mfd? rc)
     => (lambda (boundry)
          (let ((mfds (parse-mfd-body boundry ((@ (artanis artanis) rc-body) rc)))
-               (dumper (make-mfd-dumper #:path path #:mode mode 
+               (dumper (make-mfd-dumper #:path path #:mode mode #:uid uid #:gid gid
                                         #:path-mode path-mode #:sync sync)))
            (catch #t
              (lambda () (for-each dumper (cdr mfds)))
@@ -222,8 +246,9 @@
 ;; '((file filelist ...) (data datalist ...))
 ;; e.g
 ;;  '((data ("data1" "hello world"))
-;;    (file ("name2" "filename") ("name2" "filename2")))
-;; You may ignore `data' part if you just want to upload files.
+;;    (file ("file1" "filename") ("file2" "filename2")))
+;; * You may ignore `data' part if you just want to upload files.
+;; * The name field, say, "file1" is optional.
 (define (upload-files-to uri pattern)
   (define boundary "----------Artanis0xDEADBEEF")
   (define-syntax-rule (->dispos name filename mime)
@@ -233,7 +258,6 @@
        (format port "Content-Disposition: form-data; name=~s" name)
        (and filename
             (format port "; filename=~s" filename))
-            ;;(format port "Content-Length: ~a~%" (stat:size (stat file))))
        (and mime (format port "\r\nContent-Type: ~a" mime))
        (display "\r\n\r\n" port))))
   (define-syntax-rule (->file file)
@@ -265,6 +289,9 @@
                    filename
                    (->file filename)
                    mime)))
+      ((filename)
+       ;; If name field is ingored, use "file" as its name in default.
+       (build-file-mfd `("file" ,filename)))
       (else (throw 'artanis-err 500 "build-file-mfd: Invalid pattern"))))
   (let* ((mfds (->mfds pattern))
          (ct (format #f "multipart/form-data; boundary=~a" boundary))
