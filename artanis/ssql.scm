@@ -17,7 +17,9 @@
 (define-module (artanis ssql)
   #:use-module (artanis utils)
   #:use-module (ice-9 match)
-  #:export (->sql))
+  #:export (->sql where))
+
+(define (->string obj) (if (string? obj) obj (object->string obj)))
 
 ;; ENHANCE: 
 ;; 1. conds should be expanded from s-expr
@@ -58,7 +60,7 @@
    (() "")
    (('and ll ...) (->logical 'and ll))
    (('or ll ...) (->logical 'or ll))
-   ((op2 a1 a2) (->op2 op2 a1 a2))
+   ((op2 a1 a2) (->op2 op2 a1 (->string a2)))
    ((opn ll ...) (->opn opn ll))
    (((l1 ...) ll ...) (map ->cond (cons l1 ll)))
    (else (throw 'artanis-err 500 "invalid sql syntax!" lst))))
@@ -79,9 +81,17 @@
      (-> "~a is null" 'column))
     ;; e.g.   (->sql select * from 'user where (and (= user "name") (> age 15)))
     ;;        ==>  "select * from user where user=\"name\" and age>15;"
-    ((_ (lst ...))
-     (-> "~a" (->cond `(,lst ...))))))
+    ((_ lst ...)
+     (-> "~a" (->cond lst ...)))))
 
+;; Examples:
+;; NOTE: All the values will be casted to string according to SQL convention.
+;; 1-1. Normal `where' syntax
+;;    (->sql select * from 'user where '(= a 1))
+;;    => "select * from user where a=\"1\";"
+;; 1-2. Powerful `where' generator
+;;    (->sql select * from 'user (where #:a 1))
+;;    => "select * from user where a=\"1\" ;"
 (define-syntax sql-select
   (syntax-rules (* where from distinct order by group having as)
     ((_ * from table)
@@ -94,6 +104,8 @@
      (-> "~{~s~^,~} as ~a from ~a" '(fields ...) 'name 'table))
     ((_ fields from table where rest ...)
      (->where (sql-select fields from table) rest ...))
+    ((_ fields from table cond-str)
+     (string-concatenate (list (sql-select fields from table) cond-str)))
     ((_ distinct rest ...)
      (-> "distinct ~a" (sql-select rest ...)))
     ((_ rest ... group by groups)
@@ -132,8 +144,12 @@
   (syntax-rules (* from where)
     ((_ * from table)
      (-> end "delete * from ~a" table))
+    ((_ * from table cond-str)
+     (-> end "delete * from ~a ~a" table cond-str))
     ((_ from table)
      (-> end "delete from ~a" table))
+    ((_ from table cond-str)
+     (-> end "delete from ~a ~a" table cond-str))
     ((_ from table where rest ...)
      (->where end (sql-delete from table) (sql-where rest ...)))))
 
@@ -181,3 +197,46 @@
      (->end "drop table ~a" name))
     ((_ use db)
      (-> end "use ~a" db))))
+
+;; 'where' is used to generate condition string of SQL
+;; There're several modes in it, and can be composited.
+;; FIXME: Have to checkout sql-injection in the field value, especially '--'
+(define (where . conds)
+  (define (->range lst)
+    (match lst
+      (((? integer? from) (? integer? to))
+       (map ->string lst))
+      (else (throw 'artanis-err 500 "[SQL] where: invalid range" lst))))
+  (define (get-the-conds-str key val)
+    (let ((k (symbol->string key))
+          (v (if (list? val) (->range val) (->string val))))
+      (case key
+        ;; These are reversed key in SQL, we use string-concatenate for efficiency
+        ((limit)
+         ;; FIXME: maybe we need such a check
+         ;; (artanis-check-if-current-DB-support key)
+         (if (list? v)
+             (format #f " ~a ~{~a~^, ~} " k v)
+             (string-concatenate (list " " k " " v " ")))) 
+        (else (string-concatenate (list " " k "=\"" v "\" "))))))
+  (match conds
+    (() "")
+    ;; If the only arg is string, return it directly
+    ((? string? conds) (string-concatenate (list " where" conds)))
+    ;; string template mode
+    ;; e.g: (where "name = ${name}" #:name nala) ==> "name = \"nala\""
+    (((? string? stpl) . vals)
+     (apply (make-db-string-template (string-concatenate (list " where" stpl))) vals))
+    ;; AND mode:
+    ;; (where #:name 'John #:age 15 #:email "john@artanis.com") 
+    ;; ==> name="John" and age="15" and email="john@artanis.com"
+    (((? keyword? key) (? non-list? val) . rest)
+     (let* ((k (keyword->symbol key))
+            (str (get-the-conds-str k val)))
+       (string-concatenate `(" where",str ,(if (null? rest) "" " and ") ,(apply where rest)))))
+    ;; OR mode:
+    ;; (where #:name '(John Tom Jim)) ==> name="John" or name="Tom" or name="Jim"
+    (((? keyword? key) (vals ...) . rest)
+     (let ((fmt (string-concatenate `(" where " "~{" ,(keyword->string key) "=\"~a\"~^ or ~}"))))
+       (format #f fmt vals)))
+    (else (throw 'artanis-err 500 "[SQL] where: invalid condition pattern" conds))))
