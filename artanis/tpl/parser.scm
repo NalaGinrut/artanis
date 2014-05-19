@@ -1,4 +1,4 @@
-;;  Copyright (C) 2013
+;;  Copyright (C) 2013,2014
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -24,10 +24,14 @@
 
 (define (make-parser)
   (lalr-parser
-   (code disp-code html)
-   (tpl (tpl tpl) : (string-concatenate (list $1 $2))
-        (html) : $1
-        (program) : $1
-        () : "")
+   (code disp-code html) ; terminal tokens
+
+   (tpls (tpls tpl) : (string-concatenate (list $1 $2))
+         (tpl) : $1
+         (*eoi*) : *eof-object*)
+
+   (tpl (html) : (string-trim-both $1)
+        (program) : $1)
+
    (program (code) : $1
             (disp-code) : (string-concatenate `("(display " ,$1 ")")))))
