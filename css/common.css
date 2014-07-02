@@ -1,5 +1,7 @@
-@import url("http://fonts.googleapis.com/css?family=Spirax");
-@import url("http://fonts.googleapis.com/css?family=Source+Sans+Pro");
+@font-face {
+        font-family: "Spirax";
+        src: url("http://web-artanis.com/css/Spirax-Regular.ttf")
+}
 
 body, ul, li, div, span, p, strong {
   margin:0;
@@ -8,7 +10,7 @@ body, ul, li, div, span, p, strong {
 }
 body {
   background: url(../img/body.png) repeat-y 0 0;
-  font-family: 'Spirax', Helvetica, Arial, "FreeSans";
+  font-family: 'Spirax', Helvetica, Arial;
   display:block;
   min-width:960px;
   position:relative;
@@ -179,11 +181,11 @@ a {outline:none}
 about-text ul {
     margin-top: 20px;
     margin-left: 30px;
-    font: bold 25px "Source Sans Pro";
+    font: bold 25px "Helvetica";
 }
 
 about-text p {
-    font: italic normal 15px/20px "Source Sans Pro";
+    font: italic normal 15px/20px "Helvetica";
     color: #777;
 }
 
@@ -199,7 +201,7 @@ about-text h1 {
 
 about-text h2 {
     margin-left: 8px;
-    font: bold 25px "Source Sans Pro";
+    font: bold 25px "Helvetica";
     color: black;
 }
 
