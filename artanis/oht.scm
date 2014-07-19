@@ -20,14 +20,61 @@
 
 (define-module (artanis oht)
   #:use-module (artanis utils)
-  #:use-module ((artanis artanis) #:select (get-handler-rc rc-rhk))
   #:use-module (artanis sql-mapping)
   #:use-module (artanis db)
   #:use-module (artanis cookie)
   #:use-module (artanis cache)
+  #:use-module (artanis route)
+  #:use-module (artanis env)
+  #:use-module (ice-9 regex) ; FIXME: should use irregex!
   #:use-module (srfi srfi-1)
-  #:export (new-oht))
+  #:use-module (srfi srfi-9)
+  #:use-module (web uri)
+  #:use-module (web request)
+  #:export (handler-rc
+            handler-rc-handler
+            handler-rc-keys
+            handler-rc-oht
+            get-handler-rc
+            
+            define-handler
 
+            get
+            post
+            put
+            patch
+            page-delete))
+
+(define (define-handler method rule opts-and-handler)
+  (let ((keys (rule->keys rule))
+        (path-regexp (compile-rule rule))
+        (opts (oah->opts opts-and-handler))
+        (handler (oah->handler opts-and-handler)))
+    (hash-set! *handlers-table*
+               (string-append method " " path-regexp)
+               (make-handler-rc handler keys (new-oht opts #:rule rule #:keys keys)))))
+
+(define (get rule opts-and-handler) (define-handler "GET" rule opts-and-handler))
+(define (post rule opts-and-handler) (define-handler "POST" rule opts-and-handler))
+(define (put rule opts-and-handler) (define-handler "PUT" rule opts-and-handler))
+(define (patch rule opts-and-handler) (define-handler "PATCH" rule opts-and-handler))
+;; NOTE: delete method is rarely used, and this name will override the list deletion in Scheme.
+;;       So my vote is changing its name, feel free to let me know if it's improper.
+(define (page-delete rule opts-and-handler) (define-handler "DELETE" rule opts-and-handler))
+
+(define (compile-rule rule)
+  (string-append "^" 
+                 (regexp-substitute/global 
+                  #f *rule-regexp* rule 'pre "([^\\/\\?]+)" 'post)
+                 "[^ ]?"))
+
+(define *rule-regexp* (make-regexp ":[^\\/]+"))    
+(define *path-keys-regexp* (make-regexp "/:([^\\/]+)"))
+;; parse rule-string and generate the regexp to parse keys from path-string
+(define (rule->keys rule)
+  (map (lambda (m) (match:substring m 1))
+
+       (list-matches *path-keys-regexp* rule)))
 (define-syntax-rule (get-oht rc)
   (get-handler-rc (rc-rhk rc)))
 
@@ -63,7 +110,10 @@
 ;; ((handler arg rule keys) rc . args)
 ;; NOTE: If the keyword wasn't specified while defining the url-remap,
 ;;       the handler should return #f.
-(define *opions-meta-handler-table*
+;; CONVENTION:
+;; 1. When a var is arounded with ${..}, and there's ":" as its prefix,
+;;    say, ${:xxx}, it means "to get xxx from rule key".
+(define *options-meta-handler-table*
   `(;; a short way for sql-mapping from the bindings in rule
     ;; e.g #:sql-mapping "select * from table where id=${:id}"
     (#:sql-mapping . sql-mapping-maker)
@@ -74,17 +124,17 @@
 
     ;; short-cut for authentication
     ;; #:auto accepts these values:
-    ;; 1. (table-name username-literal-string passwd-literal-string)
-    ;; 2. (table-name)
+    ;; 1. (table username passwd)
+    ;; 2. (table-name crypto-proc)
     ;; 3. SQL as string
     ;; e.g (get "/login" 
-    ;;      #:auth "select 'mypasswd' from blog where usrname='myname'"
+    ;;      #:auth "select ${mypasswd} from blog where usrname=${myname}"
     ;;      (lambda (rc)
     ;;       (:auth rc #:usrname "myname" #:passwd "mypasswd")
     ;;       ...))
-    ;; or (get "/login" #:auth '(blog myname mypasswd)
+    ;; or (get "/login" #:auth 'blog
     ;;      (lambda (rc)
-    ;;       (:auth rc) ...))
+    ;;       (:auth rc #:usrname "mmr" #:passwd "123") ...))
     ;; The #:usrname and #:passwd will be expaned automatically.
     ;; TODO: working on this
     (#:auth . auth-maker)
@@ -143,24 +193,24 @@
 (define-syntax-rule (:cookies-update! rc)
   ((:cookies 'update) rc))
 
-(for-each (lambda (x) (meta-handler-register (car x)))
-          *opions-meta-handler-table*)
+;;(for-each (lambda (x) (meta-handler-register (car x)))
+;;          *options-meta-handler-table*)
 
 (define-syntax-rule (oh-ref o)
-  (assoc-ref *opions-meta-handler-table* o))
+  (assq-ref *options-meta-handler-table* o))
 
 ;; return #f when there's no opt specified
 (define* (new-oht opts #:key (rule 'no-rules) (keys 'no-keys))
   (if (null? opts)
       #f
       (let ((oht (make-hash-table)))
-        (apply for-each
-               (lambda (k v)
-                 (let ((h (oh-ref k)))
-                   (cond
-                    ((or h (eq? k #:handler))
-                     ;; #:handler is user customed handler
-                     (hash-set! oht k (h v rule keys)))
-                    (else #f))))
-               opts))
-    oht))
+        (for-each
+         (lambda (k v)
+           (let ((h (oh-ref k)))
+             (cond
+              ((or h (eq? k #:handler))
+               ;; #:handler is user customed handler
+               (hash-set! oht k (h v rule keys)))
+              (else #f))))
+         opts)
+        oht)))
