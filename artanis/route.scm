@@ -1,0 +1,154 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  Copyright (C) 2014
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License as published by
+;;  the Free Software Foundation, either version 3 of the License, or
+;;  (at your option) any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (artanis route)
+  #:use-module (artanis utils)
+  #:use-module (artanis cookie)
+  #:use-module (artanis env)
+  #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-9)
+  #:use-module (ice-9 regex)
+  #:use-module (web uri)
+  #:use-module (web request)
+  #:export (make-handler-rc
+            get-handler-rc
+
+            rc-handler rc-handler!
+            rc-keys rc-keys!
+            rc-re rc-re!
+            rc-req rc-req!
+            rc-path rc-path!
+            rc-qt rc-qt!
+            rc-method rc-method!
+            rc-rhk rc-rhk!
+            rc-bt rc-bt!
+            rc-body rc-body!
+            rc-mtime rc-mtime!
+            rc-cookie rc-cookie!
+            rc-set-cookie rc-set-cookie!
+            new-route-context
+            route-context?))
+
+(define-record-type handler-rc
+  (make-handler-rc handler keys oht)
+  handler-rc?
+  (handler handler-rc-handler)
+  (keys handler-rc-keys)
+  (oht handler-rc-oht))
+
+(define (get-handler-rc handler-key)
+  (hash-ref *handlers-table* handler-key))
+
+(define-record-type route-context
+  (make-route-context handler keys regexp request path qt method rhk bt 
+                      body date cookie set-cookie conn)
+  route-context?
+  (handler rc-handler rc-handler!) ; reqeust handler
+  (keys rc-keys rc-keys!) ; rule keys
+  (regexp rc-re rc-re!) ; regexp to parse key-bindings
+  (request rc-req rc-req!) ; client request
+  ;; FIXME: actually we don't need this redundant path,
+  ;;        it's better get from request. 
+  (path rc-path rc-path!) ; path from uri
+  (qt rc-qt rc-qt!) ; query table
+  ;; FIXME: the current Guile inner server treat HEAD as GET, so we
+  ;;        need rc-method, but it's trivial when we have new server core.
+  (method rc-method rc-method!) ; request method
+  (rhk rc-rhk rc-rhk!) ; rule handler key in handlers-table
+  (bt rc-bt rc-bt!) ; bindings table
+  (body rc-body rc-body!) ; request body
+  (date rc-mtime rc-mtime!) ; modified time, users need to set it in handler
+  (cookie rc-cookie rc-cookie!) ; the cookie parsed from header string
+  (set-cookie rc-set-cookie rc-set-cookie!) ; the cookies needed to be set as response
+  ;; auto connection doesn't need users to close it, it's auto closed when request is over.
+  (conn rc-conn rc-conn!)) ; auto connection from pool
+
+(define (new-route-context request body)
+  (let* ((uri (request-uri request))
+         (path (uri-path uri))
+         (m (valid-method? (request-method request))) 
+         ;; NOTE: sanitize-response will handle 'HEAD method
+         ;;       though rc-method is 'GET when request-method is 'HEAD,
+         ;;       sanitize-response only checks method from request
+         (method (if (eq? m 'HEAD) 'GET m))
+         (cookies (request-cookies request))
+         (rc (make-route-context #f #f #f request path #f method #f #f
+                                 body #f cookies '() #f)))
+    ;; FIXME: maybe we don't need rhk? Throw it after get handler & keys
+    (init-rule-handler-key! rc) ; set rule handler key
+    (init-rule-handler-and-keys! rc) ; set handler and keys
+    (init-rule-path-regexp! rc) ; set regexp
+    rc))
+
+;; find & set the key of rule-handler,
+;; which is used to find the (handler . keys)
+;; FIXME: each method should have a own table
+(define (init-rule-handler-key! rc)
+  (define rmtd (rc-method rc))
+  (define path (rc-path rc))
+  (define (key-matches-route? pattern)
+    (let* ((ml (regexp-split *key-regexp* pattern))
+           (method (cadr ml))
+           (path-regexp (caddr ml)))
+      (and (eq? rmtd (string->symbol method))
+           (regexp-exec (make-regexp path-regexp) path))))
+  (rc-rhk! rc (find key-matches-route? (hash-keys *handlers-table*))))
+
+;; find&set! the rule handler to rc
+(define (init-rule-handler-and-keys! rc)
+  (let* ((handler-key (rc-rhk rc))
+         (hrc (if handler-key  ; get handler-keys pair
+                  (get-handler-rc handler-key)
+                  (throw 'artanis-err 404 "invalid handler key" handler-key))))
+    (rc-handler! rc (handler-rc-handler hrc))
+    (rc-keys! rc (handler-rc-keys hrc))))
+
+(define (init-rule-path-regexp! rc)
+  (rc-re! rc (caddr (regexp-split *key-regexp* (rc-rhk rc)))))
+
+;; init key-bindings table
+(define (init-rule-key-bindings! rc)
+  (let ((m (string-match (rc-re rc) (rc-path rc))))
+    (rc-bt! rc
+            (map (lambda (k i) (cons k (match:substring m i))) 
+                 (rc-keys rc) (iota (1- (match:count m)) 1)))))
+
+(define (init-query! rc)
+  ;; NOTE: All the prefix ":" in query/post keys are trimmed.
+  ;;       Because only rule keys can use such naming.
+  (define (-> x)
+    (string-trim-both x (lambda (c) (member c '(#\sp #\: #\return)))))
+  (let ((str (case (rc-method rc)
+                ((GET) (uri-query (request-uri (rc-req rc))))
+                ((POST) ((@ (rnrs) utf8->string) (rc-body rc)))
+                (else (throw 'artanis-err 405 
+                             "wrong method for query!" (rc-method rc))))))
+    (if str
+        (rc-qt! rc (map (lambda (x) 
+                          (map -> (string-split x #\=)))
+                        (string-split str #\&)))
+        '())))
+
+;; parse query or posted data while needed
+;; ENHANCE: do we need query hashtable?
+(define (get-from-qstr/post rc key)
+  (unless (rc-qt rc) (init-query! rc))
+  (and (rc-qt rc)
+       (let ((v (assoc-ref (rc-qt rc) key)))
+         (and v (car v)))))
+
+;; compiled regexp for optimization
+(define *key-regexp* (make-regexp "([^ ]+) (.+)"))
