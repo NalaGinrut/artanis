@@ -48,7 +48,7 @@
     (($ <mysql> ($ <db> _ username passwd) dbname port addr #f)
      (format #f "~a:~a:~a:tcp:~a:~a" username passwd dbname addr port))
     (($ <mysql> ($ <db> _ username passwd) dbname #f #f socketfile)
-     (format #f "~a:~a:~a:socket:~a" username passwd dbname socktfile))
+     (format #f "~a:~a:~a:socket:~a" username passwd dbname socketfile))
     (else (error 'mysql "Wrong connection config!" mysql))))
 
 (define-record-type <sqlite3>
@@ -83,7 +83,7 @@
      ((<mysql>? db) (dbi-open "mysql" (->mysql db)))
      ((<sqlite3>? db) (dbi-open "sqlite3" (->sqlite3 db)))
      ((<postgresql>? db) (dbi-open "postgresql" (->postgresql db)))
-     (else (error DB-conn! "Invalid DB!" db))))
+     (else (error DB-do-conn! "Invalid DB!" db))))
   (make-<connection> 'closed conn))
 
 (define-record-type <connection>
@@ -98,7 +98,7 @@
   ;; 2. Add a new global var to hold DB object (or global env table?).
   ;;    Init new DB on the fly is not allowed.
   (let ((db (get-conf 'database)))
-    ;; (get-conf 'database) should contain username passwd and connect method
+    ;; (get-conf 'database) should contain username passwd and connection method
     (match db
       (('mysql username passwd dbname ('socketfile socketfile)) 
        (make-<mysql> username passwd #f #f socketfile))
