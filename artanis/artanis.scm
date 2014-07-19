@@ -87,8 +87,12 @@
   (keys rc-keys rc-keys!) ; rule keys
   (regexp rc-re rc-re!) ; regexp to parse key-bindings
   (request rc-req rc-req!) ; client request
+  ;; FIXME: actually we don't need this redundant path,
+  ;;        it's better get from request. 
   (path rc-path rc-path!) ; path from uri
   (qt rc-qt rc-qt!) ; query table
+  ;; FIXME: the current Guile inner server treat HEAD as GET, so we
+  ;;        need rc-method, but it's trivial when we have new server core.
   (method rc-method rc-method!) ; request method
   (rhk rc-rhk rc-rhk!) ; rule handler key in handlers-table
   (bt rc-bt rc-bt!) ; bindings table
@@ -149,13 +153,18 @@
                  (rc-keys rc) (iota (1- (match:count m)) 1)))))
 
 (define (init-query! rc)
+  ;; NOTE: All the prefix ":" in query/post keys are trimmed.
+  ;;       Because only rule keys can use such naming.
+  (define (-> x)
+    (string-trim-both x (lambda (c) (member c '(#\sp #\: #\return)))))
   (let ((str (case (rc-method rc)
                 ((GET) (uri-query (request-uri (rc-req rc))))
                 ((POST) ((@ (rnrs) utf8->string) (rc-body rc)))
                 (else (throw 'artanis-err 405 
                              "wrong method for query!" (rc-method rc))))))
     (if str
-        (rc-qt! rc (map (lambda (x) (string-split x #\=))
+        (rc-qt! rc (map (lambda (x) 
+                          (map -> (string-split x #\=)))
                         (string-split str #\&)))
         '())))
 
@@ -166,7 +175,7 @@
   (and (rc-qt rc)
        (let ((v (assoc-ref (rc-qt rc) key)))
          (and v (car v)))))
-      
+
 ;; parse params while needed
 ;; the params will be searched in param-list first, then search from qstr/post
 ;; TODO: qstr/post should be independent from rules binding.
