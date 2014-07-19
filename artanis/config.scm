@@ -15,19 +15,21 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis config)
+  #:use-module (artanis env)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 match)
   #:export (init-config 
             get-conf
-            current-conf-file))
+            current-conf-file
+            current-myhost))
 
-(include "version.scm")
 (define server-info artanis-version)
 (define *default-conf-file* "/etc/artanis/default.conf")
 
-(define *conf-hash-table* (make-hash-table))
 (define (conf-set! k v)
   (hash-set! *conf-hash-table* k v))
+(define (get-conf k)
+  (hash-ref *conf-hash-table* k))
 
 (define-syntax-rule (->bool x)
   (case (string->symbol (string-downcase x))
@@ -47,7 +49,7 @@
 
 (define-syntax-rule (->integer x)
   (let ((i (string->number x)))
-    (if (>= i 0)
+    (if (and (number? i) (>= i 0))
         i
         (error "Invalid integer!" x))))
 
@@ -57,7 +59,7 @@
     (('port port) (conf-set! '(db port) (->integer port)))
     (('addr addr) (conf-set! '(db addr) addr))
     (('name name) (conf-set! '(db name) name))
-    (('socket sock) (conf-set '(db sock) sock))
+    (('socket sock) (conf-set! '(db sock) sock))
     (('username username) (conf-set! '(db username) username))
     (('passwd passwd) (conf-set! '(db passwd) passwd))
     (('pool 'size size) (conf-set! '(db pool size) (->integer size)))
@@ -89,7 +91,7 @@
 
 (define (parse-namespace-upload item)
   (match item
-    (('type types) (conf-set! '(upload types) (->list types)))
+    (('types types) (conf-set! '(upload types) (->list types)))
     (('path path) (conf-set! '(upload path) path))
     (else (error parse-namespace-upload "Config: Invalid item" item))))
 
@@ -113,7 +115,7 @@
     (('upload rest ...) (parse-namespace-upload rest))
     (('mail rest ...) (parse-namespace-mail rest))
     (('cache rest ...) (parse-namespace-cache rest))
-    (() #t) ; skip
+    (((? string-null?)) #t) ; skip
     (else (error parse-config-item "Unsupported config namespace!" item))))
 
 (define (parse-line line)
@@ -171,6 +173,8 @@
 ;;       art run -c ./my.conf
 ;; And init-server should be called automatically.
 (define current-conf-file (make-parameter #f))
+(define (current-myhost)
+  (format #f "http://~a:~a" (get-conf '(host addr)) (get-conf '(host port))))
 
 (define (init-config)
   (define conf-file (current-conf-file))
@@ -179,7 +183,7 @@
                ((and conf-file (file-exists? conf-file)) conf-file)
                ((file-exists? *default-conf-file*) *default-conf-file*)
                (else 
-                (error init-config 
+                (error init-config
                        "Fatal error! You need to reinstall Artanis!")))))
   (let lp((line (read-line fp)))
     (cond
