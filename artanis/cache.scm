@@ -18,7 +18,7 @@
   #:use-module (artanis utils)
   #:use-module (artanis config)
   #:use-module ((artanis artanis) #:select (response-emit
-                                            rc-req
+                                            rc-path rc-req
                                             emit-response-with-file))
   #:use-module (ice-9 match)
   #:use-module (web request)
@@ -123,7 +123,7 @@
 (define-syntax-rule (store-to-tlb! path hash)
   (hash-set! *lookaside-table* path hash))
 (define-syntax-rule (cache-to-tlb! rc hash)
-  (store-to-tlb! (request-path (rc-req rc)) hash))
+  (store-to-tlb! (rc-path rc) hash))
 
 (define (try-to-cache-dynamic-content rc body etag opts)
   (define (->cc o)
@@ -136,7 +136,7 @@
          (format #f "public,max-age=~a" m)))
       (('private . maxage)
        (let ((m (if (null? maxage) (get-conf '(cache maxage)) (car maxage))))
-           (foramt #f "private,max-age=~a" m)))
+           (format #f "private,max-age=~a" m)))
       (else (throw 'artanis-err "->cc: Invalid opts!" o))))
   (cache-to-tlb! rc etag) ; cache the hash the TLB 
   (response-emit body #:headers `((ETag . ,etag)
@@ -167,10 +167,10 @@
 ;; ETag for dynamic content is content based
 (define (try-to-cache-body rc body . opts)
   (define-syntax-rule (get-proper-hash)
-    (and (get-from-tlb (request-path (rc-req rc))) ; get hash from TLB
+    (and (get-from-tlb (rc-path rc)) ; get hash from TLB
          (string->md5 body))) ; or generate new hash
   (cond
-   ((cacheable-response? (rc-req rc))
+   ((cacheable-request? (rc-req rc))
     (let ((etag (get-proper-hash)))
       (if (content-hit? rc etag)
           (emit-HTTP-304)
