@@ -44,7 +44,7 @@
             queue-empty? list->stack list->queue stack-remove! queue-remove!
             orm:log plist->alist make-db-string-template non-list?
             keyword->string range oah->handler oah->opts string->keyword
-            alist->klist alist->kblist)
+            alist->klist alist->kblist is-hash-table-empty?)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -505,23 +505,27 @@
 (define* (range from to #:optional (step 1))
   (iota (- to from) from step))
 
+;; NOTE: handler must be the last element of the list, it's should be error
+;;       if it's not so.
 (define (oah->handler opts-and-handler)
-  (let lp((rest opts-and-handler))
-    (cond
-     ((null? rest) 
-      (error oah->handler "You have to specify a handler for this rule!"))
-     ((keyword? (car rest))
-      (lp (cddr rest))) ; jump kw-pair
-     (else (car rest))))) ; return handler
+  (let ((handler (or (and (list? opts-and-handler) (last opts-and-handler))
+                     opts-and-handler)))
+    (unless (procedure? handler)
+      handler
+      (error oah->handler "You have to specify a handler for this rule!"))))
 
 ;; get all kw-args from the middle of args
 (define (oah->opts opts-and-handler)
-  (let lp((next opts-and-handler) (kl '()) (vl '()))
-    (match next
-      (((? keyword? k) v rest ...)
-       (lp rest (cons k kl) (cons v vl)))
-      ((? null?) (list kl vl))
-      (else (lp (cdr next) kl vl)))))
+  (if (procedure? opts-and-handler)
+      '() ; there's no opts
+      (let lp((next opts-and-handler) (kl '()) (vl '()))
+        (match next
+          (((? keyword? k) v rest ...)
+           (lp rest (cons k kl) (cons v vl)))
+          ((or (? null?) (? procedure?))
+           ;; no opts left, return the result
+           (list kl vl))
+          (else (lp (cdr next) kl vl))))))
 
 (define (string->keyword str)
   (symbol->keyword (string->symbol str)))
@@ -543,3 +547,6 @@
       (let ((k (symbol->keyword (symbol-append ': (car (car next)))))
             (v (cdr (car next))))
         (lp (cdr next) (cons k (cons v ret))))))))
+
+(define (is-hash-table-empty? ht)
+  (zero? (hash-count values ht)))
