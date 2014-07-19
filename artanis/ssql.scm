@@ -17,7 +17,8 @@
 (define-module (artanis ssql)
   #:use-module (artanis utils)
   #:use-module (ice-9 match)
-  #:export (->sql where))
+  #:export (->sql
+            where))
 
 (define (->string obj) (if (string? obj) obj (object->string obj)))
 
@@ -96,12 +97,14 @@
   (syntax-rules (* where from distinct order by group having as)
     ((_ * from table)
      (-> "* from ~a" table))
+    ((_ field from table)
+     (-> "~a from ~a" 'field 'table))
     ((_ (fields ...) from table)
-     (-> "~{~s~^,~} from ~a" '(fields ...) 'table))
+     (-> "~{~a~^,~} from ~a" '(fields ...) 'table))
     ((_ (fields ...) name from table)
-     (-> "~{~s~^,~} ~a from ~a" '(fields ...) 'name 'table))
+     (-> "~{~a~^,~} ~a from ~a" '(fields ...) 'name 'table))
     ((_ (fields ...) as name from table)
-     (-> "~{~s~^,~} as ~a from ~a" '(fields ...) 'name 'table))
+     (-> "~{~a~^,~} as ~a from ~a" '(fields ...) 'name 'table))
     ((_ fields from table where rest ...)
      (->where (sql-select fields from table) rest ...))
     ((_ fields from table cond-str)
