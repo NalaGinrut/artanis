@@ -14,12 +14,14 @@
 ;;  You should have received a copy of the GNU General Public License
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;; ------------------------------------------------------------------------
+;; NOTE: Never use (artanis cache) directly! Please use #:cache handler!!
+
 (define-module (artanis cache)
   #:use-module (artanis utils)
   #:use-module (artanis config)
-  #:use-module ((artanis artanis) #:select (response-emit
-                                            rc-path rc-req
-                                            emit-response-with-file))
+  #:use-module (artanis route)
+  #:use-module (artanis page)
   #:use-module (ice-9 match)
   #:use-module (web request)
   #:use-module (web response)
