@@ -127,11 +127,9 @@
     (for-each
      (lambda (i)
        (vector-set! *conn-pool* i (DB-do-conn! db)))
-     (iota pool-size)))
-  (display "ok\n")
-  (format #t "Each size of pool is ~a, ~a pools in total.~%"
-          ;; NOTE: pool size equals to workers (work queues)
-          (get-conf '(server workers)) (get-conf '(server workers))))
+     (iota pool-size))
+    (display "ok\n")
+    (format #t "Now there's ~a pools in total.~%" pool-size)))
 
 ;; ---------------------conn operations-------------------------------
 ;; Actually, it's not `open', but get a conn from pool.
