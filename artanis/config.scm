@@ -19,8 +19,10 @@
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 match)
   #:export (init-config 
+            conf-set!
             get-conf
             current-conf-file
+            init-database-config
             current-myhost))
 
 (define server-info artanis-version)
@@ -62,7 +64,6 @@
     (('socket sock) (conf-set! '(db sock) sock))
     (('username username) (conf-set! '(db username) username))
     (('passwd passwd) (conf-set! '(db passwd) passwd))
-    (('pool 'size size) (conf-set! '(db pool size) (->integer size)))
     (else (error parse-namespace-db "Config: Invalid item" item))))
 
 (define (parse-namespace-server item)
@@ -158,15 +159,24 @@
         (and addr sock))
     (error init-inner-database-item "Conf: either addr:port or sock mode!"))
    ((eq? dbd 'sqlite3) ; sqlite3 needs only dbname
-    (conf-set! 'databse `(sqlite3 ,username ,passwd ,name)))
+    (conf-set! 'database `(sqlite3 ,username ,passwd ,name)))
    ((and addr port) ; addr:port mode
-    (conf-set! 'database `(,dbd ,username ,passwd ,name (socketfile ,sock))))
+    (conf-set! 'database `(,dbd ,username ,passwd ,name (port ,addr ,port))))
    ((and (eq? dbd 'mysql) sock) ; mysql has socket file mode
-    (conf-set! 'database `(mysql ,username ,passwd ,name (port ,addr ,port))))
+    (conf-set! 'database `(mysql ,username ,passwd ,name (socketfile ,sock))))
    (else (error init-inner-database-item "Fatal: Invalid database config"))))
 
 (define (init-inner-config-items)
-  (init-inner-database-item))
+  (and (get-conf '(use-db?)) (init-inner-database-item)))
+
+(define (init-database-config dbd user passwd)
+  (cond
+   ((and dbd user passwd)
+    (conf-set! '(db dbd) dbd)
+    (conf-set! '(db username) user)
+    (conf-set! '(db passwd) passwd)
+    (init-inner-database-item))
+   (else (error init-database-config "Invalid database config!" dbd user passwd))))
 
 ;; Could be used by cli for specifying user customized config file.
 ;; TODO: Users don't have to call init-config themselves, but call cli:
