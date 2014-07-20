@@ -29,6 +29,7 @@
   #:use-module (ice-9 regex) ; FIXME: should use irregex!
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
+  #:use-module (srfi srfi-26)
   #:use-module (web uri)
   #:use-module (web request)
   #:export (handler-rc
@@ -54,13 +55,16 @@
                (string-append method " " path-regexp)
                (make-handler-rc handler keys (new-oht opts #:rule rule #:keys keys)))))
 
-(define (get rule opts-and-handler) (define-handler "GET" rule opts-and-handler))
-(define (post rule opts-and-handler) (define-handler "POST" rule opts-and-handler))
-(define (put rule opts-and-handler) (define-handler "PUT" rule opts-and-handler))
-(define (patch rule opts-and-handler) (define-handler "PATCH" rule opts-and-handler))
+(define (get rule . opts-and-handler) (define-handler "GET" rule opts-and-handler))
+(define (post rule . opts-and-handler) (define-handler "POST" rule opts-and-handler))
+(define (put rule . opts-and-handler) (define-handler "PUT" rule opts-and-handler))
+(define (patch rule . opts-and-handler) (define-handler "PATCH" rule opts-and-handler))
 ;; NOTE: delete method is rarely used, and this name will override the list deletion in Scheme.
 ;;       So my vote is changing its name, feel free to let me know if it's improper.
-(define (page-delete rule opts-and-handler) (define-handler "DELETE" rule opts-and-handler))
+(define (page-delete rule . opts-and-handler) (define-handler "DELETE" rule opts-and-handler))
+
+(define *rule-regexp* (make-regexp ":[^\\/]+"))    
+(define *path-keys-regexp* (make-regexp "/:([^\\/]+)"))
 
 (define (compile-rule rule)
   (string-append "^" 
@@ -68,13 +72,11 @@
                   #f *rule-regexp* rule 'pre "([^\\/\\?]+)" 'post)
                  "[^ ]?"))
 
-(define *rule-regexp* (make-regexp ":[^\\/]+"))    
-(define *path-keys-regexp* (make-regexp "/:([^\\/]+)"))
 ;; parse rule-string and generate the regexp to parse keys from path-string
 (define (rule->keys rule)
   (map (lambda (m) (match:substring m 1))
-
        (list-matches *path-keys-regexp* rule)))
+
 (define-syntax-rule (get-oht rc)
   (get-handler-rc (rc-rhk rc)))
 
@@ -86,12 +88,11 @@
 
 ;; delay to open conn iff it's required.
 (define-syntax-rule (try-open-DB-connection-for-rc rc)
-  (let ((conn ((@ (artanis artanis) re-conn) rc)))
-    (if conn
-        conn
-        (let ((conn (DB-open)))
-          ((@ (artanis artanis) rc-conn!) rc conn)
-          conn))))
+  (let ((conn (rc-conn rc)))
+    (or conn
+        (let ((new-conn (DB-open)))
+          (rc-conn! rc new-conn)
+          new-conn))))
 
 (define (str-maker fmt rule keys)
   (let ((tpl (apply make-string-template fmt)))
@@ -105,6 +106,35 @@
          (let ((conn (try-open-DB-connection-for-rc rc)))
            (DB-query conn sql)
            conn))))
+
+(define (cookies-maker val rule keys)
+  (define *the-remove-expires* "Thu, 01-Jan-70 00:00:01 GMT")
+  (define ckl '())
+  (define (cget ck)
+    (or (assoc-ref ckl ck)
+        (throw 'artansi-err 500 "Undefined cookie name" ck)))
+  (define (cset! ck k v)
+    (and=> (cget ck) (cut cookie-set! <> k v)))
+  (define (cref ck k)
+    (and=> (cget ck) (cut cookie-ref <> k)))
+  (define (update rc)
+    (rc-set-cookie! rc (map cdr rc)))
+  (define (remove rc k)
+    (let ((cookies (rc-set-cookie rc)))
+      (rc-set-cookie! 
+       rc
+       `(,@cookies ,(new-cookie #:npv '((key "")) #:expires *the-remove-expires*)))))
+  (for-each 
+   (lambda (ck) 
+     (set! ckl (cons (cons ck (new-cookie)) ckl)))
+   val)
+  (lambda (op)
+    (case op
+      ((set) cset!)
+      ((ref) cref)
+      ((update) update)
+      ((remove) remove)
+      (else (throw 'artanis-err "cookies-maker: Invalid operation!" op)))))
   
 ;; NOTE: these handlers should never be exported!
 ;; ((handler arg rule keys) rc . args)
@@ -116,11 +146,11 @@
 (define *options-meta-handler-table*
   `(;; a short way for sql-mapping from the bindings in rule
     ;; e.g #:sql-mapping "select * from table where id=${:id}"
-    (#:sql-mapping . sql-mapping-maker)
+    (#:sql-mapping . ,sql-mapping-maker)
 
     ;; generate a string from the bindings in rule
     ;; e.g (get "/get/:who" #:str "hello ${:who}" ...)
-    (#:str . str-maker)
+    (#:str . ,str-maker)
 
     ;; short-cut for authentication
     ;; #:auto accepts these values:
@@ -137,7 +167,7 @@
     ;;       (:auth rc #:usrname "mmr" #:passwd "123") ...))
     ;; The #:usrname and #:passwd will be expaned automatically.
     ;; TODO: working on this
-    (#:auth . auth-maker)
+    (#:auth . ,auth-maker)
 
     ;; Auto connection
     ;; request a connection from connection-pool, and close automatically.
@@ -147,7 +177,7 @@
     ;; e.g (get "/show-all" #:conn #t
     ;;      (lambda (rc)
     ;;       (:conn rc "select * from articles")))
-    (#:conn . conn-maker)
+    (#:conn . ,conn-maker)
 
     ;; Web caching
     ;; The default value is #f.
@@ -168,13 +198,13 @@
     ;; NOTE: this option will be disabled automatically for some reasons:
     ;; 1. when #:auth was used in the same rule.
     ;; 2. when there's any HTTP header to stop the caching.
-    (#:cache . cache-maker)
+    (#:cache . ,cache-maker)
 
     ;; short-cut to set cookies
     ;; e.g (get "/" #:cookies (ca cb)
     ;;      (lambda (rc)
     ;;       (:cookies-set! ca "sid" "1231231")))
-    (#:cookies . cookies-maker)))
+    (#:cookies . ,cookies-maker)))
 
 (define-macro (meta-handler-register what)
   `(define-syntax-rule (,(symbol-append ': 'what) rc args ...)
@@ -204,7 +234,8 @@
   (if (null? opts)
       #f
       (let ((oht (make-hash-table)))
-        (for-each
+        (apply
+         for-each
          (lambda (k v)
            (let ((h (oh-ref k)))
              (cond
