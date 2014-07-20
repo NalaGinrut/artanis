@@ -112,15 +112,18 @@
 
 ;; NOTE: pool size equals to workers (work queues)
 ;; Each worker need just one connection, because of green-thread.
-(define *conn-pool* (make-vector (get-conf '(server workers))))
+(define *conn-pool* #f)
 
 (define (get-conn-from-pool worker)
-  (vector-ref *conn-pool* worker))
+  (unless *conn-pool*
+    (vector-ref *conn-pool* worker)
+    (error get-conn-from-pool "Seems the *conn-pool* wasn't well initialized!" *conn-pool*)))
 
 (define (init-connection-pool)
   (display "connection pools are initilizing...")
   (let* ((pool-size (get-conf '(server workers)))
-         (db (new-DB)))         
+         (db (new-DB)))
+    (set! *conn-pool* (make-vector pool-size))
     (for-each
      (lambda (i)
        (vector-set! *conn-pool* i (DB-do-conn! db)))
