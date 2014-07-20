@@ -18,6 +18,7 @@
   #:use-module (artanis utils)
   #:use-module (artanis config)
   #:use-module (artanis server)
+  #:use-module (artanis route)
   #:use-module (dbi dbi)
   #:use-module (ice-9 match)
   #:use-module ((rnrs) #:select (define-record-type))
@@ -109,52 +110,33 @@
       (('postgresql username passwd dbname ('port addr port))
        (make-<postgresql> username passwd port addr)))))
 
-(define-record-type <connection-pool>
-  (fields 
-   (mutable size)
-   ;; mutex ; maybe it's unecessary for green-thread
-   (mutable pool)))
+;; NOTE: pool size equals to workers (work queues)
+;; Each worker need just one connection, because of green-thread.
+(define *conn-pool* (make-vector (get-conf '(server workers))))
 
-(define *conn-pools* (make-vector (get-conf '(server workers))))
-  
-(define (conn-pool-out! cp)
-  (let ((size (<connection-pool>-size cp))
-        (pool (<connection-pool>-pool cp)))
-  (<connection-pool>-size-set! cp (1- size))
-  ;; lock ; maybe it's unecessary for green-thread
-  (queue-out! pool)))
-
-(define (conn-pool-in! cp conn)
-  (let ((size (<connection-pool>-size cp))
-        (pool (<connection-pool>-pool cp)))
-    (<connection-pool>-size-set! cp (1+ size))
-    (queue-in! pool conn)))
-
-(define (new-connection-pool)
-  (let* ((pool-size (get-conf 'pool-size))
-         (db (new-DB))
-         (conns (map (lambda (i) (DB-do-conn! db)) (iota pool-size)))
-         (pool (list->queue conns)))
-    (make-<connection-pool> pool-size pool)))
+(define (get-conn-from-pool worker)
+  (vector-ref *conn-pool* worker))
 
 (define (init-connection-pool)
   (display "connection pools are initilizing...")
-  (for-each 
-   (lambda (i)
-     (vector-set! *conn-pools* i (new-connection-pool)))
-   (iota (get-conf '(server wokers))))
+  (let* ((pool-size (get-conf '(server workers)))
+         (db (new-DB)))         
+    (for-each
+     (lambda (i)
+       (vector-set! *conn-pool* i (DB-do-conn! db)))
+     (iota pool-size)))
   (display "ok\n")
-  (format #t "Each size of pool is ~a, ~a pools in total.~%" 
-          (get-conf 'pool-size) (get-conf 'workers)))
+  (format #t "Each size of pool is ~a, ~a pools in total.~%"
+          ;; NOTE: pool size equals to workers (work queues)
+          (get-conf '(server workers)) (get-conf '(server workers))))
 
 ;; ---------------------conn operations-------------------------------
 ;; Actually, it's not `open', but get a conn from pool.
 (define (DB-open)
-  (let* ((pool (vector-ref *conn-pools* (current-worker)))
-         (conn (conn-pool-out! pool)))
+  (let ((conn (get-conn-from-pool (current-worker))))
     (<connection>-status-set! conn 'open)
     conn))
-  
+
 (define (DB-query conn sql)
   (cond
    ((not (<connection>? conn))
@@ -173,8 +155,7 @@
    ((eq? (<connection>-status conn) 'closed)
     (throw 'artanis-err 500 "DB-close: the connection is already closed!" conn))
    (else
-    (<connection>-status-set! conn 'closed)
-    (conn-pool-in! (current-connection-pool) conn))))
+    (<connection>-status-set! conn 'closed))))
 
 (define (DB-result-status conn)
   (cond
@@ -202,5 +183,5 @@
 
 ;; Clear auto connection here
 (define (clear-conn-from-rc! rc)
-  (DB-close ((@ (artanis artanis) rc-conn) rc))
-  ((@ (artanis artanis) rc-conn!) rc #f))
+  (DB-close (rc-conn rc))
+  (rc-conn! rc #f))
