@@ -16,19 +16,20 @@
 
 (define-module (artanis artanis)
   #:use-module (artanis utils)
+  #:use-module (artanis config)
+  #:use-module (artanis env)
   #:use-module (artanis tpl)
   #:use-module (artanis db)
   #:use-module (artanis oht)
   #:use-module (artanis route)
   #:use-module (artanis page)
+  #:use-module (web server)
   #:re-export (;; page module
                params
-               run
                response-emit
                throw-auth-needed
                tpl->html
                redirect-to
-               init-server
                generate-response-with-file
                emit-response-with-file
                tpl->response
@@ -55,5 +56,44 @@
                rc-body rc-body!
                rc-mtime rc-mtime!
                rc-cookie rc-cookie!
-               rc-set-cookie rc-set-cookie!
-               ))
+               rc-set-cookie rc-set-cookie!)
+  #:export (init-server
+            run))
+
+(define (default-route-init)
+  ;; avoid a common warn
+  (get "/$" (lambda () "no index.html but it works!"))
+  (get "/.+\\.(png|jpg|jpeg|ico|html|js|css)$" 
+   (lambda (rc) 
+     (emit-response-with-file (static-filename (rc-path rc))))))
+
+;; make sure to call init-server at the beginning
+(define (init-server)
+  (default-route-init)
+  (init-config))
+
+(define (check-if-not-run-init-server)
+  ;; Just check if the conf table is empty
+  (is-hash-table-empty? *conf-hash-table*))
+
+;; Invalid use-db? must be (dbd username passwd) or #f
+(define* (run #:key (host #f) (port #f) (debug #f) (use-db? #f)
+              (dbd #f) (db-username #f) (db-passwd #f))
+  (when (check-if-not-run-init-server)
+    (error "Sorry, but you have to run (init-server) in the begining of you main program!"))
+  (format #t "Anytime you want to Quit just try Ctrl+C, thanks!~%")
+  ;; Since config file was handled in (init-server), users' config can override it.
+  (and host (conf-set! '(host addr) host))
+  (and port (conf-set! '(host port) port))
+  (when use-db?
+    (conf-set! '(use-db?) #t)
+    (display "Users want to use Database, initializing...\n")
+    (init-database-config dbd db-username db-passwd)
+    (init-DB)
+    (display "DB init done!\n"))
+  (format #t "~a~%" (current-myhost))
+  (run-server
+   (if debug
+       (lambda (r b) (format #t "~a~%~a~%" r b) (server-handler r b))
+       server-handler)
+   'http `(#:host ,(get-conf '(host addr)) #:port ,(get-conf '(host port)))))
