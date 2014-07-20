@@ -203,7 +203,7 @@
   (substring/shared path 1))
 
 (define-syntax-rule (remote-info req)
-  (if use-Nginx?
+  (if (get-conf '(server nginx))
       (assoc-ref (request-headers req) 'x-real-ip)
       (request-host req)))
 
@@ -508,11 +508,10 @@
 ;; NOTE: handler must be the last element of the list, it's should be error
 ;;       if it's not so.
 (define (oah->handler opts-and-handler)
-  (let ((handler (or (and (list? opts-and-handler) (last opts-and-handler))
-                     opts-and-handler)))
-    (unless (procedure? handler)
-      handler
-      (error oah->handler "You have to specify a handler for this rule!"))))
+  (let ((handler (and (list? opts-and-handler) (last opts-and-handler))))
+    (if (procedure? handler)
+        handler
+        (error oah->handler "You have to specify a handler for this rule!"))))
 
 ;; get all kw-args from the middle of args
 (define (oah->opts opts-and-handler)
