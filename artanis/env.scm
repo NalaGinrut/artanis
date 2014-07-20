@@ -22,7 +22,8 @@
 (define-module (artanis env)
   #:export (*handlers-table*
             artanis-version
-            *conf-hash-table*))
+            *conf-hash-table*
+            *conn-pool*))
 
 (include "version.scm")
 
@@ -33,3 +34,6 @@
 (define *handlers-table* (make-hash-table))
 (define *conf-hash-table* (make-hash-table))
 
+;; NOTE: pool size equals to workers (work queues)
+;; Each worker need just one connection, because of green-thread.
+(define *conn-pool* #f)
