@@ -19,6 +19,7 @@
   #:use-module (artanis config)
   #:use-module (artanis irregex)
   #:use-module (artanis mime)
+  #:use-module (artanis route)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 iconv)
   #:use-module (ice-9 match)
@@ -89,7 +90,7 @@
         #f))) ; not mfd
 
 (define (content-type-is-mfd? rc)
-  (%content-type-is-mfd? ((@ (artanis artanis) rc-req) rc)))
+  (%content-type-is-mfd? (rc-req rc)))
 
 (define *valid-meta-header* (string->irregex "Content-Disposition:"))
 
@@ -218,7 +219,7 @@
   (cond
    ((content-type-is-mfd? rc)
     => (lambda (boundry)
-         (let ((mfds (parse-mfd-body boundry ((@ (artanis artanis) rc-body) rc)))
+         (let ((mfds (parse-mfd-body boundry (rc-body rc)))
                (dumper (make-mfd-dumper #:path path #:mode mode #:uid uid #:gid gid
                                         #:path-mode path-mode #:sync sync)))
            (catch #t
