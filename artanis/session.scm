@@ -16,7 +16,7 @@
 
 (define-module (artanis session)
   #:use-module (artanis utils)
-  #:use-module (artanis artanis)
+  #:use-module (artanis route)
   #:use-module (artanis config)
   #:use-module (srfi srfi-9)
   #:use-module (web request)
