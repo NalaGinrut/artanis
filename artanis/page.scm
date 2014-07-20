@@ -17,8 +17,10 @@
 (define-module (artanis page)
   #:use-module (artanis utils)
   #:use-module (artanis config)
+  #:use-module (artanis cookie)
   #:use-module (artanis tpl)
   #:use-module (artanis oht)
+  #:use-module (artanis db)
   #:use-module (artanis route)
   #:use-module (artanis env)
   #:use-module (srfi srfi-19)
@@ -26,20 +28,18 @@
   #:use-module (web request)
   #:use-module (web response)
   #:use-module (web http)
-  #:use-module (web server)
   #:use-module (sxml simple)
   #:export (params
-            run
             response-emit
             throw-auth-needed
             tpl->html
             redirect-to
-            init-server
             generate-response-with-file
             emit-response-with-file
             tpl->response
             reject-method
-            response-error-emit))
+            response-error-emit
+            server-handler))
 
 ;; parse params while needed
 ;; the params will be searched in param-list first, then search from qstr/post
@@ -64,13 +64,15 @@
     (format port "[Response] status: ~a, MIME: ~a~%~%" status mime)))
 
 (define (render-sys-page status request)
+  (define-syntax-rule (status->page s)
+    (format #f "~a.html" s))
   (log status 'text/html request)
   (values
    (build-response #:code status
-                   #:headers `((server . ,server-info)
+                   #:headers `((server . ,(get-conf '(server info)))
                                (content-type . (text/html))
-                               (charset . ,(current-charset))))
-   (page-show (get-sys-page status) #f)))
+                               (charset . ,(get-conf '(server charset)))))
+   (page-show (status->page status) #f)))
 
 (define (handler-pre-hook rq body)
   ;; Add your pre hook here
@@ -78,7 +80,7 @@
 
 (define (handler-post-hook rc body)
   ;; Add your post hook here
-  (clear-conn-from-rc! rc))
+  #t)
   
 (define (handler-render handler rc)
   (call-with-values
@@ -95,7 +97,7 @@
         (and type (log status (car type) (rc-req rc))))
       (values
        (build-response #:code status
-                       #:headers `((server . ,server-info)
+                       #:headers `((server . ,(get-conf '(server info)))
                                    (date . ,(get-global-date))
                                    (last-modified . ,(get-local-date mtime))
                                    ,@pre-headers 
@@ -169,13 +171,6 @@
                        #:mtime mtime))
        (else (response-emit bv #:status status))))))
 
-(define (default-route-init)
-  ;; avoid a common warn
-  (get "/$" (lambda () "no index.html but it works!"))
-  (get "/.+\\.(png|jpg|jpeg|ico|html|js|css)$" 
-   (lambda (rc) 
-     (emit-response-with-file (static-filename (rc-path rc))))))
-
 (define-syntax-rule (tpl->response sxml/file ...)
   (let ((html (tpl->html sxml/file ...)))
     (if html
@@ -201,27 +196,3 @@
 
 (define (reject-method method)
   (throw 'artanis-err 405 "Method is not allowed" method))
-
-;; make sure to call init-server at the beginning
-(define (init-server)
-  (default-route-init)
-  (init-config))
-
-(define (check-if-not-run-init-server)
-  ;; Just check if the conf table is empty
-  (is-hash-table-empty? *conf-hash-table*))
-
-(define* (run #:key (host #f) (port #f) (debug #f))
-  (display *conf-hash-table*)(newline)
-  (when (check-if-not-run-init-server)
-    (error "Sorry, but you have to run (init-server) in the begining of you main program!"))
-  (format #t "Anytime you want to Quit just try Ctrl+C, thanks!~%")
-  ;; Since config file was handled in (init-server), users' config can override it.
-  (and host (conf-set! '(host addr) host))
-  (and port (conf-set! '(host port) port))
-  (format #t "~a~%" (current-myhost))
-  (run-server
-   (if debug
-       (lambda (r b) (format #t "~a~%~a~%" r b) (server-handler r b))
-       server-handler)
-   'http `(#:host ,(get-conf '(host addr)) #:port ,(get-conf '(host port)))))
