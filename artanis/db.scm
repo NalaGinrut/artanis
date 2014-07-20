@@ -19,6 +19,7 @@
   #:use-module (artanis config)
   #:use-module (artanis server)
   #:use-module (artanis route)
+  #:use-module (artanis env)
   #:use-module (dbi dbi)
   #:use-module (ice-9 match)
   #:use-module ((rnrs) #:select (define-record-type))
@@ -27,8 +28,7 @@
             DB-query
             DB-result-status
             DB-get-all-rows
-            init-DB
-            clear-conn-from-rc!))
+            init-DB))
 
 ;; NOTE:
 ;; <db> is only used for store connect config info, it doens't contain
@@ -76,8 +76,7 @@
     (else (error 'postgresql "Wrong connection config!" postgresql))))
 
 ;; NOTE:
-;; DB-do-conn! returns <connection> object
-;; All the conn are initilized as 'closed, set 'open iff it's out of pool
+;; DB-do-conn! returns <connection> object.
 (define (DB-do-conn! db)
   (define conn
     (cond
@@ -85,7 +84,7 @@
      ((<sqlite3>? db) (dbi-open "sqlite3" (->sqlite3 db)))
      ((<postgresql>? db) (dbi-open "postgresql" (->postgresql db)))
      (else (error DB-do-conn! "Invalid DB!" db))))
-  (make-<connection> 'closed conn))
+  (make-<connection> 'open conn))
 
 (define-record-type <connection>
   (fields 
@@ -101,35 +100,44 @@
   (let ((db (get-conf 'database)))
     ;; (get-conf 'database) should contain username passwd and connection method
     (match db
-      (('mysql username passwd dbname ('socketfile socketfile)) 
-       (make-<mysql> username passwd #f #f socketfile))
+      (('mysql username passwd dbname ('socketfile socketfile))
+       (make-<mysql> username passwd dbname #f #f socketfile))
       (('mysql username passwd dbname ('port addr port))
-       (make-<mysql> username passwd port addr #f))
+       (make-<mysql> username passwd dbname port addr #f))
       (('sqlite3 username passwd dbname)
        (make-<sqlite3> username passwd dbname))
       (('postgresql username passwd dbname ('port addr port))
-       (make-<postgresql> username passwd port addr)))))
-
-;; NOTE: pool size equals to workers (work queues)
-;; Each worker need just one connection, because of green-thread.
-(define *conn-pool* #f)
+       (make-<postgresql> username passwd dbname port addr))
+      (else (error new-DB "Something is wrong, invalid db!" db)))))
 
 (define (get-conn-from-pool worker)
   (unless *conn-pool*
     (vector-ref *conn-pool* worker)
     (error get-conn-from-pool "Seems the *conn-pool* wasn't well initialized!" *conn-pool*)))
 
+(define (%db-conn-stat conn ret)
+  (ret (dbi-get_status (<connection>-conn conn))))
+
+(define (db-conn-success? conn)
+  (zero? (%db-conn-stat conn car)))
+
+(define (db-conn-failed-reason conn)
+  (%db-conn-stat conn cdr))
+
 (define (init-connection-pool)
   (display "connection pools are initilizing...")
-  (let* ((pool-size (get-conf '(server workers)))
-         (db (new-DB)))
+  (let ((pool-size (get-conf '(server workers)))
+        (db (new-DB)))
     (set! *conn-pool* (make-vector pool-size))
     (for-each
      (lambda (i)
-       (vector-set! *conn-pool* i (DB-do-conn! db)))
+       (let ((conn (DB-do-conn! db)))
+         (when (not (db-conn-success? conn))
+           (error init-connection-pool "Database connect failed: " (db-conn-failed-reason conn)))
+         (vector-set! *conn-pool* i conn)))
      (iota pool-size))
     (display "ok\n")
-    (format #t "Now there's ~a pools in total.~%" pool-size)))
+    (format #t "Now there's ~a pool~:p in total.~%" pool-size)))
 
 ;; ---------------------conn operations-------------------------------
 ;; Actually, it's not `open', but get a conn from pool.
@@ -181,8 +189,3 @@
 
 (define (init-DB)
   (init-connection-pool))
-
-;; Clear auto connection here
-(define (clear-conn-from-rc! rc)
-  (DB-close (rc-conn rc))
-  (rc-conn! rc #f))
