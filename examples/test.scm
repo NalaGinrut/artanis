@@ -27,4 +27,4 @@
   (lambda ()
     "hello world"))
 
-(run)
+(run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-passwd "123")
