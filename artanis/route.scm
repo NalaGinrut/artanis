@@ -39,8 +39,16 @@
             rc-mtime rc-mtime!
             rc-cookie rc-cookie!
             rc-set-cookie rc-set-cookie!
+            rc-conn rc-conn!
             new-route-context
-            route-context?))
+            route-context?
+
+            init-rule-handler-key!
+            init-rule-handler-and-keys!
+            init-rule-path-regexp!
+            init-rule-key-bindings!
+            init-query!
+            get-from-qstr/post))
 
 (define-record-type handler-rc
   (make-handler-rc handler keys oht)
