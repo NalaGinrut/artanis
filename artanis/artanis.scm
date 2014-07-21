@@ -42,6 +42,14 @@
                put
                patch
                page-delete
+               :sql-mapping
+               :str
+               :conn
+               :cookies
+               :cache
+               :cookies-set!
+               :cookies-ref
+               :cookies-update!
 
                ;; route module
                rc-handler rc-handler!
@@ -86,7 +94,7 @@
   (and host (conf-set! '(host addr) host))
   (and port (conf-set! '(host port) port))
   (when use-db?
-    (conf-set! '(use-db?) #t)
+    (conf-set! 'use-db? #t)
     (display "Users want to use Database, initializing...\n")
     (init-database-config dbd db-username db-passwd)
     (init-DB)
