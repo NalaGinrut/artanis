@@ -27,18 +27,13 @@
   #:use-module (artanis route)
   #:use-module (artanis env)
   #:use-module (ice-9 regex) ; FIXME: should use irregex!
+  #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-26)
   #:use-module (web uri)
   #:use-module (web request)
-  #:export (handler-rc
-            handler-rc-handler
-            handler-rc-keys
-            handler-rc-oht
-            get-handler-rc
-            
-            define-handler
+  #:export (define-handler
 
             get
             post
@@ -87,12 +82,12 @@
        (list-matches *path-keys-regexp* rule)))
 
 (define-syntax-rule (get-oht rc)
-  (get-handler-rc (rc-rhk rc)))
+  (handler-rc-oht (get-handler-rc (rc-rhk rc))))
 
 ;; returns #f if there's no such keyword was specified 
 (define-syntax-rule (=> opt rc args ...)
   (let* ((oht (get-oht rc))
-         (h (and oht (assoc-ref oht opt))))
+         (h (and oht (hash-ref oht opt))))
     (and h (h rc args ...))))
 
 ;; delay to open conn iff it's required.
@@ -103,12 +98,18 @@
           (rc-conn! rc new-conn)
           new-conn))))
 
+
+;; --------------------------------------------------------------
+;; oht handlers
+
+;; for #:str
 (define (str-maker fmt rule keys)
   (let ((tpl (apply make-string-template fmt)))
     (lambda (rc . args)
       (and tpl (apply tpl (alist->kblist (rc-bt rc)))))))
 
 ;; returns a queried conn, users have to get result by themselves.
+;; for #:conn
 (define (conn-maker yes? rule keys)
   (and yes?
        (lambda (rc sql)
@@ -116,6 +117,25 @@
            (DB-query conn sql)
            conn))))
 
+;; for #:cache
+(define (cache-maker pattern rule keys)
+  (define (non-cache rc body) body)
+  (match pattern
+    ((#f) non-cache)
+    (((? string=? file) . maxage0)
+     (lambda* (rc #:key (maxage (->maxage maxage0)))
+       (try-to-cache-static-file rc file "public" maxage)))
+    (('public (? string=? file) . maxage0)
+     (lambda* (rc #:key (maxage (->maxage maxage0)))
+       (try-to-cache-static-file rc file "public" maxage)))
+    (('private (? string=? file) . maxage0)
+     (lambda* (rc #:key (maxage (->maxage maxage0)))
+       (try-to-cache-static-file rc file "private" maxage)))
+    ((or (? boolean? opts) (? list? opts))
+     (lambda (rc body) (try-to-cache-body rc body opts)))
+    (else (throw 'artanis-err "cache-maker: invalid pattern!" pattern))))
+
+;; for #:cookies
 (define (cookies-maker val rule keys)
   (define *the-remove-expires* "Thu, 01-Jan-70 00:00:01 GMT")
   (define ckl '())
@@ -144,6 +164,7 @@
       ((update) update)
       ((remove) remove)
       (else (throw 'artanis-err "cookies-maker: Invalid operation!" op)))))
+;; ---------------------------------------------------------------------------------
   
 ;; NOTE: these handlers should never be exported!
 ;; ((handler arg rule keys) rc . args)
@@ -216,7 +237,7 @@
     (#:cookies . ,cookies-maker)))
 
 (define-macro (meta-handler-register what)
-  `(define-syntax-rule (,(symbol-append ': 'what) rc args ...)
+  `(define-syntax-rule (,(symbol-append ': what) rc args ...)
      (=> ,(symbol->keyword what) rc args ...)))
 
 ;; register all the meta handler
