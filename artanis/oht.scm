@@ -44,7 +44,16 @@
             post
             put
             patch
-            page-delete))
+            page-delete
+
+            :sql-mapping
+            :str
+            :conn
+            :cookies
+            :cache
+            :cookies-set!
+            :cookies-ref
+            :cookies-update!))
 
 (define (define-handler method rule opts-and-handler)
   (let ((keys (rule->keys rule))
@@ -222,9 +231,6 @@
   ((:cookies 'ref) ck k))
 (define-syntax-rule (:cookies-update! rc)
   ((:cookies 'update) rc))
-
-;;(for-each (lambda (x) (meta-handler-register (car x)))
-;;          *options-meta-handler-table*)
 
 (define-syntax-rule (oh-ref o)
   (assq-ref *options-meta-handler-table* o))
