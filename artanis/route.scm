@@ -24,6 +24,10 @@
   #:use-module (web uri)
   #:use-module (web request)
   #:export (make-handler-rc
+            handler-rc?
+            handler-rc-handler
+            handler-rc-keys
+            handler-rc-oht
             get-handler-rc
 
             rc-handler rc-handler!
