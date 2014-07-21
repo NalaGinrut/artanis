@@ -23,8 +23,13 @@
     (let ((a 123))
       (tpl->response "my.tpl" (the-environment)))))
 
-(get "/new"
-  (lambda ()
-    "hello world"))
+;; simple cache test (for dynamic content)
+(get "/new$" #:cache #t
+  (lambda (rc)
+    (:cache rc "hello world")))
 
-(run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-passwd "123")
+;; BUG:
+;; There's a bug returned #f as body when we enabled DB:
+;; e.g: (run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-passwd "123")
+
+(run)

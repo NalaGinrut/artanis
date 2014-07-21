@@ -25,7 +25,9 @@
   #:use-module (ice-9 match)
   #:use-module (web request)
   #:use-module (web response)
-  #:export (cache-maker))
+  #:export (->maxage
+            try-to-cache-static-file
+            try-to-cache-body))
 
 ;; Cache-Control
 ;; 1. The Cache-Control header is the most important header to set as it
@@ -61,7 +63,7 @@
 ;;         Last-Modified: Mon, 03 Jan 2011 17:45:57 GMT
 ;; 2. Client should send If-Modified-Since, then server can decide how to cache.
 ;;    e.g: If-Modified-Since: Mon, 03 Jan 2011 17:45:57 GMT
-;; 3. In Artanis, 
+;; 3. In Artanis, we use If-Modified-Since for static page expire checking.
 
 ;; B. Content based
 ;; 1. ETag works in a similar way that its value is a digest of the resources
@@ -132,7 +134,7 @@
     (match o
       ((#t)
        ;; public cache with default max-age
-       (format #t "public,max-age=~a" (get-conf '(cache maxage))))
+       (format #f "public,max-age=~a" (get-conf '(cache maxage))))
       (('public . maxage)
        (let ((m (if (null? maxage) (get-conf '(cache maxage)) (car maxage))))
          (format #f "public,max-age=~a" m)))
@@ -140,14 +142,15 @@
        (let ((m (if (null? maxage) (get-conf '(cache maxage)) (car maxage))))
            (format #f "private,max-age=~a" m)))
       (else (throw 'artanis-err "->cc: Invalid opts!" o))))
-  (cache-to-tlb! rc etag) ; cache the hash the TLB 
+  (cache-to-tlb! rc etag) ; cache the hash the TLB
   (response-emit body #:headers `((ETag . ,etag)
-                                  (Cache-Control . (->cc opts)))))
+                                  (Cache-Control . ,(->cc opts)))))
 
 (define (generate-ETag filename)
   (cond
    ((file-exists? filename)
     (let ((st (stat filename)))
+      ;; NOTE: ETag must be around with double-quote explicitly!
       (format #f "\"~X-~X-~X\"" 
               (stat:ino st) (stat:mtime st) (stat:size st))))
    (else '())))
@@ -155,26 +158,34 @@
 (define-syntax-rule (->headers rc)
   (request-headers (rc-req rc)))
 
-(define-syntax-rule (->ETag rc)
-  (assoc-ref (->headers rc) 'ETag))
-
-(define-syntax-rule (ETag-hit? rc etag)
-  (and=> (->ETag rc)
-         (lambda (e) (string=? e etag))))
-
-(define-syntax-rule (content-hit? rc etag)
-  (and=> (->ETag rc)
-         (lambda (e) (string=? e etag))))
+(define-syntax-rule (->If-None-Match rc)
+  (assoc-ref (->headers rc) 'if-none-match))
+  
+(define (If-None-Match-hit? rc etag)
+  (define (-> e)
+    ;; NOTE: The if-none-match sent from Chromium dropped double-quote,
+    ;;       so we have to add it here for comparing. It's reasonable with
+    ;;       RFC2616:
+    ;;       http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.26
+    ;;       Dunno about other clients...we just stick to the RFC.
+    (string-concatenate (list "\"" (caar e) "\"")))
+  (and=> (->If-None-Match rc)
+         (lambda (e) (string=? (-> e) etag))))
 
 ;; ETag for dynamic content is content based
 (define (try-to-cache-body rc body . opts)
+  (define (gen-etag-for-dynamic-content b)
+    ;; NOTE: ETag must be around with double-quote explicitly!
+    (string-concatenate (list "\"" (string->md5 b) "\"")))
   (define-syntax-rule (get-proper-hash)
-    (and (get-from-tlb (rc-path rc)) ; get hash from TLB
-         (string->md5 body))) ; or generate new hash
+    (or (get-from-tlb (rc-path rc)) ; get hash from TLB
+        (gen-etag-for-dynamic-content body))) ; or generate new hash
   (cond
    ((cacheable-request? (rc-req rc))
+    ;; NOTE: In Artanis, dynamic page is content based caching, so we don't checkout
+    ;;       If-Modified-Since header.
     (let ((etag (get-proper-hash)))
-      (if (content-hit? rc etag)
+      (if (If-None-Match-hit? rc etag)
           (emit-HTTP-304)
           (try-to-cache-dynamic-content rc body etag opts))))
    (else body)))
@@ -194,9 +205,10 @@
 (define (try-to-cache-static-file rc file status max-age)
   (cond
    ((cacheable-request? (rc-req rc))
+    ;; TODO: checkout last-modified for expires
     (let ((etag (generate-ETag file)))
-      (or (and (ETag-hit? rc etag)
-               (emit-HTTP-304)) ; cache hit
+      (if (If-None-Match-hit? rc etag)
+          (emit-HTTP-304) ; cache hit
           (emit-static-file-with-cache file etag status max-age))))
    (else (emit-static-file-without-cache file))))
 
@@ -206,21 +218,3 @@
     (((? integer? m)) m)
     (() (get-conf '(cache maxage)))
     (else (throw 'artanis-err "->maxage: Invalid maxage!" maxage))))
-      
-(define (non-cache rc body) body)
-
-(define (cache-maker pattern rule keys)
-  (match pattern
-    ((#f) non-cache)
-    (((? string=? file) . maxage0)
-     (lambda* (rc #:key (maxage (->maxage maxage0)))
-       (try-to-cache-static-file rc file "public" maxage)))
-    (('public (? string=? file) . maxage0)
-     (lambda* (rc #:key (maxage (->maxage maxage0)))
-       (try-to-cache-static-file rc file "public" maxage)))
-    (('private (? string=? file) . maxage0)
-     (lambda* (rc #:key (maxage (->maxage maxage0)))
-       (try-to-cache-static-file rc file "private" maxage)))
-    ((or (? boolean? opts) (? list? opts))
-     (lambda (rc body) (try-to-cache-body rc body opts)))
-    (else (throw 'artanis-err "cache-maker: invalid pattern!" pattern))))
