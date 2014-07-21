@@ -71,6 +71,7 @@
     (('info info) (conf-set! '(server info) (->none/str info)))
     (('nginx nginx) (conf-set! '(server nginx) (->bool nginx)))
     (('charset charset) (conf-set! '(server charset) charset))
+    (`(syspage path ,path) (conf-set! '(server syspage path) path))
     (('workers workers) (conf-set! '(server workers) (->integer workers)))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 

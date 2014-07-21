@@ -49,9 +49,8 @@
   (or (assoc-ref (rc-bt rc) key)
       (get-from-qstr/post rc key)))
 
-(define sys-page-path (make-parameter "./"))
 (define (page-show file port)
-  (bv-cat (string-append (sys-page-path) "/" file) port))
+  (bv-cat (string-append (get-conf '(server syspage path)) "/" file) port))
 
 ;; ENHANCE: use colored output
 (define* (log status mime req #:optional (port (current-error-port)))
