@@ -435,10 +435,12 @@
 (define (bytevector-null? bv)
   ((@ (rnrs bytevectors) bytevector=?) bv #u8()))
 
-(define *default-header* '((content-type . (text/html))))
 (define (prepare-headers body headers)
+  (define *default-header* '((content-type . (text/html))))
   ;; FIXME: the latest Guile fixed content-length:0 bug, but 2.0.9 is not,
   ;;        so remove it when next release.
+  (when (not body)
+    (error prepare-headers "Fatal: Something got wrong, the body shouldn't be #f!" body))
   (let* ((check (cond ((bytevector? body) bytevector-null?)
                       ((string? body) string-null?)))
          (len (if (check body) '((content-length . 0)) '())))
