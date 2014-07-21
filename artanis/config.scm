@@ -168,7 +168,7 @@
    (else (error init-inner-database-item "Fatal: Invalid database config"))))
 
 (define (init-inner-config-items)
-  (and (get-conf '(use-db?)) (init-inner-database-item)))
+  (and (get-conf 'use-db?) (init-inner-database-item)))
 
 (define (init-database-config dbd user passwd)
   (cond
