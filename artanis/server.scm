@@ -27,4 +27,4 @@
   #:use-module (artanis config)
   #:export (current-worker))
 
-(define current-worker (make-parameter 1))
+(define current-worker (make-parameter 0))
