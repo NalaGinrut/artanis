@@ -109,16 +109,13 @@
 (define (conn-maker yes? rule keys)
   (and yes?
        (lambda (rc sql)
-         (let ((conn (current-connection)))
+         (let ((conn (DB-open rc)))
            (DB-query conn sql)
            conn))))
 
 (define (raw-sql-maker sql rule keys)
   (lambda (rc mode)
-    (display "now here:\n")
-    (display (current-connection))(newline)
-    (let ((r (DB-query (current-connection) sql)))
-      (display "yyyyyyy\n")(display r)(newline)
+    (let ((r (DB-query (DB-open rc) sql)))
       (match mode
         ('all (DB-get-all-rows r))
         ('top (DB-get-top-row r))
