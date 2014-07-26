@@ -157,14 +157,17 @@
      (->where end (sql-delete from table) (sql-where rest ...)))))
 
 (define-syntax sql-create
-  (syntax-rules (table as select)
+  (syntax-rules (table as select index unique on)
     ;; NOTE: don't use it directly, please take advantage of (orm column)
     ;;(->sql create table tablename '("\"name\" \"varchar(10)\"" "\"age\" \"int\""))
     ((_ table name columns)
      (-> end "create table ~a (~{~a~^,~})" name columns))
     ;;(->sql create view 'mmr select '(a b) from 'tmp where "a=1 and b=2")
     ((_ view name as select rest ...)
-     (-> end "create view ~a as select ~a" (sql-select rest ...)))))
+     (-> end "create view ~a as select ~a" (sql-select rest ...)))
+    ;; (->sql create index 'PersonID on 'Persons('PersonID))
+    ((_ index iname on tname (column))
+     (-> end "create index ~a on ~a(~a)" iname tname column))))
 
 (define-syntax sql-alter
   (syntax-rules (table rename to add modify drop column as select)
