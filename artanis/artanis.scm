@@ -45,6 +45,7 @@
                :sql-mapping
                :str
                :conn
+               :raw-sql
                :cookies
                :cache
                :cookies-set!
@@ -86,17 +87,18 @@
 
 ;; Invalid use-db? must be (dbd username passwd) or #f
 (define* (run #:key (host #f) (port #f) (debug #f) (use-db? #f)
-              (dbd #f) (db-username #f) (db-passwd #f))
+              (dbd #f) (db-username #f) (db-passwd #f) (db-name #f))
   (when (check-if-not-run-init-server)
     (error "Sorry, but you have to run (init-server) in the begining of you main program!"))
   (format #t "Anytime you want to Quit just try Ctrl+C, thanks!~%")
   ;; Since config file was handled in (init-server), users' config can override it.
   (and host (conf-set! '(host addr) host))
   (and port (conf-set! '(host port) port))
+  (and debug (conf-set! 'debug-mode #t))
   (when use-db?
     (conf-set! 'use-db? #t)
     (display "Users want to use Database, initializing...\n")
-    (init-database-config dbd db-username db-passwd)
+    (init-database-config dbd db-username db-passwd db-name)
     (init-DB)
     (display "DB init done!\n"))
   (format #t "~a~%" (current-myhost))

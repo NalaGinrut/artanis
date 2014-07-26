@@ -170,14 +170,17 @@
 (define (init-inner-config-items)
   (and (get-conf 'use-db?) (init-inner-database-item)))
 
-(define (init-database-config dbd user passwd)
-  (cond
-   ((and dbd user passwd)
-    (conf-set! '(db dbd) dbd)
-    (conf-set! '(db username) user)
-    (conf-set! '(db passwd) passwd)
-    (init-inner-database-item))
-   (else (error init-database-config "Invalid database config!" dbd user passwd))))
+(define (init-database-config dbd user passwd dbname)
+  ;; if dbd is not specified, it's mysql in default.
+  (conf-set! '(db dbd) (or dbd "mysql"))
+  ;; if username is not specified, it's root in default.
+  (conf-set! '(db username) (or user "root"))
+  ;; if passwd is not specified, it's null in default.
+  (conf-set! '(db passwd) (or passwd ""))
+  ;; if dbname is not specified. it's artanis in default.
+  (conf-set! '(db name) (or dbname "artanis"))
+  ;; start to init database
+  (init-inner-database-item))
 
 ;; Could be used by cli for specifying user customized config file.
 ;; TODO: Users don't have to call init-config themselves, but call cli:
