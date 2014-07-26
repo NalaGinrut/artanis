@@ -59,6 +59,12 @@
            (r (:conn rc (->sql select * from 'Persons (where #:Lastname "lei")))))
       (object->string (DB-get-top-row r)))))
 
+(get "^/conn[+]str/:name"
+     #:conn #t #:str "select * from Persons where Lastname=${:name}"
+  (lambda (rc)
+    (let ((r (:conn rc (:str rc))))
+      (object->string (DB-get-top-row r)))))
+
 (run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-passwd "123" #:debug #t)
 
 ;;(run)
