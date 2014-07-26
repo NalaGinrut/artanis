@@ -96,8 +96,12 @@
 
 ;; for #:str
 (define (str-maker fmt rule keys)
-  (let ((tpl (apply make-string-template fmt)))
+  (let ((tpl (make-db-string-template fmt)))
     (lambda (rc . args)
+      ;; NOTE: since binding-table will be delayed to init, so we
+      ;;       must check and maybe init it here.
+      (unless (rc-bt rc) (init-rule-key-bindings! rc))
+      (display (alist->kblist (rc-bt rc)))(newline)
       (and tpl (apply tpl (alist->kblist (rc-bt rc)))))))
 
 ;; returns a queried conn, users have to get result by themselves.

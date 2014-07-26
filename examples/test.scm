@@ -46,20 +46,22 @@
 ;; values (1,"lei","mu","adsf","sz");
 
 
-(get "^/raw-sql"
+(get "^/raw-sql$"
      #:raw-sql "select * from Persons where Lastname='lei'"
   (lambda (rc)
     (let ((r (:raw-sql rc 'top)))
       (object->string r))))
 
-(get "^/conn/:name"
+;; curl localhost:3000/conn/lei
+(get "^/conn/:name$"
      #:conn #t
   (lambda (rc)
     (let* ((name (params rc "name"))
            (r (:conn rc (->sql select * from 'Persons (where #:Lastname "lei")))))
       (object->string (DB-get-top-row r)))))
 
-(get "^/conn[+]str/:name"
+;; curl localhost:3000/conn+str/lei
+(get "^/conn[+]str/:name$"
      #:conn #t #:str "select * from Persons where Lastname=${:name}"
   (lambda (rc)
     (let ((r (:conn rc (:str rc))))
