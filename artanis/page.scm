@@ -73,13 +73,16 @@
                                (charset . ,(get-conf '(server charset)))))
    (page-show (status->page status) #f)))
 
+(define (rc-conn-recycle rc)
+  (DB-close (rc-conn rc)))
+
 (define (handler-pre-hook rq body)
   ;; Add your pre hook here
   #t)
 
 (define (handler-post-hook rc body)
   ;; Add your post hook here
-  #t)
+  (rc-conn-recycle rc))
   
 (define (handler-render handler rc)
   (call-with-values
