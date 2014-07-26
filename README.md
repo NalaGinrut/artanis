@@ -2,37 +2,35 @@ Artanis
 =========
 
 Artanis aims to be a very lightweight web framework for Scheme.
+The philosophy of Artanis would be very radical to try cutting-edge things.
+So you are under your own risk to use it. However, it may bring cool experiences
+when you play it. 
+
+TODO: Move all the APIs to docs page.
 
 ## Features:
 
-* very lightweight: the core artanis.scm almost 300 lines, easy to hack
-and learn for newbies.
-* a relative complete web-server implementation, include error page
-handler, support all the HTTP methods (you have to specify your own handler)
-* 10K concurrent performance for the server, takes advantage of the
-Guile inner server. It's enough for your own site/blog.
-* sinatra like style route, that's why it names "artanis" ;-)
-* Database support (now using guile-dbi), mysql/sqlite/postgresql. But it's
-easy to port to other database binding.
-* session support
-* HTML template of SXML (very easy to use for Lisper)
+* Very lightweight: easy to hack and learn for newbies.
+* A complete web-server implementation, include error page handler.
+* Aim to be high concurrency performance of the server in the future.
+* sinatra-like style route, that's why it names "artanis" ;-)
+* Database support(with guile-dbi): mysql/sqlite/postgresql.
+* Easy and nice web cache control.
+* Efficient HTML template parsing.
 
 ## INSTALL:
 First, you need Guile-2.x:
 http://www.gnu.org/software/guile/
 Or just install it with your apt-get/zypper/yum...
-I suggest you install Guile-2.0.9 which is the best release so far.
-And Artanis will be developped based on 2.0.9 till its first official release version.
+Guile-2.0.11 is recommended. It's OK if you try Guile-2.2(the master branch).
 
-You need guile-dbi to handle database:
+You need guile-dbi to handle database, please use the highest release:
 http://download.gna.org/guile-dbi/
 
-And you need specified dbd to control the database, you have three choices:
+And you need dbd to control the specified database, you have three choices:
 * guile-dbd-mysql
 * guile-dbd-postgresql
 * guile-dbd-sqlite3
-
-All the database operations are in (artanis db).
 
 NOTE: For our example/blog.scm, you need guile-dbd-mysql
 
@@ -53,6 +51,7 @@ It's very easy to use:
 
 ```scheme
 (init-server) ; make sure alway put it in the main script head.
+(use-modules (artanis artanis)) ; use (artanis artanis) module is enough for all things!
 (define my-var #f) ; a global var for later use
 
 ;; get means GET method in HTTP protocol, and you may use:
