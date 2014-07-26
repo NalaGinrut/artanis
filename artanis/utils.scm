@@ -527,7 +527,7 @@
     (cond
      ((null? next) ret)
      (else
-      (let ((k (symbol->keyword (symbol-append ': (car (car next)))))
+      (let ((k (string->keyword (string-append ":" (car (car next)))))
             (v (cdr (car next))))
         (lp (cdr next) (cons k (cons v ret))))))))
 
