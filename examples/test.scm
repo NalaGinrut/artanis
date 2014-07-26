@@ -28,8 +28,17 @@
   (lambda (rc)
     (:cache rc "hello world")))
 
+;; test database
+(get "^/raw-sql/test"
+     #:raw-sql "select * from Persons where Lastname='lei'"
+  (lambda (rc)
+    (let ((r (:raw-sql rc 'top)))
+      (display r)(newline)
+      (object->string r))))
+
 ;; BUG:
 ;; There's a bug returned #f as body when we enabled DB:
-;; e.g: (run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-passwd "123")
+;; e.g:
+(run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-passwd "123" #:debug #t)
 
-(run)
+;;(run)

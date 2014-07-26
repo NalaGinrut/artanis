@@ -44,6 +44,7 @@
             :sql-mapping
             :str
             :conn
+            :raw-sql
             :cookies
             :cache
             :cookies-set!
@@ -107,6 +108,18 @@
          (let ((conn (current-connection)))
            (DB-query conn sql)
            conn))))
+
+(define (raw-sql-maker sql rule keys)
+  (lambda (rc mode)
+    (display "now here:\n")
+    (display (current-connection))(newline)
+    (let ((r (DB-query (current-connection) sql)))
+      (display "yyyyyyy\n")(display r)(newline)
+      (match mode
+        ('all (DB-get-all-rows r))
+        ('top (DB-get-top-row r))
+        ((? positive? n) (DB-get-n-rows r n))
+        (else (throw 'artanis-err 500 "raw-sql: Invalid mode!" mode))))))
 
 ;; for #:cache
 (define (cache-maker pattern rule keys)
@@ -200,6 +213,20 @@
     ;;       (:conn rc "select * from articles")))
     (#:conn . ,conn-maker)
 
+    ;; Raw simple sql query
+    ;; NOTE: Raw sql is a const string of valid SQL.
+    ;; E.g: (get "/sqltest"
+    ;;       #:raw-sql "select * from Persons where name='nala'"
+    ;;       (lambda (rc)
+    ;;        (:raw-sql rc 'all)))
+    ;; It's used for a quick query, but you can't modify/specify query on the fly. 
+    ;; Usage:
+    ;;  :raw-sql procedure accepts three modes:
+    ;; 1. 'all for getting all results.
+    ;; 2. certain number n for getting top n results.
+    ;; 3. 'top for getting the top result.
+    (#:raw-sql . ,raw-sql-maker)
+
     ;; Web caching
     ;; The default value is #f.
     ;; This is useful for web caching.
@@ -235,6 +262,7 @@
 (meta-handler-register sql-mapping)
 (meta-handler-register str)
 (meta-handler-register conn)
+(meta-handler-register raw-sql)
 (meta-handler-register cookies)
 (meta-handler-register cache)
 (define-syntax-rule (:cookies-set! ck k v)
