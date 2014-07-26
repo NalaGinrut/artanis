@@ -28,17 +28,37 @@
   (lambda (rc)
     (:cache rc "hello world")))
 
-;; test database
-(get "^/raw-sql/test"
+;; test database (here we use mysql/mariaDB for an example)
+;; there's a table for testing:
+;; CREATE TABLE Persons
+;; (
+;; PersonID int,
+;; LastName varchar(255),
+;; FirstName varchar(255),
+;; Address varchar(255),
+;; City varchar(255)
+;; );
+
+;; And insert some data:
+
+;; insert into Persons
+;; (PersonID,Lastname,Firstname,Address,City)
+;; values (1,"lei","mu","adsf","sz");
+
+
+(get "^/raw-sql"
      #:raw-sql "select * from Persons where Lastname='lei'"
   (lambda (rc)
     (let ((r (:raw-sql rc 'top)))
-      (display r)(newline)
       (object->string r))))
 
-;; BUG:
-;; There's a bug returned #f as body when we enabled DB:
-;; e.g:
+(get "^/conn/:name"
+     #:conn #t
+  (lambda (rc)
+    (let* ((name (params rc "name"))
+           (r (:conn rc (->sql select * from 'Persons (where #:Lastname "lei")))))
+      (object->string (DB-get-top-row r)))))
+
 (run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-passwd "123" #:debug #t)
 
 ;;(run)
