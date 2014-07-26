@@ -20,6 +20,7 @@
   #:use-module (artanis env)
   #:use-module (artanis tpl)
   #:use-module (artanis db)
+  #:use-module (artanis ssql)
   #:use-module (artanis oht)
   #:use-module (artanis route)
   #:use-module (artanis page)
@@ -51,6 +52,21 @@
                :cookies-set!
                :cookies-ref
                :cookies-update!
+
+               ;; db module
+               DB-open
+               DB-close
+               DB-query
+               DB-result-status
+               DB-get-all-rows
+               DB-get-top-row
+               DB-get-n-rows
+               init-DB
+               current-connection
+
+               ;; ssql module
+               ->sql
+               where
 
                ;; route module
                rc-handler rc-handler!
