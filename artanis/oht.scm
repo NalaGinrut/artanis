@@ -90,15 +90,6 @@
          (h (and oht (hash-ref oht opt))))
     (and h (h rc args ...))))
 
-;; delay to open conn iff it's required.
-(define-syntax-rule (try-open-DB-connection-for-rc rc)
-  (let ((conn (rc-conn rc)))
-    (or conn
-        (let ((new-conn (DB-open)))
-          (rc-conn! rc new-conn)
-          new-conn))))
-
-
 ;; --------------------------------------------------------------
 ;; oht handlers
 
@@ -113,7 +104,7 @@
 (define (conn-maker yes? rule keys)
   (and yes?
        (lambda (rc sql)
-         (let ((conn (try-open-DB-connection-for-rc rc)))
+         (let ((conn (current-connection)))
            (DB-query conn sql)
            conn))))
 
