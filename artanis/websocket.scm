@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013
+;;  Copyright (C) 2013,2014
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
 (define-module (artanis websocket)
   #:use-module (artanis utils)
-  #:use-module (artanis base64)
+  #:use-module (artanis crypto base64)
   #:use-module (ice-9 iconv)
   #:use-module (rnrs bytevectors)
   #:use-module (web request)

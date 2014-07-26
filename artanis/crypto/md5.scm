@@ -24,7 +24,7 @@ referenced C implementation into Scheme.
 ;;; Code:
 !#
 
-(define-module (artanis md5)
+(define-module (artanis crypto md5)
   #:use-module (ice-9 rw)
   #:export (md5))
 

@@ -15,8 +15,8 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis utils)
-  #:use-module (artanis md5)
-  #:use-module (artanis sha-1)
+  #:use-module (artanis crypto md5)
+  #:use-module (artanis crypto sha-1)
   #:use-module (artanis config)
   #:use-module (artanis irregex)
   #:use-module (artanis mime)

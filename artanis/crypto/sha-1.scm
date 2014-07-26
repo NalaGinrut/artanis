@@ -1,5 +1,7 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
 ;; Copyright © 2009, 2010, 2012 Göran Weinholt <goran@weinholt.se>
+;; Copyright (C) 2014
+;; Mu Lei known as NalaGinrut <nalaginrut@gmail.com>
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a
 ;; copy of this software and associated documentation files (the "Software"),
@@ -26,7 +28,7 @@
 ;; TODO: give an error if more than 2^64 bits are processed?
 ;; TODO: Optimize. Should be simple enough with the help of a profiler.
 
-(library (artanis sha-1)
+(library (artanis crypto sha-1)
   (export make-sha-1 sha-1-update! sha-1-finish! sha-1-clear!
           sha-1 sha-1-copy sha-1-finish
           sha-1-transform!              ;for interested parties only
