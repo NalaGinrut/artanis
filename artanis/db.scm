@@ -28,6 +28,8 @@
             DB-query
             DB-result-status
             DB-get-all-rows
+            DB-get-top-row
+            DB-get-n-rows
             init-DB
             current-connection))
 
@@ -45,7 +47,7 @@
   ;; port: 3306, addr: localhost, dbname: artanis
   (fields dbname port addr socketfile))
 
-(define-syntax-rule (->mysql mysql)
+(define (->mysql mysql)
   (match mysql
     (($ <mysql> ($ <db> _ username passwd) dbname port addr #f)
      (format #f "~a:~a:~a:tcp:~a:~a" username passwd dbname addr port))
@@ -59,7 +61,7 @@
   ;; default dbname: artanis
   (fields dbname))
 
-(define-syntax-rule (->sqlite3 sqlite3)
+(define (->sqlite3 sqlite3)
   (match sqlite3
     (($ <sqlite3> ($ <db> _ username passwd) dbname)
      dbname) ; FIXME: is it necessary for sqlite3 to require username/passwd??
@@ -70,7 +72,7 @@
   ;; postgresql need addr:port to open
   (fields dbname port addr))
 
-(define-syntax-rule (->postgresql postgresql)
+(define (->postgresql postgresql)
   (match postgresql
     (($ <postgresql> ($ <db> _ username passwd) dbname port addr)
      (format #f "~a:~a:~a:tcp:~a:~a" username passwd dbname addr port))
@@ -79,11 +81,15 @@
 ;; NOTE:
 ;; DB-do-conn! returns <connection> object.
 (define (DB-do-conn! db)
+  (define (process dbdname converter)
+    (let ((cstr (converter db)))
+      (and (get-conf 'debug-mode) (format #t "<~a> ~a~%" dbdname cstr))
+      (dbi-open dbdname cstr)))
   (define conn
     (cond
-     ((<mysql>? db) (dbi-open "mysql" (->mysql db)))
-     ((<sqlite3>? db) (dbi-open "sqlite3" (->sqlite3 db)))
-     ((<postgresql>? db) (dbi-open "postgresql" (->postgresql db)))
+     ((<mysql>? db) (process "mysql" ->mysql))
+     ((<sqlite3>? db) (process "sqlite3" ->sqlite3))
+     ((<postgresql>? db) (process "postgresql" ->postgresql))
      (else (error DB-do-conn! "Invalid DB!" db))))
   (make-<connection> 'open conn))
 
@@ -112,9 +118,9 @@
       (else (error new-DB "Something is wrong, invalid db!" db)))))
 
 (define (get-conn-from-pool worker)
-  (unless *conn-pool*
-    (vector-ref *conn-pool* worker)
-    (error get-conn-from-pool "Seems the *conn-pool* wasn't well initialized!" *conn-pool*)))
+  (if *conn-pool*
+      (vector-ref *conn-pool* worker)
+      (error get-conn-from-pool "Seems the *conn-pool* wasn't well initialized!" *conn-pool*)))
 
 (define (%db-conn-stat conn ret)
   (ret (dbi-get_status (<connection>-conn conn))))
@@ -155,7 +161,11 @@
     (throw 'artanis-err 500 "DB-query: Can't query from a closed connection!" conn))
    ((not (string? sql))
     (throw 'artanis-err 500 "DB-query: Invalid SQL string!" sql))
-   (else (dbi-query (<connection>-conn conn) sql))))
+   (else
+    (dbi-query (<connection>-conn conn) sql)
+    (when (not (db-conn-success? conn))
+      (error DB-query "Database connect failed: " (db-conn-failed-reason conn)))
+    conn)))
 
 ;; NOTE: actually it never close the connection, just recycle it.
 (define (DB-close conn)
@@ -185,7 +195,27 @@
     (let lp((next (dbi-get_row (<connection>-conn conn))) (result '()))
       (if next
           (lp (dbi-get_row (<connection>-conn conn)) (cons next result))
-          (reverse result))))))
+          (reverse! result))))))
+
+(define (DB-get-top-row conn)
+  (cond
+   ((not (<connection>? conn))
+    (throw 'artanis-err 500 "DB-get-top-row: Invalid DB connection!" conn))
+   ((not (eq? (<connection>-status conn) 'open))
+    (throw 'artanis-err 500 "DB-get-top-row: Can't query from a closed connection!" conn))
+   (else (dbi-get_row (<connection>-conn conn)))))
+
+(define (DB-get-n-rows conn n)
+  (cond
+   ((not (<connection>? conn))
+    (throw 'artanis-err 500 "DB-get-n-row: Invalid DB connection!" conn))
+   ((not (eq? (<connection>-status conn) 'open))
+    (throw 'artanis-err 500 "DB-get-n-row: Can't query from a closed connection!" conn))
+   (else
+    (let lp((next (dbi-get_row (<connection>-conn conn))) (cnt 0) (result '()))
+      (if (or next (< cnt n))
+          (lp (dbi-get_row (<connection>-conn conn)) (1+ cnt) (cons next result))
+          (reverse! result))))))
 ;;--------------------------------------------------------------------
 
 (define (current-connection)
