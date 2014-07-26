@@ -42,7 +42,7 @@
             new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
             stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
             queue-empty? list->stack list->queue stack-remove! queue-remove!
-            orm:log plist->alist make-db-string-template non-list?
+            plist->alist make-db-string-template non-list?
             keyword->string range oah->handler oah->opts string->keyword
             alist->klist alist->kblist is-hash-table-empty?)
   #:re-export (the-environment))
@@ -475,24 +475,6 @@
 (define* (list->queue lst #:optional (queue (new-queue)))
   (for-each (lambda (x) (queue-in! queue x)) lst)
   queue)
-
-(define current-prefix (make-parameter "[ORM]: "))
-(define* (orm:log . args)
-  (define out (current-error-port))
-  (define (->level lev)
-    (case lev
-      ((normal) "")
-      ((warning error fatal) (format #f " ~:@(~a~)" lev))
-      (else (throw 'artanis-err "Invalid log level you specified!" lev))))
-  (match args
-    (((? symbol? level) . rest)
-     (parameterize ((current-prefix (string-append "[ORM" (->level level) "]: ")))
-       (apply orm:log rest)))
-    (((? string? fmt) . rest)
-     (display (current-prefix) out)
-     (apply format out fmt rest)
-     (newline out))
-    (else (throw 'artanis-error 500 "orm:log Invalid args" args))))
 
 ;; NOTE: keyword could be the value, so this version is correct.
 (define (plist->alist lst)
