@@ -25,8 +25,6 @@
 (define-module (artanis server)
   #:use-module (artanis utils)
   #:use-module (artanis config)
-  #:export (current-worker
-            current-connection-pool))
+  #:export (current-worker))
 
-(define current-worker (make-parameter #f))
-(define current-connection-pool (make-parameter #f))
+(define current-worker (make-parameter 1))
