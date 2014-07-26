@@ -165,9 +165,11 @@
     ;;(->sql create view 'mmr select '(a b) from 'tmp where "a=1 and b=2")
     ((_ view name as select rest ...)
      (-> end "create view ~a as select ~a" (sql-select rest ...)))
-    ;; (->sql create index 'PersonID on 'Persons('PersonID))
-    ((_ index iname on tname (column))
-     (-> end "create index ~a on ~a(~a)" iname tname column))))
+    ;; (->sql create index 'PersonID on 'Persons '(PersonID))
+    ((_ index iname on tname columns)
+     (-> end "create index ~a on ~a(~{~a~^,~})" iname tname columns))
+    ((_ unique index iname on tname columns)
+     (-> end "create unique index ~a on ~a(~{~a~^,~})" iname tname columns))))
 
 (define-syntax sql-alter
   (syntax-rules (table rename to add modify drop column as select)
