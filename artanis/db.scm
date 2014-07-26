@@ -28,7 +28,8 @@
             DB-query
             DB-result-status
             DB-get-all-rows
-            init-DB))
+            init-DB
+            current-connection))
 
 ;; NOTE:
 ;; <db> is only used for store connect config info, it doens't contain
@@ -186,6 +187,9 @@
           (lp (dbi-get_row (<connection>-conn conn)) (cons next result))
           (reverse result))))))
 ;;--------------------------------------------------------------------
+
+(define (current-connection)
+  (get-conn-from-pool (current-worker)))
 
 (define (init-DB)
   (init-connection-pool))
