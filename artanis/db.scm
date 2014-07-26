@@ -18,7 +18,7 @@
   #:use-module (artanis utils)
   #:use-module (artanis config)
   #:use-module (artanis server)
-  #:use-module (artanis route)
+  #:use-module (artanis route) 
   #:use-module (artanis env)
   #:use-module (dbi dbi)
   #:use-module (ice-9 match)
@@ -30,8 +30,7 @@
             DB-get-all-rows
             DB-get-top-row
             DB-get-n-rows
-            init-DB
-            current-connection))
+            init-DB))
 
 ;; NOTE:
 ;; <db> is only used for store connect config info, it doens't contain
@@ -100,7 +99,7 @@
    conn))
 
 (define (new-DB)
-  ;; TODO: 
+  ;; TODO:
   ;; 1. Implement a new config module
   ;; 2. Add a new global var to hold DB object (or global env table?).
   ;;    Init new DB on the fly is not allowed.
@@ -148,11 +147,14 @@
 
 ;; ---------------------conn operations-------------------------------
 ;; Actually, it's not `open', but get a conn from pool.
-(define (DB-open)
+(define (DB-open rc)
   (let ((conn (get-conn-from-pool (current-worker))))
     (<connection>-status-set! conn 'open)
+    (rc-conn! rc conn)
     conn))
 
+;; FIXME: The first level to avoid SQL-injection is that run only one valid statment each time.
+;;        So we have to find the index of first valid semi-colon, then use substring.
 (define (DB-query conn sql)
   (cond
    ((not (<connection>? conn))
@@ -167,7 +169,7 @@
       (error DB-query "Database connect failed: " (db-conn-failed-reason conn)))
     conn)))
 
-;; NOTE: actually it never close the connection, just recycle it.
+;; NOTE: actually it'll never close the connection, just recycle it.
 (define (DB-close conn)
   (cond
    ((not (<connection>? conn))
@@ -175,6 +177,15 @@
    ((eq? (<connection>-status conn) 'closed)
     (throw 'artanis-err 500 "DB-close: the connection is already closed!" conn))
    (else
+    ;; NOTE: Because of Artanis uses green-thread, all requests share the same
+    ;;       DB connection, so it's dangerous to leave the connection to next
+    ;;       request!
+    ;;       We use "select NULL;" here to clear the last query, sometimes last
+    ;;       request may left some results weren't clear. It's reasonable! Since
+    ;;       sometimes we don't use DB-get-all-rows, which means something will
+    ;;       be left in the <connection> object.
+    ;; NOTE: "select null;" is safe and quickly to clear the last query.
+    (DB-query conn "select null;")
     (<connection>-status-set! conn 'closed))))
 
 (define (DB-result-status conn)
