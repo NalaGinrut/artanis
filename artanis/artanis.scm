@@ -62,7 +62,6 @@
                DB-get-top-row
                DB-get-n-rows
                init-DB
-               current-connection
 
                ;; ssql module
                ->sql
