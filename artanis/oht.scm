@@ -68,6 +68,7 @@
 ;;       So my vote is changing its name, feel free to let me know if it's improper.
 (define (page-delete rule . opts-and-handler) (define-handler "DELETE" rule opts-and-handler))
 
+;; NOTE: we banned "\" in the path to avoid SQL-injection!!!
 (define *rule-regexp* (make-regexp ":[^\\/]+"))    
 (define *path-keys-regexp* (make-regexp "/:([^\\/]+)"))
 
@@ -75,7 +76,7 @@
   (string-append "^" 
                  (regexp-substitute/global 
                   #f *rule-regexp* rule 'pre "([^\\/\\?]+)" 'post)
-                 "[^ ]?"))
+                 "[^ $]?$"))
 
 ;; parse rule-string and generate the regexp to parse keys from path-string
 (define (rule->keys rule)
@@ -97,12 +98,11 @@
 ;; for #:str
 (define (str-maker fmt rule keys)
   (let ((tpl (make-db-string-template fmt)))
-    (lambda (rc . args)
+    (lambda (rc . kargs)
       ;; NOTE: since binding-table will be delayed to init, so we
       ;;       must check and maybe init it here.
       (unless (rc-bt rc) (init-rule-key-bindings! rc))
-      (display (alist->kblist (rc-bt rc)))(newline)
-      (and tpl (apply tpl (alist->kblist (rc-bt rc)))))))
+      (and tpl (apply tpl `(,@(alist->kblist (rc-bt rc)) ,@kargs))))))
 
 ;; returns a queried conn, users have to get result by themselves.
 ;; for #:conn
@@ -171,7 +171,7 @@
       (else (throw 'artanis-err "cookies-maker: Invalid operation!" op)))))
 ;; ---------------------------------------------------------------------------------
   
-;; NOTE: these handlers should never be exported!
+;; NOTE: these short-cut-maker should never be exported!
 ;; ((handler arg rule keys) rc . args)
 ;; NOTE: If the keyword wasn't specified while defining the url-remap,
 ;;       the handler should return #f.
@@ -188,20 +188,26 @@
     (#:str . ,str-maker)
 
     ;; short-cut for authentication
-    ;; #:auto accepts these values:
-    ;; 1. (table username passwd)
-    ;; 2. (table-name crypto-proc)
-    ;; 3. SQL as string
-    ;; e.g (get "/login" 
-    ;;      #:auth "select ${mypasswd} from blog where usrname=${myname}"
+    ;; #:auth accepts these values:
+    ;; 1. SQL as string
+    ;; 2. (table-name username-field passwd-field crypto-proc)
+    ;; 3. (table-name crypto-proc), so passwd field will be "passwd" in default.
+    ;; e.g (get "/auth" 
+    ;;      #:auth "select ${passwd} from blog where usrname=${myname}"
     ;;      (lambda (rc)
-    ;;       (:auth rc #:usrname "myname" #:passwd "mypasswd")
+    ;;       (:auth rc #:usrname (params rc "username") #:passwd (params rc "passwd"))
     ;;       ...))
-    ;; or (get "/login" #:auth 'blog
-    ;;      (lambda (rc)
-    ;;       (:auth rc #:usrname "mmr" #:passwd "123") ...))
     ;; The #:usrname and #:passwd will be expaned automatically.
-    ;; TODO: working on this
+    ;; or (get "/auth" #:auth `(blog "myuser" "mypasswd" ,string->md5)
+    ;;     (lambda (rc)
+    ;;      (if (:auth rc)
+    ;;          (redirect-to rc "/dashboard")
+    ;;          (redirect-to rc "/login?auth_failed=true"))))
+    ;; or (get "/auth" #:auth `(blog ,string->md5)
+    ;;     (lambda (rc)
+    ;;      (if (:auth rc)
+    ;;          (redirect-to rc "/dashboard")
+    ;;          (redirect-to rc "/login?auth_failed=true"))))
     (#:auth . ,auth-maker)
 
     ;; Auto connection
