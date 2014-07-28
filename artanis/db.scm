@@ -142,7 +142,7 @@
            (error init-connection-pool "Database connect failed: " (db-conn-failed-reason conn)))
          (vector-set! *conn-pool* i conn)))
      (iota pool-size))
-    (display "ok\n")
+    (display "DB pool init ok!\n")
     (format #t "Now there's ~a pool~:p in total.~%" pool-size)))
 
 ;; ---------------------conn operations-------------------------------
@@ -166,7 +166,7 @@
    (else
     (dbi-query (<connection>-conn conn) sql)
     (when (not (db-conn-success? conn))
-      (error DB-query "Database connect failed: " (db-conn-failed-reason conn)))
+      (throw 'artanis-err 500 "DB-query: Database connect failed: " (db-conn-failed-reason conn)))
     conn)))
 
 ;; NOTE: actually it'll never close the connection, just recycle it.
