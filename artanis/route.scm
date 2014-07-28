@@ -105,6 +105,9 @@
     (init-rule-path-regexp! rc) ; set regexp
     rc))
 
+;; compiled regexp for optimization
+(define *key-regexp* (make-regexp "([^ ]+) (.+)"))
+
 ;; find & set the key of rule-handler,
 ;; which is used to find the (handler . keys)
 ;; FIXME: each method should have a own table
@@ -145,6 +148,7 @@
     (string-trim-both x (lambda (c) (member c '(#\sp #\: #\return)))))
   (let ((str (case (rc-method rc)
                 ((GET) (uri-query (request-uri (rc-req rc))))
+                ;; The accessor of GET and POST should be divided
                 ((POST) ((@ (rnrs) utf8->string) (rc-body rc)))
                 (else (throw 'artanis-err 405 
                              "wrong method for query!" (rc-method rc))))))
@@ -161,6 +165,3 @@
   (and (rc-qt rc)
        (let ((v (assoc-ref (rc-qt rc) key)))
          (and v (car v)))))
-
-;; compiled regexp for optimization
-(define *key-regexp* (make-regexp "([^ ]+) (.+)"))
