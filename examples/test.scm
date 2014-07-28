@@ -24,7 +24,7 @@
       (tpl->response "my.tpl" (the-environment)))))
 
 ;; simple cache test (for dynamic content)
-(get "/new$" #:cache #t
+(get "/new" #:cache #t
   (lambda (rc)
     (:cache rc "hello world")))
 
@@ -45,27 +45,46 @@
 ;; (PersonID,Lastname,Firstname,Address,City)
 ;; values (1,"lei","mu","adsf","sz");
 
+;; Add this person for testing SQL-injection:
+;; insert into Persons (PersonID,Lastname,Firstname,Address, City)
+;; values (2,"ada","wang","secret","classified")
 
-(get "^/raw-sql$"
+(define (result->html r)
+  (if r
+      (call-with-output-string
+       (lambda (port)
+         (for-each (lambda (e) (format port "<p>~a: ~a</p>" (car e) (cdr e))) r)))
+      "no result"))
+
+(get "/raw-sql"
      #:raw-sql "select * from Persons where Lastname='lei'"
   (lambda (rc)
     (let ((r (:raw-sql rc 'top)))
-      (object->string r))))
+      (result->html r))))
 
 ;; curl localhost:3000/conn/lei
-(get "^/conn/:name$"
+(get "/conn/:name"
      #:conn #t
   (lambda (rc)
     (let* ((name (params rc "name"))
-           (r (:conn rc (->sql select * from 'Persons (where #:Lastname "lei")))))
-      (object->string (DB-get-top-row r)))))
+           (r (:conn rc (->sql select * from 'Persons (where #:Lastname name)))))
+      (result->html (DB-get-top-row r)))))
+
+(use-modules (web uri))
+;; curl localhost:3000/conn/lei;select * from Persons;
+(get "/fucked/:name"
+     #:conn #t
+  (lambda (rc)
+    (let* ((name (uri-decode (params rc "name")))
+           (r (:conn rc (->sql select * from 'Persons (where #:Lastname name)))))
+      (result->html (DB-get-top-row r)))))
 
 ;; curl localhost:3000/conn+str/lei
-(get "^/conn[+]str/:name$"
+(get "/conn[+]str/:name"
      #:conn #t #:str "select * from Persons where Lastname=${:name}"
   (lambda (rc)
     (let ((r (:conn rc (:str rc))))
-      (object->string (DB-get-top-row r)))))
+      (result->html (DB-get-top-row r)))))
 
 (run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-passwd "123" #:debug #t)
 
