@@ -45,20 +45,40 @@
 ;;       ;; TODO
 ;;       #t)))
      
+;; TODO: Should add user customerized unauth page
 (define (auth-maker val rule keys)
-  #f)
-;; ;; TODO: Should add user customerized unauth page
-;; (define (auth-maker val rule keys)
-;;   (define sql
-;;     (match val
-;;       ((table username passwd)
-;;        (->sql select passwd from table where `(= usrname ,username)))
-;;       ((? string? tpl)
-;;        (make-db-string-template tpl))
-;;       (else (error auth-maker "wrong pattern"))))
-;;   (define tpl (make-db-string-template sql-tpl))
-;;   (lambda (rc . kargs)
-;;     (let ((bt (rc-bt rc)))
-;;       #t
-;;       ;; TODO
-;;       )))
+  (define crypto identity)
+  (define mode #f)
+  (define passwd "passwd")
+  (define username "username")
+  (define-syntax-rule (checker r pw str)
+    (string=? (crypto (params r pw))
+              (DB-query (DB-open rc) str)))
+  (define sql
+    (match val
+      (((? symbol? table) username-field passwd-field crypto-proc)
+       (set! crypto crypto-proc)
+       (set! mode 'specified-field)
+       (set! passwd passwd-field)
+       (set! username username-field)
+       (->sql select passwd-field from table (where #:usrname username-field)))
+      (((? symbol? table) crypto-proc)
+       (set! crypto crypto-proc)
+       (set! mode 'only-table)
+       (->sql select passwd from table (where #:usrname username)))
+      ((? string? tpl)
+       (set! mode 'tpl)
+       (make-db-string-template tpl))
+      (else (error auth-maker "wrong pattern"))))
+  (lambda (rc . kargs)
+    (match mode
+      ('specified-field
+       (unless (rc-bt rc) (init-rule-key-bindings! rc))
+       (checker rc passwd sql))
+      ('only-table
+       (checker rc passwd sql))
+      ('tpl
+       (unless (rc-bt rc) (init-rule-key-bindings! rc))
+       (apply sql `(,@(alist->kblist (rc-bt rc)) ,@kargs)))
+      (else 
+       (throw 'artanis-err 500 "auth-maker: Invalid mode!" mode)))))
