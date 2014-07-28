@@ -87,7 +87,7 @@
 (define (default-route-init)
   ;; avoid a common warn
   (get "/$" (lambda () "no index.html but it works!"))
-  (get "/.+\\.(png|jpg|jpeg|ico|html|js|css)$" 
+  (get "/.+\\.(png|jpg|jpeg|ico|html|js|css)" 
    (lambda (rc) 
      (emit-response-with-file (static-filename (rc-path rc))))))
 
@@ -109,7 +109,9 @@
   ;; Since config file was handled in (init-server), users' config can override it.
   (and host (conf-set! '(host addr) host))
   (and port (conf-set! '(host port) port))
-  (and debug (conf-set! 'debug-mode #t))
+  (when debug
+    (display "DEBUG: ON\n")
+    (conf-set! 'debug-mode #t))
   (when use-db?
     (conf-set! 'use-db? #t)
     (display "Users want to use Database, initializing...\n")
