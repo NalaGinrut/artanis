@@ -74,7 +74,7 @@
    (page-show (status->page status) #f)))
 
 (define (rc-conn-recycle rc)
-  (DB-close (rc-conn rc)))
+  (and=> (rc-conn rc) DB-close))
 
 (define (handler-pre-hook rq body)
   ;; Add your pre hook here
