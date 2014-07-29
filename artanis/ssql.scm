@@ -244,6 +244,9 @@
        (string-concatenate `(" where",str ,(if (null? rest) "" " and ") ,(apply where rest)))))
     ;; OR mode:
     ;; (where #:name '(John Tom Jim)) ==> name="John" or name="Tom" or name="Jim"
+    ;; TODO:
+    ;; (where (pick #:name 'John #:age 15)) ==> name="John" or age="15"
+    ;; Complex rules could be done with string templation.
     (((? keyword? key) (vals ...) . rest)
      (let ((fmt (string-concatenate `(" where " "~{" ,(keyword->string key) "=\"~a\"~^ or ~}"))))
        (format #f fmt vals)))
