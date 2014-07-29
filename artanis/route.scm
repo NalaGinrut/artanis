@@ -73,7 +73,7 @@
   (regexp rc-re rc-re!) ; regexp to parse key-bindings
   (request rc-req rc-req!) ; client request
   ;; FIXME: actually we don't need this redundant path,
-  ;;        it's better get from request. 
+  ;;        it's better to get from request. 
   (path rc-path rc-path!) ; path from uri
   (qt rc-qt rc-qt!) ; query table
   ;; FIXME: the current Guile inner server treat HEAD as GET, so we
@@ -142,16 +142,16 @@
                  (rc-keys rc) (iota (1- (match:count m)) 1)))))
 
 (define (init-query! rc)
-  ;; NOTE: All the prefix ":" in query/post keys are trimmed.
+  ;; NOTE: All the prefix/postfix ":" in query/post keys are trimmed.
   ;;       Because only rule keys can use such naming.
   (define (-> x)
     (string-trim-both x (lambda (c) (member c '(#\sp #\: #\return)))))
   (let ((str (case (rc-method rc)
-                ((GET) (uri-query (request-uri (rc-req rc))))
-                ;; The accessor of GET and POST should be divided
-                ((POST) ((@ (rnrs) utf8->string) (rc-body rc)))
-                (else (throw 'artanis-err 405 
-                             "wrong method for query!" (rc-method rc))))))
+               ((GET) (uri-query (request-uri (rc-req rc))))
+               ;; The accessor of GET and POST should be divided
+               ((POST) ((@ (rnrs) utf8->string) (rc-body rc)))
+               (else (throw 'artanis-err 405 
+                            "wrong method for query!" (rc-method rc))))))
     (if str
         (rc-qt! rc (map (lambda (x) 
                           (map -> (string-split x #\=)))
@@ -163,5 +163,4 @@
 (define (get-from-qstr/post rc key)
   (unless (rc-qt rc) (init-query! rc))
   (and (rc-qt rc)
-       (let ((v (assoc-ref (rc-qt rc) key)))
-         (and v (car v)))))
+       (and=> (assoc-ref (rc-qt rc) key) car)))
