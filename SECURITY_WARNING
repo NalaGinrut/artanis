@@ -1,0 +1,25 @@
+This file is about the security issues of Artanis, include some advices or conventions.
+
+To avoid SQL-injection, please consider the following advices:
+
+1. DO NOT use any escapable chars in the binding field, say, whitespaces:
+   e.g: /conn/lei mu/
+   Please use underscore: /conn/lei_mu
+   In cause you forget to avoid to use uri-decode, see Rule 2 below.
+
+2. DO NOT use uri-decode on binding field:
+   e.g: /fucked/lei%22;select%20*%20from%20Persons%20where%20Lastname=%22ada
+   If you use (:conn rc (uri-decode (params rc "name"))),
+   then you're fucked...
+   Fortunatly, guile-dbd-mysql-2.0.4 doesn't enable CLIENT_MULTI_STATEMENTS
+   in default, which could avoid the injection mentioned above.
+   
+   BUT I suggest you do not rely on this lucky point, please follow the
+   conventions I written here.
+   
+   It's still possibly to be SQL-injected, say, passwd checking:
+   /list_my_info?username=lei%20or%20%22x%22=%22x%20;%23
+   And if someone is stupid enough to use uri-decode on
+   `username' because of using whitespaces in `username',
+   it's fucked! list_my_info is expected to list the info of user specified
+   in `username', but now, it'll show all the users' info include passwd.
