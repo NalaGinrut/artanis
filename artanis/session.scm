@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013
+;;  Copyright (C) 2013,2014
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -20,8 +20,20 @@
   #:use-module (artanis config)
   #:use-module (srfi srfi-9)
   #:use-module (web request)
-  #:export (session-set! session-ref session-spawn session-destory 
-            session-restore get-session))
+  #:export (session-set!
+            session-ref
+            session-spawn
+            session-destory 
+            session-restore
+            get-session))
+
+;; TODO: Support session-engine:
+;; 1. add item session.engine into config.
+;; 2. session.engine = simple, for managing sessions with hashtable, memcached.
+;; 3. session.engine = db, for managing sessions with DB support.
+;; 4. session.engine = redis or memcached, for taking advantage of k-v-DB.
+;; 5. session.engine = certain-third-party, for letting users use third party methods.
+;; 6. To support all above, we need generic interfaces and flexible way to extend.
 
 ;; TODO: now we don't have swap algorithm yet, which means all the sessions
 ;;       are memcached.
