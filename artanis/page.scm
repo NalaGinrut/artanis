@@ -39,7 +39,10 @@
             tpl->response
             reject-method
             response-error-emit
-            server-handler))
+            server-handler
+            run-after-request!
+            run-before-response!
+            init-hook))
 
 ;; parse params while needed
 ;; the params will be searched in param-list first, then search from qstr/post
@@ -73,17 +76,32 @@
                                (charset . ,(get-conf '(server charset)))))
    (page-show (status->page status) #f)))
 
-(define (rc-conn-recycle rc)
+(define (rc-conn-recycle rc body)
   (and=> (rc-conn rc) DB-close))
 
-(define (handler-pre-hook rq body)
-  ;; Add your pre hook here
+(define (run-after-request-hook rq body)
+  (run-hook *after-request-hook* rq body))
+
+(define (run-before-response-hook rc body)
+  (run-hook *before-response-hook* rc body))
+
+(define (init-after-request-hook)
+  (add-hook! *after-request-hook* rc-conn-recycle))
+
+(define (init-before-response-hook)
   #t)
 
-(define (handler-post-hook rc body)
-  ;; Add your post hook here
-  (rc-conn-recycle rc))
-  
+(define (run-after-request! proc)
+  (add-hook! *after-request-hook* proc))
+
+(define (run-before-response! proc)
+  (add-hook! *before-response-hook* proc))
+
+;; NOTE: If you want to add hook during initialization time, put them here.
+(define (init-hook)
+  (init-after-request-hook)
+  (init-before-response-hook))
+
 (define (handler-render handler rc)
   (call-with-values
       (lambda ()
@@ -145,7 +163,7 @@
 
 (define (server-handler request request-body)
   ;; ENHANCE: could put some stat hook here
-  (handler-pre-hook request request-body)
+  (run-after-request-hook request request-body)
   (work-with-request request request-body))
 
 ;; proc must return the content-in-bytevector

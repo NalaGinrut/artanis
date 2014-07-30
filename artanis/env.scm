@@ -23,7 +23,9 @@
   #:export (*handlers-table*
             artanis-version
             *conf-hash-table*
-            *conn-pool*))
+            *conn-pool*
+            *before-response-hook*
+            *after-request-hook*))
 
 (include "version.scm")
 
@@ -37,3 +39,6 @@
 ;; NOTE: pool size equals to workers (work queues)
 ;; Each worker need just one connection, because of green-thread.
 (define *conn-pool* #f)
+
+(define *before-response-hook* (make-hook rq body))
+(define *after-request-hook* (make-hook rc body))

@@ -36,6 +36,8 @@
                tpl->response
                reject-method
                response-error-emit
+               run-after-request!
+               run-before-response!
 
                ;; oht module
                get
@@ -94,6 +96,7 @@
 ;; make sure to call init-server at the beginning
 (define (init-server)
   (default-route-init)
+  (init-hook)
   (init-config))
 
 (define (check-if-not-run-init-server)
