@@ -35,6 +35,9 @@
 ;; 5. session.engine = certain-third-party, for letting users use third party methods.
 ;; 6. To support all above, we need generic interfaces and flexible way to extend.
 
+;; TODO: session key-values should be flushed into set-cookie in rc, and should be encoded
+;;       with base64.
+
 ;; TODO: now we don't have swap algorithm yet, which means all the sessions
 ;;       are memcached.
 ;; memcached session
