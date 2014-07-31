@@ -44,11 +44,9 @@
             run-before-response!
             init-hook))
 
-;; parse params while needed
 ;; the params will be searched in param-list first, then search from qstr/post
 ;; TODO: qstr/post should be independent from rules binding.
 (define (params rc key)
-  (unless (rc-bt rc) (init-rule-key-bindings! rc))
   (or (assoc-ref (rc-bt rc) key)
       (get-from-qstr/post rc key)))
 
@@ -79,17 +77,17 @@
 (define (rc-conn-recycle rc body)
   (and=> (rc-conn rc) DB-close))
 
-(define (run-after-request-hook rq body)
+(define (run-after-request-hooks rq body)
   (run-hook *after-request-hook* rq body))
 
-(define (run-before-response-hook rc body)
+(define (run-before-response-hooks rc body)
   (run-hook *before-response-hook* rc body))
 
 (define (init-after-request-hook)
-  (add-hook! *after-request-hook* rc-conn-recycle))
+ #t)
 
 (define (init-before-response-hook)
-  #t)
+  (run-before-response! rc-conn-recycle))
 
 (define (run-after-request! proc)
   (add-hook! *after-request-hook* proc))
@@ -112,7 +110,7 @@
                    (status 200) 
                    (mtime (let ((t (current-time))) 
                             (cons (time-second t) (time-nanosecond t)))))
-      (handler-post-hook rc body)
+      (run-before-response-hooks rc body)
       (let ((type (assoc-ref pre-headers 'content-type)))
         (and type (log status (car type) (rc-req rc))))
       (values
@@ -163,7 +161,7 @@
 
 (define (server-handler request request-body)
   ;; ENHANCE: could put some stat hook here
-  (run-after-request-hook request request-body)
+  (run-after-request-hooks request request-body)
   (work-with-request request request-body))
 
 ;; proc must return the content-in-bytevector
