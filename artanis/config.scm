@@ -89,6 +89,7 @@
 (define (parse-namespace-session item)
   (match item
     (('path path) (conf-set! '(session path) path))
+    (('engine engine) (conf-set! '(session engine) engine))
     (else (error parse-namespace-session "Config: Invalid item" item))))
 
 (define (parse-namespace-upload item)
