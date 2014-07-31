@@ -73,12 +73,10 @@
   (lambda (rc . kargs)
     (match mode
       ('specified-field
-       (unless (rc-bt rc) (init-rule-key-bindings! rc))
        (checker rc passwd sql))
       ('only-table
        (checker rc passwd sql))
       ('tpl
-       (unless (rc-bt rc) (init-rule-key-bindings! rc))
        (apply sql `(,@(alist->kblist (rc-bt rc)) ,@kargs)))
       (else 
        (throw 'artanis-err 500 "auth-maker: Invalid mode!" mode)))))

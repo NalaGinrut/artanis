@@ -99,9 +99,6 @@
 (define (str-maker fmt rule keys)
   (let ((tpl (make-db-string-template fmt)))
     (lambda (rc . kargs)
-      ;; NOTE: since binding-table will be delayed to init, so we
-      ;;       must check and maybe init it here.
-      (unless (rc-bt rc) (init-rule-key-bindings! rc))
       (and tpl (apply tpl `(,@(alist->kblist (rc-bt rc)) ,@kargs))))))
 
 ;; returns a queried conn, users have to get result by themselves.

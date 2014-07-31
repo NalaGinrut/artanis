@@ -103,6 +103,7 @@
     (init-rule-handler-key! rc) ; set rule handler key
     (init-rule-handler-and-keys! rc) ; set handler and keys
     (init-rule-path-regexp! rc) ; set regexp
+    (init-rule-key-bindings! rc) ; key binding of path
     rc))
 
 ;; compiled regexp for optimization
@@ -158,9 +159,7 @@
                         (string-split str #\&)))
         '())))
 
-;; parse query or posted data while needed
 ;; ENHANCE: do we need query hashtable?
 (define (get-from-qstr/post rc key)
-  (unless (rc-qt rc) (init-query! rc))
   (and (rc-qt rc)
        (and=> (assoc-ref (rc-qt rc) key) car)))
