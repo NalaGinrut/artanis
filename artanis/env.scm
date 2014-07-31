@@ -40,5 +40,5 @@
 ;; Each worker need just one connection, because of green-thread.
 (define *conn-pool* #f)
 
-(define *before-response-hook* (make-hook rq body))
-(define *after-request-hook* (make-hook rc body))
+(define *before-response-hook* (make-hook 2))
+(define *after-request-hook* (make-hook 2))
