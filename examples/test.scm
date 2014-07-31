@@ -70,7 +70,6 @@
            (r (:conn rc (->sql select * from 'Persons (where #:Lastname name)))))
       (result->html (DB-get-top-row r)))))
 
-(use-modules (web uri))
 ;; curl localhost:3000/conn/lei;select * from Persons;
 (get "/fucked/:name"
      #:conn #t
