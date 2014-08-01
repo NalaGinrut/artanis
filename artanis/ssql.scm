@@ -157,11 +157,15 @@
      (->where end (sql-delete from table) (sql-where rest ...)))))
 
 (define-syntax sql-create
-  (syntax-rules (table as select index unique on)
-    ;; NOTE: don't use it directly, please take advantage of (orm column)
-    ;;(->sql create table tablename '("\"name\" \"varchar(10)\"" "\"age\" \"int\""))
+  (syntax-rules (table as select index unique on if exists not)
+    ;; NOTE: don't use it directly, please take advantage of fprm.
+    ;; (->sql create table 'mmr '("name varchar(10)" "age int(5)"))
     ((_ table name columns)
      (-> end "create table ~a (~{~a~^,~})" name columns))
+    ((_ table if exists name columns)
+     (-> end "create table if exists ~a (~{~a~^,~})" name columns))
+    ((_ table if not exists name columns)
+     (-> end "create table if not exists ~a (~{~a~^,~})" name columns))
     ;;(->sql create view 'mmr select '(a b) from 'tmp where "a=1 and b=2")
     ((_ view name as select rest ...)
      (-> end "create view ~a as select ~a" (sql-select rest ...)))
@@ -185,6 +189,15 @@
     ((_ table name rename column old-name to new-name)
      (-> end "alter table ~a rename column ~a to ~a" name old-name new-name))))
 
+(define-syntax ->drop
+  (syntax-rules (table if exists not)
+    ((_ table name)
+     (->end "drop table ~a" name))
+    ((_ table if exists name)
+     (->end "drop table if exists ~a" name))
+    ((_ table if not exists name)
+     (->end "drop table if not exists ~a" name))))
+
 (define-syntax ->sql
   (syntax-rules (select insert alter create update delete use)
     ((_ select rest ...)
@@ -202,7 +215,7 @@
     ((_ truncate table name)
      (->end "truncate table ~a" name))
     ((_ drop table name)
-     (->end "drop table ~a" name))
+     (sql-drop rest ...))
     ((_ use db)
      (-> end "use ~a" db))))
 
