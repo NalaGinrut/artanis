@@ -30,6 +30,7 @@
             DB-get-all-rows
             DB-get-top-row
             DB-get-n-rows
+            db-conn-success?
             init-DB))
 
 ;; NOTE:
