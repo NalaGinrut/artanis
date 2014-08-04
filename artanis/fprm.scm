@@ -21,6 +21,7 @@
   #:use-module (artanis db)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
+  #:use-module (srfi srfi-26)
   #:use-module (ice-9 match)
   #:export (table-drop!
             table-builder))
@@ -231,15 +232,31 @@
 (define (table-drop! rc name)
   (DB-query (rc-conn rc) (->sql drop table if exists name)))
 
-(define* (table-builder rc #:key (if-exists? #f))
-  (lambda (name defs)
-    (let* ((types (map ->sql-type defs))
+;; NOTE:
+;; 1. Use primiary-keys for specifying primary keys, don't specify it in defs directly.
+;;    Because we're not going to support foreign keys, so we need to record keys in closures for sync.
+(define* (table-builder rc)
+  (define (->types x pks)
+    (->sql-type
+     (if (memq (car x) pks)
+         `(,@(cdr x) primary key)
+         (cdr x))))
+  (lambda* (tname defs #:key (if-exists? #f) (primary-keys '()))
+    (let* ((types (map (cut ->types <> primary-keys) defs))
            (sql (case if-exists?
                   ((overwrite drop)
-                   (table-drop! rc name)
-                   (->sql create table name (types)))
+                   (table-drop! rc tname)
+                   (->sql create table tname (types)))
                   ((ignore)
-                   (->sql create table if not exists name (types)))
-                  (else (->sql create name (types)))))
+                   (->sql create table if not exists tname (types)))
+                  (else (->sql create table tname (types)))))
            (conn (rc-conn rc)))
-      (DB-query conn sql)))))
+      (DB-query conn sql)
+      (lambda mode
+        (match mode
+          ('valid? (db-conn-success? conn))
+          (`(add-keys ,keys)
+           (DB-query conn (->sql alter table tname add primary key keys)))
+          ;; TODO
+          (else (throw 'artanis-err 500 "table-builder: Invalid mode!" mode))
+          )))))
