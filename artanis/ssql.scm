@@ -176,20 +176,23 @@
      (-> end "create unique index ~a on ~a(~{~a~^,~})" iname tname columns))))
 
 (define-syntax sql-alter
-  (syntax-rules (table rename to add modify drop column as select)
+  (syntax-rules (table rename to add modify drop column as select
+                 primary key)
     ((_ table old-name rename to new-name)
      (-> end "alter table ~a rename to ~a" old-name new-name))
-    ((_ table name add pairs) 
-     ;; e.g: (->sql alter table 'mmr add '((cname "varchar(50)")))
-     (-> end "alter table ~a add (~{~a~^,~})" name (->lst pairs)))
+    ((_ table name add cname ctype) 
+     ;; e.g: (->sql alter table 'mmr add 'cname 'varchar(50))
+     (-> end "alter table ~a add ~a ~a" cname ctype))
     ((_ table name mofify pairs)
      (-> end "alter table ~a modify (~{~a~^,~})" name (->lst pairs)))
     ((_ table name drop column cname)
      (-> end "alter table ~a drop column ~a" name cname))
+    ((_ table name add primary key keys)
+     (-> end "alter table ~a add primary key (~{~a~^,~})" name keys))
     ((_ table name rename column old-name to new-name)
      (-> end "alter table ~a rename column ~a to ~a" name old-name new-name))))
 
-(define-syntax ->drop
+(define-syntax sql-drop
   (syntax-rules (table if exists not)
     ((_ table name)
      (->end "drop table ~a" name))
@@ -214,7 +217,7 @@
      (sql-delete rest ...))
     ((_ truncate table name)
      (->end "truncate table ~a" name))
-    ((_ drop table name)
+    ((_ drop rest ...)
      (sql-drop rest ...))
     ((_ use db)
      (-> end "use ~a" db))))
