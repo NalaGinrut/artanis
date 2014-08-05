@@ -21,6 +21,7 @@
   #:use-module (artanis db)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
+  #:use-module (srfi srfi-11)
   #:use-module (srfi srfi-26)
   #:use-module (ice-9 match)
   #:export (table-drop!
@@ -235,7 +236,7 @@
 ;; NOTE:
 ;; 1. Use primiary-keys for specifying primary keys, don't specify it in defs directly.
 ;;    Because we're not going to support foreign keys, so we need to record keys in closures for sync.
-(define* (table-builder rc)
+(define* (make-table-builder rc)
   (define (->types x pks)
     (->sql-type
      (if (memq (car x) pks)
@@ -260,3 +261,37 @@
           ;; TODO
           (else (throw 'artanis-err 500 "table-builder: Invalid mode!" mode))
           )))))
+
+(define (make-table-setter rc)
+  (lambda (tname . kargs)
+    (let-values ((cols vals) (partition keyword? kargs))
+      (let ((sql (format #f "insert into table ~a (~{~a~^,~}) values (~{~s~^,~});"
+                         tname (map keyword->symbol cols) vals))
+            (conn (rc-conn rc)))
+        (DB-query conn sql)
+        (db-conn-success? conn)))))
+
+(define (make-table-getter rc)
+  (define (->ret ret)
+    (match ret
+      ((? integer? n) (format #f "limit ~a " n))
+      ('top "limit 1 ")
+      ('all "")
+      (else #f)))
+  (define (->opts ret group-by)
+    (string-concatenate
+     (list (or (and=> ret ->ret) "")
+           ;; TODO: group-by
+           )))
+  (lambda* (tname #:key (colums '(*)) ; get all (*) in default
+                  (ret 'all)
+                  ;; three modes for return results:
+                  ;; 1. top; 2. all; 3. count
+                  (group-by #f) ; TODO: implement group
+                  )
+    (let ((sql (format #f "select (~{~a~^,~}) from ~a ~a ~a;"
+                       colums tname (->group-by group-by) (->ret ret)))
+          (conn (rc-conn rc)))
+      (DB-query conn sql)
+      (and (db-conn-success? conn)
+           (DB-get-all-rows conn)))))
