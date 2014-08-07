@@ -17,6 +17,7 @@
 (define-module (artanis fprm)
   #:use-module (artanis utils)
   #:use-module (artanis config)
+  #:use-module (artanis route)
   #:use-module (artanis ssql)
   #:use-module (artanis db)
   #:use-module (srfi srfi-1)
@@ -24,8 +25,7 @@
   #:use-module (srfi srfi-11)
   #:use-module (srfi srfi-26)
   #:use-module (ice-9 match)
-  #:export (table-drop!
-            table-builder))
+  #:export (map-table-from-DB))
 
 (define (->0 n m)
   (format #f "~a ~{~a~^ ~}" n m))
@@ -230,13 +230,24 @@
        (apply ,(symbol-append '-> (string->symbol (get-conf '(db dbd))) '-type)
         ,name-and-args)))
 
-(define (table-drop! rc name)
-  (DB-query (rc-conn rc) (->sql drop table if exists name)))
+(define (maker-table-dropper rc/conn)
+  (define conn
+    (cond
+     ((<connection>? rc/conn) rc/conn)
+     ((route-context? rc/conn) (rc-conn rc/conn))
+     (else (throw 'artanis-err 500 "make-table-dropper: Invalid rc or conn!" rc/conn))))
+  (lambda (name)
+    (DB-query conn (->sql drop table if exists name))))
 
 ;; NOTE:
 ;; 1. Use primiary-keys for specifying primary keys, don't specify it in defs directly.
 ;;    Because we're not going to support foreign keys, so we need to record keys in closures for sync.
-(define* (make-table-builder rc)
+(define* (make-table-builder rc/conn)
+  (define conn
+    (cond
+     ((<connection>? rc/conn) rc/conn)
+     ((route-context? rc/conn) (rc-conn rc/conn))
+     (else (throw 'artanis-err 500 "make-table-builder: Invalid rc or conn!" rc/conn))))
   (define (->types x pks)
     (->sql-type
      (if (memq (car x) pks)
@@ -250,8 +261,7 @@
                    (->sql create table tname (types)))
                   ((ignore)
                    (->sql create table if not exists tname (types)))
-                  (else (->sql create table tname (types)))))
-           (conn (rc-conn rc)))
+                  (else (->sql create table tname (types))))))
       (DB-query conn sql)
       (lambda mode
         (match mode
@@ -262,36 +272,86 @@
           (else (throw 'artanis-err 500 "table-builder: Invalid mode!" mode))
           )))))
 
-(define (make-table-setter rc)
+(define (make-table-setter rc/conn)
   (lambda (tname . kargs)
-    (let-values ((cols vals) (partition keyword? kargs))
+    (let-values (((cols vals) (partition keyword? kargs)))
       (let ((sql (format #f "insert into table ~a (~{~a~^,~}) values (~{~s~^,~});"
                          tname (map keyword->symbol cols) vals))
-            (conn (rc-conn rc)))
-        (DB-query conn sql)
-        (db-conn-success? conn)))))
+            (conn (cond
+                   ((<connection>? rc/conn) rc/conn)
+                   ((route-context? rc/conn) (rc-conn rc/conn))
+                   (else (throw 'artanis-err 500 "make-table-setter: Invalid rc or conn!" rc/conn)))))
+        (DB-query conn sql)))))
 
-(define (make-table-getter rc)
+(define (make-table-getter rc/conn)
   (define (->ret ret)
     (match ret
       ((? integer? n) (format #f "limit ~a " n))
       ('top "limit 1 ")
       ('all "")
       (else #f)))
-  (define (->opts ret group-by)
+  (define (->group-by group-by)
+    (match group-by
+      ((? list columns)
+       (format #f "~{~a~^,~} " columns))
+      (else #f)))
+  (define (->order-by order-by)
+    (match order-by
+      ((columns ... (? (cut memq <> '(asc desc)) m))
+       (format #f "~{~a~^,~} ~a " columns m))
+      (else #f)))
+  (define (->opts ret group-by order-by)
+    (define-syntax-rule (-> x tox)
+      (or (and=> x tox) ""))
     (string-concatenate
-     (list (or (and=> ret ->ret) "")
-           ;; TODO: group-by
-           )))
-  (lambda* (tname #:key (colums '(*)) ; get all (*) in default
+     (list (-> ret ->ret)
+           (-> group-by ->group-by)
+           (-> order-by ->order-by))))
+  (define (->mix columns functions)
+    `(,@columns ,@(map (lambda (f) (format #f "~a(~{~a~^,~})" (car f) (cdr f))) functions)))
+  (lambda* (tname #:key (columns '(*)) ; get all (*) in default
+                  (functions '()) ; put SQL functions here
+                  ;; USAGE: #:functions ((funcname1 columns ...) (funcname2 columns ...) ...)
+                  ;; e.g:  #:functions '((count Persons.Lastname))
+                  ;; ==> count(Persons.Lastname)
                   (ret 'all)
                   ;; three modes for return results:
-                  ;; 1. top; 2. all; 3. count
-                  (group-by #f) ; TODO: implement group
+                  ;; 1. top; 2. all; 3. integer larger than 0
+                  (group-by #f)
+                  ;; The GROUP BY statement is used in conjunction with the aggregate
+                  ;; functions to group the result-set by one or more columns.
+                  ;; GRAMMAR:
+                  ;; SELECT column_name, aggregate_function(column_name)
+                  ;;        FROM table_name
+                  ;;        WHERE column_name operator value
+                  ;;        GROUP BY column_name
+                  (order-by #f)
+                  ;; The ORDER BY keyword is used to sort the result-set by one or more columns.
+                  ;; The ORDER BY keyword sorts the records in ascending order by default. To sort
+                  ;; the records in a descending order, you can use the DESC keyword.
+                  ;; GRAMMAR:
+                  ;; SELECT column_name(s)
+                  ;;        FROM table_name
+                  ;;        ORDER BY column_name [ASC|DESC]
                   )
-    (let ((sql (format #f "select (~{~a~^,~}) from ~a ~a ~a;"
-                       colums tname (->group-by group-by) (->ret ret)))
-          (conn (rc-conn rc)))
+    (let ((sql (format #f "select ~{~a~^,~} from ~a ~a;"
+                       (->mix columns functions) tname (->opts ret group-by order-by)))
+          (conn (cond
+                 ((<connection>? rc/conn) rc/conn)
+                 ((route-context? rc/conn) (rc-conn rc/conn))
+                 (else (throw 'artanis-err 500 "make-table-getter: Invalid rc or conn!" rc/conn)))))
       (DB-query conn sql)
-      (and (db-conn-success? conn)
-           (DB-get-all-rows conn)))))
+      (DB-get-all-rows conn))))
+
+(define (map-table-from-DB rc/conn)
+  (define getter (make-table-getter rc/conn))
+  (define setter (make-table-setter rc/conn))
+  (define builder (make-table-builder rc/conn))
+  (define dropper (make-table-dropper rc/conn))
+  (lambda (mode . args)
+    (case mode
+      ((get) (apply getter args))
+      ((set) (apply setter args))
+      ((create build) (apply builder args))
+      ((remove delete drop) (apply dropper args))
+      (else (throw 'artanis-err 500 "map-table-from-DB: Invalid mode" mode)))))
