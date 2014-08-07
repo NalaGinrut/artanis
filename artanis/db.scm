@@ -32,6 +32,8 @@
             DB-get-n-rows
             db-conn-success?
             init-DB
+            connect-db
+            make-<connection>
             <connection>?))
 
 ;; NOTE:
@@ -99,6 +101,14 @@
    ;; status provides a simple way to avoid reopen or reclose
    (mutable status) ; open or closed
    conn))
+
+(define (connect-db dbd str)
+  "Connect database from DBI.
+e.g: (connect-db \"mysql\" \"root:123:artanis:tcp:localhost:3306\")"
+  (let ((conn (make-<connection> 'open (dbi-open dbd str))))
+    (if (db-conn-success? conn)
+        conn
+        (throw 'artanis-err 500 "connect to DB error:" (db-conn-failed-reason conn)))))
 
 (define (new-DB)
   ;; TODO:

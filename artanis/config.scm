@@ -33,6 +33,43 @@
 (define (get-conf k)
   (hash-ref *conf-hash-table* k))
 
+(define *default-conf-values*
+  `(;; for DB namespace
+    ((db dbd) "mysql")
+    ((db port) 3000)
+    ((db addr) "localhost")
+    ((db socket) #f)
+    ((db username) "root")
+    ((db passwd) "")
+
+    ;; for server namespace
+    ((server info) "")
+    ((server nginx) #f)
+    ((server charset) "utf-8")
+    ((server syspage path) "/etc/artanis/pages")
+    ((server workers) 1)
+
+    ;; for host namespace
+    ((host addr) "0.0.0.0")
+    ((host port) 3000)
+
+    ;; for session namespace
+    ((session path) "session")
+    ((session engine) 'simple)
+
+    ;; for upload namespace
+    ((upload types) '(jpg png gif))
+    ((upload path) "upload")
+
+    ;; for mail namespace
+    ;; ((mail sender) "/usr/sbin/sendmail")
+
+    ;; for cache namespace
+    ((cache maxage) 3600)))
+
+;; Init all fields with default values
+(for-each (lambda (x) (conf-set! (car x) (cadr x))) *default-conf-values*)
+
 (define-syntax-rule (->bool x)
   (case (string->symbol (string-downcase x))
     ((true on yes enable) #t)
@@ -81,15 +118,10 @@
     (('port port) (conf-set! '(host port) (->integer port)))
     (else (error parse-namespace-host "Config: Invalid item" item))))
 
-(define (parse-namespace-error item)
-  (match item
-    (('path path) (conf-set! '(error path) path))
-    (else (error parse-namespace-error "Config: Invalid item" item))))
-
 (define (parse-namespace-session item)
   (match item
     (('path path) (conf-set! '(session path) path))
-    (('engine engine) (conf-set! '(session engine) engine))
+    (('engine engine) (conf-set! '(session engine) (string->symbol engine)))
     (else (error parse-namespace-session "Config: Invalid item" item))))
 
 (define (parse-namespace-upload item)
@@ -113,7 +145,6 @@
     (('db rest ...) (parse-namespace-db rest))
     (('server rest ...) (parse-namespace-server rest))
     (('host rest ...) (parse-namespace-host rest))
-    (('error rest ...) (parse-namespace-error rest))
     (('session rest ...) (parse-namespace-session rest))
     (('upload rest ...) (parse-namespace-upload rest))
     (('mail rest ...) (parse-namespace-mail rest))
