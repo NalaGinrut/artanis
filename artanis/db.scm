@@ -31,7 +31,8 @@
             DB-get-top-row
             DB-get-n-rows
             db-conn-success?
-            init-DB))
+            init-DB
+            <connection>?))
 
 ;; NOTE:
 ;; <db> is only used for store connect config info, it doens't contain
