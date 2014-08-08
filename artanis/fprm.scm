@@ -253,6 +253,8 @@
      (if (memq (car x) pks)
          `(,@(cdr x) primary key)
          (cdr x))))
+  ;; TODO: We need a mechanism to sync tables constrained by foreign-keys, since some DB doesn't
+  ;;       support foreign keys directly, so we have to provide it outside.
   (lambda* (tname defs #:key (if-exists? #f) (primary-keys '()))
     (let* ((types (map (cut ->types <> primary-keys) defs))
            (sql (case if-exists?
@@ -266,8 +268,11 @@
       (lambda mode
         (match mode
           ('valid? (db-conn-success? conn))
-          (`(add-keys ,keys)
+          ('primary-keys primary-keys)
+          (`(add-primary-keys ,keys)
            (DB-query conn (->sql alter table tname add primary key keys)))
+          (`(drop-primary-keys)
+           (DB-query conn (->sql alter table tname drop primary key)))
           ;; TODO
           (else (throw 'artanis-err 500 "table-builder: Invalid mode!" mode))
           )))))
