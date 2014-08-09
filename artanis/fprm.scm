@@ -25,7 +25,13 @@
   #:use-module (srfi srfi-11)
   #:use-module (srfi srfi-26)
   #:use-module (ice-9 match)
-  #:export (map-table-from-DB))
+  #:export (map-table-from-DB)
+  ;; NOTE:
+  ;; We re-export these symbols so that users may use FPRM to handle DB
+  ;; independently, without using the web-framework.
+  #:re-export (->sql
+               where
+               connect-db))
 
 (define (->0 n m)
   (format #f "~a ~{~a~^ ~}" n m))
@@ -230,11 +236,11 @@
        (apply ,(symbol-append '-> (string->symbol (get-conf '(db dbd))) '-type)
         ,name-and-args)))
 
-(define (maker-table-dropper rc/conn)
+(define (make-table-dropper rc/conn)
   (define conn
-    (cond
-     ((<connection>? rc/conn) rc/conn)
+    (cond 
      ((route-context? rc/conn) (rc-conn rc/conn))
+     ((<connection>? rc/conn) rc/conn)
      (else (throw 'artanis-err 500 "make-table-dropper: Invalid rc or conn!" rc/conn))))
   (lambda (name)
     (DB-query conn (->sql drop table if exists name))))
@@ -245,9 +251,11 @@
 (define* (make-table-builder rc/conn)
   (define conn
     (cond
-     ((<connection>? rc/conn) rc/conn)
      ((route-context? rc/conn) (rc-conn rc/conn))
+     ((<connection>? rc/conn) rc/conn)
      (else (throw 'artanis-err 500 "make-table-builder: Invalid rc or conn!" rc/conn))))
+  (define (table-drop! tname)
+    (DB-query conn (->sql drop table if exists tname)))
   (define (->types x pks)
     (->sql-type
      (if (memq (car x) pks)
@@ -259,33 +267,47 @@
     (let* ((types (map (cut ->types <> primary-keys) defs))
            (sql (case if-exists?
                   ((overwrite drop)
-                   (table-drop! rc tname)
+                   (table-drop! tname)
                    (->sql create table tname (types)))
                   ((ignore)
                    (->sql create table if not exists tname (types)))
                   (else (->sql create table tname (types))))))
       (DB-query conn sql)
-      (lambda mode
-        (match mode
+      (lambda cmd
+        (match cmd
           ('valid? (db-conn-success? conn))
           ('primary-keys primary-keys)
           (`(add-primary-keys ,keys)
            (DB-query conn (->sql alter table tname add primary key keys)))
-          (`(drop-primary-keys)
-           (DB-query conn (->sql alter table tname drop primary key)))
+          ;;('drop-primary-keys
+          ;; (DB-query conn (->sql alter table tname drop primary key)))
           ;; TODO
-          (else (throw 'artanis-err 500 "table-builder: Invalid mode!" mode))
+          (else (throw 'artanis-err 500 "make-table-builder: Invalid cmd!" cmd))
           )))))
 
+;; make-table-setter is actually a mapping from `update' in SQL
+;; Grammar:
+;; UPDATE table_name
+;;        SET column1=value1,column2=value2,...
+;;        WHERE some_column=some_value;
 (define (make-table-setter rc/conn)
+  (define (->kvp kargs)
+    (let lp((next kargs) (kvs '()) (w ""))
+      (match next
+       (((? keyword? k) v rest ...)
+        (lp rest (cons (list (keyword->symbol k) v) kvs) w))
+       (((? string? wcond))
+        (lp (cdr next) kvs wcond))
+       (() (values kvs w))
+       (else (throw 'artanis-err 500 "->kvp: invalid kargs" next)))))
   (lambda (tname . kargs)
-    (let-values (((cols vals) (partition keyword? kargs)))
-      (let ((sql (format #f "insert into table ~a (~{~a~^,~}) values (~{~s~^,~});"
-                         tname (map keyword->symbol cols) vals))
-            (conn (cond
-                   ((<connection>? rc/conn) rc/conn)
+    (let-values (((kvp wcond) (->kvp kargs)))
+      (let ((sql (->sql update tname set kvp wcond))
+            (conn (cond 
                    ((route-context? rc/conn) (rc-conn rc/conn))
+                   ((<connection>? rc/conn) rc/conn)
                    (else (throw 'artanis-err 500 "make-table-setter: Invalid rc or conn!" rc/conn)))))
+        (display sql)(newline)
         (DB-query conn sql)))))
 
 (define (make-table-getter rc/conn)
@@ -342,21 +364,27 @@
     (let ((sql (format #f "select ~{~a~^,~} from ~a ~a;"
                        (->mix columns functions) tname (->opts ret group-by order-by)))
           (conn (cond
-                 ((<connection>? rc/conn) rc/conn)
                  ((route-context? rc/conn) (rc-conn rc/conn))
+                 ((<connection>? rc/conn) rc/conn)
                  (else (throw 'artanis-err 500 "make-table-getter: Invalid rc or conn!" rc/conn)))))
       (DB-query conn sql)
       (DB-get-all-rows conn))))
 
 (define (map-table-from-DB rc/conn)
-  (define getter (make-table-getter rc/conn))
-  (define setter (make-table-setter rc/conn))
-  (define builder (make-table-builder rc/conn))
-  (define dropper (make-table-dropper rc/conn))
-  (lambda (mode . args)
-    (case mode
+  (define conn
+    (cond
+     ((route-context? rc/conn) (rc-conn rc/conn))
+     ((<connection>? rc/conn) rc/conn)
+     (else (throw 'artanis-err 500 "map-table-from-DB: invalid rc/conn" rc/conn))))
+  (define getter (make-table-getter conn))
+  (define setter (make-table-setter conn))
+  (define builder (make-table-builder conn))
+  (define dropper (make-table-dropper conn))
+  (lambda (cmd . args)
+    (case cmd
+      ((valid?) (db-conn-success? conn))
       ((get) (apply getter args))
       ((set) (apply setter args))
       ((create build) (apply builder args))
       ((remove delete drop) (apply dropper args))
-      (else (throw 'artanis-err 500 "map-table-from-DB: Invalid mode" mode)))))
+      (else (throw 'artanis-err 500 "map-table-from-DB: Invalid cmd" cmd)))))
