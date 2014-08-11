@@ -14,7 +14,6 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis mime)
-  #:use-module (artanis utils)
   #:export (mime-guess))
 
 ;; NOTE: mime-list is auto generated from /etc/mime.types, so let it alone
