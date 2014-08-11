@@ -20,7 +20,6 @@
   #:use-module (artanis route)
   #:use-module (artanis ssql)
   #:use-module (artanis db)
-  #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-11)
   #:use-module (srfi srfi-26)
@@ -275,15 +274,14 @@
       (DB-query conn sql)
       (lambda cmd
         (match cmd
-          ('valid? (db-conn-success? conn))
-          ('primary-keys primary-keys)
+          ('(valid?) (db-conn-success? conn))
+          ('(primary-keys) primary-keys)
           (`(add-primary-keys ,keys)
            (DB-query conn (->sql alter table tname add primary key keys)))
-          ;;('drop-primary-keys
-          ;; (DB-query conn (->sql alter table tname drop primary key)))
+          ('(drop-primary-keys)
+           (DB-query conn (->sql alter table tname drop primary key)))
           ;; TODO
-          (else (throw 'artanis-err 500 "make-table-builder: Invalid cmd!" cmd))
-          )))))
+          (else (throw 'artanis-err 500 "make-table-builder: Invalid cmd!" cmd)))))))
 
 ;; make-table-setter is actually a mapping from `update' in SQL
 ;; Grammar:
