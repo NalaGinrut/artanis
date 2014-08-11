@@ -31,7 +31,8 @@
 ;;    user specify ASIM options for the field passed from the client.
 ;; 4. DSL should handle key-value or list for users easily.
 ;; 5. DSL should handle Stored-Procedure for specific DB implementation (as possible).
-;; 6. There's no fucking ORM, definitly.
+;; 6. There's no ORM, but FPRM. The only difference is that you never see
+;;    Classes but Closures. Hmm...what's the essential difference?
 
 (define (sql-mapping-maker sql-tpl rule keys)
   #f)
