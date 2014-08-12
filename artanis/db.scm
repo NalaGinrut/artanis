@@ -183,9 +183,9 @@ e.g: (connect-db \"mysql\" \"root:123:artanis:tcp:localhost:3306\")"
     (db-query-debug-info sql)
     (dbi-query (<connection>-conn conn) sql)
     (when (not (db-conn-success? conn))
-      (if check?
-          (format (current-error-port) "DB-query check failed: " (db-conn-failed-reason conn))
-          (throw 'artanis-err 500 "DB-query failed: " (db-conn-failed-reason conn))))
+      (unless check?
+        (throw 'artanis-err 500 "DB-query failed: " (db-conn-failed-reason conn))
+        (format (current-error-port) "DB-query check failed: " (db-conn-failed-reason conn))))
     conn)))
 
 ;; NOTE: actually it'll never close the connection, just recycle it.
