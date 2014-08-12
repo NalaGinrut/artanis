@@ -165,9 +165,13 @@ e.g: (connect-db \"mysql\" \"root:123:artanis:tcp:localhost:3306\")"
     (rc-conn! rc conn)
     conn))
 
+(define (db-query-debug-info sql)
+  (when (get-conf 'debug-mode)
+    (display sql)(newline)))
+
 ;; FIXME: The first level to avoid SQL-injection is that run only one valid statment each time.
 ;;        So we have to find the index of first valid semi-colon, then use substring.
-(define (DB-query conn sql)
+(define* (DB-query conn sql #:key (check? #f))
   (cond
    ((not (<connection>? conn))
     (throw 'artanis-err 500 "DB-query: Invalid DB connection!" conn))
@@ -176,9 +180,12 @@ e.g: (connect-db \"mysql\" \"root:123:artanis:tcp:localhost:3306\")"
    ((not (string? sql))
     (throw 'artanis-err 500 "DB-query: Invalid SQL string!" sql))
    (else
+    (db-query-debug-info sql)
     (dbi-query (<connection>-conn conn) sql)
     (when (not (db-conn-success? conn))
-      (throw 'artanis-err 500 "DB-query: Database connect failed: " (db-conn-failed-reason conn)))
+      (if check?
+          (format (current-error-port) "DB-query check failed: " (db-conn-failed-reason conn))
+          (throw 'artanis-err 500 "DB-query failed: " (db-conn-failed-reason conn))))
     conn)))
 
 ;; NOTE: actually it'll never close the connection, just recycle it.
