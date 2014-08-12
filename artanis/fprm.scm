@@ -305,7 +305,6 @@
                    ((route-context? rc/conn) (rc-conn rc/conn))
                    ((<connection>? rc/conn) rc/conn)
                    (else (throw 'artanis-err 500 "make-table-setter: Invalid rc or conn!" rc/conn)))))
-        (display sql)(newline)
         (DB-query conn sql)))))
 
 (define (make-table-getter rc/conn)
