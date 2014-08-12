@@ -203,8 +203,15 @@
     ((_ table if not exists name)
      (-> "table if not exists ~a" name))))
 
+(define-syntax sql-show
+  (syntax-rules (columns from like)
+    ((_ columns from tname)
+     (-> "columns from ~a" tname))
+    ((_ columns from tname like cname)
+     (-> "columns from ~a like ~s" tname cname))))
+
 (define-syntax ->sql
-  (syntax-rules (select insert alter create update delete use)
+  (syntax-rules (select insert alter create update delete use show drop)
     ((_ select rest ...)
      (->end 'select (sql-select rest ...)))
     ((_ insert rest ...)
@@ -221,6 +228,8 @@
      (->end "truncate table ~a" name))
     ((_ drop rest ...)
      (->end 'drop (sql-drop rest ...)))
+    ((_ show rest ...)
+     (->end 'show (sql-show rest ...)))
     ((_ use db)
      (-> end "use ~a" db))))
 
