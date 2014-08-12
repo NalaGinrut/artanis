@@ -20,6 +20,7 @@
   #:use-module (artanis route)
   #:use-module (artanis ssql)
   #:use-module (artanis db)
+  #:use-module ((srfi srfi-1) #:renamer (symbol-prefix-proc 'srfi-1:))
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-11)
   #:use-module (srfi srfi-26)
@@ -293,7 +294,7 @@
     (let lp((next kargs) (kvs '()) (w ""))
       (match next
        (((? keyword? k) v rest ...)
-        (lp rest (cons (list (keyword->symbol k) v) kvs) w))
+        (lp rest (cons (list (keyword->column k) v) kvs) w))
        (((? string? wcond))
         (lp (cdr next) kvs wcond))
        (() (values kvs w))
@@ -367,21 +368,47 @@
       (DB-query conn sql)
       (DB-get-all-rows conn))))
 
-(define (map-table-from-DB rc/conn)
+;; NOTE: the name of columns is charactar-caseless, at least in MySQL/MariaDB.
+(define* (map-table-from-DB rc/conn #:key (table '()))
   (define conn
     (cond
      ((route-context? rc/conn) (rc-conn rc/conn))
      ((<connection>? rc/conn) rc/conn)
      (else (throw 'artanis-err 500 "map-table-from-DB: invalid rc/conn" rc/conn))))
+  ;; ENHANCEME:
+  ;; It's inefficient to put table-schema here, because the request session may generate
+  ;; table-schema each time. The better optimizings:
+  ;; 1. would be storing it to a global lookup table.
+  ;; 2. put it to OHT and suggest users use it indirectly.
+  (define table-schema
+    (if (null? table)
+        #f
+        (let ((sch (DB-get-all-rows (DB-query conn (->sql show columns from table))))
+              (ht (make-hash-table)))
+          (let lp((n sch))
+            (cond
+             ((null? n) ht)
+             (else
+              (let ((column ((string->symbol (string-downcase (cdaar n)))))
+                    (attr (cdar n)))
+                (hashq-set! ht column attr)
+                (lp (cdr n)))))))))
   (define getter (make-table-getter conn))
   (define setter (make-table-setter conn))
   (define builder (make-table-builder conn))
   (define dropper (make-table-dropper conn))
+  (define (checker . args)
+    (define-syntax-rule (-> c)
+      (map symbol-downcase c))
+    (if (null? table)
+        (throw 'artanis-err 500 "table schemar checker: you have to map to specified table first!" table)
+        (and (srfi-1:every (lambda (x) (hashq-ref table-schema x)) (-> args)) #t)))
   (lambda (cmd . args)
     (case cmd
       ((valid?) (db-conn-success? conn))
-      ((get) (apply getter args))
-      ((set) (apply setter args))
-      ((create build) (apply builder args))
-      ((remove delete drop) (apply dropper args))
+      ((get) (apply getter (append table args)))
+      ((set) (apply setter (append table args)))
+      ((create build) (apply builder (append table args)))
+      ((remove delete drop) (apply dropper (append table args)))
+      ((check exists?) (apply checker args))
       (else (throw 'artanis-err 500 "map-table-from-DB: Invalid cmd" cmd)))))
