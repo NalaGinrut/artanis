@@ -44,7 +44,8 @@
             queue-empty? list->stack list->queue stack-remove! queue-remove!
             plist->alist make-db-string-template non-list?
             keyword->string range oah->handler oah->opts string->keyword
-            alist->klist alist->kblist is-hash-table-empty?)
+            alist->klist alist->kblist is-hash-table-empty?
+            symbol-downcase symbol-upcase keyword->column)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -484,7 +485,8 @@
       ((k v . rest) (lp (cddr next) (acons (keyword->symbol k) v ret))))))
 
 (define-syntax-rule (non-list? x) (not (list? x)))
-(define-syntax-rule (keyword->string x) (symbol->string (keyword->symbol x)))
+(define* (keyword->string x #:optional (proc identity))
+  (proc (symbol->string (keyword->symbol x))))
 
 (define* (range from to #:optional (step 1))
   (iota (- to from) from step))
@@ -533,3 +535,15 @@
 
 (define (is-hash-table-empty? ht)
   (zero? (hash-count values ht)))
+
+(define (symbol-strop proc sym)
+  (string->symbol (proc (symbol->string sym))))
+
+(define (symbol-downcase sym)
+  (symbol-strop string-downcase sym))
+
+(define (symbol-upcase sym)
+  (symbol-strop string-upcase sym))
+
+(define (keyword->column kw)
+  (keyword->string kw string-downcase))
