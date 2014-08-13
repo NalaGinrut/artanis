@@ -45,7 +45,7 @@
             plist->alist make-db-string-template non-list?
             keyword->string range oah->handler oah->opts string->keyword
             alist->klist alist->kblist is-hash-table-empty?
-            symbol-downcase symbol-upcase keyword->column)
+            symbol-downcase symbol-upcase)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -544,6 +544,3 @@
 
 (define (symbol-upcase sym)
   (symbol-strop string-upcase sym))
-
-(define (keyword->column kw)
-  (keyword->string kw string-downcase))
