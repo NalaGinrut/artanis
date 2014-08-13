@@ -294,7 +294,7 @@
     (let lp((next kargs) (kvs '()) (w ""))
       (match next
        (((? keyword? k) v rest ...)
-        (lp rest (cons (list (keyword->column k) v) kvs) w))
+        (lp rest (cons (list (keyword->symbol k) v) kvs) w))
        (((? string? wcond))
         (lp (cdr next) kvs wcond))
        (() (values kvs w))
@@ -389,7 +389,9 @@
             (cond
              ((null? n) ht)
              (else
-              (let ((column ((string->symbol (string-downcase (cdaar n)))))
+              ;; NOTE: The Schema queried from DB is case sensitive, so it's safe to
+              ;;       convert all the columns to downcase.
+              (let ((column (symbol-downcase (cdaar n)))
                     (attr (cdar n)))
                 (hashq-set! ht column attr)
                 (lp (cdr n)))))))))
@@ -403,12 +405,14 @@
     (if (null? table)
         (throw 'artanis-err 500 "table schemar checker: you have to map to specified table first!" table)
         (and (srfi-1:every (lambda (x) (hashq-ref table-schema x)) (-> args)) #t)))
+  (define-syntax-rule (->call func)
+    (apply func (cons table args)))
   (lambda (cmd . args)
     (case cmd
       ((valid?) (db-conn-success? conn))
-      ((get) (apply getter (append table args)))
-      ((set) (apply setter (append table args)))
-      ((create build) (apply builder (append table args)))
-      ((remove delete drop) (apply dropper (append table args)))
+      ((get) (->call getter))
+      ((set) (->call setter))
+      ((create build) (->call builder))
+      ((remove delete drop) (->call dropper))
       ((check exists?) (apply checker args))
       (else (throw 'artanis-err 500 "map-table-from-DB: Invalid cmd" cmd)))))
