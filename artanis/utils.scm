@@ -45,7 +45,7 @@
             plist->alist make-db-string-template non-list?
             keyword->string range oah->handler oah->opts string->keyword
             alist->klist alist->kblist is-hash-table-empty?
-            symbol-downcase symbol-upcase)
+            symbol-downcase symbol-upcase normalize-column)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -544,3 +544,10 @@
 
 (define (symbol-upcase sym)
   (symbol-strop string-upcase sym))
+
+(define (normalize-column col)
+  (cond
+   ((string? col) (string->symbol (string-downcase col)))
+   ((symbol? col) (symbol-downcase col))
+   ((keyword? col) (normalize-column (keyword->string col)))
+   (else (throw 'artanis-err 500 "normalize-column: Invalid type of column" col))))
