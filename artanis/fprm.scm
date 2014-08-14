@@ -33,6 +33,9 @@
                where
                connect-db))
 
+;; This is Functional Programming Relational Mapping.
+;; It's named as this because ... (I'll continue later)
+
 (define (->0 n m)
   (format #f "~a ~{~a~^ ~}" n m))
 (define (->1 n m)
@@ -369,50 +372,43 @@
       (DB-get-all-rows conn))))
 
 ;; NOTE: the name of columns is charactar-caseless, at least in MySQL/MariaDB.
-(define* (map-table-from-DB rc/conn #:key (table '()))
+(define (map-table-from-DB rc/conn)
   (define conn
     (cond
      ((route-context? rc/conn) (rc-conn rc/conn))
      ((<connection>? rc/conn) rc/conn)
      (else (throw 'artanis-err 500 "map-table-from-DB: invalid rc/conn" rc/conn))))
-  ;; ENHANCEME:
-  ;; It's inefficient to put table-schema here, because the request session may generate
-  ;; table-schema each time. The better optimizings:
-  ;; 1. would be storing it to a global lookup table.
-  ;; 2. put it to OHT and suggest users use it indirectly.
-  (define table-schema
-    (if (null? table)
-        #f
-        (let ((sch (DB-get-all-rows (DB-query conn (->sql show columns from table))))
-              (ht (make-hash-table)))
-          (let lp((n sch))
-            (cond
-             ((null? n) ht)
-             (else
-              ;; NOTE: The Schema queried from DB is case sensitive, so it's safe to
-              ;;       convert all the columns to downcase.
-              (let ((column (symbol-downcase (cdaar n)))
-                    (attr (cdar n)))
-                (hashq-set! ht column attr)
-                (lp (cdr n)))))))))
-  (define getter (make-table-getter conn))
   (define setter (make-table-setter conn))
   (define builder (make-table-builder conn))
   (define dropper (make-table-dropper conn))
-  (define (checker . args)
-    (define-syntax-rule (-> c)
-      (map symbol-downcase c))
-    (if (null? table)
-        (throw 'artanis-err 500 "table schemar checker: you have to map to specified table first!" table)
-        (and (srfi-1:every (lambda (x) (hashq-ref table-schema x)) (-> args)) #t)))
-  (define-syntax-rule (->call func)
-    (apply func (cons table args)))
-  (lambda (cmd . args)
+  ;; NOTE:
+  ;; It maybe inefficient to fetch table-schema without any cache, because the request session may generate
+  ;; table-schema each time. Although we may build a cache or delayed mechanism here, there's one reasone
+  ;; to give it up: we should keep all the relational-mapping STATELESS, that's why I call it FPRM.
+  ;; If you have any doubt between complexity and reliability, I would recommend this cool paper:
+  ;; <<Out of the Tar Pit>> Ben Moseley & Peter Marks, February 6, 2006.
+  ;; I wish you're interested in stateless someday. Now that you're reading this text, it implies you may
+  ;; have chosen Scheme programming language for hacking.
+  ;; PS: I'm not boasting that the whole Artanis would be stateless, but FPRM should do it as possible.
+  ;; I maybe wrong and fail, but it's worth to try.
+  (define (get-table-schema tname)
+    (let ((sch (DB-get-all-rows (DB-query conn (->sql show columns from tname)))))
+      ;; NOTE: The Schema queried from DB is case sensitive, so it's safe to
+      ;;       convert all the columns to downcase.
+      (map (lambda (x) (string->symbol (string-downcase (cdar x)))) sch)))
+  (define (checker tname . args)
+    (define schema (get-table-schema tname))
+    (define-syntax-rule (-> c) (map normalize-column c))
+    (and (srfi-1:every (lambda (x) (memq x schema)) (-> args)) #t))
+  (lambda (cmd tname . args)
+    (define-syntax-rule (->call func)
+      (apply func (cons tname args)))
     (case cmd
       ((valid?) (db-conn-success? conn))
       ((get) (->call getter))
       ((set) (->call setter))
       ((create build) (->call builder))
       ((remove delete drop) (->call dropper))
-      ((check exists?) (apply checker args))
+      ((check exists?) (->call checker))
+      ((schema) table-schema)
       (else (throw 'artanis-err 500 "map-table-from-DB: Invalid cmd" cmd)))))
