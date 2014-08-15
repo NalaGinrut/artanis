@@ -393,16 +393,16 @@
   ;; PS: I'm not boasting that the whole Artanis would be stateless, but FPRM should do it as possible.
   ;; I maybe wrong and fail, but it's worth to try.
   (define (get-table-schema tname)      
-    (let* ((sql (->sql select column_name from
+    (let* ((sql (->sql select "lcase(column_name)" from
                        (select * from 'information_schema.columns (where #:table_name tname))
-                       as (gensym "table")))
+                       as 'tmp_alias))
            (sch (DB-get-all-rows (DB-query conn sql))))
       ;; NOTE: The Schema queried from DB is case sensitive, so it's safe to
       ;;       convert all the columns to downcase.
-      (map (lambda (x) (string->symbol (string-downcase (cdar x)))) sch)))
-  (define (checker tname . args)
+      (map (lambda (x) (string->symbol (cdar x))) sch)))
+  (define (checker ci? tname . args)
     (define schema (get-table-schema tname))
-    (define-syntax-rule (-> c) (map normalize-column c))
+    (define-syntax-rule (-> c) (map (cut normalize-column <> ci?) c))
     (and (srfi-1:every (lambda (x) (memq x schema)) (-> args)) #t))
   (lambda (cmd tname . args)
     (define-syntax-rule (->call func)
@@ -413,6 +413,10 @@
       ((set) (->call setter))
       ((create build) (->call builder))
       ((remove delete drop) (->call dropper))
-      ((check exists?) (->call checker))
+      ;; (_ exists? 'Persons 'city 'lastname)
+      ((check exists?) (apply checker #f tname args))
+      ;; (_ ci-exists? 'Persons 'City 'LastName)
+      ((ci-check ci-exists?) (apply checker #t tname args))
+      ;; schema is always in downcase.
       ((schema) (get-table-schema tname))
       (else (throw 'artanis-err 500 "map-table-from-DB: Invalid cmd" cmd)))))
