@@ -392,10 +392,10 @@
   ;; have chosen Scheme programming language for hacking.
   ;; PS: I'm not boasting that the whole Artanis would be stateless, but FPRM should do it as possible.
   ;; I maybe wrong and fail, but it's worth to try.
-  (define (get-table-schema tname)
-    (define sql-get-columns
-      "select column_name from ( select * from information_schema.columns where table_name='~a' ) as ~a_columns")
-    (let* ((sql (format #f sql-get-columns tname tname))
+  (define (get-table-schema tname)      
+    (let* ((sql (->sql select column_name from
+                       (select * from 'information_schema.columns (where #:table_name tname))
+                       as (gensym "table")))
            (sch (DB-get-all-rows (DB-query conn sql))))
       ;; NOTE: The Schema queried from DB is case sensitive, so it's safe to
       ;;       convert all the columns to downcase.
