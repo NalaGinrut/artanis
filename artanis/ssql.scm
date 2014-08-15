@@ -107,6 +107,8 @@
      (->where (sql-select fields from table) rest ...))
     ((_ fields from table cond-str)
      (string-concatenate (list (sql-select fields from table) cond-str)))
+    ((_ field from (select subselect ...) as alias-name)
+     (-> "~a from (select ~a) as ~a" 'field (sql-select subselect ...) alias-name))
     ((_ distinct rest ...)
      (-> "distinct ~a" (sql-select rest ...)))
     ((_ rest ... group by groups)
