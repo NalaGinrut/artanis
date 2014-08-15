@@ -545,9 +545,10 @@
 (define (symbol-upcase sym)
   (symbol-strop string-upcase sym))
 
-(define (normalize-column col)
+(define* (normalize-column col #:optional (ci? #f))
+  (define-syntax-rule (-> c p) (if ci? (p col) col))
   (cond
-   ((string? col) (string->symbol (string-downcase col)))
-   ((symbol? col) (symbol-downcase col))
-   ((keyword? col) (normalize-column (keyword->string col)))
+   ((string? col) (string->symbol (-> c string-downcase)))
+   ((symbol? col) (-> col symbol-downcase))
+   ((keyword? col) (normalize-column (keyword->string col) ci?))
    (else (throw 'artanis-err 500 "normalize-column: Invalid type of column" col))))
