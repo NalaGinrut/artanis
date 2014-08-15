@@ -250,18 +250,18 @@
   (match conds
     (() "")
     ;; If the only arg is string, return it directly
-    ((? string? conds) (string-concatenate (list " where" conds)))
+    ((? string? conds) (string-concatenate (list " where " conds)))
     ;; string template mode
     ;; e.g: (where "name = ${name}" #:name nala) ==> "name = \"nala\""
     (((? string? stpl) . vals)
-     (apply (make-db-string-template (string-concatenate (list " where" stpl))) vals))
+     (apply (make-db-string-template (string-concatenate (list " where " stpl))) vals))
     ;; AND mode:
     ;; (where #:name 'John #:age 15 #:email "john@artanis.com") 
     ;; ==> name="John" and age="15" and email="john@artanis.com"
     (((? keyword? key) (? non-list? val) . rest)
      (let* ((k (keyword->symbol key))
             (str (get-the-conds-str k val)))
-       (string-concatenate `(" where",str ,(if (null? rest) "" " and ") ,(apply where rest)))))
+       (string-concatenate `(" where ",str ,(if (null? rest) "" " and ") ,(apply where rest)))))
     ;; OR mode:
     ;; (where #:name '(John Tom Jim)) ==> name="John" or name="Tom" or name="Jim"
     ;; TODO:
