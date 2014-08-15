@@ -378,6 +378,7 @@
      ((route-context? rc/conn) (rc-conn rc/conn))
      ((<connection>? rc/conn) rc/conn)
      (else (throw 'artanis-err 500 "map-table-from-DB: invalid rc/conn" rc/conn))))
+  (define getter (make-table-getter conn))
   (define setter (make-table-setter conn))
   (define builder (make-table-builder conn))
   (define dropper (make-table-dropper conn))
@@ -392,7 +393,10 @@
   ;; PS: I'm not boasting that the whole Artanis would be stateless, but FPRM should do it as possible.
   ;; I maybe wrong and fail, but it's worth to try.
   (define (get-table-schema tname)
-    (let ((sch (DB-get-all-rows (DB-query conn (->sql show columns from tname)))))
+    (define sql-get-columns
+      "select column_name from ( select * from information_schema.columns where table_name='~a' ) as ~a_columns")
+    (let* ((sql (format #f sql-get-columns tname tname))
+           (sch (DB-get-all-rows (DB-query conn sql))))
       ;; NOTE: The Schema queried from DB is case sensitive, so it's safe to
       ;;       convert all the columns to downcase.
       (map (lambda (x) (string->symbol (string-downcase (cdar x)))) sch)))
@@ -410,5 +414,5 @@
       ((create build) (->call builder))
       ((remove delete drop) (->call dropper))
       ((check exists?) (->call checker))
-      ((schema) table-schema)
+      ((schema) (get-table-schema tname))
       (else (throw 'artanis-err 500 "map-table-from-DB: Invalid cmd" cmd)))))
