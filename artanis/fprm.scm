@@ -31,6 +31,8 @@
   ;; independently, without using the web-framework.
   #:re-export (->sql
                where
+               /or
+               /and
                connect-db))
 
 ;; This is Functional Programming Relational Mapping.

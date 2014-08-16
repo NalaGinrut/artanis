@@ -68,6 +68,8 @@
                ;; ssql module
                ->sql
                where
+               /or
+               /and
 
                ;; route module
                rc-handler rc-handler!
