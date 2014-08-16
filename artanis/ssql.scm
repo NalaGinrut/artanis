@@ -18,7 +18,8 @@
   #:use-module (artanis utils)
   #:use-module (ice-9 match)
   #:export (->sql
-            where))
+            where
+            /or))
 
 (define (->string obj) (if (string? obj) obj (object->string obj)))
 
@@ -229,6 +230,8 @@
 ;; 'where' is used to generate condition string of SQL
 ;; There're several modes in it, and can be composited.
 ;; FIXME: Have to checkout sql-injection in the field value, especially '--'
+(define get-prefix (make-parameter " where "))
+(define get-and/or (make-parameter " and "))
 (define (where . conds)
   (define (->range lst)
     (match lst
@@ -250,24 +253,32 @@
   (match conds
     (() "")
     ;; If the only arg is string, return it directly
-    ((? string? conds) (string-concatenate (list " where " conds)))
+    ((? string? conds) (string-concatenate (list (get-prefix) conds)))
     ;; string template mode
     ;; e.g: (where "name = ${name}" #:name nala) ==> "name = \"nala\""
     (((? string? stpl) . vals)
-     (apply (make-db-string-template (string-concatenate (list " where " stpl))) vals))
+     (apply (make-db-string-template (string-concatenate (list (get-prefix) stpl))) vals))
     ;; AND mode:
     ;; (where #:name 'John #:age 15 #:email "john@artanis.com") 
     ;; ==> name="John" and age="15" and email="john@artanis.com"
     (((? keyword? key) (? non-list? val) . rest)
      (let* ((k (keyword->symbol key))
             (str (get-the-conds-str k val)))
-       (string-concatenate `(" where ",str ,(if (null? rest) "" " and ") ,(apply where rest)))))
+       (string-concatenate
+        `(,(get-prefix) ,str
+          ,(if (null? rest) "" (get-and/or))
+          ,(parameterize ((get-prefix "")) (apply where rest))))))
     ;; OR mode:
     ;; (where #:name '(John Tom Jim)) ==> name="John" or name="Tom" or name="Jim"
-    ;; TODO:
-    ;; (where (pick #:name 'John #:age 15)) ==> name="John" or age="15"
-    ;; Complex rules could be done with string templation.
+
     (((? keyword? key) (vals ...) . rest)
-     (let ((fmt (string-concatenate `(" where " "~{" ,(keyword->string key) "=\"~a\"~^ or ~}"))))
+     (let ((fmt (string-concatenate `(,(get-prefix) "~{" ,(keyword->string key) "=\"~a\"~^ or ~}"))))
        (format #f fmt vals)))
     (else (throw 'artanis-err 500 "[SQL] where: invalid condition pattern" conds))))
+
+;; (where (/or #:name 'John #:age 15)) ==> " where  name=\"John\"  or  age=\"15\" "
+;; (where #:a 1 (/or #:c 3 #:d 4)) ==> " where  a=\"1\"  and  c=\"3\"  or  d=\"4\" "
+;; Complex rules could be done with string templation.
+(define (/or . conds)
+  (parameterize ((get-and/or " or ") (get-prefix ""))
+    (apply where conds)))
