@@ -19,7 +19,8 @@
   #:use-module (ice-9 match)
   #:export (->sql
             where
-            /or))
+            /or
+            /and))
 
 (define (->string obj) (if (string? obj) obj (object->string obj)))
 
@@ -252,12 +253,14 @@
         (else (string-concatenate (list " " k "=\"" v "\" "))))))
   (match conds
     (() "")
+    (((? string? c1) (? string? c2) . rest)
+     (string-concatenate (list c1 (get-and/or) c2 (apply where rest))))
     ;; If the only arg is string, return it directly
-    ((? string? conds) (string-concatenate (list (get-prefix) conds)))
+    (((? string? c)) (string-concatenate (list (get-prefix) c)))
     ;; string template mode
     ;; e.g: (where "name = ${name}" #:name nala) ==> "name = \"nala\""
-    (((? string? stpl) . vals)
-     (apply (make-db-string-template (string-concatenate (list (get-prefix) stpl))) vals))
+    (((? string? stpl) (? keyword? k) . vals)
+     (apply (make-db-string-template (string-concatenate (list (get-prefix) stpl))) (cons k vals)))
     ;; AND mode:
     ;; (where #:name 'John #:age 15 #:email "john@artanis.com") 
     ;; ==> name="John" and age="15" and email="john@artanis.com"
@@ -276,9 +279,20 @@
        (format #f fmt vals)))
     (else (throw 'artanis-err 500 "[SQL] where: invalid condition pattern" conds))))
 
+;; Order of Precedence in SQL
+;; It is important to understand how the database evaluates multiple comparisons in the WHERE clause.
+;; All the AND comparisons (evaluated from Left to Right) are evaluated before the OR comparisons
+;; (evaluated from Left to Right).
+
 ;; (where (/or #:name 'John #:age 15)) ==> " where  name=\"John\"  or  age=\"15\" "
 ;; (where #:a 1 (/or #:c 3 #:d 4)) ==> " where  a=\"1\"  and  c=\"3\"  or  d=\"4\" "
 ;; Complex rules could be done with string templation.
 (define (/or . conds)
   (parameterize ((get-and/or " or ") (get-prefix ""))
+    (apply where conds)))
+
+;; (where (/or #:name 'John #:age 15 (/and #:c 2 #:d 4) #:email "john@artanis.com"))
+;; ==> " name=\"John\"  or  age=\"15\"  or  email=\"asdf\"  and  a=\"1\"  and  b=\"2\" "
+(define (/and . conds)
+  (parameterize ((get-and/or " and ") (get-prefix ""))
     (apply where conds)))
