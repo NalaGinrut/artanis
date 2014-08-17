@@ -25,7 +25,7 @@
 
 ;;; Code:
 
-(define-module (json syntax)
+(define-module (artanis third-party json upstream syntax)
   #:use-module (ice-9 match)
   #:export (json))
 

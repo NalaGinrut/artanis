@@ -25,7 +25,7 @@
 
 ;;; Code:
 
-(define-module (json parser)
+(define-module (artanis third-party json upstream parser)
   #:use-module (ice-9 rdelim)
   #:use-module (rnrs bytevectors)
   #:use-module (srfi srfi-9)
