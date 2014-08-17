@@ -96,9 +96,23 @@ But you may specify it like this:
 ## Work with Nginx/Apache
 
 You may try Artanis+Nginx with so-called reverse proxy.
-The approach is very easy, enable reverse proxy in Nginx, and 
-redirect it to localhost:3000 or other port you specified.
-(The details tutorial is working in progress...)
+You may add these line to your /etc/nginx/nginx.conf:
+```
+     location / {
+             proxy_pass http://127.0.0.1:1234;
+             proxy_set_header Host $host;
+             proxy_set_header X-Real-IP $remote_addr;
+             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+     }
+```
+Then restart you Nginx:
+```bash
+sudo service nginx restart
+```
+And run artanis:
+```scheme
+(run #:port 1234)
+```
 
 ## APIs docs
 ``` scheme
