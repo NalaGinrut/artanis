@@ -253,6 +253,7 @@
 ;; NOTE:
 ;; 1. Use primiary-keys for specifying primary keys, don't specify it in defs directly.
 ;;    Because we're not going to support foreign keys, so we need to record keys in closures for sync.
+;; 2. But, in FPRM, it'd be STATELESS, so closures shouldn't be stated.
 (define* (make-table-builder rc/conn)
   (define conn
     (cond
@@ -268,6 +269,7 @@
          (cdr x))))
   ;; TODO: We need a mechanism to sync tables constrained by foreign-keys, since some DB doesn't
   ;;       support foreign keys directly, so we have to provide it outside.
+  ;; TODO: who to deal with constrained tables without foreign-keys in stateless?
   (lambda* (tname defs #:key (if-exists? #f) (primary-keys '()))
     (let* ((types (map (cut ->types <> primary-keys) defs))
            (sql (case if-exists?
