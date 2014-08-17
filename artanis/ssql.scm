@@ -44,6 +44,11 @@
 (define-syntax-rule (->end name arg)
   (-> end "~a ~a" name arg))
 
+(define (->engine . engine)
+  (match engine
+    ((or (#f) ()) "")
+    (else (format #f "engine=~a" (car engine)))))
+
 (define-syntax ->where
   (syntax-rules (end)
     ((_ end sentence rest ...)
@@ -164,20 +169,20 @@
   (syntax-rules (table as select index unique on if exists not)
     ;; NOTE: don't use it directly, please take advantage of fprm.
     ;; (->sql create table 'mmr '("name varchar(10)" "age int(5)"))
-    ((_ table name columns)
-     (-> end "create table ~a (~{~a~^,~})" name columns))
-    ((_ table if exists name columns)
-     (-> end "create table if exists ~a (~{~a~^,~})" name columns))
-    ((_ table if not exists name columns)
-     (-> end "create table if not exists ~a (~{~a~^,~})" name columns))
+    ((_ table name columns engine ...)
+     (-> end "create table ~a (~{~a~^,~}) ~a" name columns (->engine engine ...)))
+    ((_ table if exists name columns engine ...)
+     (-> end "create table if exists ~a (~{~a~^,~}) ~a" name columns))
+    ((_ table if not exists name columns engine ...)
+     (-> end "create table if not exists ~a (~{~a~^,~}) ~a" name columns (->engine engine ...)))
     ;;(->sql create view 'mmr select '(a b) from 'tmp where "a=1 and b=2")
     ((_ view name as select rest ...)
      (-> end "create view ~a as select ~a" (sql-select rest ...)))
     ;; (->sql create index 'PersonID on 'Persons '(PersonID))
-    ((_ index iname on tname columns)
-     (-> end "create index ~a on ~a(~{~a~^,~})" iname tname columns))
-    ((_ unique index iname on tname columns)
-     (-> end "create unique index ~a on ~a(~{~a~^,~})" iname tname columns))))
+    ((_ index iname on tname columns engine ...)
+     (-> end "create index ~a on ~a(~{~a~^,~}) ~a" iname tname columns (->engine engine ...)))
+    ((_ unique index iname on tname columns engine ...)
+     (-> end "create unique index ~a on ~a(~{~a~^,~}) ~a" iname tname columns (->engine engine ...)))))
 
 (define-syntax sql-alter
   (syntax-rules (table rename to add modify drop column as select
