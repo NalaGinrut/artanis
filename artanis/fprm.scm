@@ -270,15 +270,15 @@
   ;; TODO: We need a mechanism to sync tables constrained by foreign-keys, since some DB doesn't
   ;;       support foreign keys directly, so we have to provide it outside.
   ;; TODO: who to deal with constrained tables without foreign-keys in stateless?
-  (lambda* (tname defs #:key (if-exists? #f) (primary-keys '()))
+  (lambda* (tname defs #:key (if-exists? #f) (primary-keys '()) (engine #f))
     (let* ((types (map (cut ->types <> primary-keys) defs))
            (sql (case if-exists?
                   ((overwrite drop)
                    (table-drop! tname)
-                   (->sql create table tname (types)))
+                   (->sql create table tname (types) engine))
                   ((ignore)
-                   (->sql create table if not exists tname (types)))
-                  (else (->sql create table tname (types))))))
+                   (->sql create table if not exists tname (types) engine))
+                  (else (->sql create table tname (types) engine)))))
       (DB-query conn sql)
       (lambda cmd
         (match cmd
