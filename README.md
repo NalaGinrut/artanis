@@ -11,6 +11,7 @@ TODO: Move all the APIs to docs page.
 ## Features:
 
 * Very lightweight: easy to hack and learn for newbies.
+* Support Json/CSV/XML/SXML.
 * A complete web-server implementation, include error page handler.
 * Aim to be high concurrency performance of the server in the future.
 * sinatra-like style route, that's why it names "artanis" ;-)
