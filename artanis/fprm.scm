@@ -254,6 +254,8 @@
 ;; 1. Use primiary-keys for specifying primary keys, don't specify it in defs directly.
 ;;    Because we're not going to support foreign keys, so we need to record keys in closures for sync.
 ;; 2. But, in FPRM, it'd be STATELESS, so closures shouldn't be stated.
+;; 3. SOLUTION: use a access-hook for specified table mapping, but there'd be a fine way to avoid
+;;              write sql directly each time.
 (define* (make-table-builder rc/conn)
   (define conn
     (cond
