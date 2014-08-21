@@ -26,6 +26,8 @@
   #:use-module (artanis cache)
   #:use-module (artanis route)
   #:use-module (artanis env)
+  #:use-module (artanis third-party json)
+  #:use-module (artanis third-party csv)
   #:use-module (ice-9 regex) ; FIXME: should use irregex!
   #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)
@@ -166,6 +168,19 @@
       ((update) update)
       ((remove) remove)
       (else (throw 'artanis-err "cookies-maker: Invalid operation!" op)))))
+
+;; for #:mime
+(define (mime-maker type rule keys)
+  (define mime (mime-guess (type)))
+  (lambda args
+    (define headers `((content-type . (,(mime-guess type)))))
+    (define-syntax-rule (-> func) (values (apply func args) #:headers headers))
+    (case type
+      ((json) (-> scm->json-string))
+      ((xml) (-> sxml->xml-string))
+      ((csv) (-> scm->csv-string))
+      (else (throw 'artanis-err 500 "mime-maker: Invalid type!" type)))))
+
 ;; ---------------------------------------------------------------------------------
   
 ;; NOTE: these short-cut-maker should never be exported!
@@ -256,7 +271,16 @@
     ;; e.g (get "/" #:cookies (ca cb)
     ;;      (lambda (rc)
     ;;       (:cookies-set! ca "sid" "1231231")))
-    (#:cookies . ,cookies-maker)))
+    (#:cookies . ,cookies-maker)
+
+    ;; Convert to certain MIME type
+    ;; There're three types: json/csv/xml
+    ;; NOTE: Only used at the end of the handler (to replace response-emit)
+    ;; e.g (get "/json" #:mime 'json
+    ;;       (lambda (rc)
+    ;;         (let ((j (json (object ("name" "nala") ("age" "15")))))
+    ;;           (:mime j))))
+    (#:mime . ,mime-maker)))
 
 (define-macro (meta-handler-register what)
   `(define-syntax-rule (,(symbol-append ': what) rc args ...)
