@@ -26,7 +26,8 @@
   #:export (make-csv-reader
             csv->xml
             sxml->csv
-            csv-write))
+            csv-write
+            sxml->csv-string))
 
 ;;; FIXME: rewrite with some kind of parser generator? functional, of
 ;;; course :-) Based on code from Ken Anderson <kanderson bbn com>, from
@@ -107,3 +108,8 @@
               csv)))
 
 (define csv-write sxml->csv)
+
+(define (sxml->csv-string scm)
+  (call-with-output-string
+   (lambda (port)
+     (sxml->csv scm port))))
