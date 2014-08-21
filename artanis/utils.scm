@@ -30,6 +30,7 @@
   #:use-module (ice-9 q)
   #:use-module (web http)
   #:use-module (web request)
+  #:use-module (sxml simple)
   #:export (regexp-split hash-keys cat bv-cat get-global-time
             get-local-time string->md5 unsafe-random string-substitute
             get-file-ext get-global-date get-local-date uri-decode
@@ -45,7 +46,8 @@
             plist->alist make-db-string-template non-list?
             keyword->string range oah->handler oah->opts string->keyword
             alist->klist alist->kblist is-hash-table-empty?
-            symbol-downcase symbol-upcase normalize-column)
+            symbol-downcase symbol-upcase normalize-column
+            sxml->xml-string)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -552,3 +554,8 @@
    ((symbol? col) (-> col symbol-downcase))
    ((keyword? col) (normalize-column (keyword->string col) ci?))
    (else (throw 'artanis-err 500 "normalize-column: Invalid type of column" col))))
+
+(define (sxml->xml-string sxml)
+  (call-with-output-string
+   (lambda (port)
+     (sxml->xml port))))
