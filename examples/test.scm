@@ -85,6 +85,24 @@
     (let ((r (:conn rc (:str rc))))
       (result->html (DB-get-top-row r)))))
 
+(get "/json" #:mime 'json
+  (lambda (rc)
+    (let ((j (json (object ("name" "nala") ("age" "15")))))
+      (:mime rc j))))
+
+(get "/csv" #:mime 'csv
+  (lambda (rc)
+    (:mime rc '(("a" "1") ("b" "2")))))
+
+(get "/xml" #:mime 'xml
+  (lambda (rc)
+    (:mime rc '(*TOP* (WEIGHT (@ (unit "pound")) (NET (@ (certified "certified")) "67") (GROSS "95"))))))
+
+(get "/sxml" #:mime 'sxml
+  (lambda (rc)
+    (:mime rc '((a 1) (b 2)))))
+
+
 (run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-passwd "123" #:debug #t)
 
 ;;(run)
