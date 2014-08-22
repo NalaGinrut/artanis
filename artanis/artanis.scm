@@ -24,6 +24,8 @@
   #:use-module (artanis oht)
   #:use-module (artanis route)
   #:use-module (artanis page)
+  #:use-module (artanis third-party csv)
+  #:use-module (artanis third-party json)
   #:use-module (web server)
   #:re-export (;; page module
                params
@@ -54,6 +56,7 @@
                :cookies-set!
                :cookies-ref
                :cookies-update!
+               :mime
 
                ;; db module
                DB-open
@@ -84,7 +87,23 @@
                rc-body rc-body!
                rc-mtime rc-mtime!
                rc-cookie rc-cookie!
-               rc-set-cookie rc-set-cookie!)
+               rc-set-cookie rc-set-cookie!
+
+               ;; csv
+               make-csv-reader
+               csv->xml
+               sxml->csv
+               csv-write
+               sxml->csv-string
+
+               ;; json
+               scm->json
+               scm->json-string
+               json->scm
+               json-string->scm
+               json-parser?
+               json-parser-port
+               json)
   #:export (init-server
             run))
 
