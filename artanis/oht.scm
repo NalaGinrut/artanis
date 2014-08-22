@@ -53,6 +53,7 @@
             :cookies-set!
             :cookies-ref
             :cookies-update!
+            :cookies-remove!
             :mime))
 
 (define (define-handler method rule opts-and-handler)
@@ -153,7 +154,7 @@
   (define (cref ck k)
     (and=> (cget ck) (cut cookie-ref <> k)))
   (define (update rc)
-    (rc-set-cookie! rc (map cdr rc)))
+    (rc-set-cookie! rc (map cdr ckl)))
   (define (remove rc k)
     (let ((cookies (rc-set-cookie rc)))
       (rc-set-cookie! 
@@ -163,7 +164,7 @@
    (lambda (ck) 
      (set! ckl (cons (cons ck (new-cookie)) ckl)))
    val)
-  (lambda (op)
+  (lambda (rc op)
     (case op
       ((set) cset!)
       ((ref) cref)
@@ -272,9 +273,13 @@
     (#:cache . ,cache-maker)
 
     ;; short-cut to set cookies
-    ;; e.g (get "/" #:cookies (ca cb)
+    ;; NOTE: you have to use :cookies-update! to sync cookies in rc, or
+    ;;       the response won't contains any cookies!
+    ;; e.g (get "/" #:cookies '(ca cb)
     ;;      (lambda (rc)
-    ;;       (:cookies-set! ca "sid" "1231231")))
+    ;;       (:cookies-set! rc 'ca "sid" "1231231")
+    ;;       (:cookies-update! rc)
+    ;;       "ok"))
     (#:cookies . ,cookies-maker)
 
     ;; Convert to certain MIME type
@@ -310,13 +315,16 @@
 (meta-handler-register cookies)
 (meta-handler-register cache)
 (meta-handler-register mime)
+(meta-handler-register cookies)
 
-(define-syntax-rule (:cookies-set! ck k v)
-  ((:cookies 'set) ck k v))
-(define-syntax-rule (:cookies-ref ck k)
-  ((:cookies 'ref) ck k))
+(define-syntax-rule (:cookies-set! rc ck k v)
+  ((:cookies rc 'set) ck k v))
+(define-syntax-rule (:cookies-ref rc ck k)
+  ((:cookies rc 'ref) ck k))
 (define-syntax-rule (:cookies-update! rc)
-  ((:cookies 'update) rc))
+  ((:cookies rc 'update) rc))
+(define-syntax-rule (:cookies-remove! rc k)
+  ((:cookies rc 'remove) k))
 
 (define-syntax-rule (oh-ref o)
   (assq-ref *options-meta-handler-table* o))
