@@ -43,7 +43,7 @@
     ((db passwd) "")
 
     ;; for server namespace
-    ((server info) "")
+    ((server info) "Artanis-0.0.1")
     ((server nginx) #f)
     ((server charset) "utf-8")
     ((server syspage path) "/etc/artanis/pages")
