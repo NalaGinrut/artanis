@@ -26,6 +26,7 @@
   #:use-module (artanis cache)
   #:use-module (artanis route)
   #:use-module (artanis env)
+  #:use-module (artanis mime)
   #:use-module (artanis third-party json)
   #:use-module (artanis third-party csv)
   #:use-module (ice-9 regex) ; FIXME: should use irregex!
@@ -51,7 +52,8 @@
             :cache
             :cookies-set!
             :cookies-ref
-            :cookies-update!))
+            :cookies-update!
+            :mime))
 
 (define (define-handler method rule opts-and-handler)
   (let ((keys (rule->keys rule))
@@ -171,14 +173,16 @@
 
 ;; for #:mime
 (define (mime-maker type rule keys)
-  (define mime (mime-guess (type)))
-  (lambda args
+  (define mime (mime-guess type))
+  (lambda (rc . args)
     (define headers `((content-type . (,(mime-guess type)))))
-    (define-syntax-rule (-> func) (values (apply func args) #:headers headers))
+    (define-syntax-rule (-> func) (values (apply func args) #:pre-headers headers))
+    (display args)(newline)
     (case type
       ((json) (-> scm->json-string))
       ((xml) (-> sxml->xml-string))
-      ((csv) (-> scm->csv-string))
+      ((csv) (-> sxml->csv-string))
+      ((sxml) (values (object->string (car args)) #:pre-headers headers))
       (else (throw 'artanis-err 500 "mime-maker: Invalid type!" type)))))
 
 ;; ---------------------------------------------------------------------------------
@@ -274,12 +278,24 @@
     (#:cookies . ,cookies-maker)
 
     ;; Convert to certain MIME type
-    ;; There're three types: json/csv/xml
+    ;; There're three types: json/csv/xml/sxml
     ;; NOTE: Only used at the end of the handler (to replace response-emit)
     ;; e.g (get "/json" #:mime 'json
     ;;       (lambda (rc)
     ;;         (let ((j (json (object ("name" "nala") ("age" "15")))))
     ;;           (:mime j))))
+    ;; e.g (get "/csv" #:mime 'csv
+    ;;       (lambda (rc)
+    ;;         (:mime '((a 1) (b 2)))))
+    ;; ==> "a,1\nb,2\n"
+    ;; e.g (get "/xml" #:mime 'xml
+    ;;       (lambda (rc)
+    ;;         (:mime '((a 1) (b 2)))))
+    ;; ==> "<a>1</a><b>2</b>"
+    ;; e.g (get "/sxml" #:mime 'sxml
+    ;;       (lambda (rc)
+    ;;         (:mime '((a 1) (b 2)))))
+    ;; ==> "((a 1) (b 2))"
     (#:mime . ,mime-maker)))
 
 (define-macro (meta-handler-register what)
@@ -293,6 +309,8 @@
 (meta-handler-register raw-sql)
 (meta-handler-register cookies)
 (meta-handler-register cache)
+(meta-handler-register mime)
+
 (define-syntax-rule (:cookies-set! ck k v)
   ((:cookies 'set) ck k v))
 (define-syntax-rule (:cookies-ref ck k)
