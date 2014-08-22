@@ -393,6 +393,7 @@
     (x-world/x-vrml (vrm vrml wrl))
 
     ;; Scheme mime
+    (text/scheme (sxml))
     (application/scheme (ss scm))))
 
 (define mime-guess
