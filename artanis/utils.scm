@@ -558,4 +558,4 @@
 (define (sxml->xml-string sxml)
   (call-with-output-string
    (lambda (port)
-     (sxml->xml port))))
+     (sxml->xml sxml port))))
