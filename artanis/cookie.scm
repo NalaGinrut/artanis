@@ -20,10 +20,18 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (web request)
-  #:export (make-cookie cookie? cookie-set! cookie-ref generate-cookies
-            cookie->header-string new-cookie request-cookies
-            cookie-has-key? remove-cookie-from-client
-            cookies-maker))
+  #:export (make-cookie
+            cookie?
+            cookie-set!
+            cookie-ref
+            generate-cookies
+            cookie->header-string
+            new-cookie
+            request-cookies
+            cookie-has-key?
+            remove-cookie-from-client
+            cookies-maker
+            cookie-modify))
 
 ;; NOTE: server side never check cookie expires, it's client's duty
 ;;       server only check sessions expires
@@ -39,6 +47,15 @@
   ;; keep cookie communication limited to encrypted transmission
   (secure cookie-secure cookie-secure!) ; The secure need of cookie
   (http-only cookie-httponly cookie-httponly!)); http-only
+
+;; NOTE: expires should be positive integer
+(define* (cookie-modify ck #:key (expir #f) (domain #f) (path #f)
+                        (secure #f) (http-only #f))
+  (and expir (positive? expir) (cookie-expir! ck (make-expires expir)))
+  (and domain (cookie-domain! ck domain))
+  (and path (cookie-path! ck path))
+  (and secure (cookie-secure! ck secure))
+  (and http-only (cookie-httponly! ck http-only)))
 
 (define (nvp name v-ref)
   (lambda (c)
@@ -100,12 +117,12 @@
 (define (generate-cookies cookies)
   (map (lambda (c) `(set-cookie . ,(cookie->header-string c))) cookies))
 
+;; NOTE: expires should be integer
 (define* (new-cookie #:key (expires 3600) ; expires in seconds
                      (npv '())
                      (path #f) (domain #f)
                      (secure #f) (http-only #t))
-  (let ((e (cond ((string? expires) expires) ; TODO: need validate
-                 ((integer? expires) (make-expires expires))
+  (let ((e (cond ((integer? expires) (make-expires expires))
                  (else #f)))); else #f for no expires
     (make-cookie npv e domain path secure http-only)))
     
