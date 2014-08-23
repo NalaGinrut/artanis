@@ -57,6 +57,7 @@
                :cookies-ref
                :cookies-update!
                :cookies-remove!
+               :cookies-setattr!
                :mime
 
                ;; db module

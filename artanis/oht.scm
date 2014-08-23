@@ -54,6 +54,7 @@
             :cookies-ref
             :cookies-update!
             :cookies-remove!
+            :cookies-setattr!
             :mime))
 
 (define (define-handler method rule opts-and-handler)
@@ -155,6 +156,8 @@
     (and=> (cget ck) (cut cookie-ref <> k)))
   (define (update rc)
     (rc-set-cookie! rc (map cdr ckl)))
+  (define (setattr ck . kargs)
+    (apply cookie-modify (cget ck) kargs))
   (define (remove rc k)
     (let ((cookies (rc-set-cookie rc)))
       (rc-set-cookie! 
@@ -168,6 +171,7 @@
     (case op
       ((set) cset!)
       ((ref) cref)
+      ((setattr) setattr)
       ((update) update)
       ((remove) remove)
       (else (throw 'artanis-err "cookies-maker: Invalid operation!" op)))))
@@ -321,6 +325,8 @@
   ((:cookies rc 'set) ck k v))
 (define-syntax-rule (:cookies-ref rc ck k)
   ((:cookies rc 'ref) ck k))
+(define-syntax-rule (:cookies-setattr! rc ck kargs ...)
+  ((:cookies rc 'setattr) ck kargs ...))
 (define-syntax-rule (:cookies-update! rc)
   ((:cookies rc 'update) rc))
 (define-syntax-rule (:cookies-remove! rc k)
