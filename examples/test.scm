@@ -108,6 +108,13 @@
     (:cookies-update! rc)
     "ok"))
 
+(get "/cookie/:expires" #:cookies '(cc)
+  (lambda (rc)
+    (:cookies-set! rc 'cc "sid" "123321")
+    (:cookies-setattr! rc 'cc #:expir (string->number (params rc "expires")))
+    (:cookies-update! rc)
+    "ok"))
+
 (run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-passwd "123" #:debug #t)
 
 ;;(run)
