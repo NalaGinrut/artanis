@@ -55,7 +55,8 @@
             :cookies-update!
             :cookies-remove!
             :cookies-setattr!
-            :mime))
+            :mime
+            :auth))
 
 (define (define-handler method rule opts-and-handler)
   (let ((keys (rule->keys rule))
@@ -185,7 +186,6 @@
   (lambda (rc . args)
     (define headers `((content-type . (,(mime-guess type)))))
     (define-syntax-rule (-> func) (values (apply func args) #:pre-headers headers))
-    (display args)(newline)
     (case type
       ((json) (-> scm->json-string))
       ((xml) (-> sxml->xml-string))
@@ -322,6 +322,7 @@
 (meta-handler-register cache)
 (meta-handler-register mime)
 (meta-handler-register cookies)
+(meta-handler-register auth)
 
 (define-syntax-rule (:cookies-set! rc ck k v)
   ((:cookies rc 'set) ck k v))
