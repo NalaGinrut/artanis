@@ -280,12 +280,11 @@
     (#:cache . ,cache-maker)
 
     ;; short-cut to set cookies
-    ;; NOTE: you have to use :cookies-update! to sync cookies in rc, or
-    ;;       the response won't contains any cookies!
+    ;; NOTE: you don't have to use :cookies-update! to sync cookies in rc,
+    ;;       there's a hook for that before response.
     ;; e.g (get "/" #:cookies '(ca cb)
     ;;      (lambda (rc)
     ;;       (:cookies-set! rc 'ca "sid" "1231231")
-    ;;       (:cookies-update! rc)
     ;;       "ok"))
     (#:cookies . ,cookies-maker)
 
