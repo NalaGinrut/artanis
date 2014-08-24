@@ -70,7 +70,7 @@
            (r (:conn rc (->sql select * from 'Persons (where #:Lastname name)))))
       (result->html (DB-get-top-row r)))))
 
-;; curl localhost:3000/conn/lei;select * from Persons;
+;; curl "localhost:3000/conn/lei;select * from Persons;"
 (get "/fucked/:name"
      #:conn #t
   (lambda (rc)
@@ -85,6 +85,7 @@
     (let ((r (:conn rc (:str rc))))
       (result->html (DB-get-top-row r)))))
 
+;; various format tests
 (get "/json" #:mime 'json
   (lambda (rc)
     (let ((j (json (object ("name" "nala") ("age" "15")))))
@@ -102,17 +103,16 @@
   (lambda (rc)
     (:mime rc '((a 1) (b 2)))))
 
+;; cookies test
 (get "/cookie" #:cookies '(cc)
   (lambda (rc)
     (:cookies-set! rc 'cc "sid" "123321")
-    (:cookies-update! rc)
     "ok"))
 
 (get "/cookie/:expires" #:cookies '(cc)
   (lambda (rc)
     (:cookies-set! rc 'cc "sid" "123321")
     (:cookies-setattr! rc 'cc #:expir (string->number (params rc "expires")))
-    (:cookies-update! rc)
     "ok"))
 
 (run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-passwd "123" #:debug #t)

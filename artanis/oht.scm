@@ -329,6 +329,7 @@
   ((:cookies rc 'setattr) ck kargs ...))
 (define-syntax-rule (:cookies-update! rc)
   ((:cookies rc 'update) rc))
+(run-before-response! (lambda (rc body) (:cookies-update! rc)))
 (define-syntax-rule (:cookies-remove! rc k)
   ((:cookies rc 'remove) k))
 
