@@ -40,8 +40,6 @@
             reject-method
             response-error-emit
             server-handler
-            run-after-request!
-            run-before-response!
             init-hook))
 
 ;; the params will be searched in param-list first, then search from qstr/post
@@ -88,12 +86,6 @@
 
 (define (init-before-response-hook)
   (run-before-response! rc-conn-recycle))
-
-(define (run-after-request! proc)
-  (add-hook! *after-request-hook* proc))
-
-(define (run-before-response! proc)
-  (add-hook! *before-response-hook* proc))
 
 ;; NOTE: If you want to add hook during initialization time, put them here.
 (define (init-hook)

@@ -19,6 +19,7 @@
   #:use-module (artanis crypto sha-1)
   #:use-module (artanis config)
   #:use-module (artanis irregex)
+  #:use-module (artanis env)
   #:use-module (artanis mime)
   #:use-module (system foreign)
   #:use-module (ice-9 regex)
@@ -47,7 +48,7 @@
             keyword->string range oah->handler oah->opts string->keyword
             alist->klist alist->kblist is-hash-table-empty?
             symbol-downcase symbol-upcase normalize-column
-            sxml->xml-string)
+            sxml->xml-string run-after-request! run-before-response!)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -559,3 +560,9 @@
   (call-with-output-string
    (lambda (port)
      (sxml->xml sxml port))))
+
+(define (run-after-request! proc)
+  (add-hook! *after-request-hook* proc))
+
+(define (run-before-response! proc)
+  (add-hook! *before-response-hook* proc))
