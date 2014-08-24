@@ -92,11 +92,14 @@
 (define-syntax-rule (get-oht rc)
   (handler-rc-oht (get-handler-rc (rc-rhk rc))))
 
-;; returns #f if there's no such keyword was specified 
+;; NOTE:
+;; Returns `values' proc if there's no such keyword was specified.
+;; Because we need to support the hooks, so there'd be a proc to receive
+;; multi-args when there's no such short-cut.
 (define-syntax-rule (=> opt rc args ...)
   (let* ((oht (get-oht rc))
          (h (and oht (hash-ref oht opt))))
-    (and h (h rc args ...))))
+    (if h (h rc args ...) values)))
 
 ;; --------------------------------------------------------------
 ;; oht handlers
