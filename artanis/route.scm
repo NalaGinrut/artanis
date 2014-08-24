@@ -47,6 +47,7 @@
             new-route-context
             route-context?
 
+            get-header
             init-rule-handler-key!
             init-rule-handler-and-keys!
             init-rule-path-regexp!
@@ -88,6 +89,10 @@
   ;; auto connection doesn't need users to close it, it's auto closed when request is over.
   (conn rc-conn rc-conn!)) ; auto connection from pool
 
+(define (get-header rc k)
+  (display (request-headers (rc-req rc)))(newline)
+  (assq-ref (request-headers (rc-req rc)) k))
+
 (define (new-route-context request body)
   (let* ((uri (request-uri request))
          (path (uri-path uri))
@@ -104,6 +109,7 @@
     (init-rule-handler-and-keys! rc) ; set handler and keys
     (init-rule-path-regexp! rc) ; set regexp
     (init-rule-key-bindings! rc) ; key binding of path
+    (init-query! rc) ; init query-string and post body
     rc))
 
 ;; compiled regexp for optimization
