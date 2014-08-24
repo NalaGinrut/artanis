@@ -149,7 +149,7 @@
           #:mtime (cons (time-second mtime) (time-nanosecond mtime))))
 
 (define (throw-auth-needed)
-  (values 401 '((WWW-Authenticate . "Basic realm=\"Secure Area\"")) ""))
+  (response-emit "" #:status 401 #:headers '((WWW-Authenticate . "Basic realm=\"Secure Area\""))))
 
 (define (server-handler request request-body)
   ;; ENHANCE: could put some stat hook here
