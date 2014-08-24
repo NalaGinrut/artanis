@@ -115,6 +115,27 @@
     (:cookies-setattr! rc 'cc #:expir (string->number (params rc "expires")))
     "ok"))
 
+;; test for naive basic-auth
+(get "/bauth" #:auth `(basic ,(lambda (rc u p) (and (string=? u "mmr") (string=? p "123"))))
+  (lambda (rc) 
+    (if (:auth rc)
+        "auth ok"
+        (throw-auth-needed))))
+
+;; test for more complicated auth
+(post "/auth" #:auth '(table user "user" "passwd")
+  (lambda (rc)
+    (if (:auth rc)
+        "auth ok"
+        (redirect-to rc "/login?login_failed=true"))))
+
+(get "/login"
+  (lambda (rc)
+    (let ((blog-title "test auth")
+          (footer "<p>Powered by Artanis</p>")
+          (failed (params rc "login_failed")))
+      (tpl->response "login.tpl" (the-environment)))))
+
 (run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-passwd "123" #:debug #t)
 
 ;;(run)
