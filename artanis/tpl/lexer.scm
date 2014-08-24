@@ -94,7 +94,7 @@
        ((char=? #\" c)
         (not! enter-string)
         (lp (read-html port) (cons "\\\"" (cons html ret))))
-       (else 
+       (else
         (lp (read-html port) (cons (string c) (cons html ret))))))))
 
 (define next-token
@@ -105,9 +105,6 @@
                    (next-token port))))
       (cond
        ((eof-object? c) '*eoi*)
-       ((char-set-contains? char-set:whitespace c)
-        (read-char port) ; skip whitespace
-        (next))
        ((or (and (not (char=? last-char #\\)) (char=? c #\")) (char=? c #\')) 
         ;; not an escaped double-quote
         ;; NOTE: HTML string may contain #\' as string quote, and we'll
@@ -120,7 +117,7 @@
              (set! code-start #f)
              (return port type (get-the-code port))))
        (else
-        (unread-char #\< port)
+        (unget-char1 c port)
         (return port 'html (get-the-html port)))))))
 
 (define (make-tpl-tokenizer port)
