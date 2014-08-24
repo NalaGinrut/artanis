@@ -1,6 +1,6 @@
 This file is about the security issues of Artanis, include some advices or conventions.
 
-To avoid SQL-injection, please consider the following advices:
+* To avoid SQL-injection, please consider the following advices:
 
 1. DO NOT use any escapable chars in the binding field, say, whitespaces:
    e.g: /conn/lei mu/
@@ -23,3 +23,7 @@ To avoid SQL-injection, please consider the following advices:
    `username' because of using whitespaces in `username',
    it's fucked! list_my_info is expected to list the info of user specified
    in `username', but now, it'll show all the users' info include passwd.
+
+* The response may return redundant http headers if users didn't make it
+  properly. Artanis is not going to check the redundant headers, it's the users'
+  duty to do it.
