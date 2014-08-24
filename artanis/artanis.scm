@@ -59,6 +59,7 @@
                :cookies-remove!
                :cookies-setattr!
                :mime
+               :auth
 
                ;; db module
                DB-open
@@ -90,6 +91,7 @@
                rc-mtime rc-mtime!
                rc-cookie rc-cookie!
                rc-set-cookie rc-set-cookie!
+               get-header
 
                ;; csv
                make-csv-reader
