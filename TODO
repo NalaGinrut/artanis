@@ -10,3 +10,4 @@
 * design a generic session framework with optional store method: memcached/file+RCU/Berkerley DB...
 * Implement co-operative server with delimited-continuation
 * Format a patch to guile-dbi for supporting non-blocking
+* Use sendfile on static files, this may need new server-core
