@@ -149,6 +149,6 @@
   (format #t "~a~%" (current-myhost))
   (run-server
    (if debug
-       (lambda (r b) (format #t "~a~%~a~%" r b) (server-handler r b))
+       (lambda (r b) (format #t "[Request] ~a~%[Body] ~a~%" r b) (server-handler r b))
        server-handler)
    'http `(#:host ,(get-conf '(host addr)) #:port ,(get-conf '(host port)))))
