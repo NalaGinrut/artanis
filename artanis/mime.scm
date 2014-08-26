@@ -116,6 +116,8 @@
     (application/vnd.wordperfect5.1 (wp5))
     (application/x-123 (wk))
     (application/x-7z-compressed (7z))
+    (application/x-bz2 (bz2))
+    (application/x-gz (gz))
     (application/x-abiword (abw))
     (application/x-apple-diskimage (dmg))
     (application/x-bcpio (bcpio))
