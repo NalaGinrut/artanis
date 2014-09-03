@@ -77,7 +77,7 @@
 
 ;; NOTE: we banned "\" in the path to avoid SQL-injection!!!
 (define *rule-regexp* (make-regexp ":[^\\/]+"))    
-(define *path-keys-regexp* (make-regexp "/:([^\\/]+)"))
+(define *path-keys-regexp* (make-regexp ":([^\\/\\.]+)"))
 
 (define (compile-rule rule)
   (string-append "^" 
@@ -134,6 +134,9 @@
   (define (non-cache rc body) body)
   (match pattern
     ((#f) non-cache)
+    (('static . maxage)
+     (lambda (rc)
+       (try-to-cache-static-file rc (static-filename (rc-path rc)) "public" maxage)))
     (((? string=? file) . maxage0)
      (lambda* (rc #:key (maxage (->maxage maxage0)))
        (try-to-cache-static-file rc file "public" maxage)))
