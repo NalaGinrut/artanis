@@ -27,6 +27,7 @@
   #:use-module (artanis third-party csv)
   #:use-module (artanis third-party json)
   #:use-module (web server)
+  #:use-module (srfi srfi-1)
   #:re-export (;; page module
                params
                response-emit
@@ -111,16 +112,22 @@
   #:export (init-server
             run))
 
-(define (default-route-init)
+;; When you don't want to use cache, use static-page-emitter.
+(define (static-page-emitter rc)
+  (emit-response-with-file (static-filename (rc-path rc))))
+
+(define (default-route-init statics cache-statics? exclude)
   ;; avoid a common warn
   (get "/$" (lambda () "no index.html but it works!"))
-  (get "/.+\\.(png|jpg|jpeg|ico|html|js|css)" 
-   (lambda (rc) 
-     (emit-response-with-file (static-filename (rc-path rc))))))
+  (let ((srule (format #f "/.+\\.(~{~a~^|~})" (lset-difference eq? statics exclude))))
+    (if cache-statics?
+        (get srule #:cache 'static (lambda (rc) (:cache rc)))
+        (get srule static-page-emitter))))
 
 ;; make sure to call init-server at the beginning
-(define (init-server)
-  (default-route-init)
+(define* (init-server #:key (statics '(png jpg jpeg ico html js css))
+                      (cache-statics? #f) (exclude '()))
+  (default-route-init statics cache-statics? exclude)
   (init-hook)
   (init-config))
 
