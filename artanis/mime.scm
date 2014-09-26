@@ -400,11 +400,12 @@
 
 (define mime-guess
   (lambda (ext)
-    (hash-ref *mime-types-table*
-              (cond
-               ((symbol? ext) ext)
-               ((string? ext) (string->symbol ext))
-               (else (error mime-guess "wrong ext type to guess mime!"))))))
+    (or (hash-ref *mime-types-table*
+                  (cond
+                   ((symbol? ext) ext)
+                   ((string? ext) (string->symbol ext))
+                   (else (throw 'artanis-err 500 "mime-guess: wrong ext type to guess mime!"))))
+        'application/misc)))
 
 ;; TODO: generate this table on the env init time, and save a copy in env.
 (define *mime-types-table* (make-hash-table))
