@@ -400,7 +400,7 @@
   ;; I maybe wrong and fail, but it's worth to try.
   (define (get-table-schema tname)      
     (let* ((sql (->sql select "lcase(column_name)" from
-                       (select * from 'information_schema.columns (where #:table_name tname))
+                       (select * from 'information_schema.columns (having #:table_name tname))
                        as 'tmp_alias))
            (sch (DB-get-all-rows (DB-query conn sql))))
       ;; NOTE: The Schema queried from DB is case sensitive, so it's safe to
