@@ -19,6 +19,7 @@
   #:use-module (ice-9 match)
   #:export (->sql
             where
+            having
             /or
             /and))
 
@@ -242,12 +243,19 @@
 ;; FIXME: Have to checkout sql-injection in the field value, especially '--'
 (define get-prefix (make-parameter " where "))
 (define get-and/or (make-parameter " and "))
-(define (where . conds)
+(define (where . conds) (apply gen-cond conds))
+(define (having . conds)
+  (parameterize ((get-prefix " having "))
+    (apply gen-cond conds)))
+
+(define (gen-cond . conds)
   (define (->range lst)
     (match lst
       (((? integer? from) (? integer? to))
        (map ->string lst))
-      (else (throw 'artanis-err 500 "[SQL] where: invalid range" lst))))
+      (else (throw 'artanis-err 500
+                   (format #f "[SQL]~a: invalid range" (get-prefix))
+                   lst))))
   (define (get-the-conds-str key val)
     (let ((k (symbol->string key))
           (v (if (list? val) (->range val) (->string val))))
@@ -263,7 +271,7 @@
   (match conds
     (() "")
     (((? string? c1) (? string? c2) . rest)
-     (string-concatenate (list c1 (get-and/or) c2 (apply where rest))))
+     (string-concatenate (list c1 (get-and/or) c2 (apply gen-cond rest))))
     ;; If the only arg is string, return it directly
     (((? string? c)) (string-concatenate (list (get-prefix) c)))
     ;; string template mode
@@ -279,14 +287,16 @@
        (string-concatenate
         `(,(get-prefix) ,str
           ,(if (null? rest) "" (get-and/or))
-          ,(parameterize ((get-prefix "")) (apply where rest))))))
+          ,(parameterize ((get-prefix "")) (apply gen-cond rest))))))
     ;; OR mode:
     ;; (where #:name '(John Tom Jim)) ==> name="John" or name="Tom" or name="Jim"
 
     (((? keyword? key) (vals ...) . rest)
      (let ((fmt (string-concatenate `(,(get-prefix) "~{" ,(keyword->string key) "=\"~a\"~^ or ~}"))))
        (format #f fmt vals)))
-    (else (throw 'artanis-err 500 "[SQL] where: invalid condition pattern" conds))))
+    (else (throw 'artanis-err 500
+                 (format #f "[SQL]~a: invalid condition pattern" (get-prefix))
+                 conds))))
 
 ;; Order of Precedence in SQL
 ;; It is important to understand how the database evaluates multiple comparisons in the WHERE clause.
