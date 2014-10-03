@@ -95,7 +95,7 @@
       ((? string? tpl)
        (set! mode 'tpl)
        (make-db-string-template tpl))
-      (else (error auth-maker "wrong pattern"))))
+      (else (throw 'artanis-err 500 "auth-maker: wrong pattern" val))))
   (lambda (rc . kargs)
     (define result
       (case mode
