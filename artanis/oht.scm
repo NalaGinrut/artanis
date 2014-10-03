@@ -151,29 +151,45 @@
     (else (throw 'artanis-err "cache-maker: invalid pattern!" pattern))))
 
 ;; for #:cookies
-(define (cookies-maker val rule keys)
+;; NOTE: Support cookies customization, which let users define special cookies.
+;;       Like crypto cookies.
+(define (cookies-maker mode rule keys)
   (define *the-remove-expires* "Thu, 01-Jan-70 00:00:01 GMT")
+  (define %cookie-set! cookies-set!)
+  (define %cookie-ref cookies-ref)
+  (define %cookie-modify cookie-modify)
+  (define %new-cookie new-cookie)
   (define ckl '())
   (define (cget ck)
     (or (assoc-ref ckl ck)
         (throw 'artansi-err 500 "Undefined cookie name" ck)))
   (define (cset! ck k v)
-    (and=> (cget ck) (cut cookie-set! <> k v)))
+    (and=> (cget ck) (cut %cookie-set! <> k v)))
   (define (cref ck k)
-    (and=> (cget ck) (cut cookie-ref <> k)))
+    (and=> (cget ck) (cut %cookie-ref <> k)))
   (define (update rc)
     (rc-set-cookie! rc (map cdr ckl)))
   (define (setattr ck . kargs)
-    (apply cookie-modify (cget ck) kargs))
+    (apply %cookie-modify (cget ck) kargs))
   (define (remove rc k)
     (let ((cookies (rc-set-cookie rc)))
       (rc-set-cookie! 
        rc
-       `(,@cookies ,(new-cookie #:npv '((key "")) #:expires *the-remove-expires*)))))
-  (for-each 
-   (lambda (ck) 
-     (set! ckl (cons (cons ck (new-cookie)) ckl)))
-   val)
+       `(,@cookies ,(%new-cookie #:npv '((key "")) #:expires *the-remove-expires*)))))
+  (define-syntax-rule (init-cookies names)
+    (for-each 
+     (lambda (ck) 
+       (set! ckl (cons (cons ck (new-cookie)) ckl)))
+     names))
+  (match mode
+    (`(names ,names) (init-cookies names))
+    (`(custom ,names ,maker ,setter ,getter ,modifier)
+     (set! %new-cookie maker)
+     (set! %cookie-set! setter)
+     (set! %cookie-ref getter)
+     (set! %cookie-modify modifier)
+     (init-cookies names))
+    (else (throw 'artansi-err 500 "cookies-maker: Invalid mode while init!" mode)))
   (lambda (rc op)
     (case op
       ((set) cset!)
@@ -181,7 +197,7 @@
       ((setattr) setattr)
       ((update) update)
       ((remove) remove)
-      (else (throw 'artanis-err "cookies-maker: Invalid operation!" op)))))
+      (else (throw 'artanis-err 500 "cookies-maker: Invalid operation!" op)))))
 
 ;; for #:mime
 (define (mime-maker type rule keys)
