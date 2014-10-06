@@ -25,7 +25,8 @@
             *conf-hash-table*
             *conn-pool*
             *before-response-hook*
-            *after-request-hook*))
+            *after-request-hook*
+            *sql-mapping-lookup-table*))
 
 (include "version.scm")
 
@@ -42,3 +43,5 @@
 
 (define *before-response-hook* (make-hook 2))
 (define *after-request-hook* (make-hook 2))
+
+(define *sql-mapping-lookup-table* (make-hash-table))
