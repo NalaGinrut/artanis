@@ -37,8 +37,18 @@
 ;; 6. There's no ORM, but FPRM. The only difference is that you never see
 ;;    Classes but Closures. Hmm...what's the essential difference? Stateless, of course!
 
-(define (sql-mapping-maker sql-tpl rule keys)
-  #f)
+;; NOTE: sql-mapping-maker returns conn object, users have to get certain rows as will.
+(define (sql-mapping-maker mode rule keys)
+  (match mode
+    (#t sql-mapping-simple-fetch)
+    (`(path ,path ,name)
+     (sql-mapping-fetch-from-path path name)
+     sql-mapping-simple-fetch)
+    (`(add ,name ,sql-tpl)
+     (sql-mapping-tpl-add! name sql-tpl)
+     sql-mapping-simple-fetch)
+    (else (throw 'artanis-err 500 "sql-mapping-maker: Invalid mode!" mode))))
+
 ;; (define (sql-mapping-maker sql-tpl rule keys)
 ;;   (define tpl (make-db-string-template sql-tpl))
 ;;   (define rkey 
