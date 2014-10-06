@@ -133,6 +133,7 @@
 (define (cache-maker pattern rule keys)
   (define (non-cache rc body) body)
   (match pattern
+    ;; disable cache explicitly, sometimes users want to make sure there's no any cache.
     ((#f) non-cache)
     (('static . maxage)
      (lambda (rc)
