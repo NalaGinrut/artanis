@@ -156,8 +156,8 @@
 ;;       Like crypto cookies.
 (define (cookies-maker mode rule keys)
   (define *the-remove-expires* "Thu, 01-Jan-70 00:00:01 GMT")
-  (define %cookie-set! cookies-set!)
-  (define %cookie-ref cookies-ref)
+  (define %cookie-set! cookie-set!)
+  (define %cookie-ref cookie-ref)
   (define %cookie-modify cookie-modify)
   (define %new-cookie new-cookie)
   (define ckl '())
@@ -183,8 +183,8 @@
        (set! ckl (cons (cons ck (new-cookie)) ckl)))
      names))
   (match mode
-    (`(names ,names) (init-cookies names))
-    (`(custom ,names ,maker ,setter ,getter ,modifier)
+    (('names names ...) (init-cookies names))
+    (('custom (names ...) maker setter getter modifier)
      (set! %new-cookie maker)
      (set! %cookie-set! setter)
      (set! %cookie-ref getter)

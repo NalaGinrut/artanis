@@ -119,13 +119,13 @@
 
 ;; 13
 ;; cookies test
-(get "/cookie" #:cookies '(cc)
+(get "/cookie" #:cookies '(names cc)
   (lambda (rc)
     (:cookies-set! rc 'cc "sid" "123321")
     "ok"))
 
 ;; 14
-(get "/cookie/:expires" #:cookies '(cc)
+(get "/cookie/:expires" #:cookies '(names cc)
   (lambda (rc)
     (:cookies-set! rc 'cc "sid" "123321")
     (:cookies-setattr! rc 'cc #:expir (string->number (params rc "expires")))
