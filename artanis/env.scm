@@ -44,4 +44,5 @@
 (define *before-response-hook* (make-hook 2))
 (define *after-request-hook* (make-hook 2))
 
+;; TODO: I don't have much time for it but it should be RB-Tree in the future
 (define *sql-mapping-lookup-table* (make-hash-table))
