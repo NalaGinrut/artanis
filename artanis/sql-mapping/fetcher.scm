@@ -24,8 +24,10 @@
 
 (define-record-type <sql-mapping> (fields type name path sm))
 
+(define sm-ref hash-ref)
+(define sm-set! hash-set!)
 (define-syntax-rule (sql-mapping-ref name)
-  (and=> (hash-ref *sql-mapping-lookup-table* name) <sql-mapping>-sm))
+  (and=> (sm-ref *sql-mapping-lookup-table* name) <sql-mapping>-sm))
 
 (define (sql-mapping-simple-fetch rc name)
   (let ((conn (DB-open rc))
