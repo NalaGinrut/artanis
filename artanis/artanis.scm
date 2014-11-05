@@ -138,6 +138,17 @@
 ;; Invalid use-db? must be (dbd username passwd) or #f
 (define* (run #:key (host #f) (port #f) (debug #f) (use-db? #f)
               (dbd #f) (db-username #f) (db-passwd #f) (db-name #f))
+  (define (->proper-body-display body)
+    (cond
+     ((not body) "No body in the request!")
+     ((string? body)
+      (if debug
+          body
+          (substring body
+                     (and=> (string-lengh body)
+                            (lambda (len) (if (> len 100) 100 len))))))
+     ((bytevector? body) "Body is bytevectors!")
+     (else (throw 'artanis-err 500 "->proper-body-display: Invalid body type!" body))))
   (when (check-if-not-run-init-server)
     (error "Sorry, but you have to run (init-server) in the begining of you main program!"))
   (format #t "Anytime you want to Quit just try Ctrl+C, thanks!~%")
@@ -156,6 +167,8 @@
   (format #t "~a~%" (current-myhost))
   (run-server
    (if debug
-       (lambda (r b) (format #t "[Request] ~a~%[Body] ~a~%" r b) (server-handler r b))
+       (lambda (r b)
+         (format #t "[Request] ~a~%[Body] ~a~%" r (->proper-body-display b))
+         (server-handler r b))
        server-handler)
    'http `(#:host ,(get-conf '(host addr)) #:port ,(get-conf '(host port)))))
