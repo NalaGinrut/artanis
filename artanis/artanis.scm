@@ -147,7 +147,7 @@
           (substring body
                      (and=> (string-lengh body)
                             (lambda (len) (if (> len 100) 100 len))))))
-     ((bytevector? body) "Body is bytevectors!")
+     (((@ (rnrs bytevectors) bytevector?) body) "Body is bytevectors!")
      (else (throw 'artanis-err 500 "->proper-body-display: Invalid body type!" body))))
   (when (check-if-not-run-init-server)
     (error "Sorry, but you have to run (init-server) in the begining of you main program!"))

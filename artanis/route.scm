@@ -156,7 +156,7 @@
   (let ((str (case (rc-method rc)
                ((GET) (uri-query (request-uri (rc-req rc))))
                ;; The accessor of GET and POST should be divided
-               ((POST) ((@ (rnrs) utf8->string) (rc-body rc)))
+               ((POST) #f) ; don't handle post here
                (else (throw 'artanis-err 405 
                             "wrong method for query!" (rc-method rc))))))
     (if str
