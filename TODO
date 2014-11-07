@@ -28,3 +28,7 @@ Some ideas:
 * Add FAM(File Alteration Monitor) based reload-on-the-fly mechanism to debug mode. `inotify' would be fine enough.
   ** Never use it in productive environment.
   ** Could be named 'hotfix-on-debug', and #:hotfix-on-debug should checkout if there's guile-inotify.
+
+* In MySQL, delete huge data in product environment will cause halt. There're two ways:
+  1. limit 1000 and loop
+  2. use store procedure
