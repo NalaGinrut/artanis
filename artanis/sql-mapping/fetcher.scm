@@ -18,9 +18,9 @@
   #:use-module (artanis utils)
   #:use-module (artanis env)
   #:use-module ((rnrs) #:select (define-record-type))
-  #:export (sql-mapping-simple-fetch
-            sql-mapping-fetch-from-path
-            sql-mapping-tpl-add!))
+  #:export (sql-mapping-fetch
+            sql-mapping-add-from-path
+            sql-mapping-tpl-add))
 
 (define-record-type <sql-mapping> (fields type name path sm))
 
@@ -29,19 +29,110 @@
 (define-syntax-rule (sql-mapping-ref name)
   (and=> (sm-ref *sql-mapping-lookup-table* name) <sql-mapping>-sm))
 
-(define (sql-mapping-simple-fetch rc name)
-  (let ((conn (DB-open rc))
-        (sm (sql-mapping-ref name)))
-    (lambda kargs
-      (DB-query conn (apply sm kargs))
-      conn)))
+(define (sql-mapping-fetch rc name . kargs)
+  (let ((sm (sql-mapping-ref name))
+        (conn (DB-open rc)))
+    (DB-query conn (apply sm kargs))))
 
-(define (sql-mapping-fetch-from-path rc path name)
-  (define (fetch-from-path p)
-    #t)
-  (let ((conn (DB-open rc))
-        (sm (fetch-from-path path)))
+(define (sql-mapping-tpl-add name tpl)
+  (sm-set! *sql-mapping-lookup-table*
+           (make-<sql-mapping> 'str name #f (make-db-string-template tpl))))
+
+(define (sql-mapping-add-from-path path name)
+  (sm-set! *sql-mapping-lookup-table*
+           (make-<sql-mapping> 'file name path
+                                (read-sql-mapping-from-file path name))))
+
+;; The grammar of sql-mapping DSL:
+;; e.g:
+;; define mmr;
+;;
+;; options:
+;;         check-all = false;
+;;         all <- nodash;
+;;         $passwd <- nodash;
+;;
+;; sql-mapping:
+;;         select username,info,addr,email from Persons where passwd=${passwd}
+
+(define *delimiters* "\n=<:;")
+(define *delim-set* (string->char-set *delim-set*))
+
+(define (get-token port)
+  (and=> (read-delimited *delimiters* port) string-trim-both))
+
+(define (sm-define port)
+  `(define ,(get-token port)))
+
+(define (sm-options-get port)
+  (define (skip-endline)
+    (read-char port) ; skip #\;
+    (let lp ()
+      (cond
+       ((eof-object? (peek-char port))
+        (throw 'artanis-err 500 "skip-endline: wrong syntax when skipping endline!")) 
+       ((char-set-contain? char-set:whitespace (peek-char port))
+        (read-char port) ; skip whitespace
+        (lp)))))
+  (let lp((tk (get-token port)) (opt '()) (constrain '()))
+    (cond
+     ((eof-object? tk)
+      (throw 'artanis-err 500 "sm-options-get: wrong syntax since you don't specify enough fields!"))
+     ((string=? "" tk) ; end
+      (read-char port) ; skip #\np
+      `((opt ,opt) (constrain ,constrain)))
+     ((char=? #\= (peek-char port))
+      (read-char port) ; skip #\=
+      (let ((tkv (get-token port)))
+        (and (char=? #\; (peek-char port)) (skip-endline)) ; skip #\; #\np
+        (lp (get-token port) (cons (cons tk tkv) opt) constrain)))
+     ((char=? #\< (peek-char port))
+      (read-char port) ; skip #\<
+      (and=> (read-char port) ; skip #\-
+             (lambda (c) (if (char=? #\- c) #t (throw 'artanis-err 500 "sm-options-get: wrong syntax here!" c))))
+      (let ((tkv (get-token port)))
+        (and (char=? #\; (peek-char port)) (skip-endline)) ; skip #\; #\np
+        (lp (get-token port) opt (cons (cons tk tkv) constrain))))
+     (else (throw 'artanis-err 500 "sm-options-get: Fatal! Shouldn't be here!" (peek-char port))))))
+
+;; NOTE: semi-colon shouldn't be delimiter in sql string anyway. So we'll use get-string-all.
+(define (sm-get port)
+  (let ((sm-str (get-string-all port)))
+    (cond
+     ((eof-object? sm-str)
+      (throw 'artanis-err 500 "sm-get: wrong sytax, you must spacify a sql-mapping string!" sm-str))
+     (else (make-db-string-template (string-trim-both sm-str))))))
+
+(define *tk-handlers*
+  `(("define" . ,sm-define)
+    ("options" . ,sm-options-get)
+    ("sql-mapping" . ,sm-get)))
+
+(define (sql-mapping-parser port)
+  (let lp((c (peek-char port)) (ret '()))
+    (cond
+     ((eof-object? c) ret)
+     ((char-set-contain? char-set:whitespace c)
+      (read-char port) ; skip whitespace
+      (lp (peek-char port) ret))
+     ((char-set-contain? *delim-set* c)
+      (read-char port) ; skip
+      (and (char=? #\< c)
+           (char=? #\- (peek-char port))
+           (read-char port)) ; skip #\- after #\<
+      (lp (peek-char port) ret))
+     ((get-token port)
+      => (lambda (tk)
+           (let ((h (assoc-ref *tk-handlers* tk)))
+             (if h
+                 (lp (peek-char port) (cons (h port) ret))
+                 (throw 'artanis-err 500 "sql-mapping-parser: Invalid token" tk)))))
+     (else (throw 'artanis-err 500 "sql-mapping-parser: Wrong syntax" (get-string-all port))))))
+
+(define (read-sql-mapping-from-file path name)
+  (when (not (file-exists? path))
+    (throw 'artanis-err 500 "read-sql-mapping-from-file: file doens't exist!" path))
+  (let ((sml (call-with-input-file path sql-mapping-parser)))
+    ;; TODO: how to connect options to str template??
     #t))
 
-(define (sql-mapping-tpl-add! rc name tpl)
-  #t)

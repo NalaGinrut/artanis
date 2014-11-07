@@ -40,13 +40,13 @@
 ;; NOTE: sql-mapping-maker returns conn object, users have to get certain rows as will.
 (define (sql-mapping-maker mode rule keys)
   (match mode
-    (#t sql-mapping-simple-fetch)
+    (#t sql-mapping-fetch)
     (`(path ,path ,name)
      (sql-mapping-fetch-from-path path name)
-     sql-mapping-simple-fetch)
+     sql-mapping-fetch)
     (`(add ,name ,sql-tpl)
-     (sql-mapping-tpl-add! name sql-tpl)
-     sql-mapping-simple-fetch)
+     (sql-mapping-tpl-add name sql-tpl)
+     sql-mapping-fetch)
     (else (throw 'artanis-err 500 "sql-mapping-maker: Invalid mode!" mode))))
 
 ;; (define (sql-mapping-maker sql-tpl rule keys)
