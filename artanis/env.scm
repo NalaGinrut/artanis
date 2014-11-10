@@ -28,6 +28,9 @@
             *after-request-hook*
             *sql-mapping-lookup-table*))
 
+;; WARNING: For concurrency in green-thread, all these stuffs should be immutable
+;;          in the run time!
+
 (include "version.scm")
 
 ;; table structure:
@@ -38,7 +41,10 @@
 (define *conf-hash-table* (make-hash-table))
 
 ;; NOTE: pool size equals to workers (work queues)
-;; Each worker need just one connection, because of green-thread.
+;; TODO: Should be pool of pool.
+;;       In principle, each worker need just one connection because of green-thread.
+;;       But async needs non-block, so we need a pool for each worker since each conn
+;;       could be scheduled by EWOULDBREAK.
 (define *conn-pool* #f)
 
 (define *before-response-hook* (make-hook 2))
