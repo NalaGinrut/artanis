@@ -56,7 +56,8 @@
             :cookies-remove!
             :cookies-setattr!
             :mime
-            :auth))
+            :auth
+            :session))
 
 (define (define-handler method rule opts-and-handler)
   (let ((keys (rule->keys rule))
@@ -213,6 +214,21 @@
       ((sxml) (values (object->string (car args)) #:pre-headers headers))
       (else (throw 'artanis-err 500 "mime-maker: Invalid type!" type)))))
 
+;; for #:session
+(define (session-maker mode rule keys)
+  (define* (%spawn rc #:key (idname "sid") (proc session-spawn))
+    (call-with-values
+        (lambda () (proc rc))
+      (lambda (sid session)
+        (let ((cookie (and keep (new-cookie #:npv `((,idname ,sid))))))
+          (and cookie (rc-set-cookie! rc (list cookie)))))))
+  (lambda (rc)
+    (case mode
+      ((or #t 'spawn) (%spawn rc))
+      (`(spawn ,sid) (%spawn rc #:idname sid))
+      (`(spawn ,sid ,proc) (%spawn rc #:idname sid #:proc proc))
+      (else (throw 'artanis-err 500 "session-maker: Invalid mode" mode)))))
+
 ;; ---------------------------------------------------------------------------------
   
 ;; NOTE: these short-cut-maker should never be exported!
@@ -327,7 +343,10 @@
     ;;       (lambda (rc)
     ;;         (:mime '((a 1) (b 2)))))
     ;; ==> "((a 1) (b 2))"
-    (#:mime . ,mime-maker)))
+    (#:mime . ,mime-maker)
+
+    ;; Spawn sessions
+    (#:session . ,session-maker)))
 
 (define-macro (meta-handler-register what)
   `(define-syntax-rule (,(symbol-append ': what) rc args ...)
