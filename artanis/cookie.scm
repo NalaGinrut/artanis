@@ -131,9 +131,16 @@
     (cookie-nvp! cookie (assoc-set! nvp name value))))
 
 (define (cookie-ref cookie name)
-  (let* ((nvp (cookie-nvp cookie))
-         (v (assoc-ref nvp name)))
-    (and v (car v))))
+  (and (not (null? cookie))
+       (let lp((ck (car cookie)))
+         (cond
+          ((null? ck) #f)
+          (else
+           (let* ((nvp (cookie-nvp ck))
+                  (v (assoc-ref nvp name)))
+             (if v
+                 (car v)
+                 (lp (cdr cookie)))))))))
 
 (define (cookie-delete! cookie name)
   (let ((nvp (cookie-nvp cookie)))

@@ -61,6 +61,7 @@
                :cookies-setattr!
                :mime
                :auth
+               :session
 
                ;; db module
                DB-open

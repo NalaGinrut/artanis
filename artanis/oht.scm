@@ -23,6 +23,7 @@
   #:use-module (artanis sql-mapping)
   #:use-module (artanis db)
   #:use-module (artanis cookie)
+  #:use-module (artanis session)
   #:use-module (artanis cache)
   #:use-module (artanis route)
   #:use-module (artanis env)
@@ -220,14 +221,24 @@
     (call-with-values
         (lambda () (proc rc))
       (lambda (sid session)
-        (let ((cookie (and keep (new-cookie #:npv `((,idname ,sid))))))
+        (let ((cookie (new-cookie #:npv `((,idname ,sid)))))
           (and cookie (rc-set-cookie! rc (list cookie)))))))
-  (lambda (rc)
-    (case mode
+  (define (spawn-handler rc)
+    (match mode
       ((or #t 'spawn) (%spawn rc))
       (`(spawn ,sid) (%spawn rc #:idname sid))
       (`(spawn ,sid ,proc) (%spawn rc #:idname sid #:proc proc))
-      (else (throw 'artanis-err 500 "session-maker: Invalid mode" mode)))))
+      (else (throw 'artanis-err 500 "session-maker: Invalid config mode" mode))))
+  (define (check-it rc idname)
+    (get-session (cookie-ref (rc-cookie rc) idname)))
+  (lambda (rc cmd)
+    (match cmd
+      ('check (check-it rc "sid"))
+      (`(check ,sid) (check-it rc sid))
+      ('check-and-spawn (or (check-it rc "sid") (spawn-handler rc)))
+      (`(check-and-spawn ,sid) (or (check-it rc sid) (spawn-handler rc)))
+      ('spawn (spawn-handler rc))
+      (else (throw 'artanis-err 500 "session-maker: Invalid call cmd" cmd)))))
 
 ;; ---------------------------------------------------------------------------------
   
@@ -362,6 +373,7 @@
 (meta-handler-register mime)
 (meta-handler-register cookies)
 (meta-handler-register auth)
+(meta-handler-register session)
 
 (define-syntax-rule (:cookies-set! rc ck k v)
   ((:cookies rc 'set) ck k v))

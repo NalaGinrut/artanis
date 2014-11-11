@@ -71,8 +71,12 @@
   (get-random-from-dev))
     
 (define (get-session sid)
-  (or (mem:get-session sid)
-      (load-session-from-file sid)))
+  (case (get-conf '(session engine))
+    ((simple) (mem:get-session sid))
+    ((file) (load-session-from-file sid))
+    ;; TODO: DB session engine (SQL & NO-SQL)
+    (else (throw 'artanis-err 500 "get-session: Invalid session engine!"
+                 (get-conf '(session engine))))))
 
 (define (session-expired? session)
   (let ((expir (session-ref session "expires")))
@@ -117,7 +121,7 @@
 
 ;; return filename if it exists, or #f
 (define (get-session-file sid)
-  (let ((f (format #f "~a/~a.session" *session-path* sid)))
+  (let ((f (format #f "~a/~a.session" (get-conf '(session path)) sid)))
     (and (file-exists? f) f)))
 
 (define (load-session-from-file sid)
