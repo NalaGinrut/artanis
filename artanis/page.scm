@@ -42,11 +42,11 @@
             server-handler
             init-hook))
 
-;; the params will be searched in param-list first, then search from qstr/post
-;; TODO: qstr/post should be independent from rules binding.
+;; the params will be searched in binding-list first, then search from qstr
+;; TODO: qstr should be independent from rules binding.
 (define (params rc key)
   (or (assoc-ref (rc-bt rc) key)
-      (get-from-qstr/post rc key)))
+      (get-from-qstr rc key)))
 
 (define (page-show file port)
   (bv-cat (string-append (get-conf '(server syspage path)) "/" file) port))

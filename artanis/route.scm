@@ -53,7 +53,7 @@
             init-rule-path-regexp!
             init-rule-key-bindings!
             init-query!
-            get-from-qstr/post))
+            get-from-qstr))
 
 (define-record-type handler-rc
   (make-handler-rc handler keys oht)
@@ -166,6 +166,6 @@
         '())))
 
 ;; ENHANCE: do we need query hashtable?
-(define (get-from-qstr/post rc key)
+(define (get-from-qstr rc key)
   (and (rc-qt rc)
        (and=> (assoc-ref (rc-qt rc) key) car)))
