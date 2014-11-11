@@ -141,11 +141,14 @@
 
 ;; 16
 ;; test for more complicated auth
-(post "/auth" #:auth '(table user "user" "passwd")
+(post "/auth" #:auth '(table user "user" "passwd") #:session #t
   (lambda (rc)
-    (if (:auth rc)
-        "auth ok"
-        (redirect-to rc "/login?login_failed=true"))))
+    (cond
+     ((:session rc 'check) "auth ok (session)")
+     ((:auth rc)
+      (:session rc 'spawn)
+      "auth ok")
+     (else (redirect-to rc "/login?login_failed=true")))))
 
 ;; 17
 (get "/login"
@@ -159,7 +162,7 @@
 ;; to support dot as the delimiter of key-bindings in rule
 (get "/pkg/:name\\.:format"
   (lambda (rc)
-   (format #f "~a.~a" (params rc "name") (params rc "format")))) 
+   (format #f "~a.~a" (params rc "name") (params rc "format"))))
 
 (run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-passwd "123" #:debug #t)
 
