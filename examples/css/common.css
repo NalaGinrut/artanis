@@ -10,24 +10,24 @@ abbr, acronym { border-bottom: .1em dotted; cursor: help; }
 /* primary layout structure (body, primary divs) */
 
 body {
-	background-color: #ffffff;
-	color:#333333;
-	font: normal 100.1%/141%  Arial, "Helvetica Neue", Helvetica, sans-serif;
-	font-size: .875em;
-	line-height: 1.6;
+    background-color: #ffffff;
+    color:#333333;
+    font: normal 100.1%/141%  Arial, "Helvetica Neue", Helvetica, sans-serif;
+    font-size: .875em;
+    line-height: 1.6;
 }
 
 #container {
-	min-width:800px;
-	margin: 0 auto;
-        max-width: 1260px;
-	padding: 3em;
-	width: 80%;
+    min-width:800px;
+    margin: 0 auto;
+    max-width: 1260px;
+    padding: 3em;
+    width: 80%;
 }
 
 #main {
-	float: left;
-	width: 60%;
+    float: left;
+    width: 60%;
 }
 
 #sidebar {
@@ -35,20 +35,20 @@ body {
 }
 
 #footer {
-	border-top: 1px solid #ccc;
-	clear: both;
-	color: #666;
-	font-size: 0.9em;
-	padding: 2em;
+    border-top: 1px solid #ccc;
+    clear: both;
+    color: #666;
+    font-size: 0.9em;
+    padding: 2em;
 }
 
 
 /* secondary layout structure (posts, comments) */
 
 .post {
-	margin-bottom: 2em;
-	overflow: hidden;
-        width: 900px;
+    margin-bottom: 2em;
+    overflow: hidden;
+    width: 900px;
 }
 
 .post-date {
@@ -56,97 +56,97 @@ body {
 }
 
 .post-meta {
-	color: #666666;
-	margin-top: 1em
+    color: #666666;
+    margin-top: 1em
 }
 
 .comments {
-	margin-top: 5em;
+    margin-top: 5em;
 }
 
 .comment-meta {
-	color: #666;
-	font-size: .9em;
+    color: #666;
+    font-size: .9em;
 }
 
 .comments  ol li {
-	background: #f0f0f0;
-	border: 1px solid #c9c2c1;
-	margin-bottom: 1.5em;
-	padding: 1.5em;
-	-moz-border-radius: 10px;
-	-webkit-border-radius: 10px;
+    background: #f0f0f0;
+    border: 1px solid #c9c2c1;
+    margin-bottom: 1.5em;
+    padding: 1.5em;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
 }
 
 #skiplinks a {
-	height: 1px;
-	left: -10000px;
-	overflow:hidden;
-	position: absolute;
-	top: auto;
-	width: 1px;
+    height: 1px;
+    left: -10000px;
+    overflow:hidden;
+    position: absolute;
+    top: auto;
+    width: 1px;
 }
- 
+
 #skiplinks a:focus {
-	height:auto;
-	position:static;
-	width:auto;
+    height:auto;
+    position:static;
+    width:auto;
 }
 /* headings and paragraphs */
 
 h1, h2, h3, h4, h5, h6 {
-	font: normal 200%/100% Arial, "Helvetica Neue", Helvetica, sans-serif;
-	line-height: inherit;
-	margin-bottom: .5em;
+    font: normal 200%/100% Arial, "Helvetica Neue", Helvetica, sans-serif;
+    line-height: inherit;
+    margin-bottom: .5em;
 }
 
 h1, h1 a {
-	font: normal 200%/100% Arial, "Helvetica Neue", Helvetica, sans-serif;
+    font: normal 200%/100% Arial, "Helvetica Neue", Helvetica, sans-serif;
 }
 
 h2 {
-	font: bold 180%/100% Arial, "Helvetica Neue", Helvetica, sans-serif;
-	line-height: inherit;
-	letter-spacing: -1px;
+    font: bold 180%/100% Arial, "Helvetica Neue", Helvetica, sans-serif;
+    line-height: inherit;
+    letter-spacing: -1px;
 }
 
 h3 {
-	font: normal 160%/100% Arial, "Helvetica Neue", Helvetica, sans-serif;
+    font: normal 160%/100% Arial, "Helvetica Neue", Helvetica, sans-serif;
 }
 
 h4 {
-	font: normal 140%/100% Arial, "Helvetica Neue", Helvetica, sans-serif;
+    font: normal 140%/100% Arial, "Helvetica Neue", Helvetica, sans-serif;
 }
 
 h5 {
-	font: normal 120%/100% Arial, "Helvetica Neue", Helvetica, sans-serif;
+    font: normal 120%/100% Arial, "Helvetica Neue", Helvetica, sans-serif;
 }
 
 h6 {
-	font: normal 110%/100% Arial, "Helvetica Neue", Helvetica, sans-serif;
+    font: normal 110%/100% Arial, "Helvetica Neue", Helvetica, sans-serif;
 }
 
 p {
-	margin: 0 0 1em 0;
+    margin-left: 20px;
 }
 
 /* general links*/
 
 a:link {
-	color: #000000;
-	font-weight: bold;
-	text-decoration: none;
+    color: #000000;
+    font-weight: bold;
+    text-decoration: none;
 }
 
 a:visited {
-	color: #000000;
-	font-weight: bold;
-	text-decoration: none;
+    color: #000000;
+    font-weight: bold;
+    text-decoration: none;
 }
 
 a:hover, a:active, a:focus  {
-	color: #000000;
-	text-decoration: underline;
+    color: #000000;
+    text-decoration: underline;
 }
 
 /* general styles */
@@ -160,14 +160,14 @@ strong {
 }
 
 blockquote {
-	border-left: #cccccc 1px solid;
-	margin: 0;
-	margin-left: .5em;
-	padding-left: .5em;
+    border-left: #cccccc 1px solid;
+    margin: 0;
+    margin-left: .5em;
+    padding-left: .5em;
 }
 
 cite {
-	font-style: normal;
+    font-style: normal;
 }
 
 code {
@@ -187,49 +187,52 @@ pre code {
 }
 
 small {
-	color: #6F6F6F;
-	font-size: .9em;
+    color: #6F6F6F;
+    font-size: .9em;
 }
 
 ul {
-	list-style-type: none;
-	margin-left: 0;
-	padding-left: 0;
+    list-style-type: none;
+    margin-left: 0;
+    padding-left: 0;
 }
 
 ol {
     margin-bottom: 1em;
-	margin-left: 0;
+    margin-left: 0;
     padding-left: 0;
 }
 
 ol li {
     list-style: decimal;
-	margin-left: -1em;
-	padding-left: -1em;
+    margin-left: -1em;
+    padding-left: -1em;
 }
 
 /* forms */
 
 input[type="file"],
 input[type="text"],
-input[type="password"] {
+input[type="password"],
+input[type="content"] {
     background-color: #f9f9f9;
     border: 1px solid #ccc;
     font-family: monospace, Courier, Lucida Console, sans-serif;
+    margin-left: 20px;
     padding: .3em;
-	-moz-border-radius: 5px;
-	-webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
 }
 
-textarea{
+textarea {
+    margin-left: 20px;
     background-color: #f9f9f9;
     border: 1px solid #ccc;
     font-family: monospace, Courier, Lucida Console, sans-serif;
     padding: .3em;
-	width: 80%;
-	-moz-border-radius: 5px;
-	-webkit-border-radius: 5px;
+    width: 80%;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
 }
 
 select {
@@ -237,20 +240,21 @@ select {
     border: 1px solid #ccc;
     font-family: monospace, Courier, Lucida Console, sans-serif;
     padding: .3em;
-	-moz-border-radius: 5px;
-	-webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
 }
 
 label {
-	display: block;
+    display: block;
     font-weight: bold;
     padding: 0 0 0.2em 0;
 }
 
-button {
-	font: bold 1.5em  Arial, "Helvetica Neue", Helvetica, sans-serif;
-	margin-top: 10px;
-	padding: 5px;
+input[type="submit"] {
+    font: Arial, "Helvetica Neue", Helvetica, sans-serif;
+    margin-top: 20px;
+    margin-left: 80px;
+    padding: 5px;
 }
 
 /* general classes (.clear, .center, .right, .left, etc.) */
@@ -262,44 +266,44 @@ button {
 /* miscellaneous stuff and template code */
 
 .row {
-	margin: 1.5em 0:
+    margin: 1.5em 0:
 }
 
 .criteria {
-	color:#ff0000;
+    color:#ff0000;
 }
 
 .pagination {
-	margin: 3em auto;
-	text-align: center;
+    margin: 3em auto;
+    text-align: center;
 }
 
 .pagination span {
-	background-color: #f0f0f0;
-	border: 1px solid #cccccc;
-	padding: 1em;
+    background-color: #f0f0f0;
+    border: 1px solid #cccccc;
+    padding: 1em;
 }
 
 .read-more {
-	left: -1000px;
-	position: absolute;
-	width: 900px;
+    left: -1000px;
+    position: absolute;
+    width: 900px;
 }
 
 .required {
-	color:#ff0000;
-	font-size: .9em;
-	font-weight: normal;
-	margin-left: .2em
+    color:#ff0000;
+    font-size: .9em;
+    font-weight: normal;
+    margin-left: .2em
 }
 
 .current-page {
-	background-color: #666666;
-	display: inline-block;
-	margin: 0 5px;
-	padding: 0 7px;
-	-webkit-border-radius: 15px;
-	-moz-border-radius: 15px;
+    background-color: #666666;
+    display: inline-block;
+    margin: 0 5px;
+    padding: 0 7px;
+    -webkit-border-radius: 15px;
+    -moz-border-radius: 15px;
 }
 
 a.current-page {color: #ffffff}
