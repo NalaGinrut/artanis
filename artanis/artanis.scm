@@ -62,6 +62,7 @@
                :mime
                :auth
                :session
+               :from-post
 
                ;; db module
                DB-open

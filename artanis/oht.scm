@@ -20,6 +20,7 @@
 
 (define-module (artanis oht)
   #:use-module (artanis utils)
+  #:use-module (artanis config)
   #:use-module (artanis sql-mapping)
   #:use-module (artanis db)
   #:use-module (artanis cookie)
@@ -28,6 +29,7 @@
   #:use-module (artanis route)
   #:use-module (artanis env)
   #:use-module (artanis mime)
+  #:use-module (artanis upload)
   #:use-module (artanis third-party json)
   #:use-module (artanis third-party csv)
   #:use-module (ice-9 regex) ; FIXME: should use irregex!
@@ -58,7 +60,8 @@
             :cookies-setattr!
             :mime
             :auth
-            :session))
+            :session
+            :from-post))
 
 (define (define-handler method rule opts-and-handler)
   (let ((keys (rule->keys rule))
@@ -217,17 +220,18 @@
 
 ;; for #:session
 (define (session-maker mode rule keys)
-  (define* (%spawn rc #:key (idname "sid") (proc session-spawn))
+  (define* (%spawn rc #:key (keep? #f) (idname "sid") (proc session-spawn))
     (call-with-values
         (lambda () (proc rc))
       (lambda (sid session)
-        (let ((cookie (new-cookie #:npv `((,idname ,sid)))))
-          (and cookie (rc-set-cookie! rc (list cookie)))))))
-  (define (spawn-handler rc)
+        (when keep?
+          (let ((cookie (new-cookie #:npv `((,idname ,sid)))))
+            (and cookie (rc-set-cookie! rc (list cookie))))))))
+  (define* (spawn-handler rc #:key (keep? #f))
     (match mode
-      ((or #t 'spawn) (%spawn rc))
-      (`(spawn ,sid) (%spawn rc #:idname sid))
-      (`(spawn ,sid ,proc) (%spawn rc #:idname sid #:proc proc))
+      ((or #t 'spawn) (%spawn rc #:keep? keep?))
+      (`(spawn ,sid) (%spawn rc #:idname sid #:keep? keep?))
+      (`(spawn ,sid ,proc) (%spawn rc #:idname sid #:proc proc #:keep? keep?))
       (else (throw 'artanis-err 500 "session-maker: Invalid config mode" mode))))
   (define (check-it rc idname)
     (get-session (cookie-ref (rc-cookie rc) idname)))
@@ -235,10 +239,67 @@
     (match cmd
       ('check (check-it rc "sid"))
       (`(check ,sid) (check-it rc sid))
-      ('check-and-spawn (or (check-it rc "sid") (spawn-handler rc)))
-      (`(check-and-spawn ,sid) (or (check-it rc sid) (spawn-handler rc)))
+      ('check-and-spawn
+       (or (check-it rc "sid") (spawn-handler rc)))
+      (`(check-and-spawn ,sid)
+       (or (check-it rc sid) (spawn-handler rc)))
+      (`(check-and-spawn-and-keep ,sid)
+       (or (check-it rc sid) (spawn-handler rc #:keep? #t)))
       ('spawn (spawn-handler rc))
+      ('spawn-and-keep (spawn-handler rc #:keep? #t))
       (else (throw 'artanis-err 500 "session-maker: Invalid call cmd" cmd)))))
+
+(define (from-post-maker mode rule keys)
+  (define (post->qstr-table rc)
+    (define post-data #f)
+    (define (-> x)
+      (string-trim-both x (lambda (c) (member c '(#\sp #\: #\return)))))
+    (cond
+     (post-data post-data)
+     (else 
+      (set! post-data
+            (if (rc-body rc)
+                (map (lambda (x)
+                       (map -> (string-split x #\=)))
+                     (string-split ((@ (rnrs) utf8->string) (rc-body rc)) #\&))
+                '()))
+      post-data)))
+  (define (default-success-ret size-list filename-list)
+    (call-with-output-string
+     (lambda (port)
+       (for-each (lambda (s f)
+                   (format port "<p>Upload succeeded! ~a: ~a bytes!</p>" s f))
+                 size-list filename-list))))
+  (define (default-no-file-ret) "<p>No uploaded files!</p>")
+  (define* (store-the-bv rc #:key (uid 33) (gid 33) (path (get-conf '(upload path)))
+                         (mod #o664) (path-mode #o775) (sync #f)
+                         ;; NOTE: One may use these two things for returning
+                         ;;       customized result, like JSON or XML.
+                         (success-ret default-success-ret)
+                         (no-file-ret "No uploaded files!"))
+    (match (store-uploaded-files rc #:path path #:sync sync #:simple-ret? #f
+                                 #:uid uid #:gid gid #:path-mode path-mode)
+      (`(success ,slist ,flist) (success-ret slist flist))
+      ('none (no-file-ret))
+      (else
+       (throw 'artanis-err 500
+              "store-the-bv: Impossible status! please report bug!"))))
+  (define (post-ref plst key) (and=> (assoc-ref plst key) car))
+  (define (post-handler rc)
+    (match mode
+      ((or #t 'query-string)(post->qstr-table rc))
+      ((or 'bv 'bytevector) (rc-body rc))
+      ;; upload operation, indeed
+      (`(store ,path) (store-the-bv rc #:path path))
+      (`(store ,path ,mod)
+       (store-the-bv rc #:path path #:mod mod))
+      (else (throw 'artanis-err 500 "post-handler: Invalid mode!" mode))))
+  (lambda (rc . cmd)
+    (match cmd
+      (`(get ,key) (post-ref (post-handler rc) key))
+      ('(get) (rc-body rc))
+      ('(store) (post-handler rc))
+      (else (throw 'artanis-err 500 "from-post-maker: Invalid cmd!" cmd)))))
 
 ;; ---------------------------------------------------------------------------------
   
@@ -357,7 +418,10 @@
     (#:mime . ,mime-maker)
 
     ;; Spawn sessions
-    (#:session . ,session-maker)))
+    (#:session . ,session-maker)
+
+    ;; Get data from POST
+    (#:from-post . ,from-post-maker)))
 
 (define-macro (meta-handler-register what)
   `(define-syntax-rule (,(symbol-append ': what) rc args ...)
@@ -374,6 +438,7 @@
 (meta-handler-register cookies)
 (meta-handler-register auth)
 (meta-handler-register session)
+(meta-handler-register from-post)
 
 (define-syntax-rule (:cookies-set! rc ck k v)
   ((:cookies rc 'set) ck k v))
