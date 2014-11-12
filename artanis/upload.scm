@@ -214,8 +214,12 @@
 
 ;; NOTE: we won't limit file size here, since it should be done in server reader
 (define* (store-uploaded-files rc #:key (path (current-upload-path))
-                               (uid #f) (gid #f)
+                               (uid #f) (gid #f) (simple-ret? #t)
                                (mode #o664) (path-mode #o775) (sync #f))
+
+  (define (get-slist mfds)
+    (map (lambda (m) (bytevector-length (mfd-data m))) mfds))
+  (define (get-flist mfds) (map mfd-name mfds))
   (cond
    ((content-type-is-mfd? rc)
     => (lambda (boundry)
@@ -225,7 +229,9 @@
            (catch #t
              (lambda () (for-each dumper (cdr mfds)))
              (lambda e (throw 'artanis-err 500 "Failed to dump mfds!" e)))
-           'success)))
+           (if simple-ret?
+               'success
+               `(success ,(get-slist mfds) ,(get-flist mfds))))))
    (else 'none)))
 
 (define (mfds->body mfds boundary)
