@@ -17,7 +17,9 @@
 (define-module (artanis sql-mapping fetcher)
   #:use-module (artanis utils)
   #:use-module (artanis env)
-  #:use-module ((rnrs) #:select (define-record-type))
+  #:use-module (artanis db)
+  #:use-module ((rnrs) #:select (define-record-type get-string-all))
+  #:use-module (ice-9 rdelim)
   #:export (sql-mapping-fetch
             sql-mapping-add-from-path
             sql-mapping-tpl-add))
@@ -36,10 +38,12 @@
 
 (define (sql-mapping-tpl-add name tpl)
   (sm-set! *sql-mapping-lookup-table*
+           name
            (make-<sql-mapping> 'str name #f (make-db-string-template tpl))))
 
 (define (sql-mapping-add-from-path path name)
   (sm-set! *sql-mapping-lookup-table*
+           name
            (make-<sql-mapping> 'file name path
                                 (read-sql-mapping-from-file path name))))
 
@@ -56,7 +60,7 @@
 ;;         select username,info,addr,email from Persons where passwd=${passwd}
 
 (define *delimiters* "\n=<:;")
-(define *delim-set* (string->char-set *delim-set*))
+(define *delim-set* (string->char-set *delimiters*))
 
 (define (get-token port)
   (and=> (read-delimited *delimiters* port) string-trim-both))
@@ -71,7 +75,7 @@
       (cond
        ((eof-object? (peek-char port))
         (throw 'artanis-err 500 "skip-endline: wrong syntax when skipping endline!")) 
-       ((char-set-contain? char-set:whitespace (peek-char port))
+       ((char-set-contains? char-set:whitespace (peek-char port))
         (read-char port) ; skip whitespace
         (lp)))))
   (let lp((tk (get-token port)) (opt '()) (constrain '()))
@@ -112,10 +116,10 @@
   (let lp((c (peek-char port)) (ret '()))
     (cond
      ((eof-object? c) ret)
-     ((char-set-contain? char-set:whitespace c)
+     ((char-set-contains? char-set:whitespace c)
       (read-char port) ; skip whitespace
       (lp (peek-char port) ret))
-     ((char-set-contain? *delim-set* c)
+     ((char-set-contains? *delim-set* c)
       (read-char port) ; skip
       (and (char=? #\< c)
            (char=? #\- (peek-char port))

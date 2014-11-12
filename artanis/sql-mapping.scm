@@ -16,6 +16,7 @@
 
 (define-module (artanis sql-mapping)
   #:use-module (artanis utils)
+  #:use-module (artanis sql-mapping fetcher)
   #:use-module (artanis db)
   #:use-module (artanis ssql)
   #:use-module (artanis route)
@@ -42,7 +43,7 @@
   (match mode
     (#t sql-mapping-fetch)
     (`(path ,path ,name)
-     (sql-mapping-fetch-from-path path name)
+     (sql-mapping-add-from-path path name)
      sql-mapping-fetch)
     (`(add ,name ,sql-tpl)
      (sql-mapping-tpl-add name sql-tpl)
