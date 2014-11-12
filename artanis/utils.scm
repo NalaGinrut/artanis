@@ -498,7 +498,7 @@
 ;;       if it's not so.
 (define (oah->handler opts-and-handler)
   (let ((handler (and (list? opts-and-handler) (last opts-and-handler))))
-    (if (procedure? handler)
+    (if (or (procedure? handler) (string? handler))
         handler
         (error oah->handler "You have to specify a handler for this rule!"))))
 
