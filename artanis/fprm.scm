@@ -390,7 +390,7 @@
   (define dropper (make-table-dropper conn))
   ;; NOTE:
   ;; It maybe inefficient to fetch table-schema without any cache, because the request session may generate
-  ;; table-schema each time. Although we may build a cache or delayed mechanism here, there's one reasone
+  ;; table-schema each time. Although we may build a cache or delayed mechanism here, there's one reason
   ;; to give it up: we should keep all the relational-mapping STATELESS, that's why I call it FPRM.
   ;; If you have any doubt between complexity and reliability, I would recommend this cool paper:
   ;; <<Out of the Tar Pit>> Ben Moseley & Peter Marks, February 6, 2006.
