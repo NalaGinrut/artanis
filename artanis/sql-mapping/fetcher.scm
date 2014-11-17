@@ -139,4 +139,3 @@
   (let ((sml (call-with-input-file path sql-mapping-parser)))
     ;; TODO: how to connect options to str template??
     #t))
-
