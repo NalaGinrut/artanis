@@ -20,6 +20,7 @@
   #:use-module (artanis db)
   #:use-module (artanis ssql)
   #:use-module (artanis route)
+  #:use-module (artanis fprm)
   #:use-module ((artanis page) #:select (params))
   #:use-module (artanis crypto base64)
   #:use-module (ice-9 match)
@@ -48,6 +49,7 @@
     (`(add ,name ,sql-tpl)
      (sql-mapping-tpl-add name sql-tpl)
      sql-mapping-fetch)
+    ('fprm map-table-from-DB)
     (else (throw 'artanis-err 500 "sql-mapping-maker: Invalid mode!" mode))))
 
 ;; (define (sql-mapping-maker sql-tpl rule keys)
