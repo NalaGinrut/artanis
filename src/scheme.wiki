@@ -393,9 +393,9 @@ my-pet ; => #<dog>
 ; => 'yep
 
 ;; `cond' chains a series of tests to select a result
-(cond [(> 2 2) (error "wrong!")]
-      [(< 2 2) (error "wrong again!")]
-      [else 'ok]) ; => 'ok
+(cond ((> 2 2) (error "wrong!"))
+      ((< 2 2) (error "wrong again!"))
+      (else 'ok)) ; => 'ok
 
 ;;; Pattern Matching
 ;; For Racket users:

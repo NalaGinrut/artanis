@@ -413,9 +413,9 @@ my-pet <span class="comment">; =&gt; #&lt;dog&gt;
 <span class="comment">; =&gt; &#x27;yep
 </span>
 <span class="comment">;; `cond&#x27; chains a series of tests to select a result
-</span><span class="paren1">(<span class="default"><i><span class="symbol">cond</span></i> <span class="paren2">[<span class="default"><span class="paren3">(<span class="default">&gt; 2 2</span>)</span> <span class="paren3">(<span class="default">error <span class="string">&quot;wrong!&quot;</span></span>)</span></span>]</span>
-      <span class="paren2">[<span class="default"><span class="paren3">(<span class="default">&lt; 2 2</span>)</span> <span class="paren3">(<span class="default">error <span class="string">&quot;wrong again!&quot;</span></span>)</span></span>]</span>
-      <span class="paren2">[<span class="default">else &#x27;ok</span>]</span></span>)</span> <span class="comment">; =&gt; &#x27;ok
+</span><span class="paren1">(<span class="default"><i><span class="symbol">cond</span></i> <span class="paren2">(<span class="default"><span class="paren3">(<span class="default">&gt; 2 2</span>)</span> <span class="paren3">(<span class="default">error <span class="string">&quot;wrong!&quot;</span></span>)</span></span>)</span>
+      <span class="paren2">(<span class="default"><span class="paren3">(<span class="default">&lt; 2 2</span>)</span> <span class="paren3">(<span class="default">error <span class="string">&quot;wrong again!&quot;</span></span>)</span></span>)</span>
+      <span class="paren2">(<span class="default">else &#x27;ok</span>)</span></span>)</span> <span class="comment">; =&gt; &#x27;ok
 </span>
 <span class="comment">;;; Pattern Matching
 </span><span class="comment">;; For Racket users:

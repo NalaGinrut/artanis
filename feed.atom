@@ -425,9 +425,9 @@ my-pet &lt;span class="comment"&gt;; =&amp;gt; #&amp;lt;dog&amp;gt;
 &lt;span class="comment"&gt;; =&amp;gt; &amp;#x27;yep
 &lt;/span&gt;
 &lt;span class="comment"&gt;;; `cond&amp;#x27; chains a series of tests to select a result
-&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;cond&lt;/span&gt;&lt;/i&gt; &lt;span class="paren2"&gt;[&lt;span class="default"&gt;&lt;span class="paren3"&gt;(&lt;span class="default"&gt;&amp;gt; 2 2&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;error &lt;span class="string"&gt;&amp;quot;wrong!&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;]&lt;/span&gt;
-      &lt;span class="paren2"&gt;[&lt;span class="default"&gt;&lt;span class="paren3"&gt;(&lt;span class="default"&gt;&amp;lt; 2 2&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;error &lt;span class="string"&gt;&amp;quot;wrong again!&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;]&lt;/span&gt;
-      &lt;span class="paren2"&gt;[&lt;span class="default"&gt;else &amp;#x27;ok&lt;/span&gt;]&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; &amp;#x27;ok
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;cond&lt;/span&gt;&lt;/i&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;span class="paren3"&gt;(&lt;span class="default"&gt;&amp;gt; 2 2&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;error &lt;span class="string"&gt;&amp;quot;wrong!&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+      &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;span class="paren3"&gt;(&lt;span class="default"&gt;&amp;lt; 2 2&lt;/span&gt;)&lt;/span&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;error &lt;span class="string"&gt;&amp;quot;wrong again!&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+      &lt;span class="paren2"&gt;(&lt;span class="default"&gt;else &amp;#x27;ok&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="comment"&gt;; =&amp;gt; &amp;#x27;ok
 &lt;/span&gt;
 &lt;span class="comment"&gt;;;; Pattern Matching
 &lt;/span&gt;&lt;span class="comment"&gt;;; For Racket users:
