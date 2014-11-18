@@ -602,7 +602,7 @@ vec &lt;span class="comment"&gt;; =&amp;gt; #(1 2 3 4)
 
 &lt;span class="paren1"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;let&lt;/span&gt;&lt;/i&gt; &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;span class="paren3"&gt;(&lt;span class="default"&gt;i 0&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
   &lt;span class="paren2"&gt;(&lt;span class="default"&gt;while &lt;span class="paren3"&gt;(&lt;span class="default"&gt;&amp;lt; i  10&lt;/span&gt;)&lt;/span&gt;
-    &lt;span class="paren3"&gt;(&lt;span class="default"&gt;displayln i&lt;/span&gt;)&lt;/span&gt;
+    &lt;span class="paren3"&gt;(&lt;span class="default"&gt;display i&lt;/span&gt;)&lt;/span&gt;
     &lt;span class="paren3"&gt;(&lt;span class="default"&gt;set! i &lt;span class="paren4"&gt;(&lt;span class="default"&gt;1+ i&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
 
 &lt;span class="comment"&gt;;; Macros are hygienic, you cannot clobber existing variables!

@@ -570,7 +570,7 @@ vec ; => #(1 2 3 4)
 
 (let ((i 0))
   (while (< i  10)
-    (displayln i)
+    (display i)
     (set! i (1+ i))))
 
 ;; Macros are hygienic, you cannot clobber existing variables!
