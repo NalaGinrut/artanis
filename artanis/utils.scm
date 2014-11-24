@@ -48,7 +48,8 @@
             keyword->string range oah->handler oah->opts string->keyword
             alist->klist alist->kblist is-hash-table-empty?
             symbol-downcase symbol-upcase normalize-column
-            sxml->xml-string run-after-request! run-before-response!)
+            sxml->xml-string run-after-request! run-before-response!
+            make-pipeline)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -568,3 +569,8 @@
 
 (define (run-before-response! proc)
   (add-hook! *before-response-hook* proc))
+
+;; NOTE: For `pipeline' methodology, please read my post:
+;; http://nalaginrut.com/archives/2014/04/25/oba-pipeline-style%21
+(define (make-pipeline . procs)
+  (lambda (x) (fold (lambda (y p) (y p)) x procs)))
