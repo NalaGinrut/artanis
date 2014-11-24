@@ -2,10 +2,7 @@
 * make own favicon.ico (now use opensuse ico instead)
 * implement expand-conds for ssql
 * write test-cases for ssql
-* add cookie's validation
-* implement memcached-session swap algorithm
-* implement tpl cache
-* implement allowed-method?
+* implement tpl cache, not read tpl file every time rendering
 * design a generic session framework with optional store method: memcached/file+RCU/Berkerley DB...
 
 * Implement co-operative server with delimited-continuation
