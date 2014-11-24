@@ -52,7 +52,7 @@
 ;; define mmr;
 ;;
 ;; macros:
-;;         pswd <- "[^ -;]+", no-null;
+;;         pswd <- re"[^ -;]+", no-null;
 
 ;; options:
 ;;         check-all = false;
