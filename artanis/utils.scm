@@ -423,7 +423,8 @@
             item
             (or (and=> (get-the-val keyword-args (car item)) ->string)
                 (cdr item)
-                (error "Missing keyword" (car item)))))
+                (throw 'artanis-err 500
+                       "(utils)item->string: Missing keyword" (car item)))))
       (string-concatenate (map item->string items)))))
 
 ;; the normal mode, no double quotes for vals
