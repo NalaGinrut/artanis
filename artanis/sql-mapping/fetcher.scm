@@ -24,7 +24,7 @@
             sql-mapping-add-from-path
             sql-mapping-tpl-add))
 
-(define-record-type <sql-mapping> (fields type name path sm))
+(define-record-type <sql-mapping> (fields type name macros path sm))
 
 (define sm-ref hash-ref)
 (define sm-set! hash-set!)
@@ -51,13 +51,17 @@
 ;; e.g:
 ;; define mmr;
 ;;
+;; macros:
+;;         pswd <- "[^ -;]+", no-null;
+
 ;; options:
 ;;         check-all = false;
 ;;         all <- nodash;
-;;         $passwd <- nodash;
+;;         $username <- nodash, no-null;
 ;;
+;; ## `@' means get from POST
 ;; sql-mapping:
-;;         select username,info,addr,email from Persons where passwd=${passwd}
+;;         select username,info,addr,email from Persons where passwd=${@passwd:pswd} and username=${@username}
 
 (define *delimiters* "\n=<:;")
 (define *delim-set* (string->char-set *delimiters*))
@@ -113,23 +117,26 @@
     ("sql-mapping" . ,sm-get)))
 
 (define (sql-mapping-parser port)
-  (let lp((c (peek-char port)) (ret '()))
+  (let lp((c (peek-char port)) (new-line? #t) (ret '()))
     (cond
      ((eof-object? c) ret)
+     ((and (char=? c #\#) new-line?)
+      (read-line port) ; skip comment
+      (lp (peek-char port) #t ret))
      ((char-set-contains? char-set:whitespace c)
-      (read-char port) ; skip whitespace
-      (lp (peek-char port) ret))
+      (let ((cc (read-char port))) ; skip whitespace
+        (lp (peek-char port) (char=? cc #\nl) ret)))
      ((char-set-contains? *delim-set* c)
       (read-char port) ; skip
       (and (char=? #\< c)
            (char=? #\- (peek-char port))
            (read-char port)) ; skip #\- after #\<
-      (lp (peek-char port) ret))
+      (lp (peek-char port) #f ret))
      ((get-token port)
       => (lambda (tk)
            (let ((h (assoc-ref *tk-handlers* tk)))
              (if h
-                 (lp (peek-char port) (cons (h port) ret))
+                 (lp (peek-char port) #t (cons (h port) ret))
                  (throw 'artanis-err 500 "sql-mapping-parser: Invalid token" tk)))))
      (else (throw 'artanis-err 500 "sql-mapping-parser: Wrong syntax" (get-string-all port))))))
 
