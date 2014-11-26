@@ -399,7 +399,7 @@
   ;; PS: I'm not boasting that the whole Artanis would be stateless, but FPRM should do it as possible.
   ;; I maybe wrong and fail, but it's worth to try.
   (define (get-table-schema tname)      
-    (let* ((sql (->sql select "lcase(column_name)" from
+    (let* ((sql (->sql select ("lcase(column_name)") from
                        (select * from 'information_schema.columns (having #:table_name tname))
                        as 'tmp_alias))
            (sch (DB-get-all-rows (DB-query conn sql))))
