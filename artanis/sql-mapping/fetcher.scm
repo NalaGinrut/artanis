@@ -34,7 +34,10 @@
 (define (sql-mapping-fetch rc name . kargs)
   (let ((sm (sql-mapping-ref name))
         (conn (DB-open rc)))
-    (DB-query conn (apply sm kargs))))
+    (if sm
+        (DB-query conn (apply sm kargs))
+        (throw 'artanis-err 500
+               "sql-mapping-fetch: Can't find sql-mapping with name" name))))
 
 (define (sql-mapping-tpl-add name tpl)
   (sm-set! *sql-mapping-lookup-table*
