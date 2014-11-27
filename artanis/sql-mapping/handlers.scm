@@ -44,9 +44,41 @@
                       (irregex-match-substring m 'drop)))
          (irregex-match-substring m 'name))))
 
+(define (HTML-entities-replace set content)
+  (define in (open-input-string content))
+  (define (hit? c) (assoc-ref set c))
+  (call-with-out-string
+   (lambda (out)
+     (let lp((c (peek-char in)))
+       (cond
+        ((eof-object? c) #t)
+        ((hit? c)
+         => (lambda (str)
+              (display str out)
+              (read-char in)
+              (lp (peek-char in))))
+        (else
+         (read-char in)
+         (lp (peek-char in))))))))
+
+(define *terrible-HTML-entities*
+  '((#\< . "&lt;") (#\> . "&gt;") (#\& . "&amp;") (#\" . "&quot;")))
+;; NOTE: show-to-user means this content will be showed to users when users
+;;       refresh the page, so it implies the content should be cooked for
+;;       anti-XSS.
+(define (show-to-user-handler content)
+  (HTML-entities-replace *terrible-HTML-entities* content))
+
+(define *html-whitespace*
+  '((#\nl . "<br/>") (#\sp . "&nbsp;")))
+(define (valid-whitespace content)
+  (HTML-entities-replace *html-whitespace* content))
+
 (define *sm-opt-handler-table*
   `(("no-null" . no-null-handler)
-    ("no-dash" . no-dash-handler)))
+    ("no-dash" . no-dash-handler)
+    ("show-to-user" . show-to-user-handler)
+    ("valid-whitespace" . valid-whitespace-handler))
 
 (define (get-sm-opt-handler name)
   (assoc-ref *sm-opt-handler-table* name))
