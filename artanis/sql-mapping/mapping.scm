@@ -30,8 +30,7 @@
     (and m
          (let ((re (string->irregex (irregex-match-substring m 1))))
            (lambda (name)
-             (let ((m (irregex-search re name)))
-               (and m (irregex-match-substring m))))))))
+             (and=> (irregex-search re name) irregex-match-substring))))))
 
 (define (sm-name-parser name)
   ;; NOTE: it's ok if there's strange symbols in the name, since it'll never
