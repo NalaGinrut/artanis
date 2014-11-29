@@ -17,6 +17,7 @@
 (define-module (artanis utils)
   #:use-module (artanis crypto md5)
   #:use-module (artanis crypto sha-1)
+  #:use-module (artanis tpl sxml)
   #:use-module (artanis config)
   #:use-module (artanis irregex)
   #:use-module (artanis env)
@@ -31,7 +32,6 @@
   #:use-module (ice-9 q)
   #:use-module (web http)
   #:use-module (web request)
-  #:use-module (sxml simple)
   #:export (regexp-split hash-keys cat bv-cat get-global-time
             get-local-time string->md5 unsafe-random string-substitute
             get-file-ext get-global-date get-local-date uri-decode
@@ -49,7 +49,8 @@
             alist->klist alist->kblist is-hash-table-empty?
             symbol-downcase symbol-upcase normalize-column
             sxml->xml-string run-after-request! run-before-response!
-            make-pipeline)
+            make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
+            generate-kv-from-post-qstr)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -66,6 +67,7 @@
 (define parse-date (@@ (web http) parse-date))
 (define write-date (@@ (web http) write-date))
 (define bytevector? (@ (rnrs) bytevector?))
+(define utf8->string (@ (rnrs) utf8->string))
 
 (define-syntax-rule (local-eval-string str e)
   (local-eval 
@@ -423,7 +425,7 @@
         (if (string? item)
             item
             (or (and=> (get-the-val keyword-args (car item)) ->string)
-                (cdr item)
+                (cdr item) ; default value
                 (throw 'artanis-err 500
                        "(utils)item->string: Missing keyword" (car item)))))
       (string-concatenate (map item->string items)))))
@@ -559,10 +561,10 @@
    ((keyword? col) (normalize-column (keyword->string col) ci?))
    (else (throw 'artanis-err 500 "normalize-column: Invalid type of column" col))))
 
-(define (sxml->xml-string sxml)
+(define* (sxml->xml-string sxml #:key (escape? #f))
   (call-with-output-string
    (lambda (port)
-     (sxml->xml sxml port))))
+     (sxml->xml sxml port escape?))))
 
 (define (run-after-request! proc)
   (add-hook! *after-request-hook* proc))
@@ -574,3 +576,53 @@
 ;; http://nalaginrut.com/archives/2014/04/25/oba-pipeline-style%21
 (define (make-pipeline . procs)
   (lambda (x) (fold (lambda (y p) (y p)) x procs)))
+
+(define (HTML-entities-replace set content)
+  (define in (open-input-string content))
+  (define (hit? c/str) (assoc-ref set c/str))
+  (define (get-estr port)
+    (let lp((n 0) (ret '()))
+      (cond
+       ((= n 3) (list->string (reverse! ret)))
+       (else (lp (1+ n) (cons (read-char port) ret))))))
+  (call-with-output-string
+   (lambda (out)
+     (let lp((c (peek-char in)))
+       (cond
+        ((eof-object? c) #t)
+        ((hit? c)
+         => (lambda (str)
+              (display str out)
+              (read-char in)
+              (lp (peek-char in))))
+        ((char=? c #\%)
+         (let* ((s (get-estr in))
+                (e (hit? s)))
+           (if e
+               (display e out)
+               (display s out))
+           (lp (peek-char in))))
+        (else
+         (display (read-char in) out)
+         (lp (peek-char in))))))))
+
+(define *terrible-HTML-entities*
+  '((#\< . "&lt;") (#\> . "&gt;") (#\& . "&amp;") (#\" . "&quot;")
+    ("%3C" . "&lt;") ("%3E" . "&gt;") ("%26" . "&amp;") ("%22" . "&quot;")))
+;; NOTE: cooked for anti-XSS.
+(define (eliminate-evil-HTML-entities content)
+  (HTML-entities-replace *terrible-HTML-entities* content))
+
+(define* (generate-kv-from-post-qstr body #:key (no-evil? #f)
+                                     (key-converter identity))
+  (define cook (if no-evil? eliminate-evil-HTML-entities identity))
+  (define (%convert lst)
+    (match lst
+      ((k v) (list (key-converter k) v))
+      (else (throw 'artanis-err 500 "generate-kv-from-post-qstr: Fatal! Can't be here!" lst))))
+  (define (-> x)
+    (string-trim-both x (lambda (c) (member c '(#\sp #\: #\return)))))
+  (format #t "GGGGGGG: ~a~%" (utf8->string body))
+  (map (lambda (x)
+         (%convert (map -> (string-split (cook x) #\=))))
+       (string-split (utf8->string body) #\&)))

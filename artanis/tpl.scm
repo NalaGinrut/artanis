@@ -25,10 +25,6 @@
 (define-module (artanis tpl)
   #:use-module (artanis utils)
   #:use-module (artanis tpl parser)
-  #:use-module (artanis config)
-  #:use-module (artanis irregex)
-  #:use-module (ice-9 receive)
-  #:use-module (srfi srfi-1)
   #:export (tpl-render tpl-render-from-file))
 
 (define (tpl->expr tpl)
