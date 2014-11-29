@@ -250,20 +250,14 @@
       (else (throw 'artanis-err 500 "session-maker: Invalid call cmd" cmd)))))
 
 (define (from-post-maker mode rule keys)
-  (define (post->qstr-table rc)
-    (define post-data #f)
-    (define (-> x)
-      (string-trim-both x (lambda (c) (member c '(#\sp #\: #\return)))))
-    (cond
-     (post-data post-data)
-     (else 
+  (define post-data #f)
+  (define* (post->qstr-table rc #:optional (safe? #f))
+    (when (not post-data)
       (set! post-data
             (if (rc-body rc)
-                (map (lambda (x)
-                       (map -> (string-split x #\=)))
-                     (string-split ((@ (rnrs) utf8->string) (rc-body rc)) #\&))
-                '()))
-      post-data)))
+                (generate-kv-from-post-qstr (rc-body rc) #:no-evil? safe?)
+                '())))
+    post-data)
   (define (default-success-ret size-list filename-list)
     (call-with-output-string
      (lambda (port)
@@ -287,7 +281,8 @@
   (define (post-ref plst key) (and=> (assoc-ref plst key) car))
   (define (post-handler rc)
     (match mode
-      ((or #t 'query-string)(post->qstr-table rc))
+      ((or #t 'query-string 'qstr) (post->qstr-table rc))
+      ('qstr-safe (post->qstr-table rc 'safe))
       ((or 'bv 'bytevector) (rc-body rc))
       ;; upload operation, indeed
       (`(store ,path) (store-the-bv rc #:path path))
