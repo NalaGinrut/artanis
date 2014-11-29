@@ -15,6 +15,7 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis sql-mapping fetcher)
+  #:use-module (artanis sql-mapping mapping)
   #:use-module (artanis utils)
   #:use-module (artanis env)
   #:use-module (artanis db)
@@ -35,19 +36,19 @@
   (let ((sm (sql-mapping-ref name))
         (conn (DB-open rc)))
     (if sm
-        (DB-query conn (apply sm kargs))
+        (DB-query conn (apply sm rc kargs))
         (throw 'artanis-err 500
                "sql-mapping-fetch: Can't find sql-mapping with name" name))))
 
 (define (sql-mapping-tpl-add name tpl)
   (sm-set! *sql-mapping-lookup-table*
            name
-           (make-<sql-mapping> 'str name #f (make-db-string-template tpl))))
+           (make-<sql-mapping> 'str name #f #f (make-sm-string-template tpl))))
 
 (define (sql-mapping-add-from-path path name)
   (sm-set! *sql-mapping-lookup-table*
            name
-           (make-<sql-mapping> 'file name path
+           (make-<sql-mapping> 'file name #f path
                                 (read-sql-mapping-from-file path name))))
 
 ;; The grammar of sql-mapping DSL:
@@ -111,7 +112,7 @@
   (let ((sm-str (get-string-all port)))
     (cond
      ((eof-object? sm-str)
-      (throw 'artanis-err 500 "sm-get: wrong sytax, you must spacify a sql-mapping string!" sm-str))
+      (throw 'artanis-err 500 "sm-get: wrong syntax, you must spacify a sql-mapping string!" sm-str))
      (else (make-db-string-template (string-trim-both sm-str))))))
 
 (define *tk-handlers*
