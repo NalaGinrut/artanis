@@ -43,6 +43,7 @@
           (let ((title (uri-decode (assoc-ref x "title")))
                 (content (uri-decode (assoc-ref x "content")))
                 (date (assoc-ref x "date")))
+            (display title)(newline)
             (cons `(div (@ (class "post")) (h2 ,title) 
                         (p (@ (class "post-date")) ,date) 
                         (p ,content))
@@ -59,11 +60,9 @@
       (tpl->response "index.tpl" (the-environment)))))
 
 (post "/new_post"
-  #:sql-mapping `(add new-article "insert into article (title,content,date) values (${title},${content},${date})")
-  #:from-post #t
+  #:sql-mapping '(add new-article "insert into article (title,content,date) values (${@title},${@content},${date})")
   (lambda (rc)
-    (:sql-mapping rc 'new-article #:date (strftime "%D" (localtime (current-time)))
-                  #:title (:from-post rc 'get "title") #:content (:from-post rc 'get "content"))
+    (:sql-mapping rc 'new-article #:date (strftime "%D" (localtime (current-time))))
     (redirect-to rc "/")))
                                          
 (run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-name "mmr_blog" #:db-passwd "123" #:debug #t)
