@@ -15,8 +15,8 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis sql-mapping)
-  #:use-module (artanis utils)
   #:use-module (artanis sql-mapping fetcher)
+  #:use-module (artanis utils)
   #:use-module (artanis db)
   #:use-module (artanis ssql)
   #:use-module (artanis route)
@@ -49,7 +49,7 @@
     (`(add ,name ,sql-tpl)
      (sql-mapping-tpl-add name sql-tpl)
      sql-mapping-fetch)
-    ('fprm map-table-from-DB)
+    ;;('fprm map-table-from-DB)
     (else (throw 'artanis-err 500 "sql-mapping-maker: Invalid mode!" mode))))
 
 ;; (define (sql-mapping-maker sql-tpl rule keys)
@@ -61,7 +61,7 @@
 ;;           (sql (apply tpl (append (list (alist->kblist bt) kargs)))))
 ;;       ;; TODO
 ;;       #t)))
-     
+
 ;; TODO: Should add user customerized unauth page
 (define (auth-maker val rule keys)
   (define crypto identity)
@@ -72,13 +72,8 @@
     (assoc-ref (DB-get-top-row (DB-query (DB-open rc) sql)) passwd))
   (define post-data '())
   (define (init-post rc)
-    (define (-> x)
-      (string-trim-both x (lambda (c) (member c '(#\sp #\: #\return)))))
-    (when (rc-body rc)
-      (set! post-data
-            (map (lambda (x)
-                   (map -> (string-split x #\=)))
-                 (string-split ((@ (rnrs) utf8->string) (rc-body rc)) #\&)))))
+    (and (rc-body rc)
+         (set! post-data (generate-kv-from-post-qstr (rc-body rc)))))
   (define (post-ref key) (and=> (assoc-ref post-data key) car))
   (define (table-checker rc sql)
     (string=? (crypto (post-ref passwd)) (->passwd rc sql)))
