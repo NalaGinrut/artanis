@@ -19,6 +19,7 @@
   #:use-module (artanis config)
   #:use-module (artanis cookie)
   #:use-module (artanis tpl)
+  #:use-module (artanis tpl sxml)
   #:use-module (artanis oht)
   #:use-module (artanis db)
   #:use-module (artanis route)
@@ -28,7 +29,6 @@
   #:use-module (web request)
   #:use-module (web response)
   #:use-module (web http)
-  #:use-module (sxml simple)
   #:export (params
             response-emit
             throw-auth-needed
@@ -187,12 +187,12 @@
         (response-emit html)
         (response-emit "" #:status 404))))
 
-(define* (tpl->html sxml/file #:optional (e (current-module)))
+(define* (tpl->html sxml/file #:optional (env (current-module)) (escape? #f))
   (cond
    ((string? sxml/file) ; it's tpl filename
-    (tpl-render-from-file sxml/file e))
+    (tpl-render-from-file sxml/file env))
    ((list? sxml/file) ; it's sxml tpl
-    (call-with-output-string (lambda (port) (sxml->xml sxml/file port))))
+    (call-with-output-string (lambda (port) (sxml->xml sxml/file port escape?))))
    (else #f))) ; wrong param causes 404
 
 ;; 301 is good for SEO and avoid some client problem
