@@ -74,6 +74,11 @@
    (((l1 ...) ll ...) (map ->cond (cons l1 ll)))
    (else (throw 'artanis-err 500 "invalid sql syntax!" lst))))
 
+(define-syntax-rule (->combine col col* ...)
+  (if (list? col)
+      (append col (list col* ...))
+      (list col col* ...)))
+
 (define-syntax sql-where
   (syntax-rules (select in like between and is null limit)
     ((_ limit n)
@@ -174,20 +179,25 @@
   (syntax-rules (table as select index unique on if exists not)
     ;; NOTE: don't use it directly, please take advantage of fprm.
     ;; (->sql create table 'mmr '("name varchar(10)" "age int(5)"))
-    ((_ table name columns engine ...)
-     (-> end "create table ~a (~{~a~^,~}) ~a" name columns (->engine engine ...)))
-    ((_ table if exists name columns engine ...)
-     (-> end "create table if exists ~a (~{~a~^,~}) ~a" name columns))
-    ((_ table if not exists name columns engine ...)
-     (-> end "create table if not exists ~a (~{~a~^,~}) ~a" name columns (->engine engine ...)))
+    ((_ table name (columns columns* ...) engine ...)
+     (-> end "create table ~a (~{~a~^,~}) ~a"
+         name (->combine columns columns* ...) (->engine engine ...)))
+    ((_ table if exists name (columns columns* ...) engine ...)
+     (-> end "create table if exists ~a (~{~a~^,~}) ~a"
+         name (->combine columns columns* ...) (->engine engine ...)))
+    ((_ table if not exists name (columns columns* ...) engine ...)
+       (-> end "create table if not exists ~a (~{~a~^,~}) ~a"
+           name (->combine columns columns* ...) (->engine engine ...)))
     ;;(->sql create view 'mmr select '(a b) from 'tmp where "a=1 and b=2")
     ((_ view name as select rest ...)
      (-> end "create view ~a as select ~a" (sql-select rest ...)))
     ;; (->sql create index 'PersonID on 'Persons '(PersonID))
-    ((_ index iname on tname columns engine ...)
-     (-> end "create index ~a on ~a(~{~a~^,~}) ~a" iname tname columns (->engine engine ...)))
-    ((_ unique index iname on tname columns engine ...)
-     (-> end "create unique index ~a on ~a(~{~a~^,~}) ~a" iname tname columns (->engine engine ...)))))
+    ((_ index iname on tname (columns columns* ...) engine ...)
+       (-> end "create index ~a on ~a(~{~a~^,~}) ~a"
+           iname tname (->combine columns columns* ...) (->engine engine ...)))
+    ((_ unique index iname on tname (columns columns* ...) engine ...)
+       (-> end "create unique index ~a on ~a(~{~a~^,~}) ~a"
+           iname tname (->combine columns columns* ...) (->engine engine ...)))))
 
 (define-syntax sql-alter
   (syntax-rules (table rename to add modify drop column as select
