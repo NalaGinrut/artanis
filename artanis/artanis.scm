@@ -24,6 +24,7 @@
   #:use-module (artanis oht)
   #:use-module (artanis route)
   #:use-module (artanis page)
+  #:use-module (artanis upload)
   #:use-module (artanis third-party csv)
   #:use-module (artanis third-party json)
   #:use-module (web server)
@@ -110,9 +111,33 @@
                json-string->scm
                json-parser?
                json-parser-port
-               json)
-  #:export (init-server
+               json
+               
+               ;; upload
+               mfd-simple-dump
+               make-mfd-dumper
+               content-type-is-mfd?
+               parse-mfd-body
+               mfd
+               get-mfd-data
+               fine-mfd
+               make-mfd
+               is-mfd?
+               mfds-count
+               mfd-dispos
+               mfd-name
+               mfd-filename
+               mfd-data
+               mfd-type
+               mfd-simple-dump-all
+               store-uploaded-files
+               upload-files-to)
+  #:export (result-ref
+            init-server
             run))
+
+(define* (result-ref alst key #:key (decode? #t))
+  (and=> (assoc-ref alst key) (if decode? uri-decode identity)))
 
 ;; When you don't want to use cache, use static-page-emitter.
 (define (static-page-emitter rc)
@@ -147,7 +172,7 @@
       (if debug
           body
           (substring body
-                     (and=> (string-lengh body)
+                     (and=> (string-length body)
                             (lambda (len) (if (> len 100) 100 len))))))
      (((@ (rnrs bytevectors) bytevector?) body) "Body is bytevectors!")
      (else (throw 'artanis-err 500 "->proper-body-display: Invalid body type!" body))))
