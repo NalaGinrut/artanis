@@ -23,13 +23,11 @@
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 iconv)
   #:use-module (ice-9 match)
-  #:use-module (srfi srfi-9)
-  #:use-module (srfi srfi-9 gnu)
   #:use-module (srfi srfi-1)
   #:use-module ((rnrs)
                 #:select (get-bytevector-all utf8->string put-bytevector
                           call-with-bytevector-output-port
-                          bytevector-length))
+                          bytevector-length define-record-type))
   #:use-module (web request)
   #:use-module (web client)
   #:use-module (web uri)
@@ -37,7 +35,7 @@
             make-mfd-dumper
             content-type-is-mfd?
             parse-mfd-body
-            <mfd>
+            mfd
             get-mfd-data
             fine-mfd
             make-mfd
@@ -54,19 +52,13 @@
 
 ;; NOTE: mfd stands for "Multipart Form Data"
 
-(define-record-type <mfd>
-  (make-mfd dispos name filename data type)
-  is-mfd?
-  (dispos mfd-dispos) ; content disposition
-  (name mfd-name) ; mfd name
-  (filename mfd-filename) ; mfd filename, if not a FILE, then #f
-  (data mfd-data) ; the actual data
-  (type mfd-type)) ; MIME type
-
-(set-record-type-printer! <mfd>
-  (lambda (record port)
-    (format port "~%#<mfd dispos: ~a~%      name: ~a~%      filename: ~a~%      type: ~a~%      data: ...>"
-            (mfd-dispos record) (mfd-name record) (mfd-filename record) (mfd-type record))))
+(define-record-type mfd
+  (fields
+   dispos ; content disposition
+   name ; mfd name
+   filename ; mfd filename, #f for not-a-file
+   data ; the actual data
+   type)) ; MIME type
 
 (define (find-mfd name mfd-table)
   (any (lambda (mfd) (and (string=? (mfd-name mfd) name) mfd)) mfd-table))
@@ -204,6 +196,9 @@
 (define (mfds-count mfds)
   (car mfds))
 
+(define (mfds-data mfds)
+  (cdr mfds))
+
 ;; mfd-simple-dump will choose current-upload-path, 
 ;; with default filename and path
 (define (mfd-simple-dump mfd)
@@ -227,7 +222,7 @@
                (dumper (make-mfd-dumper #:path path #:mode mode #:uid uid #:gid gid
                                         #:path-mode path-mode #:sync sync)))
            (catch #t
-             (lambda () (for-each dumper (cdr mfds)))
+             (lambda () (for-each dumper (mfds-data mfds)))
              (lambda e (throw 'artanis-err 500 "Failed to dump mfds!" e)))
            (if simple-ret?
                'success
@@ -264,7 +259,7 @@
        (format port "--~a\r\n" boundary)
        (format port "Content-Disposition: form-data; name=~s" name)
        (and filename
-            (format port "; filename=~s" filename))
+            (format port "; filename=~s" filename))       
        (and mime (format port "\r\nContent-Type: ~a" mime))
        (display "\r\n\r\n" port))))
   (define-syntax-rule (->file file)
