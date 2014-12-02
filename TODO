@@ -5,6 +5,7 @@
 * implement tpl cache, not read tpl file every time rendering
 * design a generic session framework with optional store method: memcached/file+RCU/Berkerley DB...
 * sql-mapping syntax should support multi-sql code, but should deal with SQL-injection
+* upload progress json feedback (need new server-core)
 
 * Implement co-operative server with delimited-continuation
 ** green-thread server
