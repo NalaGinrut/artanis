@@ -129,6 +129,8 @@
 
 (define (parse-mfd-data str)
   (define-syntax-rule (-> h k) (and=> (assoc-ref h k) car))
+  (define (->utf8 s)
+    (bytevector->string (string->bytevector s "iso8859-1") "utf-8"))
   (call-with-input-string str
    (lambda (port)
      (let lp((line (read-line port)) (ret '()))
@@ -141,7 +143,7 @@
          (let* ((headers (->mfd-headers line port))
                 (data (get-data port))
                 (dispos (assoc-ref headers "Content-Disposition"))
-                (filename (-> dispos "filename"))
+                (filename (and=> (-> dispos "filename") ->utf8))
                 (name (-> dispos "name"))
                 (type (-> headers "Content-Type"))
                 (mfd (make-mfd (car dispos) name filename data type)))
