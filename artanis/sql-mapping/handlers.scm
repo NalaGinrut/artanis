@@ -16,6 +16,7 @@
 
 (define-module (artanis sql-mapping handlers)
   #:use-module (artanis utils)
+  #:use-module (artanis config)
   #:use-module (artanis irregex)
   #:export (get-sm-opt-handler))
 
