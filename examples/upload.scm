@@ -1,7 +1,9 @@
-(use-modules (artanis artanis) (artanis tpl) (artanis upload))
+#!/usr/bin/env guile
+!#
+
+(use-modules (artanis artanis))
 
 ;; the example of multi files upload
-
 (init-server)
 
 (define upload-form
@@ -11,10 +13,7 @@
          (br) (br)
          (input (@ (type "submit") (value "Press")) "to upload the file!")))
 
-(get "/upload"
-     (lambda (rc)
-       (response-emit
-        (tpl->html upload-form))))
+(get "/upload" (lambda () (tpl->response upload-form)))
 
 (post "/upload"
       (lambda (rc)
