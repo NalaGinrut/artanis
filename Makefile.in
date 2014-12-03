@@ -37,7 +37,7 @@ $(MOD_OBJ)/%.scm.go: $(MOD)/%.scm
 
 $(MOD)/version.scm:
 	-rm -f $@
-	$(V)$(GUILE) -c '(call-with-output-file "$@" (lambda (port) (format port "(define-module (artanis version) #:export (*artanis-version*)) (define *artanis-version* \"Artanis-~a\")" "$(VERSION)")))'
+	$(V)$(GUILE) -c '(call-with-output-file "$@" (lambda (port) (format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"Artanis-~a\")" "$(VERSION)")))'
 
 .PHONY: clean modules install distclean distclean-mk bin version test
 
