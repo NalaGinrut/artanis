@@ -147,7 +147,4 @@
 (define (read-sql-mapping-from-file path name)
   (when (not (file-exists? path))
     (throw 'artanis-err 500 "read-sql-mapping-from-file: file doens't exist!" path))
-  (let ((sml (call-with-input-file path sql-mapping-parser)))
-    ;; TODO: how to connect options to str template??
-    
-    #t))
+  (call-with-input-file path sql-mapping-parser))
