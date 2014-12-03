@@ -20,6 +20,8 @@
 ;; NOTE: This module should NEVER import any other modules in Artanis!!!
 
 (define-module (artanis env)
+  #:use-module (artanis version)
+  #:re-export (artanis-version)
   #:export (*handlers-table*
             artanis-version
             *conf-hash-table*
@@ -30,8 +32,6 @@
 
 ;; WARNING: For concurrency in green-thread, all these stuffs should be immutable
 ;;          in the run time!
-
-(include "version.scm")
 
 ;; table structure:
 ;; '((rule-handler-key (handler . keys)) ...)
