@@ -23,7 +23,6 @@
   #:use-module (artanis version)
   #:re-export (artanis-version)
   #:export (*handlers-table*
-            artanis-version
             *conf-hash-table*
             *conn-pool*
             *before-response-hook*
