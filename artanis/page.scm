@@ -20,7 +20,6 @@
   #:use-module (artanis cookie)
   #:use-module (artanis tpl)
   #:use-module (artanis tpl sxml)
-  #:use-module (artanis oht)
   #:use-module (artanis db)
   #:use-module (artanis route)
   #:use-module (artanis env)
