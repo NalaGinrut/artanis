@@ -41,26 +41,17 @@
 
 ;; NOTE: sql-mapping-maker returns conn object, users have to get certain rows as will.
 (define (sql-mapping-maker mode rule keys)
+  (define (path->str path) (string-join (map object->string path) "/"))
   (match mode
     (#t sql-mapping-fetch)
     (`(path ,path ,name)
-     (sql-mapping-add-from-path path name)
+     (sql-mapping-add-from-path (path->str path) name)
      sql-mapping-fetch)
     (`(add ,name ,sql-tpl)
      (sql-mapping-tpl-add name sql-tpl)
      sql-mapping-fetch)
     ;;('fprm map-table-from-DB)
     (else (throw 'artanis-err 500 "sql-mapping-maker: Invalid mode!" mode))))
-
-;; (define (sql-mapping-maker sql-tpl rule keys)
-;;   (define tpl (make-db-string-template sql-tpl))
-;;   (define rkey 
-;;     (map (lambda (k) (string->keyword (string-concatenate ":" k))) keys))
-;;   (lambda (rc . kargs)
-;;     (let ((bt (rc-bt rc)) ; binding-table of keys in rule
-;;           (sql (apply tpl (append (list (alist->kblist bt) kargs)))))
-;;       ;; TODO
-;;       #t)))
 
 ;; TODO: Should add user customerized unauth page
 (define (auth-maker val rule keys)
