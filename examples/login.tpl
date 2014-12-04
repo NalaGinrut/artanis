@@ -10,8 +10,7 @@
 
   <body>
 
-    <%= (if failed 
-          (tpl->html `(p (font (@ (color "red")) "Invalid username or passwd!"))))
+    <%= (if failed (tpl->html `(p (font (@ (color "red")) "Invalid username or passwd!"))) "")
     %>
 
     <div id="container">

@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013
+;;  Copyright (C) 2013,2014
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -20,9 +20,18 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (web request)
-  #:export (make-cookie cookie? cookie-set! cookie-ref generate-cookies
-            cookie->header-string new-cookie request-cookies
-            cookie-has-key? remove-cookie-from-client))
+  #:export (make-cookie
+            cookie?
+            cookie-set!
+            cookie-ref
+            generate-cookies
+            cookie->header-string
+            new-cookie
+            request-cookies
+            cookie-has-key?
+            remove-cookie-from-client
+            cookies-maker
+            cookie-modify))
 
 ;; NOTE: server side never check cookie expires, it's client's duty
 ;;       server only check sessions expires
@@ -38,6 +47,15 @@
   ;; keep cookie communication limited to encrypted transmission
   (secure cookie-secure cookie-secure!) ; The secure need of cookie
   (http-only cookie-httponly cookie-httponly!)); http-only
+
+;; NOTE: expires should be positive integer
+(define* (cookie-modify ck #:key (expir #f) (domain #f) (path #f)
+                        (secure #f) (http-only #f))
+  (and expir (positive? expir) (cookie-expir! ck (make-expires expir)))
+  (and domain (cookie-domain! ck domain))
+  (and path (cookie-path! ck path))
+  (and secure (cookie-secure! ck secure))
+  (and http-only (cookie-httponly! ck http-only)))
 
 (define (nvp name v-ref)
   (lambda (c)
@@ -99,12 +117,12 @@
 (define (generate-cookies cookies)
   (map (lambda (c) `(set-cookie . ,(cookie->header-string c))) cookies))
 
+;; NOTE: expires should be integer
 (define* (new-cookie #:key (expires 3600) ; expires in seconds
                      (npv '())
                      (path #f) (domain #f)
                      (secure #f) (http-only #t))
-  (let ((e (cond ((string? expires) expires) ; TODO: need validate
-                 ((integer? expires) (make-expires expires))
+  (let ((e (cond ((integer? expires) (make-expires expires))
                  (else #f)))); else #f for no expires
     (make-cookie npv e domain path secure http-only)))
     
@@ -113,9 +131,16 @@
     (cookie-nvp! cookie (assoc-set! nvp name value))))
 
 (define (cookie-ref cookie name)
-  (let* ((nvp (cookie-nvp cookie))
-         (v (assoc-ref nvp name)))
-    (and v (car v))))
+  (and (not (null? cookie))
+       (let lp((ck (car cookie)))
+         (cond
+          ((null? ck) #f)
+          (else
+           (let* ((nvp (cookie-nvp ck))
+                  (v (assoc-ref nvp name)))
+             (if v
+                 (car v)
+                 (lp (cdr cookie)))))))))
 
 (define (cookie-delete! cookie name)
   (let ((nvp (cookie-nvp cookie)))
@@ -138,10 +163,3 @@
   (if (null? ck)
       #f ; no cookie
       (any (lambda (x) (and (cookie-ref x key) x)) ck)))
-
-(define *the-remove-expires* "Thu, 01-Jan-70 00:00:01 GMT")
-(define (remove-cookie-from-client key rc)
-  (let ((cookies ((@ (artanis artanis) rc-set-cookie) rc)))
-    ((@ (artanis artanis) rc-set-cookie!) 
-     rc
-     `(,@cookies ,(new-cookie #:npv '((key "")) #:expires *the-remove-expires*)))))

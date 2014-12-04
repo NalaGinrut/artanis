@@ -60,5 +60,7 @@ cscope.files
 *.d
 version.scm
 *.m4
+m4/
 ltmain.sh
 libtool
+examples/upload

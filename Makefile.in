@@ -1,0 +1,80 @@
+TOP := $(shell pwd)
+INCLUDES := -I$(TOP)
+CFLAGS := @GUILE_CFLAGS@ -fPIC -MD -DHAVE_CONFIG_H $(INCLUDES)
+LIBS := @GUILE_LIBS@ -shared
+LDFLAGS := @GUILE_LDFLAGS@ -fPIC -shared
+CC := @CC@
+OBJ := obj
+MOD := artanis
+MOD_OBJ := $(OBJ)/artanis
+BIN_OBJ := $(OBJ)/bin
+TEMP_LIB_PATH := $(shell pwd)/$(OBJ)
+MOD_COMPILED_PATH := $(shell guile -c "(display %compile-fallback-path)")
+MOD_TMP_PATH := $(MOD_COMPILED_PATH)/$(TOP)
+MOD_PATH := $(shell guile -c "(display (car %load-path))")
+MOD_TARGET_PATH := $(MOD_COMPILED_PATH)/$(MOD_PATH)/artanis
+GUILEC := LD_LIBRARY_PATH=$(TEMP_LIB_PATH) guild compile
+ARTANIS_ETC := etc/artanis
+GUILE := @GUILE@
+VERSION := @PACKAGE_VERSION@
+PREFIX := @prefix@
+INSTALL := install -c
+V := @
+
+mod-sfile := $(shell find $(MOD) -name *.scm)
+mod-ofile := $(mod-sfile:.scm=.scm.go)
+mod-ofile := $(subst $(MOD)/,$(MOD_OBJ)/,$(mod-ofile))
+
+ALL_TARGETS :=  version \
+		modules
+
+all: $(ALL_TARGETS)
+
+$(MOD_OBJ)/%.scm.go: $(MOD)/%.scm
+	@echo + guilec $<
+	@mkdir -p $(@D)
+	$(V)$(GUILEC) -L $(TOP) -o $@ $<
+
+$(MOD)/version.scm:
+	-rm -f $@
+	$(V)$(GUILE) -c '(call-with-output-file "$@" (lambda (port) (format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"Artanis-~a\")" "$(VERSION)")))'
+
+.PHONY: clean modules install distclean distclean-mk bin version test
+
+clean:
+	-rm -fr $(OBJ)
+	-rm -fr *.log
+	-rm -rf autom4te.cache
+	-rm -rf $(MOD)/version.scm
+	-rm -rf $(MOD_TMP_PATH)
+
+clean-config:
+	-rm -rf config.{h,log}
+	-rm -rf configure
+
+install: $(ALL_TARGETS)
+	cp -frdp $(OBJ)/*.so $(PREFIX)/lib
+	cp -frdp $(MOD) $(MOD_PATH)
+	$(INSTALL) -m 755 -d $(MOD_TARGET_PATH)
+	cp -frdp $(MOD_OBJ)/* $(MOD_TARGET_PATH)
+	chmod a+w $(MOD_TARGET_PATH)/* -R
+	$(INSTALL) -m 755 $(OBJ)/bin/* $(PREFIX)/bin
+	cp -frdp $(ARTANIS_ETC) /etc
+
+distclean: distclean-mk clean clean-config
+
+distclean-mk:
+	-rm -f Makefile
+
+modules: $(mod-ofile)
+
+version: $(MOD)/version.scm
+
+test:
+	@echo $(PREFIX)
+	@echo $(MOD_COMPILED_PATH)
+	@echo $(CC)
+	@echo $(CFLAGS)
+	@echo $(GUILE)
+	@echo $(VERSION)
+	@echo $(LIBS)

@@ -4,84 +4,65 @@
 
 ;; This is a very simple blog example for artanis
 
-(use-modules (artanis artanis) (artanis session) (artanis utils) (artanis db)
-             (oop goops) (srfi srfi-1))
+(use-modules (artanis artanis) (artanis utils) (ice-9 local-eval) (srfi srfi-1))
 
 (init-server) ;; make sure call init-server at beginning
 
-(define blog-db (make <mysql> #:user "root" #:name "mmr_blog"))
-(conn blog-db "123") ; "123" is the passwd of database
+(define blog-title "Colt blog-engine")
+(define footer
+  (tpl->html
+   `(div (@ (id "footer"))
+         (p "Colt blog-engine based on " 
+            (a (@ (href "https://github.com/NalaGinrut/artanis")) "Artanis")
+            "."))))
 
-(get "/admin"
+(get "/admin" #:session #t
   (lambda (rc)
     (cond
-     ((has-auth? rc)
-      (response-emit
-       (tpl->html
-        `(html (body
-                (p "edit your article")
-                (form (@ (id "post_article") (action "/new_post") (method "POST"))
-                      "title: " (input (@ (type "text") (name "title")))(br)
-                      "content:" 
-                      (textarea (@ (name "content") (rows "25") (cols "38")) 
-                                "write something")(br)
-                      (input (@ (type "submit") (value "Submit")))))))))
+     ((:session rc 'check) (tpl->response "admin.tpl" (the-environment)))
      (else (redirect-to rc "/login")))))
 
 (get "/login"
-     (lambda (rc)
-       (response-emit
-        (tpl->html
-         `(html (body
-                 (p ,(if (params rc "login_failed") "Invalid user name or password!"
-                         "Please login first!"))
-                 (form (@ (id "login") (action "/auth") (method "POST"))
-                       "user name: " (input (@ (type "text") (name "user")))(br)
-                       "password : " (input (@ (type "password") (name "passwd")))(br)
-                       (input (@ (type "submit") (value "Submit"))))))))))
+  (lambda (rc)
+    (let ((failed (params rc "login_failed")))
+      (tpl->response "login.tpl" (the-environment)))))
 
-(post "/auth"
-      (lambda (rc)
-        (let ((user (params rc "user"))
-              (pwd (params rc "passwd")))
-          (cond
-           ((and user pwd)
-            (query blog-db (format #f "select * from user where user=~s" user))
-            (if (string=? pwd (assoc-ref (get-one-row blog-db) "passwd"))
-                (call-with-values
-                    (lambda () (session-spawn rc))
-                  (lambda (sid session)
-                    (redirect-to rc (format #f "/admin?sid=~a" sid)))) ; auth OK
-                (redirect-to rc "/login?login_failed=true"))) ; auth failed, relogin!
-           (else ; invalid auth request
-            (redirect-to rc "/login"))))))
+(post "/auth" #:auth '(table user "user" "passwd") #:session #t #:from-post #t
+  (lambda (rc)
+    (cond
+     ((or (:session rc 'check)
+          (and (:auth rc)
+               (:session rc (if (:from-post rc 'get "remember_me")
+                                'spawn-and-keep
+                                'spawn))))
+      (tpl->response "admin.tpl" (the-environment)))
+     (else (redirect-to rc "/login?login_failed=true")))))
 
-(define (get-all-articles)
-  (query blog-db "select * from article")
-  (fold (lambda (x p)
-          (let ((title (uri-decode (assoc-ref x "title")))
-                (content (uri-decode (assoc-ref x "content")))
-                (date (assoc-ref x "date")))
-            (cons `(div (@ (class "post")) (h2 ,title) (h3 ,date) (p ,content)) p)))
-        '() (get-all-rows blog-db)))
+(define (show-all-articles articles)
+  (fold (lambda (x prev)
+          (let ((title (result-ref x "title"))
+                (content (result-ref x "content"))
+                (date (result-ref x "date")))
+            (display title)(newline)
+            (cons `(div (@ (class "post")) (h2 ,title) 
+                        (p (@ (class "post-date")) ,date) 
+                        (p ,content))
+                        ;;(div (@ (class "post-meta")) ,meta)
+                  prev)))
+        '() articles))
 
-(get "/$"
-     (lambda (rc)
-       (response-emit 
-        (tpl->html
-         `(html (body
-                 (h1 "This is a blog example")
-                 ,(get-all-articles)))))))
+(get "/search" "waiting, it's underconstruction!")
+
+(get "/$" #:raw-sql "select * from article"
+  (lambda (rc)
+    (let* ((articles (:raw-sql rc 'all))
+           (all-posts (tpl->html (show-all-articles articles))))
+      (tpl->response "index.tpl" (the-environment)))))
 
 (post "/new_post"
-      (lambda (rc)
-        (let ((title (params rc "title"))
-              (content (params rc "content"))
-              (date (strftime "%D" (localtime (current-time)))))
-          (query blog-db 
-                 (format #f 
-                         "insert into article (title,content,date) values (~s,~s,~s)"
-                         title content date))
-          (redirect-to rc "/"))))
+  #:sql-mapping '(add new-article "insert into article (title,content,date) values (${@title},${@content},${date})")
+  (lambda (rc)
+    (:sql-mapping rc 'new-article #:date (strftime "%D" (localtime (current-time))))
+    (redirect-to rc "/")))
                                          
-(run)
+(run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-name "mmr_blog" #:db-passwd "123" #:debug #t)

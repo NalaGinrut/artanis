@@ -14,6 +14,7 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis tpl utils)
+  #:use-module (artanis utils)
   #:use-module (ice-9 q)
   #:use-module (system base language)
   #:use-module (system base compile)
@@ -85,20 +86,6 @@
         (if loc
             (set-source-properties! res (location x))))
       res)))
-
-(define new-stack make-q)
-(define new-queue make-q)
-
-(define stack-pop! q-pop!)
-(define stack-push! q-push!)
-(define stack-top q-front)
-(define stack-empty? q-empty?) 
-
-(define queue-out! q-pop!)
-(define queue-in! enq!)
-(define queue-head q-front)
-(define queue-tail q-rear)
-(define queue-empty? q-empty?)
 
 (define (hash-keys ht)
   (hash-map->list (lambda (k v) k) ht))

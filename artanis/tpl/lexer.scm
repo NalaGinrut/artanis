@@ -1,4 +1,4 @@
-;;  Copyright (C) 2013
+;;  Copyright (C) 2013,2014
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,8 @@
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 receive)
   #:use-module (system base lalr)
-  #:export (make-tpl-tokenizer))
+  #:export (make-tpl-tokenizer
+            debug-tpl-tokenizer))
 
 (define sstart #\<)
 (define ssend #\>)
@@ -46,7 +47,7 @@
              (read-char port)
              'code))))
         ((check) #t)
-        (else (error "invalid mode" mode))))
+        (else (throw 'artanis-err 500 "invalid mode" mode))))
      (else #f))))
 
 (define (read-code port)
@@ -59,7 +60,7 @@
     (let ((c (read-char port)))
       (cond
        ((eof-object? c)
-        (error "Invalid template text! No proper end sign!"))
+        (throw 'artanis-err 500 "Invalid template text! No proper end sign!"))
        ((and (not enter-string) (char=? c #\%) (char=? (peek-char port) #\>))
         (read-char port) ; #\>
         (string-concatenate-reverse (cons code ret))) ; exit
@@ -72,7 +73,7 @@
         (read-char port)
         (set! last-char c)
         (lp (read-code port) (cons "\\\"" (cons code ret))))
-       (else 
+       (else
         (set! enter-string c)
         (lp (read-code port) (cons (string c) (cons code ret))))))))
 
@@ -93,7 +94,7 @@
        ((char=? #\" c)
         (not! enter-string)
         (lp (read-html port) (cons "\\\"" (cons html ret))))
-       (else 
+       (else
         (lp (read-html port) (cons (string c) (cons html ret))))))))
 
 (define next-token
@@ -115,10 +116,29 @@
         => (lambda (type)
              (set! code-start #f)
              (return port type (get-the-code port))))
-       (else 
-        (unget-char1 c port) ; #\<
+       (else
+        (unget-char1 c port)
         (return port 'html (get-the-html port)))))))
 
 (define (make-tpl-tokenizer port)
   (lambda ()
     (next-token port)))
+
+(define* (make-token-checker tokenizer)
+  (lambda* (src #:optional (mode 'slim))
+    (let ((tokens (call-with-input-string src tokenizer)))
+    (case mode
+      ((slim) (map lexical-token-category tokens))
+      ((all) tokens)
+      (else (throw 'artanis-err 500 "make-token-checker: wrong mode" mode))))))
+
+(define tpl-tokenizer
+  (lambda (port)
+    (let lp ((out '()))
+      (let ((tok (next-token port)))
+        (if (eq? tok '*eoi*)
+            (reverse! out)
+            (lp (cons tok out)))))))
+
+(define (debug-tpl-tokenizer src)
+  ((make-token-checker tpl-tokenizer) src))

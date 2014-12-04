@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013
+;;  Copyright (C) 2013,2014
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -15,17 +15,21 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis utils)
-  #:use-module (artanis md5)
-  #:use-module (artanis sha-1)
+  #:use-module (artanis crypto md5)
+  #:use-module (artanis crypto sha-1)
+  #:use-module (artanis tpl sxml)
   #:use-module (artanis config)
   #:use-module (artanis irregex)
+  #:use-module (artanis env)
   #:use-module (artanis mime)
   #:use-module (system foreign)
   #:use-module (ice-9 regex)
+  #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-19)
   #:use-module (ice-9 local-eval)
   #:use-module (ice-9 receive)
+  #:use-module (ice-9 q)
   #:use-module (web http)
   #:use-module (web request)
   #:export (regexp-split hash-keys cat bv-cat get-global-time
@@ -33,14 +37,25 @@
             get-file-ext get-global-date get-local-date uri-decode
             nfx static-filename remote-info seconds-now local-time-stamp
             parse-date write-date make-expires export-all-from-module!
-            alist->hashtable expires->time-utc local-eval-string generate-ETag
+            alist->hashtable expires->time-utc local-eval-string
             time-expired? valid-method? mmap munmap get-random-from-dev
             string->byteslist string->sha-1 list-slice bv-slice uni-basename
-            checkout-the-path make-string-template guess-mime prepare-headers)
+            checkout-the-path make-string-template guess-mime prepare-headers
+            new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
+            stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
+            queue-empty? list->stack list->queue stack-remove! queue-remove!
+            plist->alist make-db-string-template non-list?
+            keyword->string range oah->handler oah->opts string->keyword
+            alist->klist alist->kblist is-hash-table-empty?
+            symbol-downcase symbol-upcase normalize-column
+            sxml->xml-string run-after-request! run-before-response!
+            make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
+            generate-kv-from-post-qstr)
   #:re-export (the-environment))
 
+;; There's a famous rumor that 'urandom' is safer, so we pick it.
 (define* (get-random-from-dev #:key (length 8) (uppercase #f))
-  (call-with-input-file "/dev/random" 
+  (call-with-input-file "/dev/urandom" 
     (lambda (port)  
       (let* ((bv ((@ (rnrs) get-bytevector-n) port length))
              (str (format #f "~{~2,'0x~}" ((@ (rnrs) bytevector->u8-list) bv))))
@@ -52,6 +67,7 @@
 (define parse-date (@@ (web http) parse-date))
 (define write-date (@@ (web http) write-date))
 (define bytevector? (@ (rnrs) bytevector?))
+(define utf8->string (@ (rnrs) utf8->string))
 
 (define-syntax-rule (local-eval-string str e)
   (local-eval 
@@ -194,17 +210,9 @@
   (substring/shared path 1))
 
 (define-syntax-rule (remote-info req)
-  (if use-Nginx?
+  (if (get-conf '(server nginx))
       (assoc-ref (request-headers req) 'x-real-ip)
       (request-host req)))
-
-(define (generate-ETag filename)
-  (cond
-   ((file-exists? filename)
-    (let ((st (stat filename)))
-      `((Etag . ,(format #f "\"~X-~X-~X\"" 
-                         (stat:ino st) (stat:mtime st) (stat:size st))))))
-   (else '())))
 
 (define *methods-list* '(HEAD GET POST PUT PATCH DELETE))
 (define (allowed-method? method)
@@ -373,9 +381,17 @@
 ;;     (format #f "~?" template (reverse vals)))))
 
 ;; NOTE: This is mark_weaver version for efficiency, Thanks mark!
-(define (make-string-template template . defaults)
+(define (%make-string-template mode template . defaults)
   (define irx (sre->irregex '(or (=> dollar "$$")
                                  (: "${" (=> var (+ (~ #\}))) "}"))))
+  (define (->string obj)
+    (if (string? obj) obj (object->string obj)))
+  (define (get-the-val lst key)
+    (let ((str (kw-arg-ref lst key)))
+      (case mode
+        ((normal) str)
+        ((db) (string-concatenate (list "\"" (->string str) "\"")))
+        (else (throw 'artanis-err 500 "%make-string-template: invalid mode" mode)))))
   (define (optimize rev-items tail)
     (cond ((null? rev-items) tail)
           ((not (string? (car rev-items)))
@@ -408,10 +424,19 @@
       (define (item->string item)
         (if (string? item)
             item
-            (or (kw-arg-ref keyword-args (car item))
-                (cdr item)
-                (error "Missing keyword" (car item)))))
+            (or (and=> (get-the-val keyword-args (car item)) ->string)
+                (cdr item) ; default value
+                (throw 'artanis-err 500
+                       "(utils)item->string: Missing keyword" (car item)))))
       (string-concatenate (map item->string items)))))
+
+;; the normal mode, no double quotes for vals
+(define (make-string-template tpl . vals)
+  (apply %make-string-template 'normal tpl vals))
+
+;; DB str tpl will treat all values with double quotes, for SQL
+(define (make-db-string-template tpl . vals)
+  (apply %make-string-template 'db tpl vals))
 
 (define (guess-mime filename)
   (mime-guess (get-file-ext filename)))
@@ -419,11 +444,185 @@
 (define (bytevector-null? bv)
   ((@ (rnrs bytevectors) bytevector=?) bv #u8()))
 
-(define *default-header* '((content-type . (text/html))))
 (define (prepare-headers body headers)
+  (define *default-header* '((content-type . (text/html))))
   ;; FIXME: the latest Guile fixed content-length:0 bug, but 2.0.9 is not,
   ;;        so remove it when next release.
+  (when (not body)
+    (error prepare-headers "Fatal: Something got wrong, the body shouldn't be #f!" body))
   (let* ((check (cond ((bytevector? body) bytevector-null?)
                       ((string? body) string-null?)))
          (len (if (check body) '((content-length . 0)) '())))
     `(,@*default-header* ,@headers ,@len)))
+
+(define new-stack make-q)
+(define new-queue make-q)
+(define stack-slots car)
+(define queue-slots car)
+
+(define (%q-remove-with-key! q key)
+  (assoc-remove! (car q) key)
+  (sync-q! q))
+
+(define stack-pop! q-pop!)
+(define stack-push! q-push!)
+(define stack-top q-front)
+(define stack-remove! %q-remove-with-key!)
+(define stack-empty? q-empty?) 
+
+(define queue-out! q-pop!)
+(define queue-in! enq!)
+(define queue-head q-front)
+(define queue-tail q-rear)
+(define queue-remove! %q-remove-with-key!)
+(define queue-empty? q-empty?)
+
+(define* (list->stack lst #:optional (stk (new-stack))) ; NOTE: make-stack exists in Guile
+  (for-each (lambda (x) (stack-push! stk x)) lst)
+  stk)
+
+(define* (list->queue lst #:optional (queue (new-queue)))
+  (for-each (lambda (x) (queue-in! queue x)) lst)
+  queue)
+
+;; NOTE: keyword could be the value, so this version is correct.
+(define (plist->alist lst)
+  (let lp((next lst) (ret '()))
+    (match next
+      (() (reverse ret))
+      ((k v . rest) (lp (cddr next) (acons (keyword->symbol k) v ret))))))
+
+(define-syntax-rule (non-list? x) (not (list? x)))
+(define* (keyword->string x #:optional (proc identity))
+  (proc (symbol->string (keyword->symbol x))))
+
+(define* (range from to #:optional (step 1))
+  (iota (- to from) from step))
+
+;; NOTE: handler must be the last element of the list, it's should be error
+;;       if it's not so.
+(define (oah->handler opts-and-handler)
+  (let ((handler (and (list? opts-and-handler) (last opts-and-handler))))
+    (if (or (procedure? handler) (string? handler))
+        handler
+        (error oah->handler "You have to specify a handler for this rule!"))))
+
+;; get all kw-args from the middle of args
+(define (oah->opts opts-and-handler)
+  (if (procedure? opts-and-handler)
+      '() ; there's no opts
+      (let lp((next opts-and-handler) (kl '()) (vl '()))
+        (match next
+          (((? keyword? k) v rest ...)
+           (lp rest (cons k kl) (cons v vl)))
+          ((or (? null?) (? procedure?))
+           ;; no opts left, return the result
+           (list kl vl))
+          (else (lp (cdr next) kl vl))))))
+
+(define (string->keyword str)
+  (symbol->keyword (string->symbol str)))
+
+(define (alist->klist al)
+  (let lp((next al) (ret '()))
+    (cond
+     ((null? next) ret)
+     (else
+      (let ((k (symbol->keyword (car (car next))))
+            (v (cdr (car next))))
+        (lp (cdr next) (cons k (cons v ret))))))))
+
+(define (alist->kblist al)
+  (let lp((next al) (ret '()))
+    (cond
+     ((null? next) ret)
+     (else
+      (let ((k (string->keyword (string-append ":" (car (car next)))))
+            (v (cdr (car next))))
+        (lp (cdr next) (cons k (cons v ret))))))))
+
+(define (is-hash-table-empty? ht)
+  (zero? (hash-count values ht)))
+
+(define (symbol-strop proc sym)
+  (string->symbol (proc (symbol->string sym))))
+
+(define (symbol-downcase sym)
+  (symbol-strop string-downcase sym))
+
+(define (symbol-upcase sym)
+  (symbol-strop string-upcase sym))
+
+(define* (normalize-column col #:optional (ci? #f))
+  (define-syntax-rule (-> c p) (if ci? (p col) col))
+  (cond
+   ((string? col) (string->symbol (-> c string-downcase)))
+   ((symbol? col) (-> col symbol-downcase))
+   ((keyword? col) (normalize-column (keyword->string col) ci?))
+   (else (throw 'artanis-err 500 "normalize-column: Invalid type of column" col))))
+
+(define* (sxml->xml-string sxml #:key (escape? #f))
+  (call-with-output-string
+   (lambda (port)
+     (sxml->xml sxml port escape?))))
+
+(define (run-after-request! proc)
+  (add-hook! *after-request-hook* proc))
+
+(define (run-before-response! proc)
+  (add-hook! *before-response-hook* proc))
+
+;; NOTE: For `pipeline' methodology, please read my post:
+;; http://nalaginrut.com/archives/2014/04/25/oba-pipeline-style%21
+(define (make-pipeline . procs)
+  (lambda (x) (fold (lambda (y p) (y p)) x procs)))
+
+(define (HTML-entities-replace set content)
+  (define in (open-input-string content))
+  (define (hit? c/str) (assoc-ref set c/str))
+  (define (get-estr port)
+    (let lp((n 0) (ret '()))
+      (cond
+       ((= n 3) (list->string (reverse! ret)))
+       (else (lp (1+ n) (cons (read-char port) ret))))))
+  (call-with-output-string
+   (lambda (out)
+     (let lp((c (peek-char in)))
+       (cond
+        ((eof-object? c) #t)
+        ((hit? c)
+         => (lambda (str)
+              (display str out)
+              (read-char in)
+              (lp (peek-char in))))
+        ((char=? c #\%)
+         (let* ((s (get-estr in))
+                (e (hit? s)))
+           (if e
+               (display e out)
+               (display s out))
+           (lp (peek-char in))))
+        (else
+         (display (read-char in) out)
+         (lp (peek-char in))))))))
+
+(define *terrible-HTML-entities*
+  '((#\< . "&lt;") (#\> . "&gt;") (#\& . "&amp;") (#\" . "&quot;")
+    ("%3C" . "&lt;") ("%3E" . "&gt;") ("%26" . "&amp;") ("%22" . "&quot;")))
+;; NOTE: cooked for anti-XSS.
+(define (eliminate-evil-HTML-entities content)
+  (HTML-entities-replace *terrible-HTML-entities* content))
+
+(define* (generate-kv-from-post-qstr body #:key (no-evil? #f)
+                                     (key-converter identity))
+  (define cook (if no-evil? eliminate-evil-HTML-entities identity))
+  (define (%convert lst)
+    (match lst
+      ((k v) (list (key-converter k) v))
+      (else (throw 'artanis-err 500 "generate-kv-from-post-qstr: Fatal! Can't be here!" lst))))
+  (define (-> x)
+    (string-trim-both x (lambda (c) (member c '(#\sp #\: #\return)))))
+  (format #t "GGGGGGG: ~a~%" (utf8->string body))
+  (map (lambda (x)
+         (%convert (map -> (string-split (cook x) #\=))))
+       (string-split (utf8->string body) #\&)))

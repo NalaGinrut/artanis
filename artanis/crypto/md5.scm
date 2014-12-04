@@ -24,7 +24,7 @@ referenced C implementation into Scheme.
 ;;; Code:
 !#
 
-(define-module (artanis md5)
+(define-module (artanis crypto md5)
   #:use-module (ice-9 rw)
   #:export (md5))
 
@@ -445,4 +445,9 @@ port is used."
     (process-data buffer port process-data-callback context)
     (md5-finalize context)))
 
+(define (string->md5 str)
+  (call-with-input-string str md5))
+
+(define (bytevector->md5 bv)
+  (call-with-input-string ((@ (rnrs) utf8->string) bv) md5))
 ;; arch-tag: 03A57FCF-F9E7-11D8-A6BC-000A95CD5044

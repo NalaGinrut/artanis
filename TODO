@@ -1,11 +1,37 @@
 * theme (based on template)
 * make own favicon.ico (now use opensuse ico instead)
-* Fix SSQL bugs
 * implement expand-conds for ssql
 * write test-cases for ssql
-* add cookie's validation
-* rewrite cookie->header-string with call-with-output-string
-* implement memcached-session swap algorithm
-* implement tpl cache
-* implement allowed-method?
+* implement tpl cache, not read tpl file every time rendering
 * design a generic session framework with optional store method: memcached/file+RCU/Berkerley DB...
+* sql-mapping syntax should support multi-sql code, but should deal with SQL-injection
+* upload progress json feedback (need new server-core)
+
+* Implement co-operative server with delimited-continuation
+** green-thread server
+   This may need these stuffs:
+   1. non-blocking;
+   2. scheduling based on delimited-continuations;
+   3. guile-dbi needs non-blocking too;
+   4. enhanced connection pool;
+   5. epoll/kqueue wrapper.
+Some ideas:
+** Format a patch to guile-dbi for supporting non-blocking. However, now that SQL-query can be blocked, we have to face the connection-pool problem.
+   In current implementation, all green-threads works for the same CPU share the same connection from the pool. That's bad, since one of the thread
+   can be scheduled-out in non-blocking mode, so the next scheduled-in thread should get a clean connection from the pool.
+** Maybe there'd be a connection pool for each CPU, and a waiting queue to hold the EWOULDBLOCK dbi-connection. The connection could be recycled when
+   each scheduled green-thread was over.
+
+* Use sendfile on static files, this may need new server-core.
+
+* Add FAM(File Alteration Monitor) based reload-on-the-fly mechanism to debug mode. `inotify' would be fine enough.
+  ** Never use it in productive environment.
+  ** Could be named 'hotfix-on-debug', and #:hotfix-on-debug should checkout if there's guile-inotify.
+
+* In MySQL, delete huge data in product environment will cause halt. There're two ways:
+  1. limit 1000 and loop
+  2. use store procedure
+
+* Security stratage:
+  1. uri-decode should only be used in response processing, never request processing!
+  2. Any string which will be sent into DBI shouldn't be uri-decode in advanced!

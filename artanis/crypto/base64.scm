@@ -1,7 +1,8 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
 ;; Copyright (C) 2008, 2010, 2012 Andy Wingo <wingo at pobox dot com>
 ;; Copyright (C) 2009 Andreas Rottmann <a dot rottmann at gmx dot at>
-;; Copyright (C) 2013 Mu Lei known as NalaGinrut <nalaginrut@gmail.com>
+;; Copyright (C) 2013,2014
+;; Mu Lei known as NalaGinrut <nalaginrut@gmail.com>
 
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -22,7 +23,7 @@
 ;;
 ;;; Code:
 
-(define-module (artanis base64)
+(define-module (artanis crypto base64)
   #:use-module (rnrs bytevectors)
   #:export (base64-encode base64-decode))
 

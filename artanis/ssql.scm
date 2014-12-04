@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013
+;;  Copyright (C) 2013,2014
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -17,7 +17,13 @@
 (define-module (artanis ssql)
   #:use-module (artanis utils)
   #:use-module (ice-9 match)
-  #:export (->sql))
+  #:export (->sql
+            where
+            having
+            /or
+            /and))
+
+(define (->string obj) (if (string? obj) obj (object->string obj)))
 
 ;; ENHANCE: 
 ;; 1. conds should be expanded from s-expr
@@ -39,6 +45,11 @@
 (define-syntax-rule (->end name arg)
   (-> end "~a ~a" name arg))
 
+(define (->engine . engine)
+  (match engine
+    ((or (#f) ()) "")
+    (else (format #f "engine=~a" (car engine)))))
+
 (define-syntax ->where
   (syntax-rules (end)
     ((_ end sentence rest ...)
@@ -55,16 +66,23 @@
   (define (->op2 op a1 a2) (-> "~a~a~s" a1 op a2))
   (define (->opn opn . ll) (-> "~a ~{~s~^ ~}" opn ll))
   (match lst
+   (() "")
    (('and ll ...) (->logical 'and ll))
    (('or ll ...) (->logical 'or ll))
-   ((op2 a1 a2) (->op2 op2 a1 a2))
+   ((op2 a1 a2) (->op2 op2 a1 (->string a2)))
    ((opn ll ...) (->opn opn ll))
    (((l1 ...) ll ...) (map ->cond (cons l1 ll)))
-   (() "")
-   (else (error 'artanis-err 500 "invalid sql syntax!" lst))))
+   (else (throw 'artanis-err 500 "invalid sql syntax!" lst))))
+
+(define-syntax-rule (->combine col col* ...)
+  (if (list? col)
+      (append col (list col* ...))
+      (list col col* ...)))
 
 (define-syntax sql-where
-  (syntax-rules (select in like between and is null)
+  (syntax-rules (select in like between and is null limit)
+    ((_ limit n)
+     (-> "limit ~a" n))
     ((_ column in (lst ...))
      (-> "~a in (~{~a~^,~})" 'column '(lst ...)))
     ((_ column in (select rest ...))
@@ -77,21 +95,37 @@
      (-> "~a is null" 'column))
     ;; e.g.   (->sql select * from 'user where (and (= user "name") (> age 15)))
     ;;        ==>  "select * from user where user=\"name\" and age>15;"
-    ((_ (lst ...))
-     (-> "~a" (->cond '(lst ...))))))
+    ((_ lst ...)
+     (-> "~a" (->cond lst ...)))))
 
+;; Examples:
+;; NOTE: All the values will be casted to string according to SQL convention.
+;; 1-1. Normal `where' syntax
+;;    (->sql select * from 'user where '(= a 1))
+;;    => "select * from user where a=\"1\";"
+;; 1-2. Powerful `where' generator
+;;    (->sql select * from 'user (where #:a 1))
+;;    => "select * from user where a=\"1\" ;"
 (define-syntax sql-select
   (syntax-rules (* where from distinct order by group having as)
     ((_ * from table)
      (-> "* from ~a" table))
     ((_ (fields ...) from table)
-     (-> "~{~s~^,~} from ~a" '(fields ...) 'table))
+     (-> "~{~a~^,~} from ~a" (list fields ...) table))
     ((_ (fields ...) name from table)
-     (-> "~{~s~^,~} ~a from ~a" '(fields ...) 'name 'table))
+     (-> "~{~a~^,~} ~a from ~a" (list fields ...) 'name table))
     ((_ (fields ...) as name from table)
-     (-> "~{~s~^,~} as ~a from ~a" '(fields ...) 'name 'table))
-    ((_ fields from table where rest ...)
-     (->where (sql-select fields from table) rest ...))
+     (-> "~{~a~^,~} as ~a from ~a" (list fields ...) 'name table))
+    ((_ (fields ...) from table where rest ...)
+     (->where (sql-select (fields ...) from table) rest ...))
+    ((_ (fields ...) from table cond-str)
+     (string-concatenate (list (sql-select (fields ...) from table) cond-str)))
+    ((_ * from table cond-str)
+     (string-concatenate (list (sql-select * from table) cond-str)))
+    ((_ * from (select subselect ...) as alias-name)
+     (-> "* from (select ~a) as ~a" 'field (sql-select subselect ...) alias-name))
+    ((_ (fields ...) from (select subselect ...) as alias-name)
+     (-> "~{~a~^,~} from (select ~a) as ~a" (list fields ...) (sql-select subselect ...) alias-name))
     ((_ distinct rest ...)
      (-> "distinct ~a" (sql-select rest ...)))
     ((_ rest ... group by groups)
@@ -122,44 +156,79 @@
 (define-syntax sql-update
   (syntax-rules (set where)
     ((_ table set pairs)
-     (-> end "update ~a set ~{~a^,~}" table (->lst pairs)))
+     (-> "~a set ~{~a~^,~}" table (->lst pairs)))
+    ((_ table set pairs cond-str)
+     (string-concatenate (list (sql-update table set pairs) cond-str)))
     ((_ table set pairs where rest ...)
      (->where end (sql-update table set pairs) (sql-where rest ...)))))
 
 (define-syntax sql-delete
   (syntax-rules (* from where)
     ((_ * from table)
-     (-> end "delete * from ~a" table))
+     (-> "* from ~a" table))
+    ((_ * from table cond-str)
+     (-> "* from ~a ~a" table cond-str))
     ((_ from table)
-     (-> end "delete from ~a" table))
+     (-> "from ~a" table))
+    ((_ from table cond-str)
+     (-> "from ~a ~a" table cond-str))
     ((_ from table where rest ...)
      (->where end (sql-delete from table) (sql-where rest ...)))))
 
 (define-syntax sql-create
-  (syntax-rules (table as select)
-    ;;(->sql create table 'mmr '((id "number(10)" "not null") (name "varchar(10)")))
-    ((_ table name pairs)
-     (-> end "create table ~a (~{~a~^,~})" name (->lst pairs)))
+  (syntax-rules (table as select index unique on if exists not)
+    ;; NOTE: don't use it directly, please take advantage of fprm.
+    ;; (->sql create table 'mmr '("name varchar(10)" "age int(5)"))
+    ((_ table name (columns columns* ...) engine ...)
+     (-> end "create table ~a (~{~a~^,~}) ~a"
+         name (->combine columns columns* ...) (->engine engine ...)))
+    ((_ table if exists name (columns columns* ...) engine ...)
+     (-> end "create table if exists ~a (~{~a~^,~}) ~a"
+         name (->combine columns columns* ...) (->engine engine ...)))
+    ((_ table if not exists name (columns columns* ...) engine ...)
+       (-> end "create table if not exists ~a (~{~a~^,~}) ~a"
+           name (->combine columns columns* ...) (->engine engine ...)))
     ;;(->sql create view 'mmr select '(a b) from 'tmp where "a=1 and b=2")
     ((_ view name as select rest ...)
-     (-> end "create view ~a as select ~a" (sql-select rest ...)))))
+     (-> end "create view ~a as select ~a" (sql-select rest ...)))
+    ;; (->sql create index 'PersonID on 'Persons '(PersonID))
+    ((_ index iname on tname (columns columns* ...) engine ...)
+       (-> end "create index ~a on ~a(~{~a~^,~}) ~a"
+           iname tname (->combine columns columns* ...) (->engine engine ...)))
+    ((_ unique index iname on tname (columns columns* ...) engine ...)
+       (-> end "create unique index ~a on ~a(~{~a~^,~}) ~a"
+           iname tname (->combine columns columns* ...) (->engine engine ...)))))
 
 (define-syntax sql-alter
-  (syntax-rules (table rename to add modify drop column as select)
+  (syntax-rules (table rename to add modify drop column as select
+                 primary key)
     ((_ table old-name rename to new-name)
-     (-> end "alter table ~a rename to ~a" old-name new-name))
-    ((_ table name add pairs) 
-     ;; e.g: (->sql alter table 'mmr add '((cname "varchar(50)")))
-     (-> end "alter table ~a add (~{~a~^,~})" name (->lst pairs)))
+     (-> "table ~a rename to ~a" old-name new-name))
+    ((_ table name add cname ctype) 
+     ;; e.g: (->sql alter table 'mmr add 'cname 'varchar(50))
+     (-> "table ~a add ~a ~a" cname ctype))
     ((_ table name mofify pairs)
-     (-> end "alter table ~a modify (~{~a~^,~})" name (->lst pairs)))
+     (-> "table ~a modify (~{~a~^,~})" name (->lst pairs)))
     ((_ table name drop column cname)
-     (-> end "alter table ~a drop column ~a" name cname))
+     (-> "table ~a drop column ~a" name cname))
+    ((_ table name add primary key keys)
+     (-> "table ~a add primary key (~{~a~^,~})" name keys))
+    ((_ table name drop primary key)
+     (-> "table ~a drop primary key" name))
     ((_ table name rename column old-name to new-name)
-     (-> end "alter table ~a rename column ~a to ~a" name old-name new-name))))
+     (-> "table ~a rename column ~a to ~a" name old-name new-name))))
+
+(define-syntax sql-drop
+  (syntax-rules (table if exists not)
+    ((_ table name)
+     (-> "table ~a" name))
+    ((_ table if exists name)
+     (-> "table if exists ~a" name))
+    ((_ table if not exists name)
+     (-> "table if not exists ~a" name))))
 
 (define-syntax ->sql
-  (syntax-rules (select insert alter create update delete use)
+  (syntax-rules (select insert alter create update delete use drop)
     ((_ select rest ...)
      (->end 'select (sql-select rest ...)))
     ((_ insert rest ...)
@@ -167,14 +236,92 @@
     ((_ create rest ...)
      (sql-create rest ...))
     ((_ alter rest ...)
-     (sql-alter rest ...))
+     (->end 'alter (sql-alter rest ...)))
     ((_ update rest ...)
-     (sql-update rest ...))
+     (->end 'update (sql-update rest ...)))
     ((_ delete rest ...)
-     (sql-delete rest ...))
+     (->end 'delete (sql-delete rest ...)))
     ((_ truncate table name)
      (->end "truncate table ~a" name))
-    ((_ drop table name)
-     (->end "drop table ~a" name))
+    ((_ drop rest ...)
+     (->end 'drop (sql-drop rest ...)))
     ((_ use db)
      (-> end "use ~a" db))))
+
+;; 'where' is used to generate condition string of SQL
+;; There're several modes in it, and can be composited.
+;; FIXME: Have to checkout sql-injection in the field value, especially '--'
+(define get-prefix (make-parameter " where "))
+(define get-and/or (make-parameter " and "))
+(define (where . conds) (apply gen-cond conds))
+(define (having . conds)
+  (parameterize ((get-prefix " having "))
+    (apply gen-cond conds)))
+
+(define (gen-cond . conds)
+  (define (->range lst)
+    (match lst
+      (((? integer? from) (? integer? to))
+       (map ->string lst))
+      (else (throw 'artanis-err 500
+                   (format #f "[SQL]~a: invalid range" (get-prefix))
+                   lst))))
+  (define (get-the-conds-str key val)
+    (let ((k (symbol->string key))
+          (v (if (list? val) (->range val) (->string val))))
+      (case key
+        ;; These are reversed key in SQL, we use string-concatenate for efficiency
+        ((limit)
+         ;; FIXME: maybe we need such a check
+         ;; (artanis-check-if-current-DB-support key)
+         (if (list? v)
+             (format #f " ~a ~{~a~^, ~} " k v)
+             (string-concatenate (list " " k " " v " ")))) 
+        (else (string-concatenate (list " " k "=\"" v "\" "))))))
+  (match conds
+    (() "")
+    (((? string? c1) (? string? c2) . rest)
+     (string-concatenate (list c1 (get-and/or) c2 (apply gen-cond rest))))
+    ;; If the only arg is string, return it directly
+    (((? string? c)) (string-concatenate (list (get-prefix) c)))
+    ;; string template mode
+    ;; e.g: (where "name = ${name}" #:name nala) ==> "name = \"nala\""
+    (((? string? stpl) (? keyword? k) . vals)
+     (apply (make-db-string-template (string-concatenate (list (get-prefix) stpl))) (cons k vals)))
+    ;; AND mode:
+    ;; (where #:name 'John #:age 15 #:email "john@artanis.com") 
+    ;; ==> name="John" and age="15" and email="john@artanis.com"
+    (((? keyword? key) (? non-list? val) . rest)
+     (let* ((k (keyword->symbol key))
+            (str (get-the-conds-str k val)))
+       (string-concatenate
+        `(,(get-prefix) ,str
+          ,(if (null? rest) "" (get-and/or))
+          ,(parameterize ((get-prefix "")) (apply gen-cond rest))))))
+    ;; OR mode:
+    ;; (where #:name '(John Tom Jim)) ==> name="John" or name="Tom" or name="Jim"
+
+    (((? keyword? key) (vals ...) . rest)
+     (let ((fmt (string-concatenate `(,(get-prefix) "~{" ,(keyword->string key) "=\"~a\"~^ or ~}"))))
+       (format #f fmt vals)))
+    (else (throw 'artanis-err 500
+                 (format #f "[SQL]~a: invalid condition pattern" (get-prefix))
+                 conds))))
+
+;; Order of Precedence in SQL
+;; It is important to understand how the database evaluates multiple comparisons in the WHERE clause.
+;; All the AND comparisons (evaluated from Left to Right) are evaluated before the OR comparisons
+;; (evaluated from Left to Right).
+
+;; (where (/or #:name 'John #:age 15)) ==> " where  name=\"John\"  or  age=\"15\" "
+;; (where #:a 1 (/or #:c 3 #:d 4)) ==> " where  a=\"1\"  and  c=\"3\"  or  d=\"4\" "
+;; Complex rules could be done with string templation.
+(define (/or . conds)
+  (parameterize ((get-and/or " or ") (get-prefix ""))
+    (apply where conds)))
+
+;; (where (/or #:name 'John #:age 15 (/and #:c 2 #:d 4) #:email "john@artanis.com"))
+;; ==> " name=\"John\"  or  age=\"15\"  or  email=\"asdf\"  and  a=\"1\"  and  b=\"2\" "
+(define (/and . conds)
+  (parameterize ((get-and/or " and ") (get-prefix ""))
+    (apply where conds)))

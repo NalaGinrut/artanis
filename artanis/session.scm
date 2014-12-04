@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013
+;;  Copyright (C) 2013,2014
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -16,12 +16,27 @@
 
 (define-module (artanis session)
   #:use-module (artanis utils)
-  #:use-module (artanis artanis)
+  #:use-module (artanis route)
   #:use-module (artanis config)
   #:use-module (srfi srfi-9)
   #:use-module (web request)
-  #:export (session-set! session-ref session-spawn session-destory 
-            session-restore get-session))
+  #:export (session-set!
+            session-ref
+            session-spawn
+            session-destory 
+            session-restore
+            get-session))
+
+;; TODO: Support session-engine:
+;; 1. add item session.engine into config.
+;; 2. session.engine = simple, for managing sessions with hashtable, memcached.
+;; 3. session.engine = db, for managing sessions with DB support.
+;; 4. session.engine = redis or memcached, for taking advantage of k-v-DB.
+;; 5. session.engine = certain-third-party, for letting users use third party methods.
+;; 6. To support all above, we need generic interfaces and flexible way to extend.
+
+;; TODO: session key-values should be flushed into set-cookie in rc, and should be encoded
+;;       with base64.
 
 ;; TODO: now we don't have swap algorithm yet, which means all the sessions
 ;;       are memcached.
@@ -56,8 +71,12 @@
   (get-random-from-dev))
     
 (define (get-session sid)
-  (or (mem:get-session sid)
-      (load-session-from-file sid)))
+  (case (get-conf '(session engine))
+    ((simple) (mem:get-session sid))
+    ((file) (load-session-from-file sid))
+    ;; TODO: DB session engine (SQL & NO-SQL)
+    (else (throw 'artanis-err 500 "get-session: Invalid session engine!"
+                 (get-conf '(session engine))))))
 
 (define (session-expired? session)
   (let ((expir (session-ref session "expires")))
@@ -102,7 +121,7 @@
 
 ;; return filename if it exists, or #f
 (define (get-session-file sid)
-  (let ((f (format #f "~a/~a.session" *session-path* sid)))
+  (let ((f (format #f "~a/~a.session" (get-conf '(session path)) sid)))
     (and (file-exists? f) f)))
 
 (define (load-session-from-file sid)

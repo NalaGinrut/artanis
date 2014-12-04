@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013
+;;  Copyright (C) 2013,2014
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
 (define-module (artanis websocket)
   #:use-module (artanis utils)
-  #:use-module (artanis base64)
+  #:use-module (artanis crypto base64)
   #:use-module (ice-9 iconv)
   #:use-module (rnrs bytevectors)
   #:use-module (web request)
@@ -36,11 +36,11 @@
   (onclose ws:onclose ws:onclose-set!)
   (send ws:send ws:send-set!))
 
-;; Op-code	Meaning
-(define MSG_CONG #×0) ;	Message continuation [continuation]
-(define TXT_MSG  #×1) ; Text message [non-control]
-(define BIN_MSG  #×2) ; Binary message [non-control]
-(define CONN_CLOSE #×8) ; Connection Close [control]
+;; Op-code Meaning
+(define MSG_CONG #x0) ;	Message continuation [continuation]
+(define TXT_MSG  #x1) ; Text message [non-control]
+(define BIN_MSG  #x2) ; Binary message [non-control]
+(define CONN_CLOSE #x8) ; Connection Close [control]
 (define PING #x9) ; Ping [control]
 (define PONG #xA) ; Pong [control]
 
