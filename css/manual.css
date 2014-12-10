@@ -1,0 +1,184 @@
+@charset "UTF-8";
+
+@font-face {
+        font-family: "Spirax";
+        src: url("./Spirax-Regular.ttf")
+}
+
+@font-face {
+  font-family: 'Lato';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Lato Regular'), local('Lato-Regular'), url(./Lato.woff) format('woff');
+}
+
+@font-face {
+    font-family: "Baskerville";
+    src: url("./LibreBaskerville-Regular.otf");
+}
+
+body {
+    margin-left: 20px;
+    font-family: 'Baskerville';
+    font-size: 16px;
+    //background: #2B2B54;
+    background: #293e6a;
+}
+
+a:link {
+    color: #639bf1;
+    text-decoration: none;
+}
+
+a:visited { 
+    color: #293e6a;
+}
+
+a:hover { 
+    color: #b6a754;
+}
+
+h2 {
+    font-weight: 500;
+    line-height: 1.1;
+    color: #77ba9b;
+    margin: 0.67em 0;
+    margin-top: 21px;
+    margin-bottom: 10.5px;
+    font-size: 22px;
+    word-spacing: .10em;
+}
+
+h3 {
+    color: inherit;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+#content {
+    background-image: url("../img/artanis-bg.png");
+    background-attachment: fixed;
+    background-position: center; 
+    background-repeat: no-repeat;
+    background-color: #3b5998;
+    opacity: 0.78;
+    color: #E0E0E0;
+    width: 1170px;
+    margin-right: auto;
+    margin-left: auto;
+    margin-top: -23px;
+    padding-bottom: 10px;
+    padding-left: 15px;
+    padding-right: 15px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+}
+
+p {
+    margin: 0 0 10.5px;
+}
+
+/* p.author            author information, including email */
+p.author {
+    font-style: italic;
+}
+
+/*     p.date              publishing date */
+
+/*     p.creator           creator info, about org mode version */
+
+/*     .title              document title */
+.title {
+    font-family: 'Spirax', Helvetica, Arial;
+    font-weight: 100;
+    font-size: 35px;
+    font-style: italic;
+    word-spacing: .25em;
+    color: white;
+}
+
+/*     .todo               TODO keywords, all not-done states */
+/*     .done               the DONE keywords, all states that count as done */
+/*     .WAITING            each TODO keyword also uses a class named after itself */
+/*     .timestamp          timestamp */
+/*     .timestamp-kwd      keyword associated with a timestamp, like SCHEDULED */
+/*     .timestamp-wrapper  span around keyword plus timestamp */
+/*     .tag                tag in a headline */
+/*     ._HOME              each tag uses itself as a class, "@" replaced by "_" */
+/*     .target             target for links */
+/*     .linenr             the line number in a code example */
+/*     .code-highlighted   for highlighting referenced code lines */
+/*     div.outline-N       div for outline level N (headline plus text)) */
+/*     div.outline-text-N  extra div for text at outline level N */
+/*     .section-number-N   section number in headlines, different for each level */
+.section-number-2 {
+    font-family: "Lato";
+    font-size: 25px;
+}
+
+.section-number-3 {
+    font-family: "Lato";
+    font-size: 20px;
+}
+
+/*     .figure-number      label like "Figure 1:" */
+/*     .table-number       label like "Table 1:" */
+/*     .listing-number     label like "Listing 1:" */
+/*     div.figure          how to format an inlined image */
+
+/*     pre.src             formatted source code */
+pre.src {
+    font-family: Monaco, "Lucida Console", monospace;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    background: #293e6a;
+    color: wheat;
+    border: 1px solid #293e6a;
+    box-shadow: 3px 3px 3px #639bf1;
+    -webkit-box-shadow: 3px 3px 3px #639bf1;
+    -moz-box-shadow: 3px 3px 3px #639bf1;
+    opacity: 0.78;
+}
+
+/*     pre.example         normal example */
+/*     p.verse             verse paragraph */
+/*     div.footnotes       footnote section headline */
+/*     p.footnote          footnote definition paragraph, containing a footnote */
+/*     .footref            a footnote reference number (always a <sup>) */
+/*     .footnum            footnote number in footnote definition (always <sup>) */
+
+#text-table-of-contents a, a:visited {
+    color: #639bf1;
+    font-size: 17px;
+    font-family: "Lato";
+}
+
+#text-table-of-contents a:hover {
+    color: #b6a754;
+}
+
+#text-table-of-contents ul, menu, dir {
+    list-style-type: none;
+}
+
+a.artanis,
+a.artanis:visited {
+    font-family: "Spirax";
+    font-style: italic;
+    font-size: 20px;
+    text-decoration: none;
+    color: #18bc9c;
+    right-margin: 5px;
+}
+
+#postamble {
+    color: #e0e0e0;
+    font-family: "Lato";
+    margin-top: 10px;
+    word-spacing: .1em;
+}
+
+#postamble a, a:visited {
+    color: #b6a754;
+    text-decoration: none;
+}
