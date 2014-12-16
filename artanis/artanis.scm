@@ -27,6 +27,7 @@
   #:use-module (artanis upload)
   #:use-module (artanis third-party csv)
   #:use-module (artanis third-party json)
+  #:use-module (artanis version)
   #:use-module (web server)
   #:use-module (srfi srfi-1)
   #:re-export (;; page module
@@ -131,7 +132,10 @@
                mfd-type
                mfd-simple-dump-all
                store-uploaded-files
-               upload-files-to)
+               upload-files-to
+
+               ;; version
+               artanis-version)
   #:export (result-ref
             init-server
             run))
