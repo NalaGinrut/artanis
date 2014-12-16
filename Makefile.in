@@ -36,21 +36,22 @@ $(MOD_OBJ)/%.scm.go: $(MOD)/%.scm
 	$(V)$(GUILEC) -L $(TOP) -o $@ $<
 
 $(MOD)/version.scm:
-	-rm -f $@
+	@echo "Regenerating artanis/version.scm"
+	$(V) -rm -f $@
 	$(V)$(GUILE) -c '(call-with-output-file "$@" (lambda (port) (format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"Artanis-~a\")" "$(VERSION)")))'
 
 .PHONY: clean modules install distclean distclean-mk bin version test
 
 clean:
 	-rm -fr $(OBJ)
-	-rm -fr *.log
+	-rm -f *.log
 	-rm -rf autom4te.cache
-	-rm -rf $(MOD)/version.scm
+	-rm -f $(MOD)/version.scm
 	-rm -rf $(MOD_TMP_PATH)
 
 clean-config:
-	-rm -rf config.{h,log}
-	-rm -rf configure
+	-rm -f config.{h,log}
+	-rm -f configure
 
 install: $(ALL_TARGETS)
 	cp -frdp $(OBJ)/*.so $(PREFIX)/lib
