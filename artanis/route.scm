@@ -90,7 +90,7 @@
   (conn rc-conn rc-conn!)) ; auto connection from pool
 
 (define (get-header rc k)
-  (display (request-headers (rc-req rc)))(newline)
+  ;; (display (request-headers (rc-req rc)))(newline)
   (assq-ref (request-headers (rc-req rc)) k))
 
 (define (new-route-context request body)
