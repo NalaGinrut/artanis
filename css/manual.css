@@ -22,26 +22,20 @@ body {
     font-family: 'Baskerville';
     font-size: 16px;
     //background: #2B2B54;
-    background: #293e6a;
+    background: #132343;
+    //background: #293e6a;
 }
 
 a:link {
-    color: #639bf1;
-    text-decoration: none;
-}
-
-a:visited { 
-    color: #293e6a;
-}
-
-a:hover { 
     color: #b6a754;
+    text-decoration: none;
 }
 
 h2 {
     font-weight: 500;
     line-height: 1.1;
-    color: #77ba9b;
+    color: white;
+// #77ba9b;
     margin: 0.67em 0;
     margin-top: 21px;
     margin-bottom: 10.5px;
@@ -52,7 +46,7 @@ h2 {
 h3 {
     color: inherit;
     font-size: 18px;
-    font-weight: 500;
+    font-weight: 510;
 }
 
 #content {
@@ -60,8 +54,8 @@ h3 {
     background-attachment: fixed;
     background-position: center; 
     background-repeat: no-repeat;
-    background-color: #3b5998;
-    opacity: 0.78;
+    background-color: #455591;
+    opacity: 0.80;
     color: #E0E0E0;
     width: 1170px;
     margin-right: auto;
@@ -137,7 +131,7 @@ pre.src {
     box-shadow: 3px 3px 3px #639bf1;
     -webkit-box-shadow: 3px 3px 3px #639bf1;
     -moz-box-shadow: 3px 3px 3px #639bf1;
-    opacity: 0.78;
+    opacity: 0.80;
 }
 
 /*     pre.example         normal example */
@@ -148,13 +142,13 @@ pre.src {
 /*     .footnum            footnote number in footnote definition (always <sup>) */
 
 #text-table-of-contents a, a:visited {
-    color: #639bf1;
+    color: #90A1CD;
     font-size: 17px;
     font-family: "Lato";
 }
 
 #text-table-of-contents a:hover {
-    color: #b6a754;
+    color: #E89234;
 }
 
 #text-table-of-contents ul, menu, dir {
