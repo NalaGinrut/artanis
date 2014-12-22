@@ -25,7 +25,11 @@
   #:use-module (srfi srfi-11)
   #:use-module (srfi srfi-26)
   #:use-module (ice-9 match)
-  #:export (map-table-from-DB)
+  #:export (map-table-from-DB
+            make-table-getter
+            make-table-setter
+            make-table-builder
+            make-table-dropper)
   ;; NOTE:
   ;; We re-export these symbols so that users may use FPRM to handle DB
   ;; independently, without using the web-framework.
@@ -265,15 +269,18 @@
   (define (table-drop! tname)
     (DB-query conn (->sql drop table if exists tname)))
   (define (->types x pks)
-    (->sql-type
-     (if (memq (car x) pks)
-         `(,@(cdr x) primary key)
-         (cdr x))))
+    (format #f "~{~a~^ ~}"
+            (list (car x)
+                  (->sql-type
+                   (if (memq (car x) pks)
+                       `(,@(cdr x) primary key)
+                       (cdr x))))))
   ;; TODO: We need a mechanism to sync tables constrained by foreign-keys, since some DB doesn't
   ;;       support foreign keys directly, so we have to provide it outside.
   ;; TODO: who to deal with constrained tables without foreign-keys in stateless?
   (lambda* (tname defs #:key (if-exists? #f) (primary-keys '()) (engine #f))
     (let* ((types (map (cut ->types <> primary-keys) defs))
+           (aaa (format #t "~a~%" types))
            (sql (case if-exists?
                   ((overwrite drop)
                    (table-drop! tname)
@@ -308,9 +315,13 @@
         (lp (cdr next) kvs wcond))
        (() (values kvs w))
        (else (throw 'artanis-err 500 "->kvp: invalid kargs" next)))))
+  (define (->kv kvp) (srfi-1:unzip2 kvp))
   (lambda (tname . kargs)
     (let-values (((kvp wcond) (->kvp kargs)))
-      (let ((sql (->sql update tname set kvp wcond))
+      (let ((sql (if (string-null? wcond)
+                     (let-values (((k v) (->kv kvp)))
+                       (->sql insert into tname k values v))
+                     (->sql update tname set kvp wcond)))
             (conn (cond 
                    ((route-context? rc/conn) (rc-conn rc/conn))
                    ((<connection>? rc/conn) rc/conn)
