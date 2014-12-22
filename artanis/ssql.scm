@@ -139,19 +139,19 @@
 (define-syntax sql-insert
   (syntax-rules (into values select)
     ((_ into table)
-     (-> "into ~a" 'table))
+     (-> "into ~a" table))
     ((_ into table select rest ...)
-     (-> "into ~a select ~a" 'table (sql-select rest ...)))
-    ((_ into table values (lst ...))
-     (-> "into ~a values (~{~s~^,~})" 'table '(lst ...)))
-    ((_ into table values (lst ...) select rest ...)
+     (-> "into ~a select ~a" table (sql-select rest ...)))
+    ((_ into table values lst)
+     (-> "into ~a values (~{~s~^,~})" table lst))
+    ((_ into table values lst select rest ...)
      (-> "into ~a values (~{~s~^,~}) select ~a"
-         'table '(lst ...) (sql-select rest ...)))
+         table lst (sql-select rest ...)))
     ((_ into table fields values lst)
-     (-> "into ~a (~{~a~^,~}) values (~{~s~^,~})" 'table fields lst))
+     (-> "into ~a (~{~a~^,~}) values (~{~s~^,~})" table fields lst))
     ((_ into table fields values lst select rest ...)
      (-> "into ~a (~{~a~^,~}) values (~{~s~^,~}) select ~a" 
-         'table fields lst (sql-select rest ...)))))
+         table fields lst (sql-select rest ...)))))
 
 (define-syntax sql-update
   (syntax-rules (set where)
