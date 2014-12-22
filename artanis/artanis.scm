@@ -20,6 +20,7 @@
   #:use-module (artanis env)
   #:use-module (artanis tpl)
   #:use-module (artanis db)
+  #:use-module (artanis fprm)
   #:use-module (artanis ssql)
   #:use-module (artanis oht)
   #:use-module (artanis route)
@@ -74,7 +75,18 @@
                DB-get-all-rows
                DB-get-top-row
                DB-get-n-rows
+               db-conn-success?
                init-DB
+               connect-db
+               make-<connection>
+               <connection>?
+
+               ;; fprm module
+               map-table-from-DB
+               make-table-getter
+               make-table-setter
+               make-table-builder
+               make-table-dropper
 
                ;; ssql module
                ->sql
@@ -96,6 +108,9 @@
                rc-mtime rc-mtime!
                rc-cookie rc-cookie!
                rc-set-cookie rc-set-cookie!
+               rc-conn rc-conn!
+               new-route-context
+               route-context?
                get-header
 
                ;; csv
