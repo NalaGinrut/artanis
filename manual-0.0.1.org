@@ -1,0 +1,295 @@
+#+TITLE: Artanis web-framework Manual
+#+AUTHOR: Mu Lei known as NalaGinrut
+#+EMAIL: nalaginrut@gmail.com
+#+LANGUAGE: en
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="css/manual.css" />
+#+OPTIONS: H:3 toc:t \n:nil ::t |:t ^:nil -:t f:t *:t tex:t d:(HIDE) tags:not-in-toc
+#+STARTUP: hidestar latexpreview
+
+#+OPTIONS: tex:t          Do the right thing automatically (MathJax)
+#+OPTIONS: tex:nil        Do not process LaTeX fragments at all
+#+OPTIONS: tex:verbatim   Verbatim export, for jsMath or so
+
+* Introduction
+
+Artanis is a web application framework(WAF) written in [[http://www.gnu.org/software/guile/][Guile Scheme]].
+
+A [[http://en.wikipedia.org/wiki/Web_application_framework][web application framework (WAF)]] is a software framework that is designed to support the development of dynamic websites,
+web applications, web services and web resources.
+The framework aims to alleviate the overhead associated with common activities performed in web development.
+Artanis provides several tools for web development: database access, templating frameworks, session management, [[http://en.wikipedia.org/wiki/Rewrite_engine][URL-remapping]] for [[http://en.wikipedia.org/wiki/Representational_state_transfer][RESTful]], page caching, and so on.
+
+This manual describes how to use Artanis, and usage of APIs.
+
+Guile is the GNU Ubiquitous Intelligent Language for Extensions, the official extension language for the [[http://www.gnu.org/][GNU operating system]].
+Guile is an interpreter and compiler for the Scheme programming language.
+
+[[http://en.wikipedia.org/wiki/Scheme_%28programming_language%29][Scheme]] is a functional programming language and one of the two main dialects of the programming language [[http://en.wikipedia.org/wiki/Lisp_(programming_language)][Lisp]].
+Scheme follows a minimalist design philosophy specifying a small standard core with powerful tools for language extension.
+
+* License
+
+Artanis is [[http://www.gnu.org/philosophy/free-sw.html][Free Software]]. Artanis is under the terms of the GNU Lesser General Public License version 3 or later.
+See the files COPYING.LESSER and COPYING.
+
+The manual you’re now reading is published under the terms of the [[http://www.gnu.org/copyleft/fdl.html][GNU Free Documentation License]].
+
+*/You must be aware there is no warranty whatsoever for Artanis. This is described in full in the licenses./*
+
+* Installation
+
+** For users
+
+*Install GNU Guile-2.0.11:*
+
++ Debian/Ubuntu users
+#+begin_example
+sudo apt-get install guile-2.0-dev guile-2.0
+#+end_example
+
++ SUSE/openSUSE users
+#+begin_example
+sudo zypper in guile guile-devel
+#+end_example
+
++ RedHat/Fedora
+#+begin_example
+sudo yum install guile guile-devel
+#+end_example
+
++ For LFS Guru
+#+begin_example
+wget -c ftp://ftp.gnu.org/gnu/guile/guile-2.0.11.tar.gz
+tar xvzf guile-2.0.11.tar.gz
+cd guile-2.0.11 && ./configure && make #(NOTE: this may take very long time even looks like halting)
+sudo make install
+#+end_example
+
+I would NOT recommend you trying to compile/install Guile from Git repo, since it'll take too much time of you.
+
+*Install dependencies:*
+
++ guile-dbi-2.1.5 [optional]
+#+begin_example
+wget -c http://download.gna.org/guile-dbi/guile-dbi-2.1.5.tar.gz
+tar xvzf guile-dbi-2.1.5.tar.gz
+cd guile-dbi-2.1.5 && ./configure && make
+sudo make install
+#+end_example
+
++ guile-dbd, there're three dbd, mysql/postgresql/sqlite3 [optional]
+#+begin_example
+wget -c http://download.gna.org/guile-dbi/guile-dbd-mysql-2.1.4.tar.gz
+cd guile-dbd-mysql-2.1.4 && ./configure && make
+sudo make install
+#+end_example
+You may find other dbd [[http://download.gna.org/guile-dbi][here]]. And the installation is similar.
+
++ Artanis-0.0.1:
+#+begin_example
+wget -c https://github.com/NalaGinrut/artanis/releases/artanis-0.0.1.tar.bz2
+cd artanis-0.0.1 && ./configure && make
+sudo make install
+#+end_example
+
+** For contributors
+
+First, thanks for you contributions!
+
+If you're comfortable with [[https://github.com/NalaGinrut/artanis][GitHub]], then just use it as you've already known.
+
+Anyway, here's the git repo:
+
+#+begin_example
+git clone git@github.com:NalaGinrut/artanis.git
+#+end_example
+
+* Hello World
+
+** Use Guile REPL and verify Artanis installation
+
+If you're NOT freshman of Guile, please skip this section.
+
+Just type `guile' in your console to enter Guile REPL, and you will see this screen:
+#+begin_example
+GNU Guile 2.0.11
+Copyright (C) 1995-2014 Free Software Foundation, Inc.
+
+Guile comes with ABSOLUTELY NO WARRANTY; for details type `,show w'.
+This program is free software, and you are welcome to redistribute it
+under certain conditions; type `,show c' for details.
+
+Enter `,help' for help.
+scheme@(guile-user)>
+#+end_example
+
+Welcome to Guile world!
+
+Now, we're going to play Artanis. Before we start, please follow these instructions in the REPL to ensure that you installed Artanis correctly:
+
+*(Just type them, you don't have to understand them at present)*
+
+#+begin_example
+,use (artanis artanis)
+artanis-version
+#+end_example
+
+The expected output should be similar to this:
+#+begin_example
+$1 = "Artanis-0.0.1"
+#+end_example
+
+** Try simple URL remapping
+
+Type these code in Guile REPL:
+#+begin_src scheme
+(use-modules (artanis artanis))
+(get "/hello" (lambda () "hello world"))
+(run #:port 8080)
+#+end_src
+
+Now you can visit http://localhost:8080/hello with your browser, and see the result.
+
+/If you encounter "[EXCEPTION] /favicon.ico is abnormal request", please ignore it./
+
+Let me explain these code.
+
++ line 1: Load Artanis module, (artanis artanis) is the name.
+
++ line 2: The first argument /get/ is Artanis API corresponding to GET method in HTTP protocol. The second argument "/hello" is the URL rule to register. The Third argument is the handler which will be triggered if the registered URL rule is hit.
+
++ line 3: Run Artanis server, and listenning socket port 8080.
+
+You may type Ctrl+C to quit the server according to the hint from your screen.
+
+** More complex URL remapping
+
+Try this code:
+#+begin_src scheme
+(get "/hello/:who"
+  (lambda (rc)
+    (format #f "<p>hello ~a</p> " (params rc "who"))))
+(run #:port 8080)
+#+end_src
+
+Now you can try http://localhost:8080/hello/artanis in your browser.
+
+There're two differences:
++ 1. The special rule, "=/hello/:who=", /:who/ means you can use /params/ to reference the value of this section of URL with the key "who". src_scheme[:exports code]{(params rc "who")} is the way for that.
+
++ 2. You may notice that the handler defined as an anonymous function with /lambda/ has one argument /rc/. It means /route context/ which preserve all the related context information. Many Artanis APIs need it, say, /params/.
+
+And /format/ is a Scheme lib function. It is similar to /sprintf/ in C language, which outputs with a formatted pattern.
+The second argument #f (means FALSE) indicating that returning the result as string type rather than printing out.
+
+*** Regex in URL remapping
+
+You can use regex in the URL rule.
+#+begin_src scheme
+(get "/.+\\.(png|gif|jpeg)" static-page-emitter)
+#+end_src
+
+/static-page-emitter/ is an Artanis API which emits a static file like images to the client.
+
+** Database operating
+
+Artanis supports mysql/postgresql/sqlite3, we use mysql as a example here.
+
+Please ensure that your DB service was started before you try.
+
+*/If you encountered any problems, please check your config of DB first./* 
+
+You can use DB without running a server.
+#+begin_src scheme
+(use-module (artanis artanis))
+(define conn (connect-db "mysql" "your_db_username:your_db_passwd:your_db_name:tcp:localhost:3306"))
+(define mtable (map-table-from-DB conn))
+(mtable 'set 'Persons #:name "nala" #:age 99 #:email "nala@artanis.com")
+(mtable 'valid? 'Persons) ; check if the operation done successfully
+;; ==> #t
+(mtable 'get 'Persons #:columns '(name email))
+;; ==> ((("name" . "nala") ("email" . "nala@artanis.com")))
+#+end_src
+
++ /map-table-from-DB/ is Artanis API to handle tables in DB. Here, we define this mapping as the var /mtable/.
++ And we can use /mtable/ to handle tables, you can get values from table with 'get command. 
+
+Of course, you can use DB in your web application.
+#+begin_src scheme
+(get "/dbtest" #:conn #t ; apply a DB connection from pool
+  (lambda (rc)
+    (let ((mtable (map-table-from-DB (:conn rc))))
+      (object->string
+        (mtable 'get 'Persons #:columns '(name email))))))
+
+(run #:use-db? #t #:dbd 'mysql #:db-username "your_db_username"
+     #:db-name "your_db_name" #:db-passwd "your_passwd" #:port 8080)
+#+end_src
+
+Now, try http://localhost:8080/dbtest in your browser.
+
+Here're some explains:
++ The keyword-value pair src_scheme[:exports code]{#:conn #t} means applying a connection from connection-pool. Then you can use src_scheme[:exports code]{(:conn rc)} to get the allocated connection for DB operations.
+
++ Finally, the handler needs to return a string as the HTTP response body, so we have to use Guile API /object->string/ to convert the query result to string, for this naive example case.
+
+URL remapping (aka URL rewriting) is 
+
+FPRM
+
+* Basic in Scheme
+
+This chapter introduces some useful documents to help you understand Scheme language well.
+Feel free to come back here if you have any problem with Scheme syntax.
+
+If any possbile, read them again and again. 
+
+Scheme was introduced in 1975 by Gerald J. Sussman and Guy L. Steele Jr. and was the first dialect of Lisp to fully support lexical scoping,
+first-class procedures, and continuations. In its earliest form it was a small language intended primarily for research and teaching,
+supporting only a handful of predefined syntactic forms and procedures. Scheme is now a complete general-purpose programming language, though
+it still derives its power from a small set of key concepts. Early implementations of the language were interpreter-based and slow, but
+Guile Scheme is trying to implement sophisticated compiler that generate better optimized code, and even a plan for AOT compiler generated
+native code in the future.
+
+** For newbies
+
+If you're not familiar with Guile Scheme, here's a simplest tutorial for you.
+
+If you know basics of Scheme language, please skip this section.
+
+I would recommend newbies to type/paste the code in Guile REPL following the guide in tutorial: 
+[[http://web-artanis.com/scheme.html][Learn Scheme in 15 minutes]]
+
+And here's a nice section in Guile manual for basics in Scheme:
+[[https://www.gnu.org/software/guile/manual/guile.html#Hello-Scheme_0021][Hello Scheme]]
+
+Please don't spend too much time on these tutorials, the purose is to let newbies get a little familiar with the grammar of Scheme.
+
+
+** For Pythoners
+
+These are good articles for Pythoners:
+
+1. [[http://draketo.de/proj/guile-basics/][Guile basics from the perspective of a Pythonista]]
+2. [[http://draketo.de/proj/py2guile][Going from Python to Guile Scheme]]
+
+Still, please don't spend too much time on them, the purose is to let newbies get a little familiar with the grammar of Scheme.
+
+** For deep learners
+
+These two books are very good for learning Scheme seriously:
+
+1. [[http://www.scheme.com/tspl4/][The Scheme Programming Language]]
+2. [[http://mitpress.mit.edu/sicp/][Structure and Interpretation of Computer Programs(SICP)]]
+
+Please don't read them if you just want to use Artanis to build your webapp/site in few minutes.
+
+If you really want to try these books seriously, please ignore Artanis before you done them.
+
+But once you've done them *carefully*, you may want to write a new Artanis all by yourself.
+
+Hold your horses. ;-)
+
+
+* URL remapping
+
