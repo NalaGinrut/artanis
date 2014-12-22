@@ -120,10 +120,12 @@
 ;; for #:conn
 (define (conn-maker yes? rule keys)
   (and yes?
-       (lambda (rc sql)
+       (case-lambda
+        ((rc) (DB-open rc))
+        ((rc sql)
          (let ((conn (DB-open rc)))
            (DB-query conn sql)
-           conn))))
+           conn)))))
 
 (define (raw-sql-maker sql rule keys)
   (lambda (rc mode)
