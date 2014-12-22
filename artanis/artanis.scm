@@ -136,7 +136,8 @@
 
                ;; version
                artanis-version)
-  #:export (result-ref
+  #:export (static-page-emitter
+            result-ref
             init-server
             run))
 
@@ -149,8 +150,8 @@
 
 (define (default-route-init statics cache-statics? exclude)
   ;; avoid a common warn
-  (get "/$" (lambda () "no index.html but it works!"))
-  (let ((srule (format #f "/.+\\.(~{~a~^|~})" (lset-difference eq? statics exclude))))
+  (get "^/$" (lambda () "no index.html but it works!"))
+  (let ((srule (format #f "^/.+\\.(~{~a~^|~})$" (lset-difference eq? statics exclude))))
     (if cache-statics?
         (get srule #:cache 'static (lambda (rc) (:cache rc)))
         (get srule static-page-emitter))))
