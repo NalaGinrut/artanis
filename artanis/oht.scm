@@ -452,17 +452,18 @@
 
 ;; return #f when there's no opt specified
 (define* (new-oht opts #:key (rule 'no-rules) (keys 'no-keys))
-  (if (null? opts)
-      #f
-      (let ((oht (make-hash-table)))
-        (apply
-         for-each
-         (lambda (k v)
-           (let ((h (oh-ref k)))
-             (cond
-              ((or h (eq? k #:handler))
-               ;; #:handler is user customed handler
-               (hash-set! oht k (h v rule keys)))
-              (else #f))))
-         opts)
-        oht)))
+  (match opts
+    ((() ()) #f)
+    (else
+     (let ((oht (make-hash-table)))
+       (apply
+        for-each
+        (lambda (k v)
+          (let ((h (oh-ref k)))
+            (cond
+             ((or h (eq? k #:handler))
+              ;; #:handler is user customed handler
+              (hash-set! oht k (h v rule keys)))
+             (else #f))))
+        opts)
+       oht))))
