@@ -102,13 +102,14 @@
    (mutable status) ; open or closed
    conn))
 
-;; Connect database from DBI.
-;; e.g: (connect-db \"mysql\" \"root:123:artanis:tcp:localhost:3306\")
 (define (%do-connect dbd str)
   (let ((conn (make-<connection> 'open (dbi-open dbd str))))
     (if (db-conn-success? conn)
         conn
         (throw 'artanis-err 500 "connect to DB error:" (db-conn-failed-reason conn)))))
+
+;; Connect database from DBI.
+;; e.g: (connect-db \"mysql\" \"root:123:artanis:tcp:localhost:3306\")
 (define connect-db
   (case-lambda* 
    ((dbd str) (%do-connect dbd str))
