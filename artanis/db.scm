@@ -102,13 +102,20 @@
    (mutable status) ; open or closed
    conn))
 
-(define (connect-db dbd str)
-  "Connect database from DBI.
-e.g: (connect-db \"mysql\" \"root:123:artanis:tcp:localhost:3306\")"
+;; Connect database from DBI.
+;; e.g: (connect-db \"mysql\" \"root:123:artanis:tcp:localhost:3306\")
+(define (%do-connect dbd str)
   (let ((conn (make-<connection> 'open (dbi-open dbd str))))
     (if (db-conn-success? conn)
         conn
         (throw 'artanis-err 500 "connect to DB error:" (db-conn-failed-reason conn)))))
+(define connect-db
+  (case-lambda* 
+   ((dbd str) (%do-connect dbd str))
+   ((dbd #:key (db-name "artanis") (db-username "root") (db-passwd "")
+         (proto "tcp") (host "localhost") (port 3306))
+    (let ((str (format #f "~a:~a:~a:~a:~a:~a" db-username db-passwd db-name proto host port)))
+      (%do-connect dbd str)))))
 
 (define (new-DB)
   ;; TODO:
@@ -185,7 +192,7 @@ e.g: (connect-db \"mysql\" \"root:123:artanis:tcp:localhost:3306\")"
     (when (not (db-conn-success? conn))
       (unless check?
         (throw 'artanis-err 500 "DB-query failed: " (db-conn-failed-reason conn))
-        (format (current-error-port) "DB-query check failed: " (db-conn-failed-reason conn))))
+        (format (current-error-port) "DB-query check failed: ~a" (db-conn-failed-reason conn))))
     conn)))
 
 ;; NOTE: actually it'll never close the connection, just recycle it.
