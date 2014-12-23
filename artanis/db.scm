@@ -103,7 +103,8 @@
    conn))
 
 (define (%do-connect dbd str)
-  (let ((conn (make-<connection> 'open (dbi-open dbd str))))
+  (define-syntax-rule (-> s) (format #f "~a" s))
+  (let ((conn (make-<connection> 'open (dbi-open (-> dbd) str))))
     (if (db-conn-success? conn)
         conn
         (throw 'artanis-err 500 "connect to DB error:" (db-conn-failed-reason conn)))))
