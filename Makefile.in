@@ -9,20 +9,21 @@ MOD := artanis
 MOD_OBJ := $(OBJ)/artanis
 BIN_OBJ := $(OBJ)/bin
 TEMP_LIB_PATH := $(shell pwd)/$(OBJ)
-MOD_COMPILED_PATH := $(shell guile -c "(display %compile-fallback-path)")
-MOD_TMP_PATH := $(MOD_COMPILED_PATH)/$(TOP)
-MOD_PATH := $(shell guile -c "(display (car %load-path))")
-MOD_TARGET_PATH := $(MOD_COMPILED_PATH)/$(MOD_PATH)/artanis
-GUILEC := LD_LIBRARY_PATH=$(TEMP_LIB_PATH) guild compile
+MOD_PATH := $(shell guile -c "(display (%site-dir))")
+MOD_COMPILED_PATH := $(shell guile -c "(display (%site-ccache-dir))")
+MOD_TARGET_PATH := $(MOD_COMPILED_PATH)
+GUILEC := GUILE_LOAD_COMPILED_PATH=$(TEMP_LIB_PATH) guild compile
 ARTANIS_ETC := etc/artanis
+ARTANIS_PAGES := pages
 GUILE := @GUILE@
 VERSION := @PACKAGE_VERSION@
 PREFIX := @prefix@
 INSTALL := install -c
+CP := cp -frd -P
 V := @
 
 mod-sfile := $(shell find $(MOD) -name *.scm)
-mod-ofile := $(mod-sfile:.scm=.scm.go)
+mod-ofile := $(mod-sfile:.scm=.go)
 mod-ofile := $(subst $(MOD)/,$(MOD_OBJ)/,$(mod-ofile))
 
 ALL_TARGETS :=  version \
@@ -30,10 +31,15 @@ ALL_TARGETS :=  version \
 
 all: $(ALL_TARGETS)
 
-$(MOD_OBJ)/%.scm.go: $(MOD)/%.scm
+$(MOD_OBJ)/%.go: $(MOD)/%.scm
 	@echo + guilec $<
 	@mkdir -p $(@D)
-	$(V)$(GUILEC) -L $(TOP) -o $@ $<
+	$(V)$(GUILEC) -L $(TOP) -o $@ $< 2> /dev/null
+
+$(MOD_OBJ)/version.go: $(MOD)/version.scm
+	@echo + guilec $<
+	@mkdir -p $(@D)
+	$(V)$(GUILEC) -L $(TOP) -o $@ $< 2> /dev/null
 
 $(MOD)/version.scm:
 	@echo "Regenerating artanis/version.scm"
@@ -47,35 +53,35 @@ clean:
 	-rm -f *.log
 	-rm -rf autom4te.cache
 	-rm -f $(MOD)/version.scm
-	-rm -rf $(MOD_TMP_PATH)
 
 clean-config:
 	-rm -f config.{h,log}
 	-rm -f configure
 
 install: $(ALL_TARGETS)
-	cp -frdp $(OBJ)/*.so $(PREFIX)/lib
-	cp -frdp $(MOD) $(MOD_PATH)
-	$(INSTALL) -m 755 -d $(MOD_TARGET_PATH)
-	cp -frdp $(MOD_OBJ)/* $(MOD_TARGET_PATH)
+	$(CP) $(MOD) $(MOD_PATH)
+	mkdir -p $(MOD_TARGET_PATH)
+	$(CP) $(MOD_OBJ) $(MOD_TARGET_PATH)
 	chmod a+w $(MOD_TARGET_PATH)/* -R
-	$(INSTALL) -m 755 $(OBJ)/bin/* $(PREFIX)/bin
-	cp -frdp $(ARTANIS_ETC) /etc
+	$(CP) $(ARTANIS_ETC) /etc
+	$(CP) $(ARTANIS_PAGES) /etc/artanis
 
 distclean: distclean-mk clean clean-config
 
 distclean-mk:
 	-rm -f Makefile
 
-modules: $(mod-ofile)
-
 version: $(MOD)/version.scm
+
+modules: $(MOD_OBJ)/version.go $(mod-ofile)
 
 test:
 	@echo $(PREFIX)
 	@echo $(MOD_COMPILED_PATH)
+	@echo $(MOD_PATH)
 	@echo $(CC)
 	@echo $(CFLAGS)
 	@echo $(GUILE)
 	@echo $(VERSION)
 	@echo $(LIBS)
+	@echo $(mod-ofile)
