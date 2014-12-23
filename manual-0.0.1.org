@@ -202,17 +202,27 @@ Please ensure that your DB service was started before you try.
 You can use DB without running a server.
 #+begin_src scheme
 (use-module (artanis artanis))
-(define conn (connect-db "mysql" "your_db_username:your_db_passwd:your_db_name:tcp:localhost:3306"))
+(define conn (connect-db 'mysql #:db-username "your_db_username"
+                         #:db-name "your_db_name" #:db-passwd "your_passwd"))
 (define mtable (map-table-from-DB conn))
-(mtable 'set 'Persons #:name "nala" #:age 99 #:email "nala@artanis.com")
-(mtable 'valid? 'Persons) ; check if the operation done successfully
+((mtable 'create 'Persons '((name varchar 10) (age integer) (email varchar 20))) 'valid?)
 ;; ==> #t
+(mtable 'set 'Persons #:name "nala" #:age 99 #:email "nala@artanis.com")
 (mtable 'get 'Persons #:columns '(name email))
 ;; ==> ((("name" . "nala") ("email" . "nala@artanis.com")))
 #+end_src
 
-+ /map-table-from-DB/ is Artanis API to handle tables in DB. Here, we define this mapping as the var /mtable/.
++ /map-table-from-DB/ is Artanis API handling tables in DB. Here, we define this mapping as the var /mtable/.
+
 + And we can use /mtable/ to handle tables, you can get values from table with 'get command. 
+
++ /mtable/ is a functon which accepts the first argument as a command, say 'create is a command to create a new table; 'set command is used to insert/update the table; 'get command for fetch the values of specified columns.
+
++ The second argument of /mtable/ is the name of the table as you guess. Please note that it's case sensitive. But the columns name could be case insensitive.
+
++ 'create command returns a function too, which also accepts an argument as a command. Here, we use 'valid? command to check if the table has been created successfully.
+
+Here's just simple introduction. You may read the DB section in this manual for detail describing. 
 
 Of course, you can use DB in your web application.
 #+begin_src scheme
@@ -232,6 +242,10 @@ Here're some explains:
 + The keyword-value pair src_scheme[:exports code]{#:conn #t} means applying a connection from connection-pool. Then you can use src_scheme[:exports code]{(:conn rc)} to get the allocated connection for DB operations.
 
 + Finally, the handler needs to return a string as the HTTP response body, so we have to use Guile API /object->string/ to convert the query result to string, for this naive example case.
+
+#+begin_example
+Exercise: Return a beautiful table in HTML rather than using object->string.
+#+end_example
 
 URL remapping (aka URL rewriting) is 
 
