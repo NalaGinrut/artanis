@@ -62,7 +62,6 @@ install: $(ALL_TARGETS)
 	$(CP) $(MOD) $(MOD_PATH)
 	mkdir -p $(MOD_TARGET_PATH)
 	$(CP) $(MOD_OBJ) $(MOD_TARGET_PATH)
-	chmod a+w $(MOD_TARGET_PATH)/* -R
 	$(CP) $(ARTANIS_ETC) /etc
 	$(CP) $(ARTANIS_PAGES) /etc/artanis
 
