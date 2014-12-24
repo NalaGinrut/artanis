@@ -51,11 +51,10 @@ h3 {
 
 #content {
     background-image: url("../img/artanis-bg.jpg");
-    background-attachment: fixed;
-    background-position: center; 
+    background-attachment: scroll;
+    background-position: 50% 3%; 
     background-repeat: no-repeat;
     background-color: #455591;
-    opacity: 0.80;
     color: #E0E0E0;
     width: 1170px;
     margin-right: auto;
@@ -131,7 +130,6 @@ pre.src {
     box-shadow: 3px 3px 3px #639bf1;
     -webkit-box-shadow: 3px 3px 3px #639bf1;
     -moz-box-shadow: 3px 3px 3px #639bf1;
-    opacity: 0.80;
 }
 
 /*     pre.example         normal example */
