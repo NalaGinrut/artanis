@@ -96,7 +96,7 @@ sudo make install
 
 First, thanks for you contributions!
 
-If you're comfortable with [[https://github.com/NalaGinrut/artanis][GitHub]], then just use it as you've already known.
+If you're comfortable with [[https://github.com/NalaGinrut/artanis][GitHub]], then just follow the steps which you've already known.
 
 Anyway, here's the git repo:
 
@@ -214,11 +214,15 @@ You can use DB without running a server.
 
 + /map-table-from-DB/ is Artanis API handling tables in DB. Here, we define this mapping as the var /mtable/.
 
+
 + And we can use /mtable/ to handle tables, you can get values from table with 'get command. 
+
 
 + /mtable/ is a functon which accepts the first argument as a command, say 'create is a command to create a new table; 'set command is used to insert/update the table; 'get command for fetch the values of specified columns.
 
+
 + The second argument of /mtable/ is the name of the table as you guess. Please note that it's case sensitive. But the columns name could be case insensitive.
+
 
 + 'create command returns a function too, which also accepts an argument as a command. Here, we use 'valid? command to check if the table has been created successfully.
 
@@ -226,7 +230,7 @@ Here's just simple introduction. You may read the DB section in this manual for 
 
 Of course, you can use DB in your web application.
 #+begin_src scheme
-(get "/dbtest" #:conn #t ; apply a DB connection from pool
+(get "/dbtest" #:conn #t ; apply for a DB connection from pool
   (lambda (rc)
     (let ((mtable (map-table-from-DB (:conn rc))))
       (object->string
@@ -239,7 +243,8 @@ Of course, you can use DB in your web application.
 Now, try http://localhost:8080/dbtest in your browser.
 
 Here're some explains:
-+ The keyword-value pair src_scheme[:exports code]{#:conn #t} means applying a connection from connection-pool. Then you can use src_scheme[:exports code]{(:conn rc)} to get the allocated connection for DB operations.
++ The keyword-value pair src_scheme[:exports code]{#:conn #t} means applying for a DB connection from connection-pool. Then you can use src_scheme[:exports code]{(:conn rc)} to get the allocated connection for DB operations.
+
 
 + Finally, the handler needs to return a string as the HTTP response body, so we have to use Guile API /object->string/ to convert the query result to string, for this naive example case.
 
@@ -247,9 +252,9 @@ Here're some explains:
 Exercise: Return a beautiful table in HTML rather than using object->string.
 #+end_example
 
-URL remapping (aka URL rewriting) is 
+** Templating
 
-FPRM
+Templating provides a way to mix programming code directly into HTML.
 
 * Basic in Scheme
 
@@ -307,3 +312,19 @@ Hold your horses. ;-)
 
 * URL remapping
 
+* Templating
+
+Templating provides a way to mix programming code directly into HTML.
+
+** The design philosophy
+
+*** For Pythoners
+If you're familiar with Django, which implemented a DSL(Domain Specific Language) to express presentation rather than program logic. You may realize that the templating of Artanis has different philosophy.
+
+In templating of Artanis, it's simply embedded Scheme code into HTML. Why? Because of the philosophy of FP(Functional Programming), everything could be a function. So obviously, src_scheme[:exports code]{(filesizeformat size)} is enough for understanding, and it's just simple function calling in prefix-notation. There's no need to implement DSL like src_python[:exports code]{size|filesizeformat} to increase the complexity of code. Let alone the syntax is very different from Python.
+
+The syntax like src_python[:exports code]{size|filesizeformat} is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme(functional programming), and the paradigm of Python(imperative programming).
+
+The philosophy of Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce the unnecessary complexities. [[http://en.wikipedia.org/wiki/KISS_principle][KISS]].
+
+*** For Rubists
