@@ -22,7 +22,7 @@ Artanis provides several tools for web development: database access, templating 
 This manual describes how to use Artanis, and usage of APIs.
 
 Guile is the GNU Ubiquitous Intelligent Language for Extensions, the official extension language for the [[http://www.gnu.org/][GNU operating system]].
-Guile is an interpreter and compiler for the Scheme programming language.
+Guile is also an interpreter and compiler for other dynamic programming languages except Scheme programming language.
 
 [[http://en.wikipedia.org/wiki/Scheme_%28programming_language%29][Scheme]] is a functional programming language and one of the two main dialects of the programming language [[http://en.wikipedia.org/wiki/Lisp_(programming_language)][Lisp]].
 Scheme follows a minimalist design philosophy specifying a small standard core with powerful tools for language extension.
@@ -43,54 +43,54 @@ The manual you’re now reading is published under the terms of the [[http://www
 *Install GNU Guile-2.0.11:*
 
 + Debian/Ubuntu users
-#+begin_example
+#+begin_src null
 sudo apt-get install guile-2.0-dev guile-2.0
-#+end_example
+#+end_src
 
 + SUSE/openSUSE users
-#+begin_example
-sudo zypper in guile guile-devel
-#+end_example
+#+begin_src null
+sudo zypper install guile guile-devel
+#+end_src
 
 + RedHat/Fedora
-#+begin_example
+#+begin_src null
 sudo yum install guile guile-devel
-#+end_example
+#+end_src
 
 + For LFS Guru
-#+begin_example
+#+begin_src null
 wget -c ftp://ftp.gnu.org/gnu/guile/guile-2.0.11.tar.gz
 tar xvzf guile-2.0.11.tar.gz
 cd guile-2.0.11 && ./configure && make #(NOTE: this may take very long time even looks like halting)
 sudo make install
-#+end_example
+#+end_src
 
 I would NOT recommend you trying to compile/install Guile from Git repo, since it'll take too much time of you.
 
 *Install dependencies:*
 
 + guile-dbi-2.1.5 [optional]
-#+begin_example
+#+begin_src null
 wget -c http://download.gna.org/guile-dbi/guile-dbi-2.1.5.tar.gz
 tar xvzf guile-dbi-2.1.5.tar.gz
 cd guile-dbi-2.1.5 && ./configure && make
 sudo make install
-#+end_example
+#+end_src
 
 + guile-dbd, there're three dbd, mysql/postgresql/sqlite3 [optional]
-#+begin_example
+#+begin_src null
 wget -c http://download.gna.org/guile-dbi/guile-dbd-mysql-2.1.4.tar.gz
 cd guile-dbd-mysql-2.1.4 && ./configure && make
 sudo make install
-#+end_example
+#+end_src
 You may find other dbd [[http://download.gna.org/guile-dbi][here]]. And the installation is similar.
 
 + Artanis-0.0.1:
-#+begin_example
+#+begin_src null
 wget -c https://github.com/NalaGinrut/artanis/releases/artanis-0.0.1.tar.bz2
 cd artanis-0.0.1 && ./configure && make
 sudo make install
-#+end_example
+#+end_src
 
 ** For contributors
 
@@ -100,9 +100,9 @@ If you're comfortable with [[https://github.com/NalaGinrut/artanis][GitHub]], th
 
 Anyway, here's the git repo:
 
-#+begin_example
+#+begin_src null
 git clone git@github.com:NalaGinrut/artanis.git
-#+end_example
+#+end_src
 
 * Hello World
 
@@ -111,7 +111,7 @@ git clone git@github.com:NalaGinrut/artanis.git
 If you're NOT freshman of Guile, please skip this section.
 
 Just type `guile' in your console to enter Guile REPL, and you will see this screen:
-#+begin_example
+#+begin_src null
 GNU Guile 2.0.11
 Copyright (C) 1995-2014 Free Software Foundation, Inc.
 
@@ -121,7 +121,7 @@ under certain conditions; type `,show c' for details.
 
 Enter `,help' for help.
 scheme@(guile-user)>
-#+end_example
+#+end_src
 
 Welcome to Guile world!
 
@@ -129,15 +129,15 @@ Now, we're going to play Artanis. Before we start, please follow these instructi
 
 *(Just type them, you don't have to understand them at present)*
 
-#+begin_example
+#+begin_src scheme
 ,use (artanis artanis)
 artanis-version
-#+end_example
+#+end_src
 
 The expected output should be similar to this:
-#+begin_example
+#+begin_src scheme
 $1 = "Artanis-0.0.1"
-#+end_example
+#+end_src
 
 ** Try simple URL remapping
 
@@ -154,11 +154,13 @@ Now you can visit http://localhost:8080/hello with your browser, and see the res
 
 Let me explain these code.
 
-+ line 1: Load Artanis module, (artanis artanis) is the name.
++ /line 1:/ Load Artanis module, (artanis artanis) is the name.
 
-+ line 2: The first argument /get/ is Artanis API corresponding to GET method in HTTP protocol. The second argument "/hello" is the URL rule to register. The Third argument is the handler which will be triggered if the registered URL rule is hit.
 
-+ line 3: Run Artanis server, and listenning socket port 8080.
++ /line 2:/ The first argument /get/ is Artanis API corresponding to GET method in HTTP protocol. The second argument "/hello" is the URL rule to register. The Third argument is the handler which will be triggered if the registered URL rule is hit.
+
+
++ /line 3:/ Run Artanis server, and listenning socket port 8080.
 
 You may type Ctrl+C to quit the server according to the hint from your screen.
 
