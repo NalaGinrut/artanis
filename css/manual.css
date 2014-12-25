@@ -12,18 +12,12 @@
   src: local('Lato Regular'), local('Lato-Regular'), url(./Lato.woff) format('woff');
 }
 
-@font-face {
-    font-family: "Baskerville";
-    src: url("./LibreBaskerville-Regular.otf");
-}
-
 body {
     margin-left: 20px;
-    font-family: 'Baskerville';
-    font-size: 16px;
-    //background: #2B2B54;
-    background: #132343;
-    //background: #293e6a;
+    font-family: "Lato";
+    font-size: 17px;
+    color: #AEC5AD;
+    background: rgba(20,88,121,1);
 }
 
 a:link {
@@ -34,28 +28,22 @@ a:link {
 h2 {
     font-weight: 500;
     line-height: 1.1;
-    color: white;
-// #77ba9b;
     margin: 0.67em 0;
     margin-top: 21px;
     margin-bottom: 10.5px;
     font-size: 22px;
     word-spacing: .10em;
+    color: inherit;
 }
 
 h3 {
+    font-weight: 500;
+    font-size: 20px;
+    word-spacing: .1em;
     color: inherit;
-    font-size: 18px;
-    font-weight: 510;
 }
 
 #content {
-    background-image: url("../img/artanis-bg.jpg");
-    background-attachment: scroll;
-    background-position: 50% 3%; 
-    background-repeat: no-repeat;
-    background-color: #455591;
-    color: #E0E0E0;
     width: 1170px;
     margin-right: auto;
     margin-left: auto;
@@ -87,7 +75,6 @@ p.author {
     font-size: 35px;
     font-style: italic;
     word-spacing: .25em;
-    color: white;
 }
 
 /*     .todo               TODO keywords, all not-done states */
@@ -104,7 +91,8 @@ p.author {
 /*     div.outline-N       div for outline level N (headline plus text)) */
 /*     div.outline-text-N  extra div for text at outline level N */
 /*     .section-number-N   section number in headlines, different for each level */
-.section-number-2 {
+
+/*.section-number-2 {
     font-family: "Lato";
     font-size: 25px;
 }
@@ -113,23 +101,25 @@ p.author {
     font-family: "Lato";
     font-size: 20px;
 }
+*/
 
 /*     .figure-number      label like "Figure 1:" */
 /*     .table-number       label like "Table 1:" */
 /*     .listing-number     label like "Listing 1:" */
 /*     div.figure          how to format an inlined image */
 
+pre {
+box-shadow: 0 0 0 black;
+}
 /*     pre.src             formatted source code */
 pre.src {
     font-family: Monaco, "Lucida Console", monospace;
+    font-size: 13px;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
-    background: #293e6a;
+    background: rgba(19,32,27,0.87);
     color: wheat;
-    border: 1px solid #293e6a;
-    box-shadow: 3px 3px 3px #639bf1;
-    -webkit-box-shadow: 3px 3px 3px #639bf1;
-    -moz-box-shadow: 3px 3px 3px #639bf1;
+    border: 0;
 }
 
 /*     pre.example         normal example */
@@ -140,7 +130,7 @@ pre.src {
 /*     .footnum            footnote number in footnote definition (always <sup>) */
 
 #text-table-of-contents a, a:visited {
-    color: #90A1CD;
+    //color: #90A1CD;
     font-size: 17px;
     font-family: "Lato";
 }
