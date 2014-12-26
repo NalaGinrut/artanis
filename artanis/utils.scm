@@ -443,7 +443,8 @@
   ((@ (rnrs bytevectors) bytevector=?) bv #u8()))
 
 (define (prepare-headers body headers)
-  (define *default-header* '((content-type . (text/html))))
+  (define *default-header*
+    (if (assq-ref headers 'content-type) '() '((content-type . (text/html)))))
   ;; FIXME: the latest Guile fixed content-length:0 bug, but 2.0.9 is not,
   ;;        so remove it when next release.
   (when (not body)
