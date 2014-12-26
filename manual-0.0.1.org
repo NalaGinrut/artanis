@@ -314,7 +314,8 @@ Hold your horses. ;-)
 
 * URL remapping
 
-* Templating
+* Layouts and Rendering in Artanis
+** Templating
 
 Templating provides a way to mix programming code directly into HTML.
 
@@ -330,3 +331,20 @@ The syntax like src_python[:exports code]{size|filesizeformat} is postfix-notati
 The philosophy of Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce the unnecessary complexities. [[http://en.wikipedia.org/wiki/KISS_principle][KISS]].
 
 *** For Rubists
+Templating in Artanis looks very similar to Rails.
+
+The Rails code:
+
+#+begin_src ruby
+<% if( @fullscreen == 1 ) %>
+<%= "<div class='full'><p>...</p></div>" %>
+<% end %>
+#+end_src
+
+And the same function in Artanis code:
+
+#+begin_src scheme
+<% (if (= fullscreen 1) %>
+<% "<div class='full'><p>...</p></div>" %>
+<% ) %>
+#+end_src
