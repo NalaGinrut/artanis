@@ -26,7 +26,7 @@
             current-myhost))
 
 (define server-info artanis-version)
-(define *default-conf-file* "/etc/artanis/default.conf")
+(define *default-conf-file* "/etc/artanis/artanis.conf")
 
 (define (conf-set! k v)
   (hash-set! *conf-hash-table* k v))
@@ -230,7 +230,7 @@
                ((file-exists? *default-conf-file*) *default-conf-file*)
                (else 
                 (error init-config
-                       "Fatal error! You need to reinstall Artanis!")))))
+                       "Fatal error! Do you have /etc/artanis/artanis.conf?")))))
   (let lp((line (read-line fp)))
     (cond
      ((eof-object? line) #t)
