@@ -134,17 +134,17 @@
     (match o
       ((#t)
        ;; public cache with default max-age
-       (format #f "public,max-age=~a" (get-conf '(cache maxage))))
+       `(public ,(cons 'max-age (get-conf '(cache maxage)))))
       (('public . maxage)
        (let ((m (if (null? maxage) (get-conf '(cache maxage)) (car maxage))))
-         (format #f "public,max-age=~a" m)))
+         `(public ,(cons 'max-age maxage))))
       (('private . maxage)
        (let ((m (if (null? maxage) (get-conf '(cache maxage)) (car maxage))))
-           (format #f "private,max-age=~a" m)))
+           `(private ,(cons 'max-age m))))
       (else (throw 'artanis-err "->cc: Invalid opts!" o))))
   (cache-to-tlb! rc etag) ; cache the hash the TLB
   (response-emit body #:headers `((ETag . ,etag)
-                                  (Cache-Control . ,(->cc opts)))))
+                                  (cache-control . ,(->cc opts)))))
 
 (define (generate-ETag filename)
   (cond
@@ -191,14 +191,13 @@
    (else body)))
 
 (define-syntax-rule (emit-static-file-with-cache file etag status max-age)
-  (let ((cc (format #f "~a,max-age=~a" status max-age)))
-    (emit-response-with-file
-     file
-     `((Cache-Control . ,cc)
-       ,@(if (null? etag) '() `((ETag . ,etag)))))))
+  (emit-response-with-file
+   file
+   `((cache-control . ,(list status (cons 'max-age max-age)))
+     ,@(if (null? etag) '() `((ETag . ,etag))))))
 
 (define-syntax-rule (emit-static-file-without-cache file)
-  (let ((headers `((Cache-Control . "no-cache,no-store"))))
+  (let ((headers `((cache-control . (no-cache no-store)))))
     (emit-response-with-file file headers)))
 
 ;; NOTE: the ETag of static file is time based, not content based
