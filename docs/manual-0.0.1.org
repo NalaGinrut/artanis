@@ -255,9 +255,8 @@ Here're some explains:
 
 + Finally, the handler needs to return a string as the HTTP response body, so we have to use Guile API /object->string/ to convert the query result to string, for this naive example case.
 
-#+begin_example
-Exercise: Return a beautiful table in HTML rather than using object->string.
-#+end_example
+/Exercise: Return a beautiful table in HTML rather than using object->string./
+
 
 ** Templating
 
