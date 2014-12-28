@@ -1,0 +1,825 @@
+#+TITLE: Artanis web-framework Manual
+#+AUTHOR: Mu Lei known as NalaGinrut
+#+EMAIL: nalaginrut@gmail.com
+#+LANGUAGE: en
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="css/manual.css" />
+#+OPTIONS: H:3 toc:t \n:nil ::t |:t ^:nil -:t f:t *:t tex:t d:(HIDE) tags:not-in-toc
+#+STARTUP: hidestar latexpreview
+
+#+OPTIONS: tex:t          Do the right thing automatically (MathJax)
+#+OPTIONS: tex:nil        Do not process LaTeX fragments at all
+#+OPTIONS: tex:verbatim   Verbatim export, for jsMath or so
+
+* Introduction
+
+Artanis is a web application framework(WAF) written in [[http://www.gnu.org/software/guile/][Guile Scheme]].
+
+A [[http://en.wikipedia.org/wiki/Web_application_framework][web application framework (WAF)]] is a software framework that is designed to support the development of dynamic websites,
+web applications, web services and web resources.
+The framework aims to alleviate the overhead associated with common activities performed in web development.
+Artanis provides several tools for web development: database access, templating frameworks, session management, [[http://en.wikipedia.org/wiki/Rewrite_engine][URL-remapping]] for [[http://en.wikipedia.org/wiki/Representational_state_transfer][RESTful]], page caching, and so on.
+
+This manual describes how to use Artanis, and usage of APIs.
+
+Guile is the GNU Ubiquitous Intelligent Language for Extensions, the official extension language for the [[http://www.gnu.org/][GNU operating system]].
+Guile is also an interpreter and compiler for other dynamic programming languages except Scheme programming language.
+
+[[http://en.wikipedia.org/wiki/Scheme_%28programming_language%29][Scheme]] is a functional programming language and one of the two main dialects of the programming language [[http://en.wikipedia.org/wiki/Lisp_(programming_language)][Lisp]].
+Scheme follows a minimalist design philosophy specifying a small standard core with powerful tools for language extension.
+
+** Conventions
+In this manual, we'll use this kind of syntax to indicate the usage of API:
+#+begin_src scheme
+(api-name arg1 arg2 #:key0 val0 ... [optional-arg1 <- default-value1] ...) 
+#+end_src
+If you're not comfortable with this syntax, maybe you're a newbie of Scheme, and I would recommend you read [[Basic in Scheme][Basic in Scheme]] chapter first.
+* License
+
+Artanis is [[http://www.gnu.org/philosophy/free-sw.html][Free Software]]. Artanis is under the terms of the GNU Lesser General Public License version 3 or later.
+See the files COPYING.LESSER and COPYING.
+
+The manual you’re now reading is published under the terms of the [[http://www.gnu.org/copyleft/fdl.html][GNU Free Documentation License]].
+
+*/You must be aware there is no warranty whatsoever for Artanis. This is described in full in the licenses./*
+
+* Installation
+
+** For users
+
+*Install GNU Guile-2.0.11:*
+
++ Debian/Ubuntu users
+#+begin_src null
+sudo apt-get install guile-2.0-dev guile-2.0
+#+end_src
+
++ SUSE/openSUSE users
+#+begin_src null
+sudo zypper install guile guile-devel
+#+end_src
+
++ RedHat/Fedora
+#+begin_src null
+sudo yum install guile guile-devel
+#+end_src
+
++ For LFS Guru
+#+begin_src null
+wget -c ftp://ftp.gnu.org/gnu/guile/guile-2.0.11.tar.gz
+tar xvzf guile-2.0.11.tar.gz
+cd guile-2.0.11 && ./configure && make #(NOTE: this may take very long time even looks like halting)
+sudo make install
+#+end_src
+
+I would NOT recommend you trying to compile/install Guile from Git repo, since it'll take too much time of you.
+
+*Install dependencies:*
+
++ guile-dbi-2.1.5 [optional]
+#+begin_src null
+wget -c http://download.gna.org/guile-dbi/guile-dbi-2.1.5.tar.gz
+tar xvzf guile-dbi-2.1.5.tar.gz
+cd guile-dbi-2.1.5 && ./configure && make
+sudo make install
+#+end_src
+
++ guile-dbd, there're three dbd, mysql/postgresql/sqlite3 [optional]
+#+begin_src null
+wget -c http://download.gna.org/guile-dbi/guile-dbd-mysql-2.1.4.tar.gz
+cd guile-dbd-mysql-2.1.4 && ./configure && make
+sudo make install
+#+end_src
+You may find other dbd [[http://download.gna.org/guile-dbi][here]]. And the installation is similar.
+
++ Artanis-0.0.1:
+#+begin_src null
+wget -c https://github.com/NalaGinrut/artanis/releases/artanis-0.0.1.tar.bz2
+cd artanis-0.0.1 && ./configure && make
+sudo make install
+#+end_src
+
+** For contributors
+
+First, thanks for you contributions!
+
+If you're comfortable with [[https://github.com/NalaGinrut/artanis][GitHub]], then just follow the steps which you've already known.
+
+Anyway, here's the git repo:
+
+#+begin_src null
+git clone git@github.com:NalaGinrut/artanis.git
+#+end_src
+
+* Hello World
+
+** Use Guile REPL and verify Artanis installation
+
+If you're NOT freshman of Guile, please skip this section.
+
+Just type `guile' in your console to enter Guile REPL, and you will see this screen:
+#+begin_src null
+GNU Guile 2.0.11
+Copyright (C) 1995-2014 Free Software Foundation, Inc.
+
+Guile comes with ABSOLUTELY NO WARRANTY; for details type `,show w'.
+This program is free software, and you are welcome to redistribute it
+under certain conditions; type `,show c' for details.
+
+Enter `,help' for help.
+scheme@(guile-user)>
+#+end_src
+
+Welcome to Guile world!
+
+Now, we're going to play Artanis. Before we start, please follow these instructions in the REPL to ensure that you installed Artanis correctly:
+
+*(Just type them, you don't have to understand them at present)*
+
+#+begin_src scheme
+,use (artanis artanis)
+artanis-version
+#+end_src
+
+The expected output should be similar to this:
+#+begin_src scheme
+$1 = "Artanis-0.0.1"
+#+end_src
+
+** Try simple URL remapping
+
+Type these code in Guile REPL:
+#+begin_src scheme
+(use-modules (artanis artanis))
+(get "/hello" (lambda () "hello world"))
+(run #:port 8080)
+#+end_src
+
+Now you can visit http://localhost:8080/hello with your browser, and see the result.
+
+/If you encounter "[EXCEPTION] /favicon.ico is abnormal request", please ignore it./
+
+Let me explain these code.
+
++ /line 1:/ Load Artanis module, (artanis artanis) is the name.
+
+
++ /line 2:/ The first argument /get/ is Artanis API corresponding to GET method in HTTP protocol. The second argument "/hello" is the URL rule to register. The Third argument is the handler which will be triggered if the registered URL rule is hit.
+
+
++ /line 3:/ Run Artanis server, and listenning socket port 8080.
+
+You may type Ctrl+C to quit the server according to the hint from your screen.
+
+** More complex URL remapping
+
+Try this code:
+#+begin_src scheme
+(get "/hello/:who"
+  (lambda (rc)
+    (format #f "<p>hello ~a</p> " (params rc "who"))))
+(run #:port 8080)
+#+end_src
+
+Now you can try http://localhost:8080/hello/artanis in your browser.
+
+There're two differences:
++ 1. The special rule, "=/hello/:who=", /:who/ means you can use /params/ to reference the value of this section of URL with the key "who". src_scheme[:exports code]{(params rc "who")} is the way for that.
+
++ 2. You may notice that the handler defined as an anonymous function with /lambda/ has one argument /rc/. It means /route context/ which preserve all the related context information. Many Artanis APIs need it, say, /params/.
+
+And /format/ is a Scheme lib function. It is similar to /sprintf/ in C language, which outputs with a formatted pattern.
+The second argument #f (means FALSE) indicating that returning the result as string type rather than printing out.
+
+*** Regex in URL remapping
+
+You can use regex in the URL rule.
+#+begin_src scheme
+(get "/.+\\.(png|gif|jpeg)" static-page-emitter)
+#+end_src
+
+/static-page-emitter/ is an Artanis API which emits a static file like images to the client.
+
+** Database operating
+
+Artanis supports mysql/postgresql/sqlite3, we use mysql as a example here.
+
+Please ensure that your DB service was started before you try.
+
+*/If you encountered any problems, please check your config of DB first./* 
+You can use DB without running a server.
+#+begin_src scheme
+(use-module (artanis artanis))
+(define conn (connect-db 'mysql #:db-username "your_db_username"
+                         #:db-name "your_db_name" #:db-passwd "your_passwd"))
+(define mtable (map-table-from-DB conn))
+((mtable 'create 'Persons '((name varchar 10) (age integer) (email varchar 20))) 'valid?)
+;; ==> #t
+(mtable 'set 'Persons #:name "nala" #:age 99 #:email "nala@artanis.com")
+(mtable 'get 'Persons #:columns '(name email))
+;; ==> ((("name" . "nala") ("email" . "nala@artanis.com")))
+#+end_src
+
++ /map-table-from-DB/ is Artanis API handling tables in DB. Here, we define this mapping as the var /mtable/.
+
+
++ And we can use /mtable/ to handle tables, you can get values from table with 'get command. 
+
+
++ /mtable/ is a functon which accepts the first argument as a command, say 'create is a command to create a new table; 'set command is used to insert/update the table; 'get command for fetch the values of specified columns.
+
+
++ The second argument of /mtable/ is the name of the table as you guess. Please note that it's case sensitive. But the columns name could be case insensitive.
+
+
++ 'create command returns a function too, which also accepts an argument as a command. Here, we use 'valid? command to check if the table has been created successfully.
+
+Here's just simple introduction. You may read the DB section in this manual for detail describing. 
+
+Of course, you can use DB in your web application.
+#+begin_src scheme
+(get "/dbtest" #:conn #t ; apply for a DB connection from pool
+  (lambda (rc)
+    (let ((mtable (map-table-from-DB (:conn rc))))
+      (object->string
+        (mtable 'get 'Persons #:columns '(name email))))))
+
+(run #:use-db? #t #:dbd 'mysql #:db-username "your_db_username"
+     #:db-name "your_db_name" #:db-passwd "your_passwd" #:port 8080)
+#+end_src
+
+Now, try http://localhost:8080/dbtest in your browser.
+
+Here're some explains:
++ The keyword-value pair src_scheme[:exports code]{#:conn #t} means applying for a DB connection from connection-pool. Then you can use src_scheme[:exports code]{(:conn rc)} to get the allocated connection for DB operations.
+
+
++ Finally, the handler needs to return a string as the HTTP response body, so we have to use Guile API /object->string/ to convert the query result to string, for this naive example case.
+
+#+begin_example
+Exercise: Return a beautiful table in HTML rather than using object->string.
+#+end_example
+
+** Templating
+
+Templating provides a way to mix programming code directly into HTML.
+
+* Basic in Scheme
+
+This chapter introduces some useful documents to help you understand Scheme language well.
+Feel free to come back here if you have any problem with Scheme syntax.
+
+If any possbile, read them again and again. 
+
+Scheme was introduced in 1975 by Gerald J. Sussman and Guy L. Steele Jr. and was the first dialect of Lisp to fully support lexical scoping,
+first-class procedures, and continuations. In its earliest form it was a small language intended primarily for research and teaching,
+supporting only a handful of predefined syntactic forms and procedures. Scheme is now a complete general-purpose programming language, though
+it still derives its power from a small set of key concepts. Early implementations of the language were interpreter-based and slow, but
+Guile Scheme is trying to implement sophisticated compiler that generate better optimized code, and even a plan for AOT compiler generated
+native code in the future.
+
+** For newbies
+
+If you're not familiar with Guile Scheme, here's a simplest tutorial for you.
+
+If you know basics of Scheme language, please skip this section.
+
+I would recommend newbies to type/paste the code in Guile REPL following the guide in tutorial: 
+[[http://web-artanis.com/scheme.html][Learn Scheme in 15 minutes]]
+
+And here's a nice section in Guile manual for basics in Scheme:
+[[https://www.gnu.org/software/guile/manual/guile.html#Hello-Scheme_0021][Hello Scheme]]
+
+Please don't spend too much time on these tutorials, the purose is to let newbies get a little familiar with the grammar of Scheme.
+
+
+** For Pythoners
+
+These are good articles for Pythoners:
+
+1. [[http://draketo.de/proj/guile-basics/][Guile basics from the perspective of a Pythonista]]
+2. [[http://draketo.de/proj/py2guile][Going from Python to Guile Scheme]]
+
+Still, please don't spend too much time on them, the purose is to let newbies get a little familiar with the grammar of Scheme.
+
+** For Rubyist
+Here's a geat article for Rubyist to learn Scheme:
+1. [[http://wiki.call-cc.org/chicken-for-ruby-programmers][Scheme for ruby programmers]]
+** For deep learners
+
+These two books are very good for learning Scheme seriously:
+
+1. [[http://www.scheme.com/tspl4/][The Scheme Programming Language]]
+2. [[http://mitpress.mit.edu/sicp/][Structure and Interpretation of Computer Programs(SICP)]]
+
+Please don't read them if you just want to use Artanis to build your webapp/site in few minutes.
+
+If you really want to try these books seriously, please ignore Artanis before you done them.
+
+But once you've done them *carefully*, you may want to write a new Artanis all by yourself.
+
+Hold your horses. ;-)
+
+* Basic in Artanis
+** How to run a site with Artanis
+This is the simplest case to run a site:
+#+begin_src scheme
+#!/bin/env guile
+!#
+(use-modules (artanis artanis))
+(init-server)
+(get "/hello" (lambda () "hello world"))
+(run)
+#+end_src
+** Initialization
+It's better to use (init-server) to init Artanis.
+#+begin_src scheme
+(init-server #:statics '(png jpg jpeg ico html js css) #:cache-statics? #f #:exclude '())
+#+end_src
+src_scheme[:exports code]{#:statics} specifies the static files with the extension file. Artanis is based on URL remapping, so this keyword avoids you to handle each static file types. In default, it coveres the most static file types. So you may ignore it usually.
+
+src_scheme[:exports code]{#:cache-statics?} indicates if the static files should be cached.
+
+src_scheme[:exports code]{#:exclude} specifies the types should be excluded. This is useful when you want to generate image files dynamically. Even js/css could be generated dynamically, depends your design.
+** Registering handler of HTTP methods
+Please read [[URL handling][URL handling]].
+** Emit Response
+#+begin_src scheme
+(response-emit body #:status 200 #:headers '() #:mtime (current-time))
+#+end_src
+
+*body* is the response body, it can be bytevector or literal string (in HTML).
+
+src_scheme[:exports code]{#:status} is HTTP status, 200 in default, which means OK.
+
+src_scheme[:exports code]{#:headers} let you specify customized HTTP headers. The headers must follow certain format, you have to read about the [[http://www.gnu.org/software/guile/manual/html_node/HTTP-Headers.html#Response-Headers][Response Headers]].
+
+src_scheme[:exports code]{#:mtime} specifies the modify time in the response. Artanis will generate it for you if you just ignore it.
+
+#+begin_src scheme
+(emit-response-with-file filename [headers <- '()])
+#+end_src
+
+*filename* is the filename to be sent as a response.
+
+[headers] is the customized HTTP headers.
+
+** Running server
+#+begin_src scheme
+(run #:host #f #:port #f #:debug #f #:use-db? #f
+     #:dbd #f #:db-username #f #:db-passwd #f #:db-name #f)
+#+end_src
+
+/You may see all the keyword is #f in default, this means these items will be gotten from config file./
+
+But you can specify them as will.
+
+src_scheme[:exports code]{#:host} specify the hostname.
+
+src_scheme[:exports code]{#:port} specify the socket port of the server.
+
+src_scheme[:exports code]{#:debug} set #t if you want to enable debug mode. Maybe verbose.
+
+src_scheme[:exports code]{#:use-db?} set #t if you want to use DB, and Artanis will init DB config for you.
+
+src_scheme[:exports code]{#:dbd} choose dbd, there're three supported dbd: mysql, postgresql, and sqlite3.
+
+src_scheme[:exports code]{#:db-username} specify the username of your DB server.
+
+src_scheme[:exports code]{#:db-passwd} the DB password.
+
+src_scheme[:exports code]{#:db-name} specify DB name.
+** Working with Nginx
+You may try Artanis+Nginx with so-called reverse proxy. 
+
+*/I would recommend you use Nginx as the front server, since Artanis hasn't done its own async server-core which will be based on delimited-continuations. The current server has some caveats, in spite of the performance, you may suffer from slow-header-ddos if you use Artanis to serv you site directly. But it's fine when you use Nginx in front of Artanis./*
+
+For example, you may add these lines to your /etc/nginx/nginx.conf:
+
+#+begin_src conf
+     location / {
+             proxy_pass http://127.0.0.1:1234;
+             proxy_set_header Host $host;
+             proxy_set_header X-Real-IP $remote_addr;
+             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+     }
+#+end_src
+Then restart you Nginx:
+
+#+begin_src null
+sudo service nginx restart
+#+end_src
+
+And run artanis:
+#+begin_src scheme
+(run #:port 1234)
+#+end_src
+* URL remapping
+** Introduction
+URL remapping is used to modify a web URL's appearance to provide short, pretty or fancy, search engine friendly URLs. 
+It's largly used in modern WAF(web application framework) to provide RESTful web APIs.
+** URL handling
+According to RFC2616, there're GET, POST, PUT, PATCH and DELETE methods. You may register handler for specified URL rule to these methods.
+
+/There'd be HEAD method, but in Artanis, HEAD method is handled by the server, users can't use it./
+
+The usage:
+#+begin_src scheme
+(method rule handler)
+#+end_src
+
+And the handler could be two types, depends on your need:
+#+begin_src scheme
+(lambda ()
+  ...
+  ret)
+
+(lambda (rc)
+  ...
+  ret)
+#+end_src
+
+*ret* also has two types:
+
++ 1. literal string as the returned response body
+
++ 2. See [[Emit Response][Emit Response]] 
+
+#+begin_src scheme
+(get "/hello" (lambda () "hello world"))
+#+end_src
+
+For POST method:
+#+begin_src scheme
+(post "/auth" (lambda (rc) ...))
+#+end_src
+
+** Get params from URL
+#+begin_src scheme
+(params rc name)
+;; e.g 
+(get "/hello/:who" (lambda (rc) (params rc "who")))
+#+end_src
+** Redirect link
+#+begin_src scheme
+(redirect-to rc path [status <- 301])
+;; e.g
+(get "/aaa" (lambda (rc) (redirect-to rc "/bbb")))
+(get "/bbb" (lambda () "ok bbb"))
+#+end_src
+* Layouts and Rendering in Artanis
+** Templating
+
+Templating provides a way to mix programming code into HTML.
+
+** The design philosophy
+
+*** For Pythoners
+If you're familiar with Django, which implemented a DSL(Domain Specific Language) to express presentation rather than program logic. You may realize that the templating of Artanis has different philosophy.
+
+In templating of Artanis, it's simply embedded Scheme code into HTML. Why? Because of the philosophy of FP(Functional Programming), everything could be a function. So obviously, src_scheme[:exports code]{(filesizeformat size)} is enough for understanding, and it's just simple function calling in prefix-notation. There's no need to implement DSL like src_python[:exports code]{size|filesizeformat} to increase the complexity of code. Let alone the syntax is very different from Python.
+
+The syntax like src_python[:exports code]{size|filesizeformat} is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme(functional programming), and the paradigm of Python(imperative programming).
+
+The philosophy of Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce the unnecessary complexities. [[http://en.wikipedia.org/wiki/KISS_principle][KISS]].
+
+*** For Rubyists
+Templating in Artanis looks very similar to Rails.
+
+The Rails code:
+
+#+begin_src ruby
+<% if( @fullscreen == 1 ) %>
+<%= "<div class='full'><p>...</p></div>" %>
+<% end %>
+#+end_src
+
+And the same function in Artanis code:
+
+#+begin_src scheme
+<% (if (= fullscreen 1) %>
+<% "<div class='full'><p>...</p></div>" %>
+<% ) %>
+#+end_src
+
+** APIs
+#+begin_src scheme
+(tpl->response filename/sxml [environment <- (the-environment)] [escape? <- #f])
+(tpl->html filename/sxm [environment <- (the-environment)] [escape? <- #f])
+#+end_src
+
+/The difference is that tpl->html returns a string, but tpl->response will return HTTP response./
+
+[environment] is the environment you want to pass in. We often ignore it. But if you want to ref some vars defined outside your
+template string, you should pass (the-environment).
+
+[escape?] If you want to HTML char-escaping with the returned string, set it to #t.
+ 
+There're two kinds of different templating:
+*** Embedded Templating
+Example:
+Write a tpl file named "my.tpl":
+#+begin_src html
+<html>
+  <p> <%= "This is tpl test!" %> </p>
+  <p> <% (format #t "And this is ~a" (getcwd)) %> </p>
+  <p> <%= external-var %> </p>
+</html>
+#+end_src
+
+Of course, the ext filename ".tpl" is trivial, you may name it whatever you like.
+
+#+begin_src scheme
+(get "/test"
+  (lambda (rc)
+    (let ((external-var 123))
+      (tpl->response "my.tpl" (the-environment)))))
+(run #:port 8080)
+#+end_src
+
+In this case, make sure to put my.tpl to the same path with your Artanis code.
+
+Because *exteral-var* is defined outside the file "my.tpl", and it's bound in /let/ with 123, you have to pass (the-environment). Or the template render will blame that it can't find variable named *external-var*.
+
+If you don't have any external var needs to be referenced, just use src_scheme[:exports code]{(tpl->response "file.tpl")} is fine.
+ 
+Then see http://localhost:3000/test in your browser.
+
+*** SXML Templating
+[[http://en.wikipedia.org/wiki/SXML][SXML]] is an alternative syntax for writing XML data, using the form of S-expressions.
+
+SXML is to Scheme as JSON is to ECMAScript(the so-called javascript). Maybe this explains clearer.
+
+The benifit of SXML is to take advantage of quasiquote in Scheme. If you no little about it, then you may google "scheme quasiquote" for more details.
+
+#+begin_src scheme
+(tpl->response '(html (body (p (@ (id "content")) "hello world"))))
+#+end_src
+
+You would get a html string src_scheme[:exports code]{"<html><body><p id=\"content\">hello world</p></body></html>"}.
+
+Let's see an example of quasiquote:
+
+#+begin_src scheme
+(let ((content "hello world"))
+  (tpl->response `(html (body (p (@ (id "content")) ,content)))))
+#+end_src
+
+* Database
+** ORM problem
+ORM stands for Object Relational Mapping, which is a popular approach to handle relational DB nowadays, in OOP.
+
+Of course, Guile has it's own Object System named [[https://www.gnu.org/software/guile/manual/html_node/GOOPS.html#GOOPS][GOOPS]]. Users may use OOP with it. And it's possible to implement ORM in Artanis as well.
+
+But, perosnally, I'm not OOP fans. When I picked up FP, I realized I don't have to use OOP anymore.
+
+Besides, there're some criticism pointing to ORM:
++ [[http://martinfowler.com/bliki/OrmHate.html][ORM Hate]]
+
++ [[http://blogs.tedneward.com/2006/06/26/The+Vietnam+Of+Computer+Science.aspx][Vietnam of Computer Science]]
+
++ [[http://blog.codinghorror.com/object-relational-mapping-is-the-vietnam-of-computer-science/][Object-Relational Mapping is the Vietnam of Computer Science]]
+
+And here're some known ways for trying to solve the problems of ORM:
+
++ 1. */Give up ORM/*.
+
+
++ 2. */Give up relational storage model/*. Don't use relational DB, pick up others, say, No-SQL. Well, this way is not cool when you have to use relational DB.
+
+
++ 3. */Manual mapping/*. Write SQL code directly. It's fine sometimes. But the code increases when things get complicated. Refactoring and reusing would be worth to consider.
+
+
++ 4. */Limited ORM/*. Limited the utility of ORM. And use ORM to solve part of your work rather than whole, depends on you. This may avoid some problems.
+
+
++ 5. */SQL related DSL/*. Design a new language. LINQ from Microsoft is one of the cases.
+
+
++ 6. */Integration of relational concepts into frameworks/*. Well, harder than 5, but worth to try.
+
+
++ 7. */Stateless/*. This is the critical hit to complexity and unreliability.
+
+Basically, Artanis has no ORM yet, and maybe never. Artanis is trying to experiment new ways to solve the problems of ORM.
+
+Artanis provides three ways to complete this mission. All of them, are *experimental* at present.
+
++ SSQL (1,3,5)
+
++ FPRM (4,7)
+
++ SQL Mapping (1,3,6)
+** SSQL (experimental)
+The concept of SSQL is very easy. Write SQL in S-expr. 
+
+Usage:
+#+begin_src scheme
+(->sql sql-statement)
+(where #:key val ... [literal string])
+(having #:key val ... [literal string])
+(/or conds ...)
+(/and conds ...)
+#+end_src
+
+For example:
+#+begin_src scheme
+(->sql select * from 'Persons (where #:city "Shenzhen"))
+(->sql select '(age name) from 'Persons (where "age < 30"))
+#+end_src
+** FPRM (experimental)
+FPRM stands for Functional Programming Relational Mapping. It's a new word I invented. But it's not new concept. FP here indicates stateless. 
+
+To be continued ...
+** SQL Mapping (experimental)
+To be continued ...
+* MIME
+src_scheme[:exports code]{#:mime} method is used to return the proper MIME type in the HTTP response.
+#+begin_src scheme
+#:mime type ; for registering type
+(:mime rc body) ; for emit the reponse with the proper MIME 
+#+end_src
+** JSON
+Artanis intergrated the third-party module [[https://github.com/aconchillo/guile-json][guile-json]]. 
+You may use #:mime method to handle JSON:
+#+begin_src scheme
+(get "/json" #:mime 'json
+  (lambda (rc)
+    (let ((j (json (object ("name" "nala") ("age" "15")))))
+      (:mime rc j))))
+#+end_src
+
+** CSV
+Artanis intergrated the third-party module [[https://github.com/NalaGinrut/guile-csv][guile-csv]]. You may use #:mime method to handle CSV:
+#+begin_src scheme
+(get "/csv" #:mime 'csv
+  (lambda (rc)
+    (:mime rc '(("a" "1") ("b" "2")))))
+#+end_src
+
+** XML
+In Scheme, XML is handled with SXML. Another way is to use strings appending method.
+#+begin_src scheme
+(get "/xml" #:mime 'xml
+  (lambda (rc)
+    (:mime rc '(*TOP* (WEIGHT (@ (unit "pound")) (NET (@ (certified "certified")) "67") (GROSS "95"))))))
+#+end_src
+
+** SXML
+You can use SXML to replace XML for exchanging data format. This way saves some bandwidth.
+#+begin_src scheme
+(get "/sxml" #:mime 'sxml
+  (lambda (rc)
+    (:mime rc '((a 1) (b 2)))))
+#+end_src
+
+
+* Sessions
+To be continued ...
+
+* Cookies
+To be continued ...
+
+* Appendix A GNU Free Documentation License
+Version 1.3, 3 November 2008
+Copyright © 2000, 2001, 2002, 2007, 2008 Free Software Foundation, Inc.
+http://fsf.org/
+
+Everyone is permitted to copy and distribute verbatim copies
+of this license document, but changing it is not allowed.
+PREAMBLE
+The purpose of this License is to make a manual, textbook, or other functional and useful document free in the sense of freedom: to assure everyone the effective freedom to copy and redistribute it, with or without modifying it, either commercially or noncommercially. Secondarily, this License preserves for the author and publisher a way to get credit for their work, while not being considered responsible for modifications made by others.
+
+This License is a kind of “copyleft”, which means that derivative works of the document must themselves be free in the same sense. It complements the GNU General Public License, which is a copyleft license designed for free software.
+
+We have designed this License in order to use it for manuals for free software, because free software needs free documentation: a free program should come with manuals providing the same freedoms that the software does. But this License is not limited to software manuals; it can be used for any textual work, regardless of subject matter or whether it is published as a printed book. We recommend this License principally for works whose purpose is instruction or reference.
+
+APPLICABILITY AND DEFINITIONS
+This License applies to any manual or other work, in any medium, that contains a notice placed by the copyright holder saying it can be distributed under the terms of this License. Such a notice grants a world-wide, royalty-free license, unlimited in duration, to use that work under the conditions stated herein. The “Document”, below, refers to any such manual or work. Any member of the public is a licensee, and is addressed as “you”. You accept the license if you copy, modify or distribute the work in a way requiring permission under copyright law.
+
+A “Modified Version” of the Document means any work containing the Document or a portion of it, either copied verbatim, or with modifications and/or translated into another language.
+
+A “Secondary Section” is a named appendix or a front-matter section of the Document that deals exclusively with the relationship of the publishers or authors of the Document to the Document’s overall subject (or to related matters) and contains nothing that could fall directly within that overall subject. (Thus, if the Document is in part a textbook of mathematics, a Secondary Section may not explain any mathematics.) The relationship could be a matter of historical connection with the subject or with related matters, or of legal, commercial, philosophical, ethical or political position regarding them.
+
+The “Invariant Sections” are certain Secondary Sections whose titles are designated, as being those of Invariant Sections, in the notice that says that the Document is released under this License. If a section does not fit the above definition of Secondary then it is not allowed to be designated as Invariant. The Document may contain zero Invariant Sections. If the Document does not identify any Invariant Sections then there are none.
+
+The “Cover Texts” are certain short passages of text that are listed, as Front-Cover Texts or Back-Cover Texts, in the notice that says that the Document is released under this License. A Front-Cover Text may be at most 5 words, and a Back-Cover Text may be at most 25 words.
+
+A “Transparent” copy of the Document means a machine-readable copy, represented in a format whose specification is available to the general public, that is suitable for revising the document straightforwardly with generic text editors or (for images composed of pixels) generic paint programs or (for drawings) some widely available drawing editor, and that is suitable for input to text formatters or for automatic translation to a variety of formats suitable for input to text formatters. A copy made in an otherwise Transparent file format whose markup, or absence of markup, has been arranged to thwart or discourage subsequent modification by readers is not Transparent. An image format is not Transparent if used for any substantial amount of text. A copy that is not “Transparent” is called “Opaque”.
+
+Examples of suitable formats for Transparent copies include plain ASCII without markup, Texinfo input format, LaTeX input format, SGML or XML using a publicly available DTD, and standard-conforming simple HTML, PostScript or PDF designed for human modification. Examples of transparent image formats include PNG, XCF and JPG. Opaque formats include proprietary formats that can be read and edited only by proprietary word processors, SGML or XML for which the DTD and/or processing tools are not generally available, and the machine-generated HTML, PostScript or PDF produced by some word processors for output purposes only.
+
+The “Title Page” means, for a printed book, the title page itself, plus such following pages as are needed to hold, legibly, the material this License requires to appear in the title page. For works in formats which do not have any title page as such, “Title Page” means the text near the most prominent appearance of the work’s title, preceding the beginning of the body of the text.
+
+The “publisher” means any person or entity that distributes copies of the Document to the public.
+
+A section “Entitled XYZ” means a named subunit of the Document whose title either is precisely XYZ or contains XYZ in parentheses following text that translates XYZ in another language. (Here XYZ stands for a specific section name mentioned below, such as “Acknowledgements”, “Dedications”, “Endorsements”, or “History”.) To “Preserve the Title” of such a section when you modify the Document means that it remains a section “Entitled XYZ” according to this definition.
+
+The Document may include Warranty Disclaimers next to the notice which states that this License applies to the Document. These Warranty Disclaimers are considered to be included by reference in this License, but only as regards disclaiming warranties: any other implication that these Warranty Disclaimers may have is void and has no effect on the meaning of this License.
+
+VERBATIM COPYING
+You may copy and distribute the Document in any medium, either commercially or noncommercially, provided that this License, the copyright notices, and the license notice saying this License applies to the Document are reproduced in all copies, and that you add no other conditions whatsoever to those of this License. You may not use technical measures to obstruct or control the reading or further copying of the copies you make or distribute. However, you may accept compensation in exchange for copies. If you distribute a large enough number of copies you must also follow the conditions in section 3.
+
+You may also lend copies, under the same conditions stated above, and you may publicly display copies.
+
+COPYING IN QUANTITY
+If you publish printed copies (or copies in media that commonly have printed covers) of the Document, numbering more than 100, and the Document’s license notice requires Cover Texts, you must enclose the copies in covers that carry, clearly and legibly, all these Cover Texts: Front-Cover Texts on the front cover, and Back-Cover Texts on the back cover. Both covers must also clearly and legibly identify you as the publisher of these copies. The front cover must present the full title with all words of the title equally prominent and visible. You may add other material on the covers in addition. Copying with changes limited to the covers, as long as they preserve the title of the Document and satisfy these conditions, can be treated as verbatim copying in other respects.
+
+If the required texts for either cover are too voluminous to fit legibly, you should put the first ones listed (as many as fit reasonably) on the actual cover, and continue the rest onto adjacent pages.
+
+If you publish or distribute Opaque copies of the Document numbering more than 100, you must either include a machine-readable Transparent copy along with each Opaque copy, or state in or with each Opaque copy a computer-network location from which the general network-using public has access to download using public-standard network protocols a complete Transparent copy of the Document, free of added material. If you use the latter option, you must take reasonably prudent steps, when you begin distribution of Opaque copies in quantity, to ensure that this Transparent copy will remain thus accessible at the stated location until at least one year after the last time you distribute an Opaque copy (directly or through your agents or retailers) of that edition to the public.
+
+It is requested, but not required, that you contact the authors of the Document well before redistributing any large number of copies, to give them a chance to provide you with an updated version of the Document.
+
+MODIFICATIONS
+You may copy and distribute a Modified Version of the Document under the conditions of sections 2 and 3 above, provided that you release the Modified Version under precisely this License, with the Modified Version filling the role of the Document, thus licensing distribution and modification of the Modified Version to whoever possesses a copy of it. In addition, you must do these things in the Modified Version:
+
+Use in the Title Page (and on the covers, if any) a title distinct from that of the Document, and from those of previous versions (which should, if there were any, be listed in the History section of the Document). You may use the same title as a previous version if the original publisher of that version gives permission.
+List on the Title Page, as authors, one or more persons or entities responsible for authorship of the modifications in the Modified Version, together with at least five of the principal authors of the Document (all of its principal authors, if it has fewer than five), unless they release you from this requirement.
+State on the Title page the name of the publisher of the Modified Version, as the publisher.
+Preserve all the copyright notices of the Document.
+Add an appropriate copyright notice for your modifications adjacent to the other copyright notices.
+Include, immediately after the copyright notices, a license notice giving the public permission to use the Modified Version under the terms of this License, in the form shown in the Addendum below.
+Preserve in that license notice the full lists of Invariant Sections and required Cover Texts given in the Document’s license notice.
+Include an unaltered copy of this License.
+Preserve the section Entitled “History”, Preserve its Title, and add to it an item stating at least the title, year, new authors, and publisher of the Modified Version as given on the Title Page. If there is no section Entitled “History” in the Document, create one stating the title, year, authors, and publisher of the Document as given on its Title Page, then add an item describing the Modified Version as stated in the previous sentence.
+Preserve the network location, if any, given in the Document for public access to a Transparent copy of the Document, and likewise the network locations given in the Document for previous versions it was based on. These may be placed in the “History” section. You may omit a network location for a work that was published at least four years before the Document itself, or if the original publisher of the version it refers to gives permission.
+For any section Entitled “Acknowledgements” or “Dedications”, Preserve the Title of the section, and preserve in the section all the substance and tone of each of the contributor acknowledgements and/or dedications given therein.
+Preserve all the Invariant Sections of the Document, unaltered in their text and in their titles. Section numbers or the equivalent are not considered part of the section titles.
+Delete any section Entitled “Endorsements”. Such a section may not be included in the Modified Version.
+Do not retitle any existing section to be Entitled “Endorsements” or to conflict in title with any Invariant Section.
+Preserve any Warranty Disclaimers.
+If the Modified Version includes new front-matter sections or appendices that qualify as Secondary Sections and contain no material copied from the Document, you may at your option designate some or all of these sections as invariant. To do this, add their titles to the list of Invariant Sections in the Modified Version’s license notice. These titles must be distinct from any other section titles.
+
+You may add a section Entitled “Endorsements”, provided it contains nothing but endorsements of your Modified Version by various parties—for example, statements of peer review or that the text has been approved by an organization as the authoritative definition of a standard.
+
+You may add a passage of up to five words as a Front-Cover Text, and a passage of up to 25 words as a Back-Cover Text, to the end of the list of Cover Texts in the Modified Version. Only one passage of Front-Cover Text and one of Back-Cover Text may be added by (or through arrangements made by) any one entity. If the Document already includes a cover text for the same cover, previously added by you or by arrangement made by the same entity you are acting on behalf of, you may not add another; but you may replace the old one, on explicit permission from the previous publisher that added the old one.
+
+The author(s) and publisher(s) of the Document do not by this License give permission to use their names for publicity for or to assert or imply endorsement of any Modified Version.
+
+COMBINING DOCUMENTS
+You may combine the Document with other documents released under this License, under the terms defined in section 4 above for modified versions, provided that you include in the combination all of the Invariant Sections of all of the original documents, unmodified, and list them all as Invariant Sections of your combined work in its license notice, and that you preserve all their Warranty Disclaimers.
+
+The combined work need only contain one copy of this License, and multiple identical Invariant Sections may be replaced with a single copy. If there are multiple Invariant Sections with the same name but different contents, make the title of each such section unique by adding at the end of it, in parentheses, the name of the original author or publisher of that section if known, or else a unique number. Make the same adjustment to the section titles in the list of Invariant Sections in the license notice of the combined work.
+
+In the combination, you must combine any sections Entitled “History” in the various original documents, forming one section Entitled “History”; likewise combine any sections Entitled “Acknowledgements”, and any sections Entitled “Dedications”. You must delete all sections Entitled “Endorsements.”
+
+COLLECTIONS OF DOCUMENTS
+You may make a collection consisting of the Document and other documents released under this License, and replace the individual copies of this License in the various documents with a single copy that is included in the collection, provided that you follow the rules of this License for verbatim copying of each of the documents in all other respects.
+
+You may extract a single document from such a collection, and distribute it individually under this License, provided you insert a copy of this License into the extracted document, and follow this License in all other respects regarding verbatim copying of that document.
+
+AGGREGATION WITH INDEPENDENT WORKS
+A compilation of the Document or its derivatives with other separate and independent documents or works, in or on a volume of a storage or distribution medium, is called an “aggregate” if the copyright resulting from the compilation is not used to limit the legal rights of the compilation’s users beyond what the individual works permit. When the Document is included in an aggregate, this License does not apply to the other works in the aggregate which are not themselves derivative works of the Document.
+
+If the Cover Text requirement of section 3 is applicable to these copies of the Document, then if the Document is less than one half of the entire aggregate, the Document’s Cover Texts may be placed on covers that bracket the Document within the aggregate, or the electronic equivalent of covers if the Document is in electronic form. Otherwise they must appear on printed covers that bracket the whole aggregate.
+
+TRANSLATION
+Translation is considered a kind of modification, so you may distribute translations of the Document under the terms of section 4. Replacing Invariant Sections with translations requires special permission from their copyright holders, but you may include translations of some or all Invariant Sections in addition to the original versions of these Invariant Sections. You may include a translation of this License, and all the license notices in the Document, and any Warranty Disclaimers, provided that you also include the original English version of this License and the original versions of those notices and disclaimers. In case of a disagreement between the translation and the original version of this License or a notice or disclaimer, the original version will prevail.
+
+If a section in the Document is Entitled “Acknowledgements”, “Dedications”, or “History”, the requirement (section 4) to Preserve its Title (section 1) will typically require changing the actual title.
+
+TERMINATION
+You may not copy, modify, sublicense, or distribute the Document except as expressly provided under this License. Any attempt otherwise to copy, modify, sublicense, or distribute it is void, and will automatically terminate your rights under this License.
+
+However, if you cease all violation of this License, then your license from a particular copyright holder is reinstated (a) provisionally, unless and until the copyright holder explicitly and finally terminates your license, and (b) permanently, if the copyright holder fails to notify you of the violation by some reasonable means prior to 60 days after the cessation.
+
+Moreover, your license from a particular copyright holder is reinstated permanently if the copyright holder notifies you of the violation by some reasonable means, this is the first time you have received notice of violation of this License (for any work) from that copyright holder, and you cure the violation prior to 30 days after your receipt of the notice.
+
+Termination of your rights under this section does not terminate the licenses of parties who have received copies or rights from you under this License. If your rights have been terminated and not permanently reinstated, receipt of a copy of some or all of the same material does not give you any rights to use it.
+
+FUTURE REVISIONS OF THIS LICENSE
+The Free Software Foundation may publish new, revised versions of the GNU Free Documentation License from time to time. Such new versions will be similar in spirit to the present version, but may differ in detail to address new problems or concerns. See http://www.gnu.org/copyleft/.
+
+Each version of the License is given a distinguishing version number. If the Document specifies that a particular numbered version of this License “or any later version” applies to it, you have the option of following the terms and conditions either of that specified version or of any later version that has been published (not as a draft) by the Free Software Foundation. If the Document does not specify a version number of this License, you may choose any version ever published (not as a draft) by the Free Software Foundation. If the Document specifies that a proxy can decide which future versions of this License can be used, that proxy’s public statement of acceptance of a version permanently authorizes you to choose that version for the Document.
+
+RELICENSING
+“Massive Multiauthor Collaboration Site” (or “MMC Site”) means any World Wide Web server that publishes copyrightable works and also provides prominent facilities for anybody to edit those works. A public wiki that anybody can edit is an example of such a server. A “Massive Multiauthor Collaboration” (or “MMC”) contained in the site means any set of copyrightable works thus published on the MMC site.
+
+“CC-BY-SA” means the Creative Commons Attribution-Share Alike 3.0 license published by Creative Commons Corporation, a not-for-profit corporation with a principal place of business in San Francisco, California, as well as future copyleft versions of that license published by that same organization.
+
+“Incorporate” means to publish or republish a Document, in whole or in part, as part of another Document.
+
+An MMC is “eligible for relicensing” if it is licensed under this License, and if all works that were first published under this License somewhere other than this MMC, and subsequently incorporated in whole or in part into the MMC, (1) had no cover texts or invariant sections, and (2) were thus incorporated prior to November 1, 2008.
+
+The operator of an MMC Site may republish an MMC contained in the site under CC-BY-SA on the same site at any time before August 1, 2009, provided the MMC is eligible for relicensing.
+
+ADDENDUM: How to use this License for your documents
+
+To use this License in a document you have written, include a copy of the License in the document and put the following copyright and license notices just after the title page:
+
+  Copyright (C)  year  your name.
+  Permission is granted to copy, distribute and/or modify this document
+  under the terms of the GNU Free Documentation License, Version 1.3
+  or any later version published by the Free Software Foundation;
+  with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
+  Texts.  A copy of the license is included in the section entitled ``GNU
+  Free Documentation License''.
+If you have Invariant Sections, Front-Cover Texts and Back-Cover Texts, replace the “with…Texts.” line with this:
+
+    with the Invariant Sections being list their titles, with
+    the Front-Cover Texts being list, and with the Back-Cover Texts
+    being list.
+If you have Invariant Sections without Cover Texts, or some other combination of the three, merge those two alternatives to suit the situation.
+
+If your document contains nontrivial examples of program code, we recommend releasing these examples in parallel under your choice of free software license, such as the GNU General Public License, to permit their use in free software.
