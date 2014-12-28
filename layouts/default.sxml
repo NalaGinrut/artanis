@@ -19,7 +19,7 @@
       (ul (@ (id "links"))
        (li (a (@ (href "index.html") (class "active")) "Home"))
        (li (a (@ (href "about.html")) "About"))
-       (li (a (@ (href "docs/index.html")) "Documents"))
+       (li (a (@ (href "docs/manual-0.0.1.html")) "Documents"))
        (li (a (@ (href "contribute.html")) "Contribute"))
        (li (@ (class "last")) (a (@ (href "donate.html")) "Donate")))
 
