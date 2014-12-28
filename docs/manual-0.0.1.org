@@ -2,7 +2,7 @@
 #+AUTHOR: Mu Lei known as NalaGinrut
 #+EMAIL: nalaginrut@gmail.com
 #+LANGUAGE: en
-#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="css/manual.css" />
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="../css/manual.css" />
 #+OPTIONS: H:3 toc:t \n:nil ::t |:t ^:nil -:t f:t *:t tex:t d:(HIDE) tags:not-in-toc
 #+STARTUP: hidestar latexpreview
 
