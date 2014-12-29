@@ -26,6 +26,9 @@
 
     (h3 (@ (id "the-author")) "Authored by " 
        (a (@ (id "the-author") (href "http://nalaginrut.com")) "NalaGinrut"))
+    (a (@ (href "http://szdiy.org"))
+       (img (@ (src "http://wiki.szdiy.org/skins/common/images/szdiy.png")
+               (height "110") (width "110"))))
     (br)
     ;; hitwebcounter Code START
     (a (@ (id "counter") (href "http://www.hitwebcounter.com/") (target "_blank"))
