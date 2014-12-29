@@ -145,6 +145,17 @@ The expected output should be similar to this:
 $1 = "Artanis-0.0.1"
 #+end_src
 
+** Simple HTTP server
+Run this code in your console:
+#+begin_src nil
+guile -c "(use-modules (artanis artanis))(init-server)(run)"
+## You'll see this screen:
+Anytime you want to Quit just try Ctrl+C, thanks!
+http://0.0.0.0:3000
+#+end_src
+
+Assuming there's a file named "index.html" in the current path. Now you may try http://localhost:3000/index.html in your browser.
+It's simple to fetch static file with the path in URL: http://localhost:3000/path/filename
 ** Try simple URL remapping
 
 Type these code in Guile REPL:
@@ -257,10 +268,6 @@ Here're some explains:
 
 /Exercise: Return a beautiful table in HTML rather than using object->string./
 
-
-** Templating
-
-Templating provides a way to mix programming code directly into HTML.
 
 * Basic in Scheme
 
@@ -690,6 +697,72 @@ map-table-from-DB returns a function, we named it *my-table* here for explaining
   + '*ignore* means ignore the table when there's an existed one.
 
 
++ src_scheme[:exports code]{#:primary-keys} specifies the primary keys in the created table.
+
+
++ src_scheme[:exports code]{#:engine} specifies the engine, depends on the dbd you chosen.
+
+*** Get columns from table
+#+begin_src scheme
+(my-table 'get table-name #:columns '(*) #:functions '() #:ret 'all #:group-by #f #:order-by #f)
+#+end_src
+
++ src_scheme[:exports code]{#:column} is the columns list you wanted.
+
+
++ src_scheme[:exports code]{#:functions} is built-in functions calling, e.g:
+#+begin_src scheme
+#:functions '((count Persons.Lastname))
+#+end_src
+
+
++ src_scheme[:exports code]{#:ret} specifies how to return the result, there're three options:
+  + 'all for returning all results
+  + 'top for returning the first result
+  + integer (larger than 0), you specify the number.
+
+
++ src_scheme[:exports code]{#:group-by} used in conjunction with the aggregate functions to group the result-set by one or more columns.
+
+
++ src_scheme[:exports code]{#:order-by} used to sort the result-set by one or more columns.
+
+*** Set values to table
+#+begin_src scheme
+(my-table 'set table-name . kargs)
+#+end_src
+
+*kargs* is a var-list to accept the key-value arguments.
+
+For example:
+#+begin_src scheme
+(mtable 'set 'Persons #:name "nala" #:age 99 #:email "nala@artanis.com")
+#+end_src
+
+*** Drop a table
+#+begin_src scheme
+(mtable 'drop table-name)
+#+end_src
+
+*** Check existance of table
+#+begin_src scheme
+;; case sensitive
+(mtable 'exists? table-name . columns)
+;; or for case-insensitive
+(mtable 'ci-exists? table-name . columns)
+#+end_src
+
+For example:
+#+begin_src scheme
+(mtable 'exists? 'Persons 'city 'lastname)
+#+end_src
+
+*** Get schema of a table
+#+begin_src scheme
+(mtable 'schema table-name)
+#+end_src
+
+/NOTE: all the returned name of schema will be downcased./
 ** SQL Mapping (experimental)
 To be continued ...
 * MIME
@@ -732,13 +805,38 @@ You can use SXML to replace XML for exchanging data format. This way saves some 
     (:mime rc '((a 1) (b 2)))))
 #+end_src
 
-
 * Sessions
-To be continued ...
+You have to use src_scheme[:exports code]{#:session #t} while you defining URL rule handler.
+#+begin_src scheme
+(post "/auth" #:session mode
+  (lambda (rc) ...))    
+#+end_src
+
+*mode* could be:
++ #t or 'spawn, to spawn a new session, the name of sid is "sid" in default.
++ `(spawn ,sid) specify a name of sid to spawn.
++ `(spawn ,sid ,proc) specify a name of sid and a proc to *define your own session spawner*.
+
+And the APIs of session is :session
+#+begin_src scheme
+(:session rc cmd)
+#+end_src
+
+*cmd* could be:
++  'check to check session with name "sid".
++  `(check ,sid) to check session with a specified sid name.
++  'check-and-spawn check "sid" first, if no, then spawn it.
++  `(check-and-spawn ,sid) the same with above, but specifed name of sid.
++  `(check-and-spawn-and-keep ,sid) check then spawn then keep it, with the name of sid.
++  'spawn spawn a session with the name "sid".
++  'spawn-and-keep spawn a session then keep with the name "sid".
 
 * Cookies
 To be continued ...
-
+* Authentication
+To be continued ...
+* Cache
+To be continued ...
 * Appendix A GNU Free Documentation License
 Version 1.3, 3 November 2008
 Copyright © 2000, 2001, 2002, 2007, 2008 Free Software Foundation, Inc.

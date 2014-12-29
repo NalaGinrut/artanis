@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Artanis web-framework Manual</title>
-<!-- 2014-12-29 Mon 19:33 -->
+<!-- 2014-12-30 Tue 02:05 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Mu Lei known as NalaGinrut" />
@@ -158,14 +158,14 @@ for the JavaScript code in this tag.
 <li><a href="#sec-4">4. Hello World</a>
 <ul>
 <li><a href="#sec-4-1">4.1. Use Guile REPL and verify Artanis installation</a></li>
-<li><a href="#sec-4-2">4.2. Try simple URL remapping</a></li>
-<li><a href="#sec-4-3">4.3. More complex URL remapping</a>
+<li><a href="#sec-4-2">4.2. Simple HTTP server</a></li>
+<li><a href="#sec-4-3">4.3. Try simple URL remapping</a></li>
+<li><a href="#sec-4-4">4.4. More complex URL remapping</a>
 <ul>
-<li><a href="#sec-4-3-1">4.3.1. Regex in URL remapping</a></li>
+<li><a href="#sec-4-4-1">4.4.1. Regex in URL remapping</a></li>
 </ul>
 </li>
-<li><a href="#sec-4-4">4.4. Database operating</a></li>
-<li><a href="#sec-4-5">4.5. Templating</a></li>
+<li><a href="#sec-4-5">4.5. Database operating</a></li>
 </ul>
 </li>
 <li><a href="#sec-5">5. Basic in Scheme</a>
@@ -220,6 +220,11 @@ for the JavaScript code in this tag.
 <li><a href="#sec-9-3-1">9.3.1. Connect to DB server</a></li>
 <li><a href="#sec-9-3-2">9.3.2. Map DB table</a></li>
 <li><a href="#sec-9-3-3">9.3.3. Create table</a></li>
+<li><a href="#sec-9-3-4">9.3.4. Get columns from table</a></li>
+<li><a href="#sec-9-3-5">9.3.5. Set values to table</a></li>
+<li><a href="#sec-9-3-6">9.3.6. Drop a table</a></li>
+<li><a href="#sec-9-3-7">9.3.7. Check existance of table</a></li>
+<li><a href="#sec-9-3-8">9.3.8. Get schema of a table</a></li>
 </ul>
 </li>
 <li><a href="#sec-9-4">9.4. SQL Mapping (experimental)</a></li>
@@ -235,7 +240,9 @@ for the JavaScript code in this tag.
 </li>
 <li><a href="#sec-11">11. Sessions</a></li>
 <li><a href="#sec-12">12. Cookies</a></li>
-<li><a href="#sec-13">13. Appendix A GNU Free Documentation License</a></li>
+<li><a href="#sec-13">13. Authentication</a></li>
+<li><a href="#sec-14">14. Cache</a></li>
+<li><a href="#sec-15">15. Appendix A GNU Free Documentation License</a></li>
 </ul>
 </div>
 </div>
@@ -489,8 +496,29 @@ The expected output should be similar to this:
 </div>
 
 <div id="outline-container-sec-4-2" class="outline-3">
-<h3 id="sec-4-2"><span class="section-number-3">4.2</span> Try simple URL remapping</h3>
+<h3 id="sec-4-2"><span class="section-number-3">4.2</span> Simple HTTP server</h3>
 <div class="outline-text-3" id="text-4-2">
+<p>
+Run this code in your console:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-nil">guile -c "(use-modules (artanis artanis))(init-server)(run)"
+## You'll see this screen:
+Anytime you want to Quit just try Ctrl+C, thanks!
+http://0.0.0.0:3000
+</pre>
+</div>
+
+<p>
+Assuming there's a file named "index.html" in the current path. Now you may try <a href="http://localhost:3000/index.html">http://localhost:3000/index.html</a> in your browser.
+It's simple to fetch static file with the path in URL: <a href="http://localhost:3000/path/filename">http://localhost:3000/path/filename</a>
+</p>
+</div>
+</div>
+<div id="outline-container-sec-4-3" class="outline-3">
+<h3 id="sec-4-3"><span class="section-number-3">4.3</span> Try simple URL remapping</h3>
+<div class="outline-text-3" id="text-4-3">
 <p>
 Type these code in Guile REPL:
 </p>
@@ -537,9 +565,9 @@ You may type Ctrl+C to quit the server according to the hint from your screen.
 </div>
 </div>
 
-<div id="outline-container-sec-4-3" class="outline-3">
-<h3 id="sec-4-3"><span class="section-number-3">4.3</span> More complex URL remapping</h3>
-<div class="outline-text-3" id="text-4-3">
+<div id="outline-container-sec-4-4" class="outline-3">
+<h3 id="sec-4-4"><span class="section-number-3">4.4</span> More complex URL remapping</h3>
+<div class="outline-text-3" id="text-4-4">
 <p>
 Try this code:
 </p>
@@ -574,9 +602,9 @@ The second argument #f (means FALSE) indicating that returning the result as str
 </p>
 </div>
 
-<div id="outline-container-sec-4-3-1" class="outline-4">
-<h4 id="sec-4-3-1"><span class="section-number-4">4.3.1</span> Regex in URL remapping</h4>
-<div class="outline-text-4" id="text-4-3-1">
+<div id="outline-container-sec-4-4-1" class="outline-4">
+<h4 id="sec-4-4-1"><span class="section-number-4">4.4.1</span> Regex in URL remapping</h4>
+<div class="outline-text-4" id="text-4-4-1">
 <p>
 You can use regex in the URL rule.
 </p>
@@ -593,9 +621,9 @@ You can use regex in the URL rule.
 </div>
 </div>
 
-<div id="outline-container-sec-4-4" class="outline-3">
-<h3 id="sec-4-4"><span class="section-number-3">4.4</span> Database operating</h3>
-<div class="outline-text-3" id="text-4-4">
+<div id="outline-container-sec-4-5" class="outline-3">
+<h3 id="sec-4-5"><span class="section-number-3">4.5</span> Database operating</h3>
+<div class="outline-text-3" id="text-4-5">
 <p>
 Artanis supports mysql/postgresql/sqlite3, we use mysql as a example here.
 </p>
@@ -696,17 +724,8 @@ Here're some explains:
 </p>
 </div>
 </div>
+</div>
 
-
-<div id="outline-container-sec-4-5" class="outline-3">
-<h3 id="sec-4-5"><span class="section-number-3">4.5</span> Templating</h3>
-<div class="outline-text-3" id="text-4-5">
-<p>
-Templating provides a way to mix programming code directly into HTML.
-</p>
-</div>
-</div>
-</div>
 
 <div id="outline-container-sec-5" class="outline-2">
 <h2 id="sec-5"><span class="section-number-2">5</span> Basic in Scheme</h2>
@@ -1582,11 +1601,154 @@ map-table-from-DB returns a function, we named it <b>my-table</b> here for expla
 </ul>
 </li>
 </ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:primary-keys</span>
+</code> specifies the primary keys in the created table.
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:engine</span>
+</code> specifies the engine, depends on the dbd you chosen.
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-9-3-4" class="outline-4">
+<h4 id="sec-9-3-4"><span class="section-number-4">9.3.4</span> Get columns from table</h4>
+<div class="outline-text-4" id="text-9-3-4">
+<div class="org-src-container">
+
+<pre class="src src-scheme">(my-table 'get table-name <span style="color: #40e0d0;">#:columns</span> '(*) <span style="color: #40e0d0;">#:functions</span> '() <span style="color: #40e0d0;">#:ret</span> 'all <span style="color: #40e0d0;">#:group-by</span> #f <span style="color: #40e0d0;">#:order-by</span> #f)
+</pre>
+</div>
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:column</span>
+</code> is the columns list you wanted.
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:functions</span>
+</code> is built-in functions calling, e.g:
+</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-scheme"><span style="color: #40e0d0;">#:functions</span> '((count Persons.Lastname))
+</pre>
+</div>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:ret</span>
+</code> specifies how to return the result, there're three options:
+<ul class="org-ul">
+<li>'all for returning all results
+</li>
+<li>'top for returning the first result
+</li>
+<li>integer (larger than 0), you specify the number.
+</li>
+</ul>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:group-by</span>
+</code> used in conjunction with the aggregate functions to group the result-set by one or more columns.
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:order-by</span>
+</code> used to sort the result-set by one or more columns.
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-9-3-5" class="outline-4">
+<h4 id="sec-9-3-5"><span class="section-number-4">9.3.5</span> Set values to table</h4>
+<div class="outline-text-4" id="text-9-3-5">
+<div class="org-src-container">
+
+<pre class="src src-scheme">(my-table 'set table-name . kargs)
+</pre>
+</div>
+
+<p>
+<b>kargs</b> is a var-list to accept the key-value arguments.
+</p>
+
+<p>
+For example:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(mtable 'set 'Persons <span style="color: #40e0d0;">#:name</span> <span style="color: #ff0000;">"nala"</span> <span style="color: #40e0d0;">#:age</span> 99 <span style="color: #40e0d0;">#:email</span> <span style="color: #ff0000;">"nala@artanis.com"</span>)
+</pre>
 </div>
 </div>
 </div>
 
+<div id="outline-container-sec-9-3-6" class="outline-4">
+<h4 id="sec-9-3-6"><span class="section-number-4">9.3.6</span> Drop a table</h4>
+<div class="outline-text-4" id="text-9-3-6">
+<div class="org-src-container">
 
+<pre class="src src-scheme">(mtable 'drop table-name)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-9-3-7" class="outline-4">
+<h4 id="sec-9-3-7"><span class="section-number-4">9.3.7</span> Check existance of table</h4>
+<div class="outline-text-4" id="text-9-3-7">
+<div class="org-src-container">
+
+<pre class="src src-scheme"><span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">case sensitive</span>
+(mtable 'exists? table-name . columns)
+<span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">or for case-insensitive</span>
+(mtable 'ci-exists? table-name . columns)
+</pre>
+</div>
+
+<p>
+For example:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(mtable 'exists? 'Persons 'city 'lastname)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-9-3-8" class="outline-4">
+<h4 id="sec-9-3-8"><span class="section-number-4">9.3.8</span> Get schema of a table</h4>
+<div class="outline-text-4" id="text-9-3-8">
+<div class="org-src-container">
+
+<pre class="src src-scheme">(mtable 'schema table-name)
+</pre>
+</div>
+
+<p>
+<i>NOTE: all the returned name of schema will be downcased.</i>
+</p>
+</div>
+</div>
+</div>
 <div id="outline-container-sec-9-4" class="outline-3">
 <h3 id="sec-9-4"><span class="section-number-3">9.4</span> SQL Mapping (experimental)</h3>
 <div class="outline-text-3" id="text-9-4">
@@ -1677,13 +1839,60 @@ You can use SXML to replace XML for exchanging data format. This way saves some 
 </div>
 </div>
 
-
 <div id="outline-container-sec-11" class="outline-2">
 <h2 id="sec-11"><span class="section-number-2">11</span> Sessions</h2>
 <div class="outline-text-2" id="text-11">
 <p>
-To be continued &#x2026;
+You have to use <code class="src src-scheme"><span style="color: #40e0d0;">#:session</span> #t
+</code> while you defining URL rule handler.
 </p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(post <span style="color: #ff0000;">"/auth"</span> <span style="color: #40e0d0;">#:session</span> mode
+  (<span style="color: #4169e1;">lambda</span> (rc) ...))
+</pre>
+</div>
+
+<p>
+<b>mode</b> could be:
+</p>
+<ul class="org-ul">
+<li>#t or 'spawn, to spawn a new session, the name of sid is "sid" in default.
+</li>
+<li>`(spawn ,sid) specify a name of sid to spawn.
+</li>
+<li>`(spawn ,sid ,proc) specify a name of sid and a proc to <b>define your own session spawner</b>.
+</li>
+</ul>
+
+<p>
+And the APIs of session is :session
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(<span style="color: #40e0d0;">:session</span> rc cmd)
+</pre>
+</div>
+
+<p>
+<b>cmd</b> could be:
+</p>
+<ul class="org-ul">
+<li>'check to check session with name "sid".
+</li>
+<li>`(check ,sid) to check session with a specified sid name.
+</li>
+<li>'check-and-spawn check "sid" first, if no, then spawn it.
+</li>
+<li>`(check-and-spawn ,sid) the same with above, but specifed name of sid.
+</li>
+<li>`(check-and-spawn-and-keep ,sid) check then spawn then keep it, with the name of sid.
+</li>
+<li>'spawn spawn a session with the name "sid".
+</li>
+<li>'spawn-and-keep spawn a session then keep with the name "sid".
+</li>
+</ul>
 </div>
 </div>
 
@@ -1695,10 +1904,25 @@ To be continued &#x2026;
 </p>
 </div>
 </div>
-
 <div id="outline-container-sec-13" class="outline-2">
-<h2 id="sec-13"><span class="section-number-2">13</span> Appendix A GNU Free Documentation License</h2>
+<h2 id="sec-13"><span class="section-number-2">13</span> Authentication</h2>
 <div class="outline-text-2" id="text-13">
+<p>
+To be continued &#x2026;
+</p>
+</div>
+</div>
+<div id="outline-container-sec-14" class="outline-2">
+<h2 id="sec-14"><span class="section-number-2">14</span> Cache</h2>
+<div class="outline-text-2" id="text-14">
+<p>
+To be continued &#x2026;
+</p>
+</div>
+</div>
+<div id="outline-container-sec-15" class="outline-2">
+<h2 id="sec-15"><span class="section-number-2">15</span> Appendix A GNU Free Documentation License</h2>
+<div class="outline-text-2" id="text-15">
 <p>
 Version 1.3, 3 November 2008
 Copyright © 2000, 2001, 2002, 2007, 2008 Free Software Foundation, Inc.
@@ -1948,7 +2172,7 @@ If your document contains nontrivial examples of program code, we recommend rele
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Mu Lei known as NalaGinrut</p>
-<p class="date">Created: 2014-12-29 Mon 19:33</p>
+<p class="date">Created: 2014-12-30 Tue 02:05</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.2.1 (<a href="http://orgmode.org">Org</a> mode 8.3beta)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
