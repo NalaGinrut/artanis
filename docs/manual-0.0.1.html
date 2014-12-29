@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Artanis web-framework Manual</title>
-<!-- 2014-12-28 Sun 23:40 -->
+<!-- 2014-12-29 Mon 19:33 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Mu Lei known as NalaGinrut" />
@@ -215,7 +215,13 @@ for the JavaScript code in this tag.
 <ul>
 <li><a href="#sec-9-1">9.1. ORM problem</a></li>
 <li><a href="#sec-9-2">9.2. SSQL (experimental)</a></li>
-<li><a href="#sec-9-3">9.3. FPRM (experimental)</a></li>
+<li><a href="#sec-9-3">9.3. FPRM (experimental)</a>
+<ul>
+<li><a href="#sec-9-3-1">9.3.1. Connect to DB server</a></li>
+<li><a href="#sec-9-3-2">9.3.2. Map DB table</a></li>
+<li><a href="#sec-9-3-3">9.3.3. Create table</a></li>
+</ul>
+</li>
 <li><a href="#sec-9-4">9.4. SQL Mapping (experimental)</a></li>
 </ul>
 </li>
@@ -1447,14 +1453,140 @@ For example:
 <h3 id="sec-9-3"><span class="section-number-3">9.3</span> FPRM (experimental)</h3>
 <div class="outline-text-3" id="text-9-3">
 <p>
-FPRM stands for Functional Programming Relational Mapping. It's a new word I invented. But it's not new concept. FP here indicates stateless. 
+FPRM stands for Functional Programming Relational Mapping. It's a new word I invented. But it's not new concept. FP here indicates <b>stateless</b>. 
 </p>
 
 <p>
-To be continued &#x2026;
+<i>FPRM is still experimental and work-in-progress.</i>
+</p>
+</div>
+
+<div id="outline-container-sec-9-3-1" class="outline-4">
+<h4 id="sec-9-3-1"><span class="section-number-4">9.3.1</span> Connect to DB server</h4>
+<div class="outline-text-4" id="text-9-3-1">
+<div class="org-src-container">
+
+<pre class="src src-scheme"><span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">usage 1:</span>
+(connect-db dbd init-str)
+
+<span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">usage 2:</span>
+(connect-db dbd <span style="color: #40e0d0;">#:db-name</span> <span style="color: #ff0000;">"artanis"</span> <span style="color: #40e0d0;">#:db-username</span> <span style="color: #ff0000;">"root"</span> <span style="color: #40e0d0;">#:db-passwd</span> <span style="color: #ff0000;">""</span> <span style="color: #40e0d0;">#:proto</span> <span style="color: #ff0000;">"tcp"</span> <span style="color: #40e0d0;">#:host</span> <span style="color: #ff0000;">"localhost"</span> <span style="color: #40e0d0;">#:port</span> 3306)
+</pre>
+</div>
+
+<ul class="org-ul">
+<li><b>dbd</b> is a string, could be "mysql", "postgresql", and "sqlite3".
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><b>init-str</b> is a string for DB init, for example:
+</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(connect-db <span style="color: #ff0000;">"mysql"</span> <span style="color: #ff0000;">"root:123:artanis:tcp:localhost:3306"</span>)
+</pre>
+</div>
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:db-name</span>
+</code> specifies the DB name.
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:db-username</span>
+</code> specifis the DB username.
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:proto</span>
+</code> specifies the socket protocol, which is related to DB server you choosen.
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:host</span>
+</code> specifies the host name.
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:port</span>
+</code> specifies the socket port.
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-9-3-2" class="outline-4">
+<h4 id="sec-9-3-2"><span class="section-number-4">9.3.2</span> Map DB table</h4>
+<div class="outline-text-4" id="text-9-3-2">
+<div class="org-src-container">
+
+<pre class="src src-scheme">(<span style="color: #4169e1;">define</span> <span style="color: #ffd700;">my-table</span> (map-table-from-DB rc/conn))
+</pre>
+</div>
+
+<p>
+<b>rc/conn</b> can be route-context or connection of DB.
+</p>
+
+<p>
+map-table-from-DB returns a function, we named it <b>my-table</b> here for explaining.
 </p>
 </div>
 </div>
+
+<div id="outline-container-sec-9-3-3" class="outline-4">
+<h4 id="sec-9-3-3"><span class="section-number-4">9.3.3</span> Create table</h4>
+<div class="outline-text-4" id="text-9-3-3">
+<div class="org-src-container">
+
+<pre class="src src-scheme">(my-table 'create table-name defs <span style="color: #40e0d0;">#:if-exists?</span> #f <span style="color: #40e0d0;">#:primary-keys</span> '() <span style="color: #40e0d0;">#:engine</span> #f)
+</pre>
+</div>
+
+<ul class="org-ul">
+<li><b>table-name</b> specifies the name of the table in DB.
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><b>defs</b> is a list to define the columns' types. For example:
+</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-scheme">'((name varchar 10) (age integer) (email varchar 20))
+</pre>
+</div>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:if-exists?</span>
+</code> has two kinds of possible options:
+<ul class="org-ul">
+<li>'<b>overwrite</b> or '<b>drop</b> means overwriting the existed table if possible.
+</li>
+<li>'<b>ignore</b> means ignore the table when there's an existed one.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+
 <div id="outline-container-sec-9-4" class="outline-3">
 <h3 id="sec-9-4"><span class="section-number-3">9.4</span> SQL Mapping (experimental)</h3>
 <div class="outline-text-3" id="text-9-4">
@@ -1816,7 +1948,7 @@ If your document contains nontrivial examples of program code, we recommend rele
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Mu Lei known as NalaGinrut</p>
-<p class="date">Created: 2014-12-28 Sun 23:40</p>
+<p class="date">Created: 2014-12-29 Mon 19:33</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.2.1 (<a href="http://orgmode.org">Org</a> mode 8.3beta)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>

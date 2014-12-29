@@ -627,9 +627,69 @@ For example:
 (->sql select '(age name) from 'Persons (where "age < 30"))
 #+end_src
 ** FPRM (experimental)
-FPRM stands for Functional Programming Relational Mapping. It's a new word I invented. But it's not new concept. FP here indicates stateless. 
+FPRM stands for Functional Programming Relational Mapping. It's a new word I invented. But it's not new concept. FP here indicates *stateless*. 
 
-To be continued ...
+/FPRM is still experimental and work-in-progress./
+
+*** Connect to DB server
+#+begin_src scheme
+;; usage 1:
+(connect-db dbd init-str)
+
+;; usage 2:
+(connect-db dbd #:db-name "artanis" #:db-username "root" #:db-passwd "" #:proto "tcp" #:host "localhost" #:port 3306) 
+#+end_src
+
++ *dbd* is a string, could be "mysql", "postgresql", and "sqlite3".
+
+
++ *init-str* is a string for DB init, for example:
+#+begin_src scheme
+(connect-db "mysql" "root:123:artanis:tcp:localhost:3306")
+#+end_src
+
++ src_scheme[:exports code]{#:db-name} specifies the DB name.
+
+
++ src_scheme[:exports code]{#:db-username} specifis the DB username.
+
+
++ src_scheme[:exports code]{#:proto} specifies the socket protocol, which is related to DB server you choosen.
+
+
++ src_scheme[:exports code]{#:host} specifies the host name.
+
+
++ src_scheme[:exports code]{#:port} specifies the socket port.
+
+*** Map DB table
+#+begin_src scheme
+(define my-table (map-table-from-DB rc/conn))
+#+end_src
+
+*rc/conn* can be route-context or connection of DB.
+
+map-table-from-DB returns a function, we named it *my-table* here for explaining.
+
+*** Create table
+#+begin_src scheme
+(my-table 'create table-name defs #:if-exists? #f #:primary-keys '() #:engine #f)
+#+end_src
+
++ *table-name* specifies the name of the table in DB.
+
+
++ *defs* is a list to define the columns' types. For example:
+#+begin_src scheme
+'((name varchar 10) (age integer) (email varchar 20))
+#+end_src
+
+
++ src_scheme[:exports code]{#:if-exists?} has two kinds of possible options:
+  + '*overwrite* or '*drop* means overwriting the existed table if possible.
+  + '*ignore* means ignore the table when there's an existed one.
+
+
 ** SQL Mapping (experimental)
 To be continued ...
 * MIME
