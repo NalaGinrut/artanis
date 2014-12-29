@@ -1,6 +1,6 @@
 @font-face {
         font-family: "Spirax";
-        src: url("http://web-artanis.com/css/Spirax-Regular.ttf")
+        src: url("../css/Spirax-Regular.ttf")
 }
 
 body, ul, li, div, span, p, strong {
@@ -153,7 +153,15 @@ pre code {
     line-height: 8px
 }
 
+#sailing-to-devnull {
+  font-family: "Spirax";
+  font-size: 30px;
+}
 
+p{
+ font-family: "Spirax";
+ font-size: 22px;
+}
 
 p.foot {
   font: 12px Arial;
