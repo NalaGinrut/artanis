@@ -217,3 +217,10 @@ about-text h2 {
     font: italic normal 15px/20px "Times New Roman";
     color: #999;
 }
+
+#honor {
+    font: italic normal 15px "Times New Roman";
+    margin-top: 0;
+    padding-top: -5px;
+    padding-bottom: 0;
+}    
