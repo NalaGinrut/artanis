@@ -832,8 +832,54 @@ And the APIs of session is :session
 +  'spawn-and-keep spawn a session then keep with the name "sid".
 
 * Cookies
-To be continued ...
+You have to use src_scheme[:exports code]{#:session #t} while you defining URL rule handler.
+#+begin_src scheme
+(get "/cookie-test" #:cookies mode
+  (lambda (rc) ...))    
+#+end_src
+
+*mode* could be:
++ ('names names ...) specifies the name list of the cookies.
++ ('custom (names ...) maker setter getter modifier) specify a more complicated customized cookie handers.
+
+And the APIs:
+#+begin_src scheme
+(:cookies-set! rc cookie-name key val)
+
+(:cookies-ref rc cookie-name key)
+
+(:cookies-setattr! rc cookie-name #:expir #f #:domain #f #:path #f #:secure #f #:http-only #f)
+
+(:cookies-remove! rc key) ; remove cookie from client
+
+(:cookies-update! rc) ; cookies operations won't work unless you update it
+#+end_src
+
+*NOTE*: You don't have to call src_scheme[:exports code]{:cookies-update!} yourself, since it'll be called automatically by the hook before response.
+
+For example:
+#+begin_src scheme
+(get "/cookie" #:cookies '(names cc)
+  (lambda (rc)
+    (:cookies-set! rc 'cc "sid" "123321")
+    "ok"))
+
+(get "/cookie/:expires" #:cookies '(names cc)
+  (lambda (rc)
+    (:cookies-set! rc 'cc "sid" "123321")
+    (:cookies-setattr! rc 'cc #:expir (string->number (params rc "expires")))
+    "ok"))
+#+end_src
+
+Now you may use this command in the console to see the result:
+#+begin_src nil
+curl --head localhost:3000/cookie
+# and
+curl --head localhost:3000/cookie/120
+#+end_src
 * Authentication
+Artanis provides flexible mechanism for authentication.
+
 To be continued ...
 * Cache
 To be continued ...
