@@ -62,7 +62,7 @@
     (list (list name (v-ref c)))))
 
 (define (nvp->string nvp)
-  (let ((v (cadr nvp)))
+  (let ((v (cdr nvp)))
     (if (boolean? v)
          (and v (car nvp))
          (format #f "~a=~a" (car nvp) v))))
