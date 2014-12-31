@@ -20,11 +20,25 @@
        (li (a (@ (href "index.html")) "Home"))
        (li (a (@ (href "about.html")) "About"))
        (li (a (@ (href "docs/index.html")) "Documents"))
-       (li (a (@ (href "contribute.html")) "Contribute"))
+       (li (a (@ (href "http://web-artanis.com/artanis-0.0.1.tar.gz")) "Latest release"))
        (li (@ (class "last")) (a (@ (href "donate.html")) "Donate")))
-      (h3 (@ (id "the-author")) "Authored by " 
-       (a (@ (id "the-author") (href "http://tech.nalaginrut.com")) "NalaGinrut"))))
-    (div (@ (id "main") (class "home"))
+
+    (p (@ (id "honor")) "2013 Lisp in summer projects")
+    (p (a (@ (id "honor") (href "http://LispInSummerProjects.org/awesome-projects"))
+           "certificated awesome project"))
+    (h3 (@ (id "the-author")) "Authored by " 
+       (a (@ (id "the-author") (href "http://nalaginrut.com")) "NalaGinrut"))
+    (a (@ (href "http://szdiy.org"))
+       (img (@ (src "http://wiki.szdiy.org/skins/common/images/szdiy.png")
+               (height "100") (width "100"))))
+    (br)
+    ;; hitwebcounter Code START
+    (a (@ (id "counter") (href "http://www.hitwebcounter.com/") (target "_blank"))
+           (img (@ (src "http://hitwebcounter.com/counter/counter.php?page=5071476&style=0006&nbdigits=9&type=page&initCount=0") (title "counter with different designs")
+                   (Alt "counter with different designs") (border "0"))))
+))
+  
+  (div (@ (id "main") (class "home"))
      (div (@ (class "wrap")) (pre (code (inject ,contents))))
 
      (p (@ (class "foot up"))
