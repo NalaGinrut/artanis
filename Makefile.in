@@ -16,7 +16,7 @@ GUILEC := GUILE_LOAD_COMPILED_PATH=$(TEMP_LIB_PATH) guild compile
 ARTANIS_ETC := @srcdir@/etc/artanis
 ARTANIS_PAGES := @srcdir@/pages
 GUILE := @GUILE@
-VERSION := @ARTANIS_VERSION@
+VERSION := @PACKAGE_VERSION@
 PREFIX := @prefix@
 INSTALL := install -c
 CP := cp -frd -P
