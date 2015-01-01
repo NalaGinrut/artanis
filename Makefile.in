@@ -5,7 +5,7 @@ LIBS := @GUILE_LIBS@ -shared
 LDFLAGS := @GUILE_LDFLAGS@ -fPIC -shared
 CC := @CC@
 OBJ := obj
-MOD := artanis
+MOD := @srcdir@/artanis
 MOD_OBJ := $(OBJ)/artanis
 BIN_OBJ := $(OBJ)/bin
 TEMP_LIB_PATH := $(shell pwd)/$(OBJ)
@@ -13,10 +13,10 @@ MOD_PATH := $(shell guile -c "(display (%site-dir))")
 MOD_COMPILED_PATH := $(shell guile -c "(display (%site-ccache-dir))")
 MOD_TARGET_PATH := $(MOD_COMPILED_PATH)
 GUILEC := GUILE_LOAD_COMPILED_PATH=$(TEMP_LIB_PATH) guild compile
-ARTANIS_ETC := etc/artanis
-ARTANIS_PAGES := pages
+ARTANIS_ETC := @srcdir@/etc/artanis
+ARTANIS_PAGES := @srcdir@/pages
 GUILE := @GUILE@
-VERSION := @PACKAGE_VERSION@
+VERSION := @ARTANIS_VERSION@
 PREFIX := @prefix@
 INSTALL := install -c
 CP := cp -frd -P
@@ -32,14 +32,14 @@ ALL_TARGETS :=  version \
 all: $(ALL_TARGETS)
 
 $(MOD_OBJ)/%.go: $(MOD)/%.scm
-	@echo + guilec $<
+	@echo + compiling $<
 	@mkdir -p $(@D)
-	$(V)$(GUILEC) -L $(TOP) -o $@ $< 2> /dev/null
+	$(V)$(GUILEC) -L $(TOP) -o $@ $< 1>> build.log
 
 $(MOD_OBJ)/version.go: $(MOD)/version.scm
-	@echo + guilec $<
+	@echo + compiling $<
 	@mkdir -p $(@D)
-	$(V)$(GUILEC) -L $(TOP) -o $@ $< 2> /dev/null
+	$(V)$(GUILEC) -L $(TOP) -o $@ $< 1> build.log
 
 $(MOD)/version.scm:
 	@echo "Regenerating artanis/version.scm"
