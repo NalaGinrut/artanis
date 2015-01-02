@@ -36,12 +36,15 @@ AC_FUNC_FORK
 AC_CHECK_FUNCS([memchr mkdir])
 
 # Check for Guile
-PKG_CHECK_MODULES([GUILE], [guile-2.0])
-#AC_PATH_PROG([GUILECONFIG], [guile-config], :)
+PKG_CHECK_MODULES([GUILE], [guile-2.0 >= 2.0.11])
+AC_PATH_PROG([GUILECONFIG], [guile-config], :)
 
 GUILE_PROGS
 GUILE_FLAGS
 GUILE_SITE_DIR
+
+# Check guile-dbi
+AC_CHECK_LIB([guile-dbi], [init_db_handle_type], ,[AC_MSG_ERROR(No guile-dbi was found. Maybe you haven't installed it? http://home.gna.org/guile-dbi/)])
 
 LT_INIT([dlopen disable-fast-install disable-static win32-dll])
 
