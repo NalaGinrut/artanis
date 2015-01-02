@@ -46,7 +46,7 @@ The manual you’re now reading is published under the terms of the [[http://www
 
 ** For users
 
-*Install GNU Guile-2.0.11:*
+*Install GNU Guile-2.0.11 or higher version:*
 
 + Debian/Ubuntu users
 #+begin_src null
@@ -75,7 +75,7 @@ I would NOT recommend you trying to compile/install Guile from Git repo, since i
 
 *Install dependencies:*
 
-+ guile-dbi-2.1.5 [optional]
++ guile-dbi-2.1.5 *[Required]*
 #+begin_src null
 wget -c http://download.gna.org/guile-dbi/guile-dbi-2.1.5.tar.gz
 tar xvzf guile-dbi-2.1.5.tar.gz
@@ -83,7 +83,7 @@ cd guile-dbi-2.1.5 && ./configure && make
 sudo make install
 #+end_src
 
-+ guile-dbd, there're three dbd, mysql/postgresql/sqlite3 [optional]
++ guile-dbd *[Optional]*, there're three dbd, mysql/postgresql/sqlite3
 #+begin_src null
 wget -c http://download.gna.org/guile-dbi/guile-dbd-mysql-2.1.4.tar.gz
 cd guile-dbd-mysql-2.1.4 && ./configure && make
