@@ -112,6 +112,16 @@ Anyway, here's the git repo:
 git clone git@github.com:NalaGinrut/artanis.git
 #+end_src
 
+** Configuration
+Before the first time to run, Artanis needs a config file. The default path is =/etc/artanis/artanis.conf=.
+
+There's a config skeleton named default.conf, you may copy it to =/etc/artanis/artanis.conf=.
+
+#+begin_src nil
+sudo cp /etc/artanis/default.conf /etc/artanis/artanis.conf
+#+end_src
+
+(To be continued ...) 
 * Hello World
 
 ** Use Guile REPL and verify Artanis installation
@@ -201,7 +211,7 @@ There're two differences:
 + 2. You may notice that the handler defined as an anonymous function with /lambda/ has one argument /rc/. It means /route context/ which preserve all the related context information. Many Artanis APIs need it, say, /params/.
 
 And /format/ is a Scheme lib function. It is similar to /sprintf/ in C language, which outputs with a formatted pattern.
-The second argument #f (means FALSE) indicating that returning the result as string type rather than printing out.
+The second argument #f (means FALSE) indicates that returning the result as string type rather than printing out.
 
 *** Regex in URL remapping
 
