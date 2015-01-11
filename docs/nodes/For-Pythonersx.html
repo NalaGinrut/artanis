@@ -1,0 +1,44 @@
+<html lang="en">
+<head>
+<title>For Pythonersx - Artanis web-framework Manual</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="description" content="Artanis web-framework Manual">
+<meta name="generator" content="makeinfo 4.13">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="The-design-philosophy.html#The-design-philosophy" title="The design philosophy">
+<link rel="next" href="For-Rubyists.html#For-Rubyists" title="For Rubyists">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc    { font-variant:small-caps }
+  span.roman { font-family:serif; font-weight:normal; } 
+  span.sansserif { font-family:sans-serif; font-weight:normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<a name="For-Pythonersx"></a>
+<p>
+Next:&nbsp;<a rel="next" accesskey="n" href="For-Rubyists.html#For-Rubyists">For Rubyists</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="The-design-philosophy.html#The-design-philosophy">The design philosophy</a>
+<hr>
+</div>
+
+<h4 class="subsection">8.2.1 For Pythoners</h4>
+
+<p>If you're familiar with Django, which implemented a DSL(Domain Specific Language) to express presentation rather than program logic. You may realize that the templating of Artanis has different philosophy.
+
+   <p>In templating of Artanis, it's simply embedded Scheme code into HTML. Why? Because of the philosophy of FP(Functional Programming), everything could be a function. So obviously, <tt>(filesizeformat size)</tt> is enough for understanding, and it's just simple function calling in prefix-notation. There's no need to implement DSL like <tt>size|filesizeformat</tt> to increase the complexity of code. Let alone the syntax is very different from Python.
+
+   <p>The syntax like <tt>size|filesizeformat</tt> is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme(functional programming), and the paradigm of Python(imperative programming).
+
+   <p>The philosophy of Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce the unnecessary complexities. <a href="http://en.wikipedia.org/wiki/KISS_principle">KISS</a>.
+
+   </body></html>
+

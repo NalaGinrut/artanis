@@ -1,0 +1,93 @@
+<html lang="en">
+<head>
+<title>ORM problem - Artanis web-framework Manual</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="description" content="Artanis web-framework Manual">
+<meta name="generator" content="makeinfo 4.13">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Database.html#Database" title="Database">
+<link rel="next" href="SSQL-_0028experimental_0029.html#SSQL-_0028experimental_0029" title="SSQL (experimental)">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc    { font-variant:small-caps }
+  span.roman { font-family:serif; font-weight:normal; } 
+  span.sansserif { font-family:sans-serif; font-weight:normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<a name="ORM-problem"></a>
+<p>
+Next:&nbsp;<a rel="next" accesskey="n" href="SSQL-_0028experimental_0029.html#SSQL-_0028experimental_0029">SSQL (experimental)</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Database.html#Database">Database</a>
+<hr>
+</div>
+
+<h3 class="section">9.1 ORM problem</h3>
+
+<p>ORM stands for Object Relational Mapping, which is a popular approach to handle relational DB nowadays, in OOP.
+
+   <p>Of course, Guile has it's own Object System named <a href="https://www.gnu.org/software/guile/manual/html_node/GOOPS.html#GOOPS">GOOPS</a>. Users may use OOP with it. And it's possible to implement ORM in Artanis as well.
+
+   <p>But, perosnally, I'm not OOP fans. When I picked up FP, I realized I don't have to use OOP anymore.
+
+   <p>Besides, there're some criticism pointing to ORM:
+     <ul>
+<li><a href="http://martinfowler.com/bliki/OrmHate.html">ORM Hate</a>
+
+     <li><a href="http://blogs.tedneward.com/2006/06/26/The+Vietnam+Of+Computer+Science.aspx">Vietnam of Computer Science</a>
+
+     <li><a href="http://blog.codinghorror.com/object-relational-mapping-is-the-vietnam-of-computer-science/">Object-Relational Mapping is the Vietnam of Computer Science</a>
+</ul>
+
+   <p>And here're some known ways for trying to solve the problems of ORM:
+
+     <ul>
+<li>1. <em>Give up ORM</em>. 
+</ul>
+
+     <ul>
+<li>2. <em>Give up relational storage model</em>. Don't use relational DB, pick up others, say, No-SQL. Well, this way is not cool when you have to use relational DB. 
+</ul>
+
+     <ul>
+<li>3. <em>Manual mapping</em>. Write SQL code directly. It's fine sometimes. But the code increases when things get complicated. Refactoring and reusing would be worth to consider. 
+</ul>
+
+     <ul>
+<li>4. <em>Limited ORM</em>. Limited the utility of ORM. And use ORM to solve part of your work rather than whole, depends on you. This may avoid some problems. 
+</ul>
+
+     <ul>
+<li>5. <em>SQL related DSL</em>. Design a new language. LINQ from Microsoft is one of the cases. 
+</ul>
+
+     <ul>
+<li>6. <em>Integration of relational concepts into frameworks</em>. Well, harder than 5, but worth to try. 
+</ul>
+
+     <ul>
+<li>7. <em>Stateless</em>. This is the critical hit to complexity and unreliability. 
+</ul>
+
+   <p>Basically, Artanis has no ORM yet, and maybe never. Artanis is trying to experiment new ways to solve the problems of ORM.
+
+   <p>Artanis provides three ways to complete this mission. All of them, are <strong>experimental</strong> at present.
+
+     <ul>
+<li>SSQL (1,3,5)
+
+     <li>FPRM (4,7)
+
+     <li>SQL Mapping (1,3,6)
+</ul>
+
+   </body></html>
+

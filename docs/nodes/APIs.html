@@ -1,0 +1,53 @@
+<html lang="en">
+<head>
+<title>APIs - Artanis web-framework Manual</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="description" content="Artanis web-framework Manual">
+<meta name="generator" content="makeinfo 4.13">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Layouts-and-Rendering-in-Artanis.html#Layouts-and-Rendering-in-Artanis" title="Layouts and Rendering in Artanis">
+<link rel="prev" href="The-design-philosophy.html#The-design-philosophy" title="The design philosophy">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc    { font-variant:small-caps }
+  span.roman { font-family:serif; font-weight:normal; } 
+  span.sansserif { font-family:sans-serif; font-weight:normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<a name="APIs"></a>
+<p>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="The-design-philosophy.html#The-design-philosophy">The design philosophy</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Layouts-and-Rendering-in-Artanis.html#Layouts-and-Rendering-in-Artanis">Layouts and Rendering in Artanis</a>
+<hr>
+</div>
+
+<h3 class="section">8.3 APIs</h3>
+
+<pre class="example">     (tpl-&gt;response filename/sxml [environment &lt;- (the-environment)] [escape? &lt;- #f])
+     (tpl-&gt;html filename/sxm [environment &lt;- (the-environment)] [escape? &lt;- #f])
+</pre>
+   <p><em>The difference is that tpl-&gt;html returns a string, but tpl-&gt;response will return HTTP response.</em>
+
+   <p>[environment] is the environment you want to pass in. We often ignore it. But if you want to ref some vars defined outside your
+template string, you should pass (the-environment).
+
+   <p>[escape?] If you want to HTML char-escaping with the returned string, set it to #t.
+
+   <p>There're two kinds of different templating:
+
+<ul class="menu">
+<li><a accesskey="1" href="Embedded-Templating.html#Embedded-Templating">Embedded Templating</a>
+<li><a accesskey="2" href="SXML-Templating.html#SXML-Templating">SXML Templating</a>
+</ul>
+
+   </body></html>
+

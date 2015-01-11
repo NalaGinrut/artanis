@@ -1,0 +1,97 @@
+<html lang="en">
+<head>
+<title>Database operating - Artanis web-framework Manual</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="description" content="Artanis web-framework Manual">
+<meta name="generator" content="makeinfo 4.13">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Hello-World.html#Hello-World" title="Hello World">
+<link rel="prev" href="More-complex-URL-remapping.html#More-complex-URL-remapping" title="More complex URL remapping">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc    { font-variant:small-caps }
+  span.roman { font-family:serif; font-weight:normal; } 
+  span.sansserif { font-family:sans-serif; font-weight:normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<a name="Database-operating"></a>
+<p>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="More-complex-URL-remapping.html#More-complex-URL-remapping">More complex URL remapping</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Hello-World.html#Hello-World">Hello World</a>
+<hr>
+</div>
+
+<h3 class="section">4.5 Database operating</h3>
+
+<p>Artanis supports mysql/postgresql/sqlite3, we use mysql as a example here.
+
+   <p>Please ensure that your DB service was started before you try.
+
+   <p><em>If you encountered any problems, please check your config of DB first.</em>
+You can use DB without running a server.
+<pre class="example">     (use-module (artanis artanis))
+     (define conn (connect-db 'mysql #:db-username "your_db_username"
+                              #:db-name "your_db_name" #:db-passwd "your_passwd"))
+     (define mtable (map-table-from-DB conn))
+     ((mtable 'create 'Persons '((name varchar 10) (age integer) (email varchar 20))) 'valid?)
+     ;; ==&gt; #t
+     (mtable 'set 'Persons #:name "nala" #:age 99 #:email "nala@artanis.com")
+     (mtable 'get 'Persons #:columns '(name email))
+     ;; ==&gt; ((("name" . "nala") ("email" . "nala@artanis.com")))
+</pre>
+     <ul>
+<li><em>map-table-from-DB</em> is Artanis API handling tables in DB. Here, we define this mapping as the var <em>mtable</em>. 
+</ul>
+
+     <ul>
+<li>And we can use <em>mtable</em> to handle tables, you can get values from table with 'get command. 
+</ul>
+
+     <ul>
+<li><em>mtable</em> is a functon which accepts the first argument as a command, say 'create is a command to create a new table; 'set command is used to insert/update the table; 'get command for fetch the values of specified columns. 
+</ul>
+
+     <ul>
+<li>The second argument of <em>mtable</em> is the name of the table as you guess. Please note that it's case sensitive. But the columns name could be case insensitive. 
+</ul>
+
+     <ul>
+<li>'create command returns a function too, which also accepts an argument as a command. Here, we use 'valid? command to check if the table has been created successfully. 
+</ul>
+
+   <p>Here's just simple introduction. You may read the DB section in this manual for detail describing.
+
+   <p>Of course, you can use DB in your web application.
+<pre class="example">     (get "/dbtest" #:conn #t ; apply for a DB connection from pool
+       (lambda (rc)
+         (let ((mtable (map-table-from-DB (:conn rc))))
+           (object-&gt;string
+             (mtable 'get 'Persons #:columns '(name email))))))
+     
+     (run #:use-db? #t #:dbd 'mysql #:db-username "your_db_username"
+          #:db-name "your_db_name" #:db-passwd "your_passwd" #:port 8080)
+</pre>
+   <p>Now, try <a href="http://localhost:8080/dbtest">http://localhost:8080/dbtest</a> in your browser.
+
+   <p>Here're some explains:
+     <ul>
+<li>The keyword-value pair <tt>#:conn #t</tt> means applying for a DB connection from connection-pool. Then you can use <tt>(:conn rc)</tt> to get the allocated connection for DB operations. 
+</ul>
+
+     <ul>
+<li>Finally, the handler needs to return a string as the HTTP response body, so we have to use Guile API <em>object-&gt;string</em> to convert the query result to string, for this naive example case. 
+</ul>
+
+   <p><em>Exercise: Return a beautiful table in HTML rather than using object-&gt;string.</em>
+
+   </body></html>
+

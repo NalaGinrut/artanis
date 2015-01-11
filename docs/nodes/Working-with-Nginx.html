@@ -1,0 +1,56 @@
+<html lang="en">
+<head>
+<title>Working with Nginx - Artanis web-framework Manual</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="description" content="Artanis web-framework Manual">
+<meta name="generator" content="makeinfo 4.13">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Basic-in-Artanis.html#Basic-in-Artanis" title="Basic in Artanis">
+<link rel="prev" href="Running-server.html#Running-server" title="Running server">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc    { font-variant:small-caps }
+  span.roman { font-family:serif; font-weight:normal; } 
+  span.sansserif { font-family:sans-serif; font-weight:normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<a name="Working-with-Nginx"></a>
+<p>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="Running-server.html#Running-server">Running server</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Basic-in-Artanis.html#Basic-in-Artanis">Basic in Artanis</a>
+<hr>
+</div>
+
+<h3 class="section">6.6 Working with Nginx</h3>
+
+<p>You may try Artanis+Nginx with so-called reverse proxy.
+
+   <p><em>I would recommend you use Nginx as the front server, since Artanis hasn't done its own async server-core which will be based on delimited-continuations. The current server has some caveats, in spite of the performance, you may suffer from slow-header-ddos if you use Artanis to serv you site directly. But it's fine when you use Nginx in front of Artanis.</em>
+
+   <p>For example, you may add these lines to your /etc/nginx/nginx.conf:
+
+<pre class="example">     location / {
+             proxy_pass http://127.0.0.1:1234;
+             proxy_set_header Host $host;
+             proxy_set_header X-Real-IP $remote_addr;
+             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+     }
+</pre>
+   <p>Then restart you Nginx:
+
+<pre class="example">     sudo service nginx restart
+</pre>
+   <p>And run artanis:
+<pre class="example">     (run #:port 1234)
+</pre>
+   </body></html>
+

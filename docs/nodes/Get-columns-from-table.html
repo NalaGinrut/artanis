@@ -1,0 +1,67 @@
+<html lang="en">
+<head>
+<title>Get columns from table - Artanis web-framework Manual</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="description" content="Artanis web-framework Manual">
+<meta name="generator" content="makeinfo 4.13">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="FPRM-_0028experimental_0029.html#FPRM-_0028experimental_0029" title="FPRM (experimental)">
+<link rel="prev" href="Create-table.html#Create-table" title="Create table">
+<link rel="next" href="Set-values-to-table.html#Set-values-to-table" title="Set values to table">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc    { font-variant:small-caps }
+  span.roman { font-family:serif; font-weight:normal; } 
+  span.sansserif { font-family:sans-serif; font-weight:normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<a name="Get-columns-from-table"></a>
+<p>
+Next:&nbsp;<a rel="next" accesskey="n" href="Set-values-to-table.html#Set-values-to-table">Set values to table</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="Create-table.html#Create-table">Create table</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="FPRM-_0028experimental_0029.html#FPRM-_0028experimental_0029">FPRM (experimental)</a>
+<hr>
+</div>
+
+<h4 class="subsection">9.3.4 Get columns from table</h4>
+
+<pre class="example">     (my-table 'get table-name #:columns '(*) #:functions '() #:ret 'all #:group-by #f #:order-by #f)
+</pre>
+     <ul>
+<li><tt>#:column</tt> is the columns list you wanted. 
+</ul>
+
+     <ul>
+<li><tt>#:functions</tt> is built-in functions calling, e.g:
+</ul>
+
+<pre class="example">     #:functions '((count Persons.Lastname))
+</pre>
+     <ul>
+<li><tt>#:ret</tt> specifies how to return the result, there're three options:
+          <ul>
+<li>'all for returning all results
+<li>'top for returning the first result
+<li>integer (larger than 0), you specify the number. 
+</ul>
+     </ul>
+
+     <ul>
+<li><tt>#:group-by</tt> used in conjunction with the aggregate functions to group the result-set by one or more columns. 
+</ul>
+
+     <ul>
+<li><tt>#:order-by</tt> used to sort the result-set by one or more columns. 
+</ul>
+
+   </body></html>
+

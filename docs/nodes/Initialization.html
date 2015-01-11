@@ -1,0 +1,47 @@
+<html lang="en">
+<head>
+<title>Initialization - Artanis web-framework Manual</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="description" content="Artanis web-framework Manual">
+<meta name="generator" content="makeinfo 4.13">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Basic-in-Artanis.html#Basic-in-Artanis" title="Basic in Artanis">
+<link rel="prev" href="How-to-run-a-site-with-Artanis.html#How-to-run-a-site-with-Artanis" title="How to run a site with Artanis">
+<link rel="next" href="Registering-handler-of-HTTP-methods.html#Registering-handler-of-HTTP-methods" title="Registering handler of HTTP methods">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc    { font-variant:small-caps }
+  span.roman { font-family:serif; font-weight:normal; } 
+  span.sansserif { font-family:sans-serif; font-weight:normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<a name="Initialization"></a>
+<p>
+Next:&nbsp;<a rel="next" accesskey="n" href="Registering-handler-of-HTTP-methods.html#Registering-handler-of-HTTP-methods">Registering handler of HTTP methods</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="How-to-run-a-site-with-Artanis.html#How-to-run-a-site-with-Artanis">How to run a site with Artanis</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Basic-in-Artanis.html#Basic-in-Artanis">Basic in Artanis</a>
+<hr>
+</div>
+
+<h3 class="section">6.2 Initialization</h3>
+
+<p>It's better to use (init-server) to init Artanis.
+<pre class="example">     (init-server #:statics '(png jpg jpeg ico html js css) #:cache-statics? #f #:exclude '())
+</pre>
+   <p><tt>#:statics</tt> specifies the static files with the extension file. Artanis is based on URL remapping, so this keyword avoids you to handle each static file types. In default, it coveres the most static file types. So you may ignore it usually.
+
+   <p><tt>#:cache-statics?</tt> indicates if the static files should be cached.
+
+   <p><tt>#:exclude</tt> specifies the types should be excluded. This is useful when you want to generate image files dynamically. Even js/css could be generated dynamically, depends your design.
+
+   </body></html>
+

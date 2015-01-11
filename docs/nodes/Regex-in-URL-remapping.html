@@ -1,0 +1,39 @@
+<html lang="en">
+<head>
+<title>Regex in URL remapping - Artanis web-framework Manual</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="description" content="Artanis web-framework Manual">
+<meta name="generator" content="makeinfo 4.13">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="More-complex-URL-remapping.html#More-complex-URL-remapping" title="More complex URL remapping">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc    { font-variant:small-caps }
+  span.roman { font-family:serif; font-weight:normal; } 
+  span.sansserif { font-family:sans-serif; font-weight:normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<a name="Regex-in-URL-remapping"></a>
+<p>
+Up:&nbsp;<a rel="up" accesskey="u" href="More-complex-URL-remapping.html#More-complex-URL-remapping">More complex URL remapping</a>
+<hr>
+</div>
+
+<h4 class="subsection">4.4.1 Regex in URL remapping</h4>
+
+<p>You can use regex in the URL rule.
+<pre class="example">     (get "/.+\\.(png|gif|jpeg)" static-page-emitter)
+</pre>
+   <p><em>static-page-emitter</em> is an Artanis API which emits a static file like images to the client.
+
+   </body></html>
+

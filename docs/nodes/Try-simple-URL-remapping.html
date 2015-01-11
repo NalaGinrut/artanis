@@ -1,0 +1,63 @@
+<html lang="en">
+<head>
+<title>Try simple URL remapping - Artanis web-framework Manual</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="description" content="Artanis web-framework Manual">
+<meta name="generator" content="makeinfo 4.13">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Hello-World.html#Hello-World" title="Hello World">
+<link rel="prev" href="Simple-HTTP-server.html#Simple-HTTP-server" title="Simple HTTP server">
+<link rel="next" href="More-complex-URL-remapping.html#More-complex-URL-remapping" title="More complex URL remapping">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc    { font-variant:small-caps }
+  span.roman { font-family:serif; font-weight:normal; } 
+  span.sansserif { font-family:sans-serif; font-weight:normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<a name="Try-simple-URL-remapping"></a>
+<p>
+Next:&nbsp;<a rel="next" accesskey="n" href="More-complex-URL-remapping.html#More-complex-URL-remapping">More complex URL remapping</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="Simple-HTTP-server.html#Simple-HTTP-server">Simple HTTP server</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Hello-World.html#Hello-World">Hello World</a>
+<hr>
+</div>
+
+<h3 class="section">4.3 Try simple URL remapping</h3>
+
+<p>Type these code in Guile REPL:
+<pre class="example">     (use-modules (artanis artanis))
+     (get "/hello" (lambda () "hello world"))
+     (run #:port 8080)
+</pre>
+   <p>Now you can visit <a href="http://localhost:8080/hello">http://localhost:8080/hello</a> with your browser, and see the result.
+
+   <p><em>If you encounter "[EXCEPTION] /favicon.ico is abnormal request", please ignore it.</em>
+
+   <p>Let me explain these code.
+
+     <ul>
+<li><em>line 1:</em> Load Artanis module, (artanis artanis) is the name. 
+</ul>
+
+     <ul>
+<li><em>line 2:</em> The first argument <em>get</em> is Artanis API corresponding to GET method in HTTP protocol. The second argument "/hello" is the URL rule to register. The Third argument is the handler which will be triggered if the registered URL rule is hit. 
+</ul>
+
+     <ul>
+<li><em>line 3:</em> Run Artanis server, and listenning socket port 8080. 
+</ul>
+
+   <p>You may type Ctrl+C to quit the server according to the hint from your screen.
+
+   </body></html>
+

@@ -1,0 +1,62 @@
+<html lang="en">
+<head>
+<title>Sessions - Artanis web-framework Manual</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="description" content="Artanis web-framework Manual">
+<meta name="generator" content="makeinfo 4.13">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="prev" href="MIME.html#MIME" title="MIME">
+<link rel="next" href="Cookies.html#Cookies" title="Cookies">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc    { font-variant:small-caps }
+  span.roman { font-family:serif; font-weight:normal; } 
+  span.sansserif { font-family:sans-serif; font-weight:normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<a name="Sessions"></a>
+<p>
+Next:&nbsp;<a rel="next" accesskey="n" href="Cookies.html#Cookies">Cookies</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="MIME.html#MIME">MIME</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="index.html#Top">Top</a>
+<hr>
+</div>
+
+<h2 class="chapter">11 Sessions</h2>
+
+<p>You have to use <tt>#:session #t</tt> while you defining URL rule handler.
+<pre class="example">     (post "/auth" #:session mode
+       (lambda (rc) ...))
+</pre>
+   <p><strong>mode</strong> could be:
+     <ul>
+<li>#t or 'spawn, to spawn a new session, the name of sid is "sid" in default. 
+<li>`(spawn ,sid) specify a name of sid to spawn. 
+<li>`(spawn ,sid ,proc) specify a name of sid and a proc to <strong>define your own session spawner</strong>. 
+</ul>
+
+   <p>And the APIs of session is :session
+<pre class="example">     (:session rc cmd)
+</pre>
+   <p><strong>cmd</strong> could be:
+     <ul>
+<li>'check to check session with name "sid". 
+<li>`(check ,sid) to check session with a specified sid name. 
+<li>'check-and-spawn check "sid" first, if no, then spawn it. 
+<li>`(check-and-spawn ,sid) the same with above, but specifed name of sid. 
+<li>`(check-and-spawn-and-keep ,sid) check then spawn then keep it, with the name of sid. 
+<li>'spawn spawn a session with the name "sid". 
+<li>'spawn-and-keep spawn a session then keep with the name "sid". 
+</ul>
+
+   </body></html>
+
