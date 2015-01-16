@@ -63,5 +63,8 @@ Up:&nbsp;<a rel="up" accesskey="u" href="FPRM-_0028experimental_0029.html#FPRM-_
 <li><tt>#:order-by</tt> used to sort the result-set by one or more columns. 
 </ul>
 
+   <p>For example, to get Lastname and City column, and return the first result.
+<pre class="example">     (my-table 'get 'Persons #:columns '(Lastname City) #:ret 'top)
+</pre>
    </body></html>
 

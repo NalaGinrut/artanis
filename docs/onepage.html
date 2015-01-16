@@ -21,15 +21,266 @@
 </head>
 <body>
 <h1 class="settitle">Artanis web-framework Manual</h1>
+   <div class="contents">
+<h2>Table of Contents</h2>
+<ul>
+<li><a name="toc_Top" href="#Top">Artanis web-framework Manual</a>
+<li><a name="toc_Introduction" href="#Introduction">1 Introduction</a>
+<ul>
+<li><a href="#Conventions">1.1 Conventions</a>
+</li></ul>
+<li><a name="toc_License" href="#License">2 License</a>
+<li><a name="toc_Installation" href="#Installation">3 Installation</a>
+<ul>
+<li><a href="#For-users">3.1 For users</a>
+<li><a href="#For-contributors">3.2 For contributors</a>
+<li><a href="#Configuration">3.3 Configuration</a>
+</li></ul>
+<li><a name="toc_Hello-World" href="#Hello-World">4 Hello World</a>
+<ul>
+<li><a href="#Use-Guile-REPL-and-verify-Artanis-installation">4.1 Use Guile REPL and verify Artanis installation</a>
+<li><a href="#Simple-HTTP-server">4.2 Simple HTTP server</a>
+<li><a href="#Try-simple-URL-remapping">4.3 Try simple URL remapping</a>
+<li><a href="#More-complex-URL-remapping">4.4 More complex URL remapping</a>
+<ul>
+<li><a href="#Regex-in-URL-remapping">4.4.1 Regex in URL remapping</a>
+</li></ul>
+<li><a href="#Database-operating">4.5 Database operating</a>
+</li></ul>
+<li><a name="toc_Basic-in-Scheme" href="#Basic-in-Scheme">5 Basic in Scheme</a>
+<ul>
+<li><a href="#For-newbies">5.1 For newbies</a>
+<li><a href="#For-Pythoners">5.2 For Pythoners</a>
+<li><a href="#For-Rubyist">5.3 For Rubyist</a>
+<li><a href="#For-deep-learners">5.4 For deep learners</a>
+</li></ul>
+<li><a name="toc_Basic-in-Artanis" href="#Basic-in-Artanis">6 Basic in Artanis</a>
+<ul>
+<li><a href="#How-to-run-a-site-with-Artanis">6.1 How to run a site with Artanis</a>
+<li><a href="#Initialization">6.2 Initialization</a>
+<li><a href="#Registering-handler-of-HTTP-methods">6.3 Registering handler of HTTP methods</a>
+<li><a href="#Emit-Response">6.4 Emit Response</a>
+<li><a href="#Running-server">6.5 Running server</a>
+<li><a href="#Working-with-Nginx">6.6 Working with Nginx</a>
+</li></ul>
+<li><a name="toc_URL-remapping" href="#URL-remapping">7 URL remapping</a>
+<ul>
+<li><a href="#Introductionx">7.1 Introduction</a>
+<li><a href="#URL-handling">7.2 URL handling</a>
+<li><a href="#Get-params-from-URL">7.3 Get params from URL</a>
+<li><a href="#Redirect-link">7.4 Redirect link</a>
+</li></ul>
+<li><a name="toc_Layouts-and-Rendering-in-Artanis" href="#Layouts-and-Rendering-in-Artanis">8 Layouts and Rendering in Artanis</a>
+<ul>
+<li><a href="#Templating">8.1 Templating</a>
+<li><a href="#The-design-philosophy">8.2 The design philosophy</a>
+<ul>
+<li><a href="#For-Pythonersx">8.2.1 For Pythoners</a>
+<li><a href="#For-Rubyists">8.2.2 For Rubyists</a>
+</li></ul>
+<li><a href="#APIs">8.3 APIs</a>
+<ul>
+<li><a href="#Embedded-Templating">8.3.1 Embedded Templating</a>
+<li><a href="#SXML-Templating">8.3.2 SXML Templating</a>
+</li></ul>
+</li></ul>
+<li><a name="toc_Database" href="#Database">9 Database</a>
+<ul>
+<li><a href="#ORM-problem">9.1 ORM problem</a>
+<li><a href="#SSQL-_0028experimental_0029">9.2 SSQL (experimental)</a>
+<li><a href="#FPRM-_0028experimental_0029">9.3 FPRM (experimental)</a>
+<ul>
+<li><a href="#Connect-to-DB-server">9.3.1 Connect to DB server</a>
+<li><a href="#Map-DB-table">9.3.2 Map DB table</a>
+<li><a href="#Create-table">9.3.3 Create table</a>
+<li><a href="#Get-columns-from-table">9.3.4 Get columns from table</a>
+<li><a href="#Set-values-to-table">9.3.5 Set values to table</a>
+<li><a href="#Drop-a-table">9.3.6 Drop a table</a>
+<li><a href="#Check-existance-of-table">9.3.7 Check existance of table</a>
+<li><a href="#Get-schema-of-a-table">9.3.8 Get schema of a table</a>
+</li></ul>
+<li><a href="#SQL-Mapping-_0028experimental_0029">9.4 SQL Mapping (experimental)</a>
+</li></ul>
+<li><a name="toc_MIME" href="#MIME">10 MIME</a>
+<ul>
+<li><a href="#JSON">10.1 JSON</a>
+<li><a href="#CSV">10.2 CSV</a>
+<li><a href="#XML">10.3 XML</a>
+<li><a href="#SXML">10.4 SXML</a>
+</li></ul>
+<li><a name="toc_Sessions" href="#Sessions">11 Sessions</a>
+<li><a name="toc_Cookies" href="#Cookies">12 Cookies</a>
+<li><a name="toc_Authentication" href="#Authentication">13 Authentication</a>
+<li><a name="toc_Cache" href="#Cache">14 Cache</a>
+<li><a name="toc_Appendix-A-GNU-Free-Documentation-License" href="#Appendix-A-GNU-Free-Documentation-License">15 Appendix A GNU Free Documentation License</a>
+</li></ul>
+</div>
+
+
+
+<div class="node">
 <a name="Top"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Introduction">Introduction</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#dir">(dir)</a>
+
+</div>
 
 <h2 class="unnumbered">Artanis web-framework Manual</h2>
 
-<p><a name="Introduction"></a>
+<ul class="menu">
+<li><a accesskey="1" href="#Introduction">Introduction</a>
+<li><a accesskey="2" href="#License">License</a>
+<li><a accesskey="3" href="#Installation">Installation</a>
+<li><a accesskey="4" href="#Hello-World">Hello World</a>
+<li><a accesskey="5" href="#Basic-in-Scheme">Basic in Scheme</a>
+<li><a accesskey="6" href="#Basic-in-Artanis">Basic in Artanis</a>
+<li><a accesskey="7" href="#URL-remapping">URL remapping</a>
+<li><a accesskey="8" href="#Layouts-and-Rendering-in-Artanis">Layouts and Rendering in Artanis</a>
+<li><a accesskey="9" href="#Database">Database</a>
+<li><a href="#MIME">MIME</a>
+<li><a href="#Sessions">Sessions</a>
+<li><a href="#Cookies">Cookies</a>
+<li><a href="#Authentication">Authentication</a>
+<li><a href="#Cache">Cache</a>
+<li><a href="#Appendix-A-GNU-Free-Documentation-License">Appendix A GNU Free Documentation License</a>
+
+</li></ul>
+<p>--- The Detailed Node Listing ---
+
+<p>Introduction
+
+</p>
+<ul class="menu">
+<li><a href="#Conventions">Conventions</a>
+
+</li></ul>
+<p>Installation
+
+</p>
+<ul class="menu">
+<li><a href="#For-users">For users</a>
+<li><a href="#For-contributors">For contributors</a>
+<li><a href="#Configuration">Configuration</a>
+
+</li></ul>
+<p>Hello World
+
+</p>
+<ul class="menu">
+<li><a href="#Use-Guile-REPL-and-verify-Artanis-installation">Use Guile REPL and verify Artanis installation</a>
+<li><a href="#Simple-HTTP-server">Simple HTTP server</a>
+<li><a href="#Try-simple-URL-remapping">Try simple URL remapping</a>
+<li><a href="#More-complex-URL-remapping">More complex URL remapping</a>
+<li><a href="#Database-operating">Database operating</a>
+
+</li></ul>
+<p>More complex URL remapping
+
+</p>
+<ul class="menu">
+<li><a href="#Regex-in-URL-remapping">Regex in URL remapping</a>
+Basic in Scheme
+
+<li><a href="#For-newbies">For newbies</a>
+<li><a href="#For-Pythoners">For Pythoners</a>
+<li><a href="#For-Rubyist">For Rubyist</a>
+<li><a href="#For-deep-learners">For deep learners</a>
+
+</li></ul>
+<p>Basic in Artanis
+
+</p>
+<ul class="menu">
+<li><a href="#How-to-run-a-site-with-Artanis">How to run a site with Artanis</a>
+<li><a href="#Initialization">Initialization</a>
+<li><a href="#Registering-handler-of-HTTP-methods">Registering handler of HTTP methods</a>
+<li><a href="#Emit-Response">Emit Response</a>
+<li><a href="#Running-server">Running server</a>
+<li><a href="#Working-with-Nginx">Working with Nginx</a>
+
+</li></ul>
+<p>URL remapping
+
+</p>
+<ul class="menu">
+<li><a href="#Introductionx">Introduction</a>
+<li><a href="#URL-handling">URL handling</a>
+<li><a href="#Get-params-from-URL">Get params from URL</a>
+<li><a href="#Redirect-link">Redirect link</a>
+
+</li></ul>
+<p>Layouts and Rendering in Artanis
+
+</p>
+<ul class="menu">
+<li><a href="#Templating">Templating</a>
+<li><a href="#The-design-philosophy">The design philosophy</a>
+<li><a href="#APIs">APIs</a>
+
+</li></ul>
+<p>The design philosophy
+
+</p>
+<ul class="menu">
+<li><a href="#For-Pythonersx">For Pythoners</a>
+<li><a href="#For-Rubyists">For Rubyists</a>
+
+</li></ul>
+<p>APIs
+
+</p>
+<ul class="menu">
+<li><a href="#Embedded-Templating">Embedded Templating</a>
+<li><a href="#SXML-Templating">SXML Templating</a>
+Database
+
+<li><a href="#ORM-problem">ORM problem</a>
+<li><a href="#SSQL-_0028experimental_0029">SSQL (experimental)</a>
+<li><a href="#FPRM-_0028experimental_0029">FPRM (experimental)</a>
+<li><a href="#SQL-Mapping-_0028experimental_0029">SQL Mapping (experimental)</a>
+
+</li></ul>
+<p>FPRM (experimental)
+
+</p>
+<ul class="menu">
+<li><a href="#Connect-to-DB-server">Connect to DB server</a>
+<li><a href="#Map-DB-table">Map DB table</a>
+<li><a href="#Create-table">Create table</a>
+<li><a href="#Get-columns-from-table">Get columns from table</a>
+<li><a href="#Set-values-to-table">Set values to table</a>
+<li><a href="#Drop-a-table">Drop a table</a>
+<li><a href="#Check-existance-of-table">Check existance of table</a>
+<li><a href="#Get-schema-of-a-table">Get schema of a table</a>
+MIME
+
+<li><a href="#JSON">JSON</a>
+<li><a href="#CSV">CSV</a>
+<li><a href="#XML">XML</a>
+<li><a href="#SXML">SXML</a>
+</ul>
+
+<div class="node">
+<a name="Introduction"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#License">License</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Top">Top</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
+
+</div>
 
 <h2 class="chapter">1 Introduction</h2>
 
-<p>Artanis is a web application framework(WAF) written in <a href="http://www.gnu.org/software/guile/">Guile Scheme</a>.
+<pre class="example">     Copyright (C)  2015  Mu Lei known as NalaGinrut.
+     Permission is granted to copy, distribute and/or modify this document
+     under the terms of the GNU Free Documentation License, Version 1.3
+     or any later version published by the Free Software Foundation;
+     with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
+     Texts.  A copy of the license is included in the section entitled ``GNU
+     Free Documentation License''.
+</pre>
+   <p>Artanis is a web application framework(WAF) written in <a href="http://www.gnu.org/software/guile/">Guile Scheme</a>.
 
    <p>A <a href="http://en.wikipedia.org/wiki/Web_application_framework">web application framework (WAF)</a> is a software framework that is designed to support the development of dynamic websites,
 web applications, web services and web resources. 
@@ -44,7 +295,16 @@ Guile is also an interpreter and compiler for other dynamic programming language
    <p><a href="http://en.wikipedia.org/wiki/Scheme_%28programming_language%29">Scheme</a> is a functional programming language and one of the two main dialects of the programming language <a href="http://en.wikipedia.org/wiki/Lisp_(programming_language)">Lisp</a>. 
 Scheme follows a minimalist design philosophy specifying a small standard core with powerful tools for language extension.
 
-<p><a name="Conventions"></a>
+<ul class="menu">
+<li><a accesskey="1" href="#Conventions">Conventions</a>
+</ul>
+
+<div class="node">
+<a name="Conventions"></a>
+<p><hr>
+Up:&nbsp;<a rel="up" accesskey="u" href="#Introduction">Introduction</a>
+
+</div>
 
 <h3 class="section">1.1 Conventions</h3>
 
@@ -53,22 +313,48 @@ Scheme follows a minimalist design philosophy specifying a small standard core w
 </pre>
    <p>If you're not comfortable with this syntax, maybe you're a newbie of Scheme, and I would recommend you read <a href="#Basic-in-Scheme">Basic in Scheme</a> chapter first.
 
-<p><a name="License"></a>
+<div class="node">
+<a name="License"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Installation">Installation</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Introduction">Introduction</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
+
+</div>
 
 <h2 class="chapter">2 License</h2>
 
 <p>Artanis is <a href="http://www.gnu.org/philosophy/free-sw.html">Free Software</a>. Artanis is under the terms of the GNU Lesser General Public License version 3 or later. 
 See the files COPYING.LESSER and COPYING.
 
-   <p>The manual you’re now reading is published under the terms of the <a href="http://www.gnu.org/copyleft/fdl.html">GNU Free Documentation License</a>.
+   <p>The manual you’re now reading is published under the terms of the <a href="http://www.gnu.org/copyleft/fdl.html">GNU Free Documentation License</a> 1.3 or later.
 
    <p><em>You must be aware there is no warranty whatsoever for Artanis. This is described in full in the licenses.</em>
 
-<p><a name="Installation"></a>
+<div class="node">
+<a name="Installation"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Hello-World">Hello World</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#License">License</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
+
+</div>
 
 <h2 class="chapter">3 Installation</h2>
 
-<p><a name="For-users"></a>
+<ul class="menu">
+<li><a accesskey="1" href="#For-users">For users</a>
+<li><a accesskey="2" href="#For-contributors">For contributors</a>
+<li><a accesskey="3" href="#Configuration">Configuration</a>
+</ul>
+
+<div class="node">
+<a name="For-users"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#For-contributors">For contributors</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Installation">Installation</a>
+
+</div>
 
 <h3 class="section">3.1 For users</h3>
 
@@ -134,7 +420,14 @@ See the files COPYING.LESSER and COPYING.
      cd artanis-0.0.1 &amp;&amp; ./configure &amp;&amp; make
      sudo make install
 </pre>
-   <p><a name="For-contributors"></a>
+   <div class="node">
+<a name="For-contributors"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Configuration">Configuration</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#For-users">For users</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Installation">Installation</a>
+
+</div>
 
 <h3 class="section">3.2 For contributors</h3>
 
@@ -146,7 +439,13 @@ See the files COPYING.LESSER and COPYING.
 
 <pre class="example">     git clone git@github.com:NalaGinrut/artanis.git
 </pre>
-   <p><a name="Configuration"></a>
+   <div class="node">
+<a name="Configuration"></a>
+<p><hr>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#For-contributors">For contributors</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Installation">Installation</a>
+
+</div>
 
 <h3 class="section">3.3 Configuration</h3>
 
@@ -158,11 +457,32 @@ See the files COPYING.LESSER and COPYING.
 </pre>
    <p>(To be continued <small class="dots">...</small>)
 
-<p><a name="Hello-World"></a>
+<div class="node">
+<a name="Hello-World"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Basic-in-Scheme">Basic in Scheme</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Installation">Installation</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
+
+</div>
 
 <h2 class="chapter">4 Hello World</h2>
 
-<p><a name="Use-Guile-REPL-and-verify-Artanis-installation"></a>
+<ul class="menu">
+<li><a accesskey="1" href="#Use-Guile-REPL-and-verify-Artanis-installation">Use Guile REPL and verify Artanis installation</a>
+<li><a accesskey="2" href="#Simple-HTTP-server">Simple HTTP server</a>
+<li><a accesskey="3" href="#Try-simple-URL-remapping">Try simple URL remapping</a>
+<li><a accesskey="4" href="#More-complex-URL-remapping">More complex URL remapping</a>
+<li><a accesskey="5" href="#Database-operating">Database operating</a>
+</ul>
+
+<div class="node">
+<a name="Use-Guile-REPL-and-verify-Artanis-installation"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Simple-HTTP-server">Simple HTTP server</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Hello-World">Hello World</a>
+
+</div>
 
 <h3 class="section">4.1 Use Guile REPL and verify Artanis installation</h3>
 
@@ -191,7 +511,14 @@ See the files COPYING.LESSER and COPYING.
    <p>The expected output should be similar to this:
 <pre class="example">     $1 = "Artanis-0.0.1"
 </pre>
-   <p><a name="Simple-HTTP-server"></a>
+   <div class="node">
+<a name="Simple-HTTP-server"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Try-simple-URL-remapping">Try simple URL remapping</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Use-Guile-REPL-and-verify-Artanis-installation">Use Guile REPL and verify Artanis installation</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Hello-World">Hello World</a>
+
+</div>
 
 <h3 class="section">4.2 Simple HTTP server</h3>
 
@@ -204,7 +531,14 @@ See the files COPYING.LESSER and COPYING.
    <p>Assuming there's a file named "index.html" in the current path. Now you may try <a href="http://localhost:3000/index.html">http://localhost:3000/index.html</a> in your browser. 
 It's simple to fetch static file with the path in URL: <a href="http://localhost:3000/path/filename">http://localhost:3000/path/filename</a>
 
-<p><a name="Try-simple-URL-remapping"></a>
+<div class="node">
+<a name="Try-simple-URL-remapping"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#More-complex-URL-remapping">More complex URL remapping</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Simple-HTTP-server">Simple HTTP server</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Hello-World">Hello World</a>
+
+</div>
 
 <h3 class="section">4.3 Try simple URL remapping</h3>
 
@@ -233,7 +567,14 @@ It's simple to fetch static file with the path in URL: <a href="http://localhost
 
    <p>You may type Ctrl+C to quit the server according to the hint from your screen.
 
-<p><a name="More-complex-URL-remapping"></a>
+<div class="node">
+<a name="More-complex-URL-remapping"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Database-operating">Database operating</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Try-simple-URL-remapping">Try simple URL remapping</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Hello-World">Hello World</a>
+
+</div>
 
 <h3 class="section">4.4 More complex URL remapping</h3>
 
@@ -255,7 +596,16 @@ It's simple to fetch static file with the path in URL: <a href="http://localhost
    <p>And <em>format</em> is a Scheme lib function. It is similar to <em>sprintf</em> in C language, which outputs with a formatted pattern. 
 The second argument #f (means FALSE) indicates that returning the result as string type rather than printing out.
 
-<p><a name="Regex-in-URL-remapping"></a>
+<ul class="menu">
+<li><a accesskey="1" href="#Regex-in-URL-remapping">Regex in URL remapping</a>
+</ul>
+
+<div class="node">
+<a name="Regex-in-URL-remapping"></a>
+<p><hr>
+Up:&nbsp;<a rel="up" accesskey="u" href="#More-complex-URL-remapping">More complex URL remapping</a>
+
+</div>
 
 <h4 class="subsection">4.4.1 Regex in URL remapping</h4>
 
@@ -264,7 +614,13 @@ The second argument #f (means FALSE) indicates that returning the result as stri
 </pre>
    <p><em>static-page-emitter</em> is an Artanis API which emits a static file like images to the client.
 
-<p><a name="Database-operating"></a>
+<div class="node">
+<a name="Database-operating"></a>
+<p><hr>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#More-complex-URL-remapping">More complex URL remapping</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Hello-World">Hello World</a>
+
+</div>
 
 <h3 class="section">4.5 Database operating</h3>
 
@@ -329,7 +685,14 @@ You can use DB without running a server.
 
    <p><em>Exercise: Return a beautiful table in HTML rather than using object-&gt;string.</em>
 
-<p><a name="Basic-in-Scheme"></a>
+<div class="node">
+<a name="Basic-in-Scheme"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Basic-in-Artanis">Basic in Artanis</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Hello-World">Hello World</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
+
+</div>
 
 <h2 class="chapter">5 Basic in Scheme</h2>
 
@@ -345,7 +708,20 @@ it still derives its power from a small set of key concepts. Early implementatio
 Guile Scheme is trying to implement sophisticated compiler that generate better optimized code, and even a plan for AOT compiler generated
 native code in the future.
 
-<p><a name="For-newbies"></a>
+<ul class="menu">
+<li><a accesskey="1" href="#For-newbies">For newbies</a>
+<li><a accesskey="2" href="#For-Pythoners">For Pythoners</a>
+<li><a accesskey="3" href="#For-Rubyist">For Rubyist</a>
+<li><a accesskey="4" href="#For-deep-learners">For deep learners</a>
+</ul>
+
+<div class="node">
+<a name="For-newbies"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#For-Pythoners">For Pythoners</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Basic-in-Scheme">Basic in Scheme</a>
+
+</div>
 
 <h3 class="section">5.1 For newbies</h3>
 
@@ -361,7 +737,14 @@ native code in the future.
 
    <p>Please don't spend too much time on these tutorials, the purose is to let newbies get a little familiar with the grammar of Scheme.
 
-<p><a name="For-Pythoners"></a>
+<div class="node">
+<a name="For-Pythoners"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#For-Rubyist">For Rubyist</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#For-newbies">For newbies</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Basic-in-Scheme">Basic in Scheme</a>
+
+</div>
 
 <h3 class="section">5.2 For Pythoners</h3>
 
@@ -374,7 +757,14 @@ native code in the future.
 
    <p>Still, please don't spend too much time on them, the purose is to let newbies get a little familiar with the grammar of Scheme.
 
-<p><a name="For-Rubyist"></a>
+<div class="node">
+<a name="For-Rubyist"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#For-deep-learners">For deep learners</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#For-Pythoners">For Pythoners</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Basic-in-Scheme">Basic in Scheme</a>
+
+</div>
 
 <h3 class="section">5.3 For Rubyist</h3>
 
@@ -383,7 +773,13 @@ native code in the future.
 <li><a href="http://wiki.call-cc.org/chicken-for-ruby-programmers">Scheme for ruby programmers</a>
         </ol>
 
-<p><a name="For-deep-learners"></a>
+<div class="node">
+<a name="For-deep-learners"></a>
+<p><hr>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#For-Rubyist">For Rubyist</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Basic-in-Scheme">Basic in Scheme</a>
+
+</div>
 
 <h3 class="section">5.4 For deep learners</h3>
 
@@ -402,11 +798,33 @@ native code in the future.
 
    <p>Hold your horses. ;-)
 
-<p><a name="Basic-in-Artanis"></a>
+<div class="node">
+<a name="Basic-in-Artanis"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#URL-remapping">URL remapping</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Basic-in-Scheme">Basic in Scheme</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
+
+</div>
 
 <h2 class="chapter">6 Basic in Artanis</h2>
 
-<p><a name="How-to-run-a-site-with-Artanis"></a>
+<ul class="menu">
+<li><a accesskey="1" href="#How-to-run-a-site-with-Artanis">How to run a site with Artanis</a>
+<li><a accesskey="2" href="#Initialization">Initialization</a>
+<li><a accesskey="3" href="#Registering-handler-of-HTTP-methods">Registering handler of HTTP methods</a>
+<li><a accesskey="4" href="#Emit-Response">Emit Response</a>
+<li><a accesskey="5" href="#Running-server">Running server</a>
+<li><a accesskey="6" href="#Working-with-Nginx">Working with Nginx</a>
+</ul>
+
+<div class="node">
+<a name="How-to-run-a-site-with-Artanis"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Initialization">Initialization</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Basic-in-Artanis">Basic in Artanis</a>
+
+</div>
 
 <h3 class="section">6.1 How to run a site with Artanis</h3>
 
@@ -418,7 +836,14 @@ native code in the future.
      (get "/hello" (lambda () "hello world"))
      (run)
 </pre>
-   <p><a name="Initialization"></a>
+   <div class="node">
+<a name="Initialization"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Registering-handler-of-HTTP-methods">Registering handler of HTTP methods</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#How-to-run-a-site-with-Artanis">How to run a site with Artanis</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Basic-in-Artanis">Basic in Artanis</a>
+
+</div>
 
 <h3 class="section">6.2 Initialization</h3>
 
@@ -431,13 +856,27 @@ native code in the future.
 
    <p><tt>#:exclude</tt> specifies the types should be excluded. This is useful when you want to generate image files dynamically. Even js/css could be generated dynamically, depends your design.
 
-<p><a name="Registering-handler-of-HTTP-methods"></a>
+<div class="node">
+<a name="Registering-handler-of-HTTP-methods"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Emit-Response">Emit Response</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Initialization">Initialization</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Basic-in-Artanis">Basic in Artanis</a>
+
+</div>
 
 <h3 class="section">6.3 Registering handler of HTTP methods</h3>
 
 <p>Please read <a href="#URL-handling">URL handling</a>.
 
-<p><a name="Emit-Response"></a>
+<div class="node">
+<a name="Emit-Response"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Running-server">Running server</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Registering-handler-of-HTTP-methods">Registering handler of HTTP methods</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Basic-in-Artanis">Basic in Artanis</a>
+
+</div>
 
 <h3 class="section">6.4 Emit Response</h3>
 
@@ -457,7 +896,14 @@ native code in the future.
 
    <p>[headers] is the customized HTTP headers.
 
-<p><a name="Running-server"></a>
+<div class="node">
+<a name="Running-server"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Working-with-Nginx">Working with Nginx</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Emit-Response">Emit Response</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Basic-in-Artanis">Basic in Artanis</a>
+
+</div>
 
 <h3 class="section">6.5 Running server</h3>
 
@@ -484,7 +930,13 @@ native code in the future.
 
    <p><tt>#:db-name</tt> specify DB name.
 
-<p><a name="Working-with-Nginx"></a>
+<div class="node">
+<a name="Working-with-Nginx"></a>
+<p><hr>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Running-server">Running server</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Basic-in-Artanis">Basic in Artanis</a>
+
+</div>
 
 <h3 class="section">6.6 Working with Nginx</h3>
 
@@ -508,18 +960,45 @@ native code in the future.
    <p>And run artanis:
 <pre class="example">     (run #:port 1234)
 </pre>
-   <p><a name="URL-remapping"></a>
+   <div class="node">
+<a name="URL-remapping"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Layouts-and-Rendering-in-Artanis">Layouts and Rendering in Artanis</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Basic-in-Artanis">Basic in Artanis</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
+
+</div>
 
 <h2 class="chapter">7 URL remapping</h2>
 
-<p><a name="Introductionx"></a>
+<ul class="menu">
+<li><a accesskey="1" href="#Introductionx">Introduction</a>
+<li><a accesskey="2" href="#URL-handling">URL handling</a>
+<li><a accesskey="3" href="#Get-params-from-URL">Get params from URL</a>
+<li><a accesskey="4" href="#Redirect-link">Redirect link</a>
+</ul>
+
+<div class="node">
+<a name="Introductionx"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#URL-handling">URL handling</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#URL-remapping">URL remapping</a>
+
+</div>
 
 <h3 class="section">7.1 Introduction</h3>
 
 <p>URL remapping is used to modify a web URL's appearance to provide short, pretty or fancy, search engine friendly URLs. 
 It's largly used in modern WAF(web application framework) to provide RESTful web APIs.
 
-<p><a name="URL-handling"></a>
+<div class="node">
+<a name="URL-handling"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Get-params-from-URL">Get params from URL</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Introductionx">Introductionx</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#URL-remapping">URL remapping</a>
+
+</div>
 
 <h3 class="section">7.2 URL handling</h3>
 
@@ -552,7 +1031,14 @@ It's largly used in modern WAF(web application framework) to provide RESTful web
    <p>For POST method:
 <pre class="example">     (post "/auth" (lambda (rc) ...))
 </pre>
-   <p><a name="Get-params-from-URL"></a>
+   <div class="node">
+<a name="Get-params-from-URL"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Redirect-link">Redirect link</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#URL-handling">URL handling</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#URL-remapping">URL remapping</a>
+
+</div>
 
 <h3 class="section">7.3 Get params from URL</h3>
 
@@ -560,7 +1046,13 @@ It's largly used in modern WAF(web application framework) to provide RESTful web
      ;; e.g
      (get "/hello/:who" (lambda (rc) (params rc "who")))
 </pre>
-<p><a name="Redirect-link"></a>
+<div class="node">
+<a name="Redirect-link"></a>
+<p><hr>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Get-params-from-URL">Get params from URL</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#URL-remapping">URL remapping</a>
+
+</div>
 
 <h3 class="section">7.4 Redirect link</h3>
 
@@ -569,21 +1061,58 @@ It's largly used in modern WAF(web application framework) to provide RESTful web
      (get "/aaa" (lambda (rc) (redirect-to rc "/bbb")))
      (get "/bbb" (lambda () "ok bbb"))
 </pre>
-<p><a name="Layouts-and-Rendering-in-Artanis"></a>
+<div class="node">
+<a name="Layouts-and-Rendering-in-Artanis"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Database">Database</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#URL-remapping">URL remapping</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
+
+</div>
 
 <h2 class="chapter">8 Layouts and Rendering in Artanis</h2>
 
-<p><a name="Templating"></a>
+<ul class="menu">
+<li><a accesskey="1" href="#Templating">Templating</a>
+<li><a accesskey="2" href="#The-design-philosophy">The design philosophy</a>
+<li><a accesskey="3" href="#APIs">APIs</a>
+</ul>
+
+<div class="node">
+<a name="Templating"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#The-design-philosophy">The design philosophy</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Layouts-and-Rendering-in-Artanis">Layouts and Rendering in Artanis</a>
+
+</div>
 
 <h3 class="section">8.1 Templating</h3>
 
 <p>Templating provides a way to mix programming code into HTML.
 
-<p><a name="The-design-philosophy"></a>
+<div class="node">
+<a name="The-design-philosophy"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#APIs">APIs</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Templating">Templating</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Layouts-and-Rendering-in-Artanis">Layouts and Rendering in Artanis</a>
+
+</div>
 
 <h3 class="section">8.2 The design philosophy</h3>
 
-<p><a name="For-Pythonersx"></a>
+<ul class="menu">
+<li><a accesskey="1" href="#For-Pythonersx">For Pythoners</a>
+<li><a accesskey="2" href="#For-Rubyists">For Rubyists</a>
+</ul>
+
+<div class="node">
+<a name="For-Pythonersx"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#For-Rubyists">For Rubyists</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#The-design-philosophy">The design philosophy</a>
+
+</div>
 
 <h4 class="subsection">8.2.1 For Pythoners</h4>
 
@@ -595,7 +1124,13 @@ It's largly used in modern WAF(web application framework) to provide RESTful web
 
    <p>The philosophy of Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce the unnecessary complexities. <a href="http://en.wikipedia.org/wiki/KISS_principle">KISS</a>.
 
-<p><a name="For-Rubyists"></a>
+<div class="node">
+<a name="For-Rubyists"></a>
+<p><hr>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#For-Pythonersx">For Pythonersx</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#The-design-philosophy">The design philosophy</a>
+
+</div>
 
 <h4 class="subsection">8.2.2 For Rubyists</h4>
 
@@ -613,7 +1148,13 @@ It's largly used in modern WAF(web application framework) to provide RESTful web
      &lt;% "&lt;div class='full'&gt;&lt;p&gt;...&lt;/p&gt;&lt;/div&gt;" %&gt;
      &lt;% ) %&gt;
 </pre>
-   <p><a name="APIs"></a>
+   <div class="node">
+<a name="APIs"></a>
+<p><hr>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#The-design-philosophy">The design philosophy</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Layouts-and-Rendering-in-Artanis">Layouts and Rendering in Artanis</a>
+
+</div>
 
 <h3 class="section">8.3 APIs</h3>
 
@@ -629,7 +1170,18 @@ template string, you should pass (the-environment).
 
    <p>There're two kinds of different templating:
 
-<p><a name="Embedded-Templating"></a>
+<ul class="menu">
+<li><a accesskey="1" href="#Embedded-Templating">Embedded Templating</a>
+<li><a accesskey="2" href="#SXML-Templating">SXML Templating</a>
+</ul>
+
+<div class="node">
+<a name="Embedded-Templating"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#SXML-Templating">SXML Templating</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#APIs">APIs</a>
+
+</div>
 
 <h4 class="subsection">8.3.1 Embedded Templating</h4>
 
@@ -657,7 +1209,13 @@ Write a tpl file named "my.tpl":
 
    <p>Then see <a href="http://localhost:3000/test">http://localhost:3000/test</a> in your browser.
 
-<p><a name="SXML-Templating"></a>
+<div class="node">
+<a name="SXML-Templating"></a>
+<p><hr>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Embedded-Templating">Embedded Templating</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#APIs">APIs</a>
+
+</div>
 
 <h4 class="subsection">8.3.2 SXML Templating</h4>
 
@@ -676,11 +1234,31 @@ Write a tpl file named "my.tpl":
 <pre class="example">     (let ((content "hello world"))
        (tpl-&gt;response `(html (body (p (@ (id "content")) ,content)))))
 </pre>
-   <p><a name="Database"></a>
+   <div class="node">
+<a name="Database"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#MIME">MIME</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Layouts-and-Rendering-in-Artanis">Layouts and Rendering in Artanis</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
+
+</div>
 
 <h2 class="chapter">9 Database</h2>
 
-<p><a name="ORM-problem"></a>
+<ul class="menu">
+<li><a accesskey="1" href="#ORM-problem">ORM problem</a>
+<li><a accesskey="2" href="#SSQL-_0028experimental_0029">SSQL (experimental)</a>
+<li><a accesskey="3" href="#FPRM-_0028experimental_0029">FPRM (experimental)</a>
+<li><a accesskey="4" href="#SQL-Mapping-_0028experimental_0029">SQL Mapping (experimental)</a>
+</ul>
+
+<div class="node">
+<a name="ORM-problem"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#SSQL-_0028experimental_0029">SSQL (experimental)</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Database">Database</a>
+
+</div>
 
 <h3 class="section">9.1 ORM problem</h3>
 
@@ -688,7 +1266,7 @@ Write a tpl file named "my.tpl":
 
    <p>Of course, Guile has it's own Object System named <a href="https://www.gnu.org/software/guile/manual/html_node/GOOPS.html#GOOPS">GOOPS</a>. Users may use OOP with it. And it's possible to implement ORM in Artanis as well.
 
-   <p>But, perosnally, I'm not OOP fans. When I picked up FP, I realized I don't have to use OOP anymore.
+   <p>However, FP fans realized that they don't have to use OOP if they can use FP features reasonably.
 
    <p>Besides, there're some criticism pointing to ORM:
      <ul>
@@ -741,8 +1319,15 @@ Write a tpl file named "my.tpl":
      <li>SQL Mapping (1,3,6)
 </ul>
 
-<p><a name="SSQL-(experimental)"></a>
+<div class="node">
+<a name="SSQL-(experimental)"></a>
 <a name="SSQL-_0028experimental_0029"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#FPRM-_0028experimental_0029">FPRM (experimental)</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#ORM-problem">ORM problem</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Database">Database</a>
+
+</div>
 
 <h3 class="section">9.2 SSQL (experimental)</h3>
 
@@ -759,8 +1344,15 @@ Write a tpl file named "my.tpl":
 <pre class="example">     (-&gt;sql select * from 'Persons (where #:city "Shenzhen"))
      (-&gt;sql select '(age name) from 'Persons (where "age &lt; 30"))
 </pre>
-   <p><a name="FPRM-(experimental)"></a>
+   <div class="node">
+<a name="FPRM-(experimental)"></a>
 <a name="FPRM-_0028experimental_0029"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#SQL-Mapping-_0028experimental_0029">SQL Mapping (experimental)</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#SSQL-_0028experimental_0029">SSQL (experimental)</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Database">Database</a>
+
+</div>
 
 <h3 class="section">9.3 FPRM (experimental)</h3>
 
@@ -768,7 +1360,24 @@ Write a tpl file named "my.tpl":
 
    <p><em>FPRM is still experimental and work-in-progress.</em>
 
-<p><a name="Connect-to-DB-server"></a>
+<ul class="menu">
+<li><a accesskey="1" href="#Connect-to-DB-server">Connect to DB server</a>
+<li><a accesskey="2" href="#Map-DB-table">Map DB table</a>
+<li><a accesskey="3" href="#Create-table">Create table</a>
+<li><a accesskey="4" href="#Get-columns-from-table">Get columns from table</a>
+<li><a accesskey="5" href="#Set-values-to-table">Set values to table</a>
+<li><a accesskey="6" href="#Drop-a-table">Drop a table</a>
+<li><a accesskey="7" href="#Check-existance-of-table">Check existance of table</a>
+<li><a accesskey="8" href="#Get-schema-of-a-table">Get schema of a table</a>
+</ul>
+
+<div class="node">
+<a name="Connect-to-DB-server"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Map-DB-table">Map DB table</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#FPRM-_0028experimental_0029">FPRM (experimental)</a>
+
+</div>
 
 <h4 class="subsection">9.3.1 Connect to DB server</h4>
 
@@ -808,7 +1417,14 @@ Write a tpl file named "my.tpl":
 <li><tt>#:port</tt> specifies the socket port. 
 </ul>
 
-<p><a name="Map-DB-table"></a>
+<div class="node">
+<a name="Map-DB-table"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Create-table">Create table</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Connect-to-DB-server">Connect to DB server</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#FPRM-_0028experimental_0029">FPRM (experimental)</a>
+
+</div>
 
 <h4 class="subsection">9.3.2 Map DB table</h4>
 
@@ -818,7 +1434,14 @@ Write a tpl file named "my.tpl":
 
    <p>map-table-from-DB returns a function, we named it <strong>my-table</strong> here for explaining.
 
-<p><a name="Create-table"></a>
+<div class="node">
+<a name="Create-table"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Get-columns-from-table">Get columns from table</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Map-DB-table">Map DB table</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#FPRM-_0028experimental_0029">FPRM (experimental)</a>
+
+</div>
 
 <h4 class="subsection">9.3.3 Create table</h4>
 
@@ -850,7 +1473,14 @@ Write a tpl file named "my.tpl":
 <li><tt>#:engine</tt> specifies the engine, depends on the dbd you chosen. 
 </ul>
 
-<p><a name="Get-columns-from-table"></a>
+<div class="node">
+<a name="Get-columns-from-table"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Set-values-to-table">Set values to table</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Create-table">Create table</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#FPRM-_0028experimental_0029">FPRM (experimental)</a>
+
+</div>
 
 <h4 class="subsection">9.3.4 Get columns from table</h4>
 
@@ -883,7 +1513,17 @@ Write a tpl file named "my.tpl":
 <li><tt>#:order-by</tt> used to sort the result-set by one or more columns. 
 </ul>
 
-<p><a name="Set-values-to-table"></a>
+   <p>For example, to get Lastname and City column, and return the first result.
+<pre class="example">     (my-table 'get 'Persons #:columns '(Lastname City) #:ret 'top)
+</pre>
+   <div class="node">
+<a name="Set-values-to-table"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Drop-a-table">Drop a table</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Get-columns-from-table">Get columns from table</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#FPRM-_0028experimental_0029">FPRM (experimental)</a>
+
+</div>
 
 <h4 class="subsection">9.3.5 Set values to table</h4>
 
@@ -894,13 +1534,27 @@ Write a tpl file named "my.tpl":
    <p>For example:
 <pre class="example">     (mtable 'set 'Persons #:name "nala" #:age 99 #:email "nala@artanis.com")
 </pre>
-   <p><a name="Drop-a-table"></a>
+   <div class="node">
+<a name="Drop-a-table"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Check-existance-of-table">Check existance of table</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Set-values-to-table">Set values to table</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#FPRM-_0028experimental_0029">FPRM (experimental)</a>
+
+</div>
 
 <h4 class="subsection">9.3.6 Drop a table</h4>
 
 <pre class="example">     (mtable 'drop table-name)
 </pre>
-<p><a name="Check-existance-of-table"></a>
+<div class="node">
+<a name="Check-existance-of-table"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Get-schema-of-a-table">Get schema of a table</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Drop-a-table">Drop a table</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#FPRM-_0028experimental_0029">FPRM (experimental)</a>
+
+</div>
 
 <h4 class="subsection">9.3.7 Check existance of table</h4>
 
@@ -912,7 +1566,13 @@ Write a tpl file named "my.tpl":
    <p>For example:
 <pre class="example">     (mtable 'exists? 'Persons 'city 'lastname)
 </pre>
-   <p><a name="Get-schema-of-a-table"></a>
+   <div class="node">
+<a name="Get-schema-of-a-table"></a>
+<p><hr>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Check-existance-of-table">Check existance of table</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#FPRM-_0028experimental_0029">FPRM (experimental)</a>
+
+</div>
 
 <h4 class="subsection">9.3.8 Get schema of a table</h4>
 
@@ -920,14 +1580,27 @@ Write a tpl file named "my.tpl":
 </pre>
    <p><em>NOTE: all the returned name of schema will be downcased.</em>
 
-<p><a name="SQL-Mapping-(experimental)"></a>
+<div class="node">
+<a name="SQL-Mapping-(experimental)"></a>
 <a name="SQL-Mapping-_0028experimental_0029"></a>
+<p><hr>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#FPRM-_0028experimental_0029">FPRM (experimental)</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Database">Database</a>
+
+</div>
 
 <h3 class="section">9.4 SQL Mapping (experimental)</h3>
 
 <p>To be continued <small class="dots">...</small>
 
-<p><a name="MIME"></a>
+<div class="node">
+<a name="MIME"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Sessions">Sessions</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Database">Database</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
+
+</div>
 
 <h2 class="chapter">10 MIME</h2>
 
@@ -935,7 +1608,20 @@ Write a tpl file named "my.tpl":
 <pre class="example">     #:mime type ; for registering type
      (:mime rc body) ; for emit the reponse with the proper MIME
 </pre>
-   <p><a name="JSON"></a>
+   <ul class="menu">
+<li><a accesskey="1" href="#JSON">JSON</a>
+<li><a accesskey="2" href="#CSV">CSV</a>
+<li><a accesskey="3" href="#XML">XML</a>
+<li><a accesskey="4" href="#SXML">SXML</a>
+</ul>
+
+<div class="node">
+<a name="JSON"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#CSV">CSV</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#MIME">MIME</a>
+
+</div>
 
 <h3 class="section">10.1 JSON</h3>
 
@@ -946,7 +1632,14 @@ You may use #:mime method to handle JSON:
          (let ((j (json (object ("name" "nala") ("age" "15")))))
            (:mime rc j))))
 </pre>
-   <p><a name="CSV"></a>
+   <div class="node">
+<a name="CSV"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#XML">XML</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#JSON">JSON</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#MIME">MIME</a>
+
+</div>
 
 <h3 class="section">10.2 CSV</h3>
 
@@ -955,7 +1648,14 @@ You may use #:mime method to handle JSON:
        (lambda (rc)
          (:mime rc '(("a" "1") ("b" "2")))))
 </pre>
-   <p><a name="XML"></a>
+   <div class="node">
+<a name="XML"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#SXML">SXML</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#CSV">CSV</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#MIME">MIME</a>
+
+</div>
 
 <h3 class="section">10.3 XML</h3>
 
@@ -964,7 +1664,13 @@ You may use #:mime method to handle JSON:
        (lambda (rc)
          (:mime rc '(*TOP* (WEIGHT (@ (unit "pound")) (NET (@ (certified "certified")) "67") (GROSS "95"))))))
 </pre>
-   <p><a name="SXML"></a>
+   <div class="node">
+<a name="SXML"></a>
+<p><hr>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#XML">XML</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#MIME">MIME</a>
+
+</div>
 
 <h3 class="section">10.4 SXML</h3>
 
@@ -973,7 +1679,14 @@ You may use #:mime method to handle JSON:
        (lambda (rc)
          (:mime rc '((a 1) (b 2)))))
 </pre>
-   <p><a name="Sessions"></a>
+   <div class="node">
+<a name="Sessions"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Cookies">Cookies</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#MIME">MIME</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
+
+</div>
 
 <h2 class="chapter">11 Sessions</h2>
 
@@ -1002,7 +1715,14 @@ You may use #:mime method to handle JSON:
 <li>'spawn-and-keep spawn a session then keep with the name "sid". 
 </ul>
 
-<p><a name="Cookies"></a>
+<div class="node">
+<a name="Cookies"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Authentication">Authentication</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Sessions">Sessions</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
+
+</div>
 
 <h2 class="chapter">12 Cookies</h2>
 
@@ -1046,7 +1766,14 @@ You may use #:mime method to handle JSON:
      # and
      curl --head localhost:3000/cookie/120
 </pre>
-   <p><a name="Authentication"></a>
+   <div class="node">
+<a name="Authentication"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Cache">Cache</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Cookies">Cookies</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
+
+</div>
 
 <h2 class="chapter">13 Authentication</h2>
 
@@ -1054,13 +1781,26 @@ You may use #:mime method to handle JSON:
 
    <p>To be continued <small class="dots">...</small>
 
-<p><a name="Cache"></a>
+<div class="node">
+<a name="Cache"></a>
+<p><hr>
+Next:&nbsp;<a rel="next" accesskey="n" href="#Appendix-A-GNU-Free-Documentation-License">Appendix A GNU Free Documentation License</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Authentication">Authentication</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
+
+</div>
 
 <h2 class="chapter">14 Cache</h2>
 
 <p>To be continued <small class="dots">...</small>
 
-<p><a name="Appendix-A-GNU-Free-Documentation-License"></a>
+<div class="node">
+<a name="Appendix-A-GNU-Free-Documentation-License"></a>
+<p><hr>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="#Cache">Cache</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
+
+</div>
 
 <h2 class="chapter">15 Appendix A GNU Free Documentation License</h2>
 
