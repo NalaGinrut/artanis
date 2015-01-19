@@ -1,4 +1,4 @@
-((title . "Artanis web-framework")
+((title . "GNU Artanis web-framework")
  (authors "Mu Lei known as NalaGinrut <nalaginrut@gmail.com>")
  (date . 1374652887))
 
