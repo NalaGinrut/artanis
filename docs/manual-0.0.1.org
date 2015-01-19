@@ -43,6 +43,9 @@ In this manual, we'll use this kind of syntax to indicate the usage of API:
 (api-name arg1 arg2 #:key0 val0 ... [optional-arg1 <- default-value1] ...) 
 #+end_src
 If you're not comfortable with this syntax, maybe you're a newbie of Scheme, and I would recommend you read [[Basic in Scheme][Basic in Scheme]] chapter first.
+** No warranty
+We distribute software in the hope that it will be useful, but without any warranty. No author or distributor of this software accepts responsibility to anyone for the consequences of using it or for whether it serves any particular purpose or works at all, unless they say so in writing. This is exactly the same warranty that proprietary software companies offer: none.
+
 * License
 
 Artanis is [[http://www.gnu.org/philosophy/free-sw.html][Free Software]]. Artanis is under the terms of the GNU Lesser General Public License version 3 or later.
