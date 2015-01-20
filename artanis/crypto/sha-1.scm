@@ -1,7 +1,7 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
 ;; Copyright © 2009, 2010, 2012 Göran Weinholt <goran@weinholt.se>
-;; Copyright (C) 2014
-;; Mu Lei known as NalaGinrut <nalaginrut@gmail.com>
+;; Copyright (C) 2014,2015
+;; Mu Lei known as NalaGinrut <mulei@gnu.org>
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a
 ;; copy of this software and associated documentation files (the "Software"),

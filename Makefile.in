@@ -44,7 +44,8 @@ $(MOD_OBJ)/version.go: $(MOD)/version.scm
 $(MOD)/version.scm:
 	@echo "Regenerating artanis/version.scm"
 	$(V) -rm -f $@
-	$(V)$(GUILE) -c '(call-with-output-file "$@" (lambda (port) (format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"Artanis-~a\")" "$(VERSION)")))'
+	$(V) cat .HEAD > $@
+	$(V)$(GUILE) -c '(call-with-output-file "$@" (lambda (port) (seek port 0 SEEK_END)(format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"Artanis-~a\")" "$(VERSION)")))'
 
 .PHONY: clean modules install distclean distclean-mk bin version test
 

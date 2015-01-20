@@ -1,7 +1,7 @@
 ;; guile-csv
-;; Copyright (C) 2008, 2012, 2013, 2014
+;; Copyright (C) 2008, 2012, 2013, 2014, 2015
 ;; Andy Wingo <wingo at pobox dot com>
-;; Nala Ginrut <nalaginrut@gmail.com>
+;; Nala Ginrut <mulei@gnu.org>
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU Lesser General Public License as

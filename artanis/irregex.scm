@@ -1,8 +1,8 @@
 ;;;; irregex.scm -- IrRegular Expressions
 ;;
 ;; Copyright (c) 2005-2012 Alex Shinn.  All rights reserved.
-;; BSD-style license: http://synthcode.com/license.txt
-
+;; The main site here: http://code.google.com/p/irregex/
+;; BSD-style license: http://opensource.org/licenses/BSD-3-Clause
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; At this moment there was a loud ring at the bell, and I could
 ;; hear Mrs. Hudson, our landlady, raising her voice in a wail of
