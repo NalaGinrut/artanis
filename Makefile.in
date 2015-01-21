@@ -45,7 +45,7 @@ $(MOD)/version.scm:
 	@echo "Regenerating artanis/version.scm"
 	$(V) -rm -f $@
 	$(V) cat .HEAD > $@
-	$(V)$(GUILE) -c '(call-with-output-file "$@" (lambda (port) (seek port 0 SEEK_END)(format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"Artanis-~a\")" "$(VERSION)")))'
+	$(V)$(GUILE) -c '(let ((port (open-file "$@" "a")))(format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"Artanis-~a\")~%" "$(VERSION)"))'
 
 .PHONY: clean modules install distclean distclean-mk bin version test
 
