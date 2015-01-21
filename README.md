@@ -23,3 +23,12 @@ http://web-artanis.com/docs/manual-0.0.1.html
 ## Thanks for testing
 * Fedora release 20 (Heisenbug)
   Long Li <atommann AT gmail.com>
+
+* Arch
+  @42cmonkey
+
+* Debian 7.8
+  NalaGinrut
+
+* OpenSUSE 12.2
+  NalaGinrut
