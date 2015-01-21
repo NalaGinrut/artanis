@@ -19,6 +19,7 @@ GUILE := @GUILE@
 VERSION := @PACKAGE_VERSION@
 PREFIX := @prefix@
 INSTALL := install -c
+HEADER := @srcdir@/.HEAD
 CP := cp -frd -P
 V := @
 
@@ -44,7 +45,7 @@ $(MOD_OBJ)/version.go: $(MOD)/version.scm
 $(MOD)/version.scm:
 	@echo "Regenerating artanis/version.scm"
 	$(V) -rm -f $@
-	$(V) cat .HEAD > $@
+	$(V) cat $(HEADER) > $@
 	$(V)$(GUILE) -c '(let ((port (open-file "$@" "a")))(format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"Artanis-~a\")~%" "$(VERSION)"))'
 
 .PHONY: clean modules install distclean distclean-mk bin version test
