@@ -1,13 +1,16 @@
-#+TITLE: Artanis web-framework Manual
+#+TITLE: GNU Artanis web-framework Manual
 #+AUTHOR: Mu Lei known as NalaGinrut
-#+EMAIL: nalaginrut@gmail.com
+#+EMAIL: mulei@gnu.org
 #+LANGUAGE: en
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="../css/manual.css" />
-#+OPTIONS: H:3 toc:t \n:nil ::t |:t ^:nil -:t f:t *:t tex:t d:(HIDE) tags:not-in-toc
 #+STARTUP: hidestar latexpreview
 
+#+TEXINFO_FILENAME: artanis.info
+#+TEXINFO_HEADER: @syncodeindex pg cp
+#+TEXINFO_PRINTED_TITLE: GNU Artanis
+
+#+OPTIONS: H:3 toc:t \n:nil ::t |:t ^:nil -:t f:t *:t tex:t d:(HIDE) tags:not-in-toc
 #+OPTIONS: tex:t          Do the right thing automatically (MathJax)
-#+OPTIONS: tex:nil        Do not process LaTeX fragments at all
 #+OPTIONS: tex:verbatim   Verbatim export, for jsMath or so
 
 * Introduction
@@ -22,7 +25,8 @@ Texts.  A copy of the license is included in the section entitled ``GNU
 Free Documentation License''.
 #+end_src
 
-Artanis is a web application framework(WAF) written in [[http://www.gnu.org/software/guile/][Guile Scheme]].
+
+GNU Artanis is a web application framework(WAF) written in [[http://www.gnu.org/software/guile/][Guile Scheme]].
 
 A [[http://en.wikipedia.org/wiki/Web_application_framework][web application framework (WAF)]] is a software framework that is designed to support the development of dynamic websites,
 web applications, web services and web resources.
@@ -36,7 +40,6 @@ Guile is also an interpreter and compiler for other dynamic programming language
 
 [[http://en.wikipedia.org/wiki/Scheme_%28programming_language%29][Scheme]] is a functional programming language and one of the two main dialects of the programming language [[http://en.wikipedia.org/wiki/Lisp_(programming_language)][Lisp]].
 Scheme follows a minimalist design philosophy specifying a small standard core with powerful tools for language extension.
-
 ** Conventions
 In this manual, we'll use this kind of syntax to indicate the usage of API:
 #+begin_src scheme
@@ -45,18 +48,14 @@ In this manual, we'll use this kind of syntax to indicate the usage of API:
 If you're not comfortable with this syntax, maybe you're a newbie of Scheme, and I would recommend you read [[Basic in Scheme][Basic in Scheme]] chapter first.
 ** No warranty
 We distribute software in the hope that it will be useful, but without any warranty. No author or distributor of this software accepts responsibility to anyone for the consequences of using it or for whether it serves any particular purpose or works at all, unless they say so in writing. This is exactly the same warranty that proprietary software companies offer: none.
-
 * License
-
-Artanis is [[http://www.gnu.org/philosophy/free-sw.html][Free Software]]. Artanis is under the terms of the GNU Lesser General Public License version 3 or later.
-See the files COPYING.LESSER and COPYING.
+GNU Artanis is [[http://www.gnu.org/philosophy/free-sw.html][Free Software]]. Artanis is under the terms of the GNU Lesser General Public License version 3 or later.
+See the files COPYING.LESSER and COPYING in toplevel of source code.
 
 The manual you’re now reading is published under the terms of the [[http://www.gnu.org/copyleft/fdl.html][GNU Free Documentation License]] 1.3 or later.
 
-*/You must be aware there is no warranty whatsoever for Artanis. This is described in full in the licenses./*
-
+*/You must be aware there is no warranty whatsoever for GNU Artanis. This is described in full in the licenses./*
 * Installation
-
 ** For users
 
 *Install GNU Guile-2.0.11 or higher version:*
@@ -114,7 +113,6 @@ sudo make install
 #+end_src
 
 ** For contributors
-
 First, thanks for you contributions!
 
 If you're comfortable with [[https://github.com/NalaGinrut/artanis][GitHub]], then just follow the steps which you've already known.
@@ -124,7 +122,6 @@ Anyway, here's the git repo:
 #+begin_src null
 git clone git@github.com:NalaGinrut/artanis.git
 #+end_src
-
 ** Configuration
 Before the first time to run, Artanis needs a config file. The default path is =/etc/artanis/artanis.conf=.
 
@@ -136,7 +133,6 @@ sudo cp /etc/artanis/default.conf /etc/artanis/artanis.conf
 
 (To be continued ...) 
 * Hello World
-
 ** Use Guile REPL and verify Artanis installation
 
 If you're NOT freshman of Guile, please skip this section.
@@ -169,7 +165,6 @@ The expected output should be similar to this:
 #+begin_src scheme
 $1 = "Artanis-0.0.1"
 #+end_src
-
 ** Simple HTTP server
 Run this code in your console:
 #+begin_src nil
@@ -182,7 +177,6 @@ http://0.0.0.0:3000
 Assuming there's a file named "index.html" in the current path. Now you may try http://localhost:3000/index.html in your browser.
 It's simple to fetch static file with the path in URL: http://localhost:3000/path/filename
 ** Try simple URL remapping
-
 Type these code in Guile REPL:
 #+begin_src scheme
 (use-modules (artanis artanis))
@@ -205,9 +199,7 @@ Let me explain these code.
 + /line 3:/ Run Artanis server, and listenning socket port 8080.
 
 You may type Ctrl+C to quit the server according to the hint from your screen.
-
 ** More complex URL remapping
-
 Try this code:
 #+begin_src scheme
 (get "/hello/:who"
@@ -225,18 +217,14 @@ There're two differences:
 
 And /format/ is a Scheme lib function. It is similar to /sprintf/ in C language, which outputs with a formatted pattern.
 The second argument #f (means FALSE) indicates that returning the result as string type rather than printing out.
-
-*** Regex in URL remapping
-
+** Regex in URL remapping
 You can use regex in the URL rule.
 #+begin_src scheme
 (get "/.+\\.(png|gif|jpeg)" static-page-emitter)
 #+end_src
 
 /static-page-emitter/ is an Artanis API which emits a static file like images to the client.
-
 ** Database operating
-
 Artanis supports mysql/postgresql/sqlite3, we use mysql as a example here.
 
 Please ensure that your DB service was started before you try.
@@ -292,10 +280,7 @@ Here're some explains:
 + Finally, the handler needs to return a string as the HTTP response body, so we have to use Guile API /object->string/ to convert the query result to string, for this naive example case.
 
 /Exercise: Return a beautiful table in HTML rather than using object->string./
-
-
 * Basic in Scheme
-
 This chapter introduces some useful documents to help you understand Scheme language well.
 Feel free to come back here if you have any problem with Scheme syntax.
 
@@ -321,7 +306,6 @@ And here's a nice section in Guile manual for basics in Scheme:
 [[https://www.gnu.org/software/guile/manual/guile.html#Hello-Scheme_0021][Hello Scheme]]
 
 Please don't spend too much time on these tutorials, the purose is to let newbies get a little familiar with the grammar of Scheme.
-
 
 ** For Pythoners
 
@@ -349,7 +333,6 @@ If you really want to try these books seriously, please ignore Artanis before yo
 But once you've done them *carefully*, you may want to write a new Artanis all by yourself.
 
 Hold your horses. ;-)
-
 * Basic in Artanis
 ** How to run a site with Artanis
 This is the simplest case to run a site:
@@ -445,7 +428,7 @@ And run artanis:
 (run #:port 1234)
 #+end_src
 * URL remapping
-** Introduction
+** Introduction to URL remapping
 URL remapping is used to modify a web URL's appearance to provide short, pretty or fancy, search engine friendly URLs. 
 It's largly used in modern WAF(web application framework) to provide RESTful web APIs.
 ** URL handling
@@ -483,7 +466,6 @@ For POST method:
 #+begin_src scheme
 (post "/auth" (lambda (rc) ...))
 #+end_src
-
 ** Get params from URL
 #+begin_src scheme
 (params rc name)
@@ -499,12 +481,8 @@ For POST method:
 #+end_src
 * Layouts and Rendering in Artanis
 ** Templating
-
 Templating provides a way to mix programming code into HTML.
-
-** The design philosophy
-
-*** For Pythoners
+** Templating for Pythoners
 If you're familiar with Django, which implemented a DSL(Domain Specific Language) to express presentation rather than program logic. You may realize that the templating of Artanis has different philosophy.
 
 In templating of Artanis, it's simply embedded Scheme code into HTML. Why? Because of the philosophy of FP(Functional Programming), everything could be a function. So obviously, src_scheme[:exports code]{(filesizeformat size)} is enough for understanding, and it's just simple function calling in prefix-notation. There's no need to implement DSL like src_python[:exports code]{size|filesizeformat} to increase the complexity of code. Let alone the syntax is very different from Python.
@@ -512,8 +490,7 @@ In templating of Artanis, it's simply embedded Scheme code into HTML. Why? Becau
 The syntax like src_python[:exports code]{size|filesizeformat} is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme(functional programming), and the paradigm of Python(imperative programming).
 
 The philosophy of Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce the unnecessary complexities. [[http://en.wikipedia.org/wiki/KISS_principle][KISS]].
-
-*** For Rubyists
+** Templating for Rubyists
 Templating in Artanis looks very similar to Rails.
 
 The Rails code:
@@ -531,8 +508,7 @@ And the same function in Artanis code:
 <% "<div class='full'><p>...</p></div>" %>
 <% ) %>
 #+end_src
-
-** APIs
+** Templating APIs
 #+begin_src scheme
 (tpl->response filename/sxml [environment <- (the-environment)] [escape? <- #f])
 (tpl->html filename/sxm [environment <- (the-environment)] [escape? <- #f])
@@ -546,7 +522,7 @@ template string, you should pass (the-environment).
 [escape?] If you want to HTML char-escaping with the returned string, set it to #t.
  
 There're two kinds of different templating:
-*** Embedded Templating
+** Embedded Templating
 Example:
 Write a tpl file named "my.tpl":
 #+begin_src html
@@ -574,8 +550,7 @@ Because *exteral-var* is defined outside the file "my.tpl", and it's bound in /l
 If you don't have any external var needs to be referenced, just use src_scheme[:exports code]{(tpl->response "file.tpl")} is fine.
  
 Then see http://localhost:3000/test in your browser.
-
-*** SXML Templating
+** SXML Templating
 [[http://en.wikipedia.org/wiki/SXML][SXML]] is an alternative syntax for writing XML data, using the form of S-expressions.
 
 SXML is to Scheme as JSON is to ECMAScript(the so-called javascript). Maybe this explains clearer.
@@ -662,7 +637,6 @@ For example:
 FPRM stands for Functional Programming Relational Mapping. It's a new word I invented. But it's not new concept. FP here indicates *stateless*. 
 
 /FPRM is still experimental and work-in-progress./
-
 *** Connect to DB server
 #+begin_src scheme
 ;; usage 1:
@@ -693,7 +667,6 @@ FPRM stands for Functional Programming Relational Mapping. It's a new word I inv
 
 
 + src_scheme[:exports code]{#:port} specifies the socket port.
-
 *** Map DB table
 #+begin_src scheme
 (define my-table (map-table-from-DB rc/conn))
@@ -702,7 +675,6 @@ FPRM stands for Functional Programming Relational Mapping. It's a new word I inv
 *rc/conn* can be route-context or connection of DB.
 
 map-table-from-DB returns a function, we named it *my-table* here for explaining.
-
 *** Create table
 #+begin_src scheme
 (my-table 'create table-name defs #:if-exists? #f #:primary-keys '() #:engine #f)
@@ -726,7 +698,6 @@ map-table-from-DB returns a function, we named it *my-table* here for explaining
 
 
 + src_scheme[:exports code]{#:engine} specifies the engine, depends on the dbd you chosen.
-
 *** Get columns from table
 #+begin_src scheme
 (my-table 'get table-name #:columns '(*) #:functions '() #:ret 'all #:group-by #f #:order-by #f)
@@ -773,7 +744,6 @@ For example:
 #+begin_src scheme
 (mtable 'drop table-name)
 #+end_src
-
 *** Check existance of table
 #+begin_src scheme
 ;; case sensitive
@@ -786,14 +756,13 @@ For example:
 #+begin_src scheme
 (mtable 'exists? 'Persons 'city 'lastname)
 #+end_src
-
 *** Get schema of a table
 #+begin_src scheme
 (mtable 'schema table-name)
 #+end_src
 
 /NOTE: all the returned name of schema will be downcased./
-** SQL Mapping (experimental)
+*** SQL Mapping (experimental)
 To be continued ...
 * MIME
 src_scheme[:exports code]{#:mime} method is used to return the proper MIME type in the HTTP response.
@@ -810,7 +779,6 @@ You may use #:mime method to handle JSON:
     (let ((j (json (object ("name" "nala") ("age" "15")))))
       (:mime rc j))))
 #+end_src
-
 ** CSV
 Artanis intergrated the third-party module [[https://github.com/NalaGinrut/guile-csv][guile-csv]]. You may use #:mime method to handle CSV:
 #+begin_src scheme
@@ -818,7 +786,6 @@ Artanis intergrated the third-party module [[https://github.com/NalaGinrut/guile
   (lambda (rc)
     (:mime rc '(("a" "1") ("b" "2")))))
 #+end_src
-
 ** XML
 In Scheme, XML is handled with SXML. Another way is to use strings appending method.
 #+begin_src scheme
@@ -826,7 +793,6 @@ In Scheme, XML is handled with SXML. Another way is to use strings appending met
   (lambda (rc)
     (:mime rc '(*TOP* (WEIGHT (@ (unit "pound")) (NET (@ (certified "certified")) "67") (GROSS "95"))))))
 #+end_src
-
 ** SXML
 You can use SXML to replace XML for exchanging data format. This way saves some bandwidth.
 #+begin_src scheme
@@ -834,7 +800,6 @@ You can use SXML to replace XML for exchanging data format. This way saves some 
   (lambda (rc)
     (:mime rc '((a 1) (b 2)))))
 #+end_src
-
 * Sessions
 You have to use src_scheme[:exports code]{#:session #t} while you defining URL rule handler.
 #+begin_src scheme
@@ -860,7 +825,6 @@ And the APIs of session is :session
 +  `(check-and-spawn-and-keep ,sid) check then spawn then keep it, with the name of sid.
 +  'spawn spawn a session with the name "sid".
 +  'spawn-and-keep spawn a session then keep with the name "sid".
-
 * Cookies
 You have to use src_scheme[:exports code]{#:session #t} while you defining URL rule handler.
 #+begin_src scheme
@@ -909,8 +873,12 @@ curl --head localhost:3000/cookie/120
 #+end_src
 * Authentication
 Artanis provides flexible mechanism for authentication.
+** Basic Authentication
+HTTP Basic authentication (BA) implementation is the simplest technique for enforcing access controls to web resources because it doesn't require cookies, session identifier and login pages. Rather, HTTP Basic authentication uses static, standard HTTP headers which means that no handshakes have to be done in anticipation.
 
-To be continued ...
+The BA mechanism provides no confidentiality protection for the transmitted credentials. They are merely encoded with Base64 in transit, but not encrypted or hashed in any way. Basic Authentication is, therefore, typically used over HTTPS.
+
+/*GNU Artanis doesn't support HTTPS at present, it's planned to support it in the future.*/
 * Cache
 To be continued ...
 * Appendix A GNU Free Documentation License

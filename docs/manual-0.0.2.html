@@ -1,0 +1,2211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title>GNU Artanis web-framework Manual</title>
+<!-- 2015-01-22 Thu 18:21 -->
+<meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta  name="generator" content="Org-mode" />
+<meta  name="author" content="Mu Lei known as NalaGinrut" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  pre.src-sh:before    { content: 'sh'; }
+  pre.src-bash:before  { content: 'sh'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-R:before     { content: 'R'; }
+  pre.src-perl:before  { content: 'Perl'; }
+  pre.src-java:before  { content: 'Java'; }
+  pre.src-sql:before   { content: 'SQL'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.right  { text-align: center;  }
+  th.left   { text-align: center;   }
+  th.center { text-align: center; }
+  td.right  { text-align: right;  }
+  td.left   { text-align: left;   }
+  td.center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara:nth-child(2) { display: inline; }
+  .footpara { display: block; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  /*]]>*/-->
+</style>
+<link rel="stylesheet" type="text/css" href="../css/manual.css" />
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2013 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">GNU Artanis web-framework Manual</h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. Introduction</a>
+<ul>
+<li><a href="#sec-1-1">1.1. Conventions</a></li>
+<li><a href="#sec-1-2">1.2. No warranty</a></li>
+</ul>
+</li>
+<li><a href="#sec-2">2. License</a></li>
+<li><a href="#sec-3">3. Installation</a>
+<ul>
+<li><a href="#sec-3-1">3.1. For users</a></li>
+<li><a href="#sec-3-2">3.2. For contributors</a></li>
+<li><a href="#sec-3-3">3.3. Configuration</a></li>
+</ul>
+</li>
+<li><a href="#sec-4">4. Hello World</a>
+<ul>
+<li><a href="#sec-4-1">4.1. Use Guile REPL and verify Artanis installation</a></li>
+<li><a href="#sec-4-2">4.2. Simple HTTP server</a></li>
+<li><a href="#sec-4-3">4.3. Try simple URL remapping</a></li>
+<li><a href="#sec-4-4">4.4. More complex URL remapping</a></li>
+<li><a href="#sec-4-5">4.5. Regex in URL remapping</a></li>
+<li><a href="#sec-4-6">4.6. Database operating</a></li>
+</ul>
+</li>
+<li><a href="#sec-5">5. Basic in Scheme</a>
+<ul>
+<li><a href="#sec-5-1">5.1. For newbies</a></li>
+<li><a href="#sec-5-2">5.2. For Pythoners</a></li>
+<li><a href="#sec-5-3">5.3. For Rubyist</a></li>
+<li><a href="#sec-5-4">5.4. For deep learners</a></li>
+</ul>
+</li>
+<li><a href="#sec-6">6. Basic in Artanis</a>
+<ul>
+<li><a href="#sec-6-1">6.1. How to run a site with Artanis</a></li>
+<li><a href="#sec-6-2">6.2. Initialization</a></li>
+<li><a href="#sec-6-3">6.3. Registering handler of HTTP methods</a></li>
+<li><a href="#sec-6-4">6.4. Emit Response</a></li>
+<li><a href="#sec-6-5">6.5. Running server</a></li>
+<li><a href="#sec-6-6">6.6. Working with Nginx</a></li>
+</ul>
+</li>
+<li><a href="#sec-7">7. URL remapping</a>
+<ul>
+<li><a href="#sec-7-1">7.1. Introduction to URL remapping</a></li>
+<li><a href="#sec-7-2">7.2. URL handling</a></li>
+<li><a href="#sec-7-3">7.3. Get params from URL</a></li>
+<li><a href="#sec-7-4">7.4. Redirect link</a></li>
+</ul>
+</li>
+<li><a href="#sec-8">8. Layouts and Rendering in Artanis</a>
+<ul>
+<li><a href="#sec-8-1">8.1. Templating</a></li>
+<li><a href="#sec-8-2">8.2. Templating for Pythoners</a></li>
+<li><a href="#sec-8-3">8.3. Templating for Rubyists</a></li>
+<li><a href="#sec-8-4">8.4. Templating APIs</a></li>
+<li><a href="#sec-8-5">8.5. Embedded Templating</a></li>
+<li><a href="#sec-8-6">8.6. SXML Templating</a></li>
+</ul>
+</li>
+<li><a href="#sec-9">9. Database</a>
+<ul>
+<li><a href="#sec-9-1">9.1. ORM problem</a></li>
+<li><a href="#sec-9-2">9.2. SSQL (experimental)</a></li>
+<li><a href="#sec-9-3">9.3. FPRM (experimental)</a>
+<ul>
+<li><a href="#sec-9-3-1">9.3.1. Connect to DB server</a></li>
+<li><a href="#sec-9-3-2">9.3.2. Map DB table</a></li>
+<li><a href="#sec-9-3-3">9.3.3. Create table</a></li>
+<li><a href="#sec-9-3-4">9.3.4. Get columns from table</a></li>
+<li><a href="#sec-9-3-5">9.3.5. Set values to table</a></li>
+<li><a href="#sec-9-3-6">9.3.6. Drop a table</a></li>
+<li><a href="#sec-9-3-7">9.3.7. Check existance of table</a></li>
+<li><a href="#sec-9-3-8">9.3.8. Get schema of a table</a></li>
+<li><a href="#sec-9-3-9">9.3.9. SQL Mapping (experimental)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#sec-10">10. MIME</a>
+<ul>
+<li><a href="#sec-10-1">10.1. JSON</a></li>
+<li><a href="#sec-10-2">10.2. CSV</a></li>
+<li><a href="#sec-10-3">10.3. XML</a></li>
+<li><a href="#sec-10-4">10.4. SXML</a></li>
+</ul>
+</li>
+<li><a href="#sec-11">11. Sessions</a></li>
+<li><a href="#sec-12">12. Cookies</a></li>
+<li><a href="#sec-13">13. Authentication</a>
+<ul>
+<li><a href="#sec-13-1">13.1. Basic Authentication</a></li>
+</ul>
+</li>
+<li><a href="#sec-14">14. Cache</a></li>
+<li><a href="#sec-15">15. Appendix A GNU Free Documentation License</a></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Introduction</h2>
+<div class="outline-text-2" id="text-1">
+<div class="org-src-container">
+
+<pre class="src src-nil">Copyright (C)  2015  Mu Lei known as NalaGinrut.
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
+Texts.  A copy of the license is included in the section entitled ``GNU
+Free Documentation License''.
+</pre>
+</div>
+
+
+<p>
+GNU Artanis is a web application framework(WAF) written in <a href="http://www.gnu.org/software/guile/">Guile Scheme</a>.
+</p>
+
+<p>
+A <a href="http://en.wikipedia.org/wiki/Web_application_framework">web application framework (WAF)</a> is a software framework that is designed to support the development of dynamic websites,
+web applications, web services and web resources.
+The framework aims to alleviate the overhead associated with common activities performed in web development.
+Artanis provides several tools for web development: database access, templating frameworks, session management, <a href="http://en.wikipedia.org/wiki/Rewrite_engine">URL-remapping</a> for <a href="http://en.wikipedia.org/wiki/Representational_state_transfer">RESTful</a>, page caching, and so on.
+</p>
+
+<p>
+This manual describes how to use Artanis, and usage of APIs.
+</p>
+
+<p>
+Guile is the GNU Ubiquitous Intelligent Language for Extensions, the official extension language for the <a href="http://www.gnu.org/">GNU operating system</a>.
+Guile is also an interpreter and compiler for other dynamic programming languages except Scheme programming language.
+</p>
+
+<p>
+<a href="http://en.wikipedia.org/wiki/Scheme_(programming_language)">Scheme</a> is a functional programming language and one of the two main dialects of the programming language <a href="http://en.wikipedia.org/wiki/Lisp_(programming_language)">Lisp</a>.
+Scheme follows a minimalist design philosophy specifying a small standard core with powerful tools for language extension.
+</p>
+</div>
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> Conventions</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+In this manual, we'll use this kind of syntax to indicate the usage of API:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(api-name arg1 arg2 <span style="color: #40e0d0;">#:key0</span> val0 ... [optional-arg1 &lt;- default-value1] ...)
+</pre>
+</div>
+<p>
+If you're not comfortable with this syntax, maybe you're a newbie of Scheme, and I would recommend you read <a href="#sec-5">Basic in Scheme</a> chapter first.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2"><span class="section-number-3">1.2</span> No warranty</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+We distribute software in the hope that it will be useful, but without any warranty. No author or distributor of this software accepts responsibility to anyone for the consequences of using it or for whether it serves any particular purpose or works at all, unless they say so in writing. This is exactly the same warranty that proprietary software companies offer: none.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> License</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+GNU Artanis is <a href="http://www.gnu.org/philosophy/free-sw.html">Free Software</a>. Artanis is under the terms of the GNU Lesser General Public License version 3 or later.
+See the files COPYING.LESSER and COPYING in toplevel of source code.
+</p>
+
+<p>
+The manual you’re now reading is published under the terms of the <a href="http://www.gnu.org/copyleft/fdl.html">GNU Free Documentation License</a> 1.3 or later.
+</p>
+
+<p>
+<b><i>You must be aware there is no warranty whatsoever for GNU Artanis. This is described in full in the licenses.</i></b>
+</p>
+</div>
+</div>
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> Installation</h2>
+<div class="outline-text-2" id="text-3">
+</div><div id="outline-container-sec-3-1" class="outline-3">
+<h3 id="sec-3-1"><span class="section-number-3">3.1</span> For users</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+<b>Install GNU Guile-2.0.11 or higher version:</b>
+</p>
+
+<ul class="org-ul">
+<li>Debian/Ubuntu users</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-null">sudo apt-get install guile-2.0-dev guile-2.0
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>SUSE/openSUSE users</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-null">sudo zypper install guile guile-devel
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>RedHat/Fedora</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-null">sudo yum install guile guile-devel
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>For LFS Guru</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-null">wget -c ftp://ftp.gnu.org/gnu/guile/guile-2.0.11.tar.gz
+tar xvzf guile-2.0.11.tar.gz
+cd guile-2.0.11 &amp;&amp; ./configure &amp;&amp; make #(NOTE: this may take very long time even looks like halting)
+sudo make install
+</pre>
+</div>
+
+<p>
+I would NOT recommend you trying to compile/install Guile from Git repo, since it'll take too much time of you.
+</p>
+
+<p>
+<b>Install dependencies:</b>
+</p>
+
+<ul class="org-ul">
+<li>guile-dbi-2.1.5 <b>[Required]</b></li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-null">wget -c http://download.gna.org/guile-dbi/guile-dbi-2.1.5.tar.gz
+tar xvzf guile-dbi-2.1.5.tar.gz
+cd guile-dbi-2.1.5 &amp;&amp; ./configure &amp;&amp; make
+sudo make install
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>guile-dbd <b>[Optional]</b>, there're three dbd, mysql/postgresql/sqlite3</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-null">wget -c http://download.gna.org/guile-dbi/guile-dbd-mysql-2.1.4.tar.gz
+tar xvzf guile-dbd-mysql-2.1.4.tar.gz
+cd guile-dbd-mysql-2.1.4 &amp;&amp; ./configure &amp;&amp; make
+sudo make install
+</pre>
+</div>
+<p>
+You may find other dbd <a href="http://download.gna.org/guile-dbi">here</a>. And the installation is similar.
+</p>
+
+<ul class="org-ul">
+<li>Artanis-0.0.1:</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-null">wget -c http://szdiy.org/download/artanis-0.0.1.tar.gz
+tar xvzf artanis-0.0.1.tar.gz
+cd artanis-0.0.1 &amp;&amp; ./configure &amp;&amp; make
+sudo make install
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-3-2" class="outline-3">
+<h3 id="sec-3-2"><span class="section-number-3">3.2</span> For contributors</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+First, thanks for you contributions!
+</p>
+
+<p>
+If you're comfortable with <a href="https://github.com/NalaGinrut/artanis">GitHub</a>, then just follow the steps which you've already known.
+</p>
+
+<p>
+Anyway, here's the git repo:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-null">git clone git@github.com:NalaGinrut/artanis.git
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-3-3" class="outline-3">
+<h3 id="sec-3-3"><span class="section-number-3">3.3</span> Configuration</h3>
+<div class="outline-text-3" id="text-3-3">
+<p>
+Before the first time to run, Artanis needs a config file. The default path is <code>/etc/artanis/artanis.conf</code>.
+</p>
+
+<p>
+There's a config skeleton named default.conf, you may copy it to <code>/etc/artanis/artanis.conf</code>.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-nil">sudo cp /etc/artanis/default.conf /etc/artanis/artanis.conf
+</pre>
+</div>
+
+<p>
+(To be continued &#x2026;) 
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> Hello World</h2>
+<div class="outline-text-2" id="text-4">
+</div><div id="outline-container-sec-4-1" class="outline-3">
+<h3 id="sec-4-1"><span class="section-number-3">4.1</span> Use Guile REPL and verify Artanis installation</h3>
+<div class="outline-text-3" id="text-4-1">
+<p>
+If you're NOT freshman of Guile, please skip this section.
+</p>
+
+<p>
+Just type `guile' in your console to enter Guile REPL, and you will see this screen:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-null">GNU Guile 2.0.11
+Copyright (C) 1995-2014 Free Software Foundation, Inc.
+
+Guile comes with ABSOLUTELY NO WARRANTY; for details type `,show w'.
+This program is free software, and you are welcome to redistribute it
+under certain conditions; type `,show c' for details.
+
+Enter `,help' for help.
+scheme@(guile-user)&gt;
+</pre>
+</div>
+
+<p>
+Welcome to Guile world!
+</p>
+
+<p>
+Now, we're going to play Artanis. Before we start, please follow these instructions in the REPL to ensure that you installed Artanis correctly:
+</p>
+
+<p>
+<b>(Just type them, you don't have to understand them at present)</b>
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-scheme">,use (artanis artanis)
+artanis-version
+</pre>
+</div>
+
+<p>
+The expected output should be similar to this:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">$1 = <span style="color: #ff0000;">"Artanis-0.0.1"</span>
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-4-2" class="outline-3">
+<h3 id="sec-4-2"><span class="section-number-3">4.2</span> Simple HTTP server</h3>
+<div class="outline-text-3" id="text-4-2">
+<p>
+Run this code in your console:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-nil">guile -c "(use-modules (artanis artanis))(init-server)(run)"
+## You'll see this screen:
+Anytime you want to Quit just try Ctrl+C, thanks!
+http://0.0.0.0:3000
+</pre>
+</div>
+
+<p>
+Assuming there's a file named "index.html" in the current path. Now you may try <a href="http://localhost:3000/index.html">http://localhost:3000/index.html</a> in your browser.
+It's simple to fetch static file with the path in URL: <a href="http://localhost:3000/path/filename">http://localhost:3000/path/filename</a>
+</p>
+</div>
+</div>
+<div id="outline-container-sec-4-3" class="outline-3">
+<h3 id="sec-4-3"><span class="section-number-3">4.3</span> Try simple URL remapping</h3>
+<div class="outline-text-3" id="text-4-3">
+<p>
+Type these code in Guile REPL:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(use-modules (artanis artanis))
+(get <span style="color: #ff0000;">"/hello"</span> (<span style="color: #4169e1;">lambda</span> () <span style="color: #add8e6;">"hello world"</span>))
+(run <span style="color: #40e0d0;">#:port</span> 8080)
+</pre>
+</div>
+
+<p>
+Now you can visit <a href="http://localhost:8080/hello">http://localhost:8080/hello</a> with your browser, and see the result.
+</p>
+
+<p>
+<i>If you encounter "[EXCEPTION] /favicon.ico is abnormal request", please ignore it.</i>
+</p>
+
+<p>
+Let me explain these code.
+</p>
+
+<ul class="org-ul">
+<li><i>line 1:</i> Load Artanis module, (artanis artanis) is the name.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><i>line 2:</i> The first argument <i>get</i> is Artanis API corresponding to GET method in HTTP protocol. The second argument "/hello" is the URL rule to register. The Third argument is the handler which will be triggered if the registered URL rule is hit.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><i>line 3:</i> Run Artanis server, and listenning socket port 8080.</li>
+</ul>
+
+<p>
+You may type Ctrl+C to quit the server according to the hint from your screen.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-4-4" class="outline-3">
+<h3 id="sec-4-4"><span class="section-number-3">4.4</span> More complex URL remapping</h3>
+<div class="outline-text-3" id="text-4-4">
+<p>
+Try this code:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/hello/:who"</span>
+  (<span style="color: #4169e1;">lambda</span> (rc)
+    (format #f <span style="color: #ff0000;">"&lt;p&gt;hello ~a&lt;/p&gt; "</span> (params rc <span style="color: #ff0000;">"who"</span>))))
+(run <span style="color: #40e0d0;">#:port</span> 8080)
+</pre>
+</div>
+
+<p>
+Now you can try <a href="http://localhost:8080/hello/artanis">http://localhost:8080/hello/artanis</a> in your browser.
+</p>
+
+<p>
+There're two differences:
+</p>
+<ul class="org-ul">
+<li>1. The special rule, "<code>/hello/:who</code>", <i>:who</i> means you can use <i>params</i> to reference the value of this section of URL with the key "who". <code class="src src-scheme">(params rc <span style="color: #ff0000;">"who"</span>)
+</code> is the way for that.</li>
+
+<li>2. You may notice that the handler defined as an anonymous function with <i>lambda</i> has one argument <i>rc</i>. It means <i>route context</i> which preserve all the related context information. Many Artanis APIs need it, say, <i>params</i>.</li>
+</ul>
+
+<p>
+And <i>format</i> is a Scheme lib function. It is similar to <i>sprintf</i> in C language, which outputs with a formatted pattern.
+The second argument #f (means FALSE) indicates that returning the result as string type rather than printing out.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-4-5" class="outline-3">
+<h3 id="sec-4-5"><span class="section-number-3">4.5</span> Regex in URL remapping</h3>
+<div class="outline-text-3" id="text-4-5">
+<p>
+You can use regex in the URL rule.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/.+\\.(png|gif|jpeg)"</span> static-page-emitter)
+</pre>
+</div>
+
+<p>
+<i>static-page-emitter</i> is an Artanis API which emits a static file like images to the client.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-4-6" class="outline-3">
+<h3 id="sec-4-6"><span class="section-number-3">4.6</span> Database operating</h3>
+<div class="outline-text-3" id="text-4-6">
+<p>
+Artanis supports mysql/postgresql/sqlite3, we use mysql as a example here.
+</p>
+
+<p>
+Please ensure that your DB service was started before you try.
+</p>
+
+<p>
+<b><i>If you encountered any problems, please check your config of DB first.</i></b> 
+You can use DB without running a server.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(use-module (artanis artanis))
+(<span style="color: #4169e1;">define</span> <span style="color: #ffd700;">conn</span> (connect-db 'mysql <span style="color: #40e0d0;">#:db-username</span> <span style="color: #ff0000;">"your_db_username"</span>
+                         <span style="color: #40e0d0;">#:db-name</span> <span style="color: #ff0000;">"your_db_name"</span> <span style="color: #40e0d0;">#:db-passwd</span> <span style="color: #ff0000;">"your_passwd"</span>))
+(<span style="color: #4169e1;">define</span> <span style="color: #ffd700;">mtable</span> (map-table-from-DB conn))
+((mtable 'create 'Persons '((name varchar 10) (age integer) (email varchar 20))) 'valid?)
+<span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">==&gt; #t</span>
+(mtable 'set 'Persons <span style="color: #40e0d0;">#:name</span> <span style="color: #ff0000;">"nala"</span> <span style="color: #40e0d0;">#:age</span> 99 <span style="color: #40e0d0;">#:email</span> <span style="color: #ff0000;">"nala@artanis.com"</span>)
+(mtable 'get 'Persons <span style="color: #40e0d0;">#:columns</span> '(name email))
+<span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">==&gt; ((("name" . "nala") ("email" . "nala@artanis.com")))</span>
+</pre>
+</div>
+
+<ul class="org-ul">
+<li><i>map-table-from-DB</i> is Artanis API handling tables in DB. Here, we define this mapping as the var <i>mtable</i>.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>And we can use <i>mtable</i> to handle tables, you can get values from table with 'get command.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><i>mtable</i> is a functon which accepts the first argument as a command, say 'create is a command to create a new table; 'set command is used to insert/update the table; 'get command for fetch the values of specified columns.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>The second argument of <i>mtable</i> is the name of the table as you guess. Please note that it's case sensitive. But the columns name could be case insensitive.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>'create command returns a function too, which also accepts an argument as a command. Here, we use 'valid? command to check if the table has been created successfully.</li>
+</ul>
+
+<p>
+Here's just simple introduction. You may read the DB section in this manual for detail describing. 
+</p>
+
+<p>
+Of course, you can use DB in your web application.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/dbtest"</span> <span style="color: #40e0d0;">#:conn</span> #t <span style="color: #66cdaa;">; </span><span style="color: #66cdaa;">apply for a DB connection from pool</span>
+  (<span style="color: #4169e1;">lambda</span> (rc)
+    (<span style="color: #4169e1;">let</span> ((mtable (map-table-from-DB (<span style="color: #40e0d0;">:conn</span> rc))))
+      (object-&gt;string
+        (mtable 'get 'Persons <span style="color: #40e0d0;">#:columns</span> '(name email))))))
+
+(run <span style="color: #40e0d0;">#:use-db?</span> #t <span style="color: #40e0d0;">#:dbd</span> 'mysql <span style="color: #40e0d0;">#:db-username</span> <span style="color: #ff0000;">"your_db_username"</span>
+     <span style="color: #40e0d0;">#:db-name</span> <span style="color: #ff0000;">"your_db_name"</span> <span style="color: #40e0d0;">#:db-passwd</span> <span style="color: #ff0000;">"your_passwd"</span> <span style="color: #40e0d0;">#:port</span> 8080)
+</pre>
+</div>
+
+<p>
+Now, try <a href="http://localhost:8080/dbtest">http://localhost:8080/dbtest</a> in your browser.
+</p>
+
+<p>
+Here're some explains:
+</p>
+<ul class="org-ul">
+<li>The keyword-value pair <code class="src src-scheme"><span style="color: #40e0d0;">#:conn</span> #t
+</code> means applying for a DB connection from connection-pool. Then you can use <code class="src src-scheme">(<span style="color: #40e0d0;">:conn</span> rc)
+</code> to get the allocated connection for DB operations.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>Finally, the handler needs to return a string as the HTTP response body, so we have to use Guile API <i>object-&gt;string</i> to convert the query result to string, for this naive example case.</li>
+</ul>
+
+<p>
+<i>Exercise: Return a beautiful table in HTML rather than using object-&gt;string.</i>
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5"><span class="section-number-2">5</span> Basic in Scheme</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+This chapter introduces some useful documents to help you understand Scheme language well.
+Feel free to come back here if you have any problem with Scheme syntax.
+</p>
+
+<p>
+If any possbile, read them again and again. 
+</p>
+
+<p>
+Scheme was introduced in 1975 by Gerald J. Sussman and Guy L. Steele Jr. and was the first dialect of Lisp to fully support lexical scoping,
+first-class procedures, and continuations. In its earliest form it was a small language intended primarily for research and teaching,
+supporting only a handful of predefined syntactic forms and procedures. Scheme is now a complete general-purpose programming language, though
+it still derives its power from a small set of key concepts. Early implementations of the language were interpreter-based and slow, but
+Guile Scheme is trying to implement sophisticated compiler that generate better optimized code, and even a plan for AOT compiler generated
+native code in the future.
+</p>
+</div>
+
+<div id="outline-container-sec-5-1" class="outline-3">
+<h3 id="sec-5-1"><span class="section-number-3">5.1</span> For newbies</h3>
+<div class="outline-text-3" id="text-5-1">
+<p>
+If you're not familiar with Guile Scheme, here's a simplest tutorial for you.
+</p>
+
+<p>
+If you know basics of Scheme language, please skip this section.
+</p>
+
+<p>
+I would recommend newbies to type/paste the code in Guile REPL following the guide in tutorial: 
+<a href="http://web-artanis.com/scheme.html">Learn Scheme in 15 minutes</a>
+</p>
+
+<p>
+And here's a nice section in Guile manual for basics in Scheme:
+<a href="https://www.gnu.org/software/guile/manual/guile.html#Hello-Scheme_0021">Hello Scheme</a>
+</p>
+
+<p>
+Please don't spend too much time on these tutorials, the purose is to let newbies get a little familiar with the grammar of Scheme.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-5-2" class="outline-3">
+<h3 id="sec-5-2"><span class="section-number-3">5.2</span> For Pythoners</h3>
+<div class="outline-text-3" id="text-5-2">
+<p>
+These are good articles for Pythoners:
+</p>
+
+<ol class="org-ol">
+<li><a href="http://draketo.de/proj/guile-basics/">Guile basics from the perspective of a Pythonista</a></li>
+<li><a href="http://draketo.de/proj/py2guile">Going from Python to Guile Scheme</a></li>
+</ol>
+
+<p>
+Still, please don't spend too much time on them, the purose is to let newbies get a little familiar with the grammar of Scheme.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-5-3" class="outline-3">
+<h3 id="sec-5-3"><span class="section-number-3">5.3</span> For Rubyist</h3>
+<div class="outline-text-3" id="text-5-3">
+<p>
+Here's a geat article for Rubyist to learn Scheme:
+</p>
+<ol class="org-ol">
+<li><a href="http://wiki.call-cc.org/chicken-for-ruby-programmers">Scheme for ruby programmers</a></li>
+</ol>
+</div>
+</div>
+<div id="outline-container-sec-5-4" class="outline-3">
+<h3 id="sec-5-4"><span class="section-number-3">5.4</span> For deep learners</h3>
+<div class="outline-text-3" id="text-5-4">
+<p>
+These two books are very good for learning Scheme seriously:
+</p>
+
+<ol class="org-ol">
+<li><a href="http://www.scheme.com/tspl4/">The Scheme Programming Language</a></li>
+<li><a href="http://mitpress.mit.edu/sicp/">Structure and Interpretation of Computer Programs(SICP)</a></li>
+</ol>
+
+<p>
+Please don't read them if you just want to use Artanis to build your webapp/site in few minutes.
+</p>
+
+<p>
+If you really want to try these books seriously, please ignore Artanis before you done them.
+</p>
+
+<p>
+But once you've done them <b>carefully</b>, you may want to write a new Artanis all by yourself.
+</p>
+
+<p>
+Hold your horses. ;-)
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6"><span class="section-number-2">6</span> Basic in Artanis</h2>
+<div class="outline-text-2" id="text-6">
+</div><div id="outline-container-sec-6-1" class="outline-3">
+<h3 id="sec-6-1"><span class="section-number-3">6.1</span> How to run a site with Artanis</h3>
+<div class="outline-text-3" id="text-6-1">
+<p>
+This is the simplest case to run a site:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">#!/bin/env guile
+!#
+(use-modules (artanis artanis))
+(init-server)
+(get <span style="color: #ff0000;">"/hello"</span> (<span style="color: #4169e1;">lambda</span> () <span style="color: #add8e6;">"hello world"</span>))
+(run)
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-6-2" class="outline-3">
+<h3 id="sec-6-2"><span class="section-number-3">6.2</span> Initialization</h3>
+<div class="outline-text-3" id="text-6-2">
+<p>
+It's better to use (init-server) to init Artanis.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(init-server <span style="color: #40e0d0;">#:statics</span> '(png jpg jpeg ico html js css) <span style="color: #40e0d0;">#:cache-statics?</span> #f <span style="color: #40e0d0;">#:exclude</span> '())
+</pre>
+</div>
+<p>
+<code class="src src-scheme"><span style="color: #40e0d0;">#:statics</span>
+</code> specifies the static files with the extension file. Artanis is based on URL remapping, so this keyword avoids you to handle each static file types. In default, it coveres the most static file types. So you may ignore it usually.
+</p>
+
+<p>
+<code class="src src-scheme"><span style="color: #40e0d0;">#:cache-statics?</span>
+</code> indicates if the static files should be cached.
+</p>
+
+<p>
+<code class="src src-scheme"><span style="color: #40e0d0;">#:exclude</span>
+</code> specifies the types should be excluded. This is useful when you want to generate image files dynamically. Even js/css could be generated dynamically, depends your design.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-6-3" class="outline-3">
+<h3 id="sec-6-3"><span class="section-number-3">6.3</span> Registering handler of HTTP methods</h3>
+<div class="outline-text-3" id="text-6-3">
+<p>
+Please read <a href="#sec-7-2">URL handling</a>.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-6-4" class="outline-3">
+<h3 id="sec-6-4"><span class="section-number-3">6.4</span> Emit Response</h3>
+<div class="outline-text-3" id="text-6-4">
+<div class="org-src-container">
+
+<pre class="src src-scheme">(response-emit body <span style="color: #40e0d0;">#:status</span> 200 <span style="color: #40e0d0;">#:headers</span> '() <span style="color: #40e0d0;">#:mtime</span> (current-time))
+</pre>
+</div>
+
+<p>
+<b>body</b> is the response body, it can be bytevector or literal string (in HTML).
+</p>
+
+<p>
+<code class="src src-scheme"><span style="color: #40e0d0;">#:status</span>
+</code> is HTTP status, 200 in default, which means OK.
+</p>
+
+<p>
+<code class="src src-scheme"><span style="color: #40e0d0;">#:headers</span>
+</code> let you specify customized HTTP headers. The headers must follow certain format, you have to read about the <a href="http://www.gnu.org/software/guile/manual/html_node/HTTP-Headers.html#Response-Headers">Response Headers</a>.
+</p>
+
+<p>
+<code class="src src-scheme"><span style="color: #40e0d0;">#:mtime</span>
+</code> specifies the modify time in the response. Artanis will generate it for you if you just ignore it.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-scheme">(emit-response-with-file filename [headers &lt;- '()])
+</pre>
+</div>
+
+<p>
+<b>filename</b> is the filename to be sent as a response.
+</p>
+
+<p>
+[headers] is the customized HTTP headers.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-6-5" class="outline-3">
+<h3 id="sec-6-5"><span class="section-number-3">6.5</span> Running server</h3>
+<div class="outline-text-3" id="text-6-5">
+<div class="org-src-container">
+
+<pre class="src src-scheme">(run <span style="color: #40e0d0;">#:host</span> #f <span style="color: #40e0d0;">#:port</span> #f <span style="color: #40e0d0;">#:debug</span> #f <span style="color: #40e0d0;">#:use-db?</span> #f
+     <span style="color: #40e0d0;">#:dbd</span> #f <span style="color: #40e0d0;">#:db-username</span> #f <span style="color: #40e0d0;">#:db-passwd</span> #f <span style="color: #40e0d0;">#:db-name</span> #f)
+</pre>
+</div>
+
+<p>
+<i>You may see all the keyword is #f in default, this means these items will be gotten from config file.</i>
+</p>
+
+<p>
+But you can specify them as will.
+</p>
+
+<p>
+<code class="src src-scheme"><span style="color: #40e0d0;">#:host</span>
+</code> specify the hostname.
+</p>
+
+<p>
+<code class="src src-scheme"><span style="color: #40e0d0;">#:port</span>
+</code> specify the socket port of the server.
+</p>
+
+<p>
+<code class="src src-scheme"><span style="color: #40e0d0;">#:debug</span>
+</code> set #t if you want to enable debug mode. Maybe verbose.
+</p>
+
+<p>
+<code class="src src-scheme"><span style="color: #40e0d0;">#:use-db?</span>
+</code> set #t if you want to use DB, and Artanis will init DB config for you.
+</p>
+
+<p>
+<code class="src src-scheme"><span style="color: #40e0d0;">#:dbd</span>
+</code> choose dbd, there're three supported dbd: mysql, postgresql, and sqlite3.
+</p>
+
+<p>
+<code class="src src-scheme"><span style="color: #40e0d0;">#:db-username</span>
+</code> specify the username of your DB server.
+</p>
+
+<p>
+<code class="src src-scheme"><span style="color: #40e0d0;">#:db-passwd</span>
+</code> the DB password.
+</p>
+
+<p>
+<code class="src src-scheme"><span style="color: #40e0d0;">#:db-name</span>
+</code> specify DB name.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-6-6" class="outline-3">
+<h3 id="sec-6-6"><span class="section-number-3">6.6</span> Working with Nginx</h3>
+<div class="outline-text-3" id="text-6-6">
+<p>
+You may try Artanis+Nginx with so-called reverse proxy. 
+</p>
+
+<p>
+<b><i>I would recommend you use Nginx as the front server, since Artanis hasn't done its own async server-core which will be based on delimited-continuations. The current server has some caveats, in spite of the performance, you may suffer from slow-header-ddos if you use Artanis to serv you site directly. But it's fine when you use Nginx in front of Artanis.</i></b>
+</p>
+
+<p>
+For example, you may add these lines to your /etc/nginx/nginx.conf:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-conf"><span style="color: #00ffff;">location /</span> {
+        proxy_pass http://127.0.0.1:1234;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+</pre>
+</div>
+<p>
+Then restart you Nginx:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-null">sudo service nginx restart
+</pre>
+</div>
+
+<p>
+And run artanis:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(run <span style="color: #40e0d0;">#:port</span> 1234)
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-7" class="outline-2">
+<h2 id="sec-7"><span class="section-number-2">7</span> URL remapping</h2>
+<div class="outline-text-2" id="text-7">
+</div><div id="outline-container-sec-7-1" class="outline-3">
+<h3 id="sec-7-1"><span class="section-number-3">7.1</span> Introduction to URL remapping</h3>
+<div class="outline-text-3" id="text-7-1">
+<p>
+URL remapping is used to modify a web URL's appearance to provide short, pretty or fancy, search engine friendly URLs. 
+It's largly used in modern WAF(web application framework) to provide RESTful web APIs.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-7-2" class="outline-3">
+<h3 id="sec-7-2"><span class="section-number-3">7.2</span> URL handling</h3>
+<div class="outline-text-3" id="text-7-2">
+<p>
+According to RFC2616, there're GET, POST, PUT, PATCH and DELETE methods. You may register handler for specified URL rule to these methods.
+</p>
+
+<p>
+<i>There'd be HEAD method, but in Artanis, HEAD method is handled by the server, users can't use it.</i>
+</p>
+
+<p>
+The usage:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(method rule handler)
+</pre>
+</div>
+
+<p>
+And the handler could be two types, depends on your need:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(<span style="color: #4169e1;">lambda</span> ()
+  ...
+  ret)
+
+(<span style="color: #4169e1;">lambda</span> (rc)
+  ...
+  ret)
+</pre>
+</div>
+
+<p>
+<b>ret</b> also has two types:
+</p>
+
+<ul class="org-ul">
+<li>1. literal string as the returned response body</li>
+
+<li>2. See <a href="#sec-6-4">Emit Response</a></li>
+</ul>
+
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/hello"</span> (<span style="color: #4169e1;">lambda</span> () <span style="color: #add8e6;">"hello world"</span>))
+</pre>
+</div>
+
+<p>
+For POST method:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(post <span style="color: #ff0000;">"/auth"</span> (<span style="color: #4169e1;">lambda</span> (rc) ...))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-7-3" class="outline-3">
+<h3 id="sec-7-3"><span class="section-number-3">7.3</span> Get params from URL</h3>
+<div class="outline-text-3" id="text-7-3">
+<div class="org-src-container">
+
+<pre class="src src-scheme">(params rc name)
+<span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">e.g </span>
+(get <span style="color: #ff0000;">"/hello/:who"</span> (<span style="color: #4169e1;">lambda</span> (rc) (params rc <span style="color: #ff0000;">"who"</span>)))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-7-4" class="outline-3">
+<h3 id="sec-7-4"><span class="section-number-3">7.4</span> Redirect link</h3>
+<div class="outline-text-3" id="text-7-4">
+<div class="org-src-container">
+
+<pre class="src src-scheme">(redirect-to rc path [status &lt;- 301])
+<span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">e.g</span>
+(get <span style="color: #ff0000;">"/aaa"</span> (<span style="color: #4169e1;">lambda</span> (rc) (redirect-to rc <span style="color: #ff0000;">"/bbb"</span>)))
+(get <span style="color: #ff0000;">"/bbb"</span> (<span style="color: #4169e1;">lambda</span> () <span style="color: #add8e6;">"ok bbb"</span>))
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-8" class="outline-2">
+<h2 id="sec-8"><span class="section-number-2">8</span> Layouts and Rendering in Artanis</h2>
+<div class="outline-text-2" id="text-8">
+</div><div id="outline-container-sec-8-1" class="outline-3">
+<h3 id="sec-8-1"><span class="section-number-3">8.1</span> Templating</h3>
+<div class="outline-text-3" id="text-8-1">
+<p>
+Templating provides a way to mix programming code into HTML.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-8-2" class="outline-3">
+<h3 id="sec-8-2"><span class="section-number-3">8.2</span> Templating for Pythoners</h3>
+<div class="outline-text-3" id="text-8-2">
+<p>
+If you're familiar with Django, which implemented a DSL(Domain Specific Language) to express presentation rather than program logic. You may realize that the templating of Artanis has different philosophy.
+</p>
+
+<p>
+In templating of Artanis, it's simply embedded Scheme code into HTML. Why? Because of the philosophy of FP(Functional Programming), everything could be a function. So obviously, <code class="src src-scheme">(filesizeformat size)
+</code> is enough for understanding, and it's just simple function calling in prefix-notation. There's no need to implement DSL like <code class="src src-python">size|filesizeformat
+</code> to increase the complexity of code. Let alone the syntax is very different from Python.
+</p>
+
+<p>
+The syntax like <code class="src src-python">size|filesizeformat
+</code> is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme(functional programming), and the paradigm of Python(imperative programming).
+</p>
+
+<p>
+The philosophy of Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce the unnecessary complexities. <a href="http://en.wikipedia.org/wiki/KISS_principle">KISS</a>.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-8-3" class="outline-3">
+<h3 id="sec-8-3"><span class="section-number-3">8.3</span> Templating for Rubyists</h3>
+<div class="outline-text-3" id="text-8-3">
+<p>
+Templating in Artanis looks very similar to Rails.
+</p>
+
+<p>
+The Rails code:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-ruby">&lt;% <span style="color: #4169e1;">if</span>( <span style="color: #00ff00;">@fullscreen</span> == 1 ) %&gt;
+&lt;%= <span style="color: #ff0000;">"&lt;div class='full'&gt;&lt;p&gt;...&lt;/p&gt;&lt;/div&gt;"</span> %&gt;
+&lt;% <span style="color: #4169e1;">end</span> %&gt;
+</pre>
+</div>
+
+<p>
+And the same function in Artanis code:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-scheme">&lt;% (<span style="color: #4169e1;">if</span> (= fullscreen 1) %&gt;
+&lt;% <span style="color: #ff0000;">"&lt;div class='full'&gt;&lt;p&gt;...&lt;/p&gt;&lt;/div&gt;"</span> %&gt;
+&lt;% ) %&gt;
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-8-4" class="outline-3">
+<h3 id="sec-8-4"><span class="section-number-3">8.4</span> Templating APIs</h3>
+<div class="outline-text-3" id="text-8-4">
+<div class="org-src-container">
+
+<pre class="src src-scheme">(tpl-&gt;response filename/sxml [environment &lt;- (the-environment)] [escape? &lt;- #f])
+(tpl-&gt;html filename/sxm [environment &lt;- (the-environment)] [escape? &lt;- #f])
+</pre>
+</div>
+
+<p>
+<i>The difference is that tpl-&gt;html returns a string, but tpl-&gt;response will return HTTP response.</i>
+</p>
+
+<p>
+[environment] is the environment you want to pass in. We often ignore it. But if you want to ref some vars defined outside your
+template string, you should pass (the-environment).
+</p>
+
+<p>
+[escape?] If you want to HTML char-escaping with the returned string, set it to #t.
+</p>
+
+<p>
+There're two kinds of different templating:
+</p>
+</div>
+</div>
+<div id="outline-container-sec-8-5" class="outline-3">
+<h3 id="sec-8-5"><span class="section-number-3">8.5</span> Embedded Templating</h3>
+<div class="outline-text-3" id="text-8-5">
+<p>
+Example:
+Write a tpl file named "my.tpl":
+</p>
+<div class="org-src-container">
+
+<pre class="src src-html">&lt;<span style="color: #ffd700;">html</span>&gt;
+  &lt;<span style="color: #ffd700;">p</span>&gt; &lt;%= <span style="color: #ff0000;">"This is tpl test!"</span> %&gt; &lt;/<span style="color: #ffd700;">p</span>&gt;
+  &lt;<span style="color: #ffd700;">p</span>&gt; &lt;% (format #t <span style="color: #ff0000;">"And this is ~a"</span> (getcwd)) %&gt; &lt;/<span style="color: #ffd700;">p</span>&gt;
+  &lt;<span style="color: #ffd700;">p</span>&gt; &lt;%= external-var %&gt; &lt;/<span style="color: #ffd700;">p</span>&gt;
+&lt;/<span style="color: #ffd700;">html</span>&gt;
+</pre>
+</div>
+
+<p>
+Of course, the ext filename ".tpl" is trivial, you may name it whatever you like.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/test"</span>
+  (<span style="color: #4169e1;">lambda</span> (rc)
+    (<span style="color: #4169e1;">let</span> ((external-var 123))
+      (tpl-&gt;response <span style="color: #ff0000;">"my.tpl"</span> (the-environment)))))
+(run <span style="color: #40e0d0;">#:port</span> 8080)
+</pre>
+</div>
+
+<p>
+In this case, make sure to put my.tpl to the same path with your Artanis code.
+</p>
+
+<p>
+Because <b>exteral-var</b> is defined outside the file "my.tpl", and it's bound in <i>let</i> with 123, you have to pass (the-environment). Or the template render will blame that it can't find variable named <b>external-var</b>.
+</p>
+
+<p>
+If you don't have any external var needs to be referenced, just use <code class="src src-scheme">(tpl-&gt;response <span style="color: #ff0000;">"file.tpl"</span>)
+</code> is fine.
+</p>
+
+<p>
+Then see <a href="http://localhost:3000/test">http://localhost:3000/test</a> in your browser.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-8-6" class="outline-3">
+<h3 id="sec-8-6"><span class="section-number-3">8.6</span> SXML Templating</h3>
+<div class="outline-text-3" id="text-8-6">
+<p>
+<a href="http://en.wikipedia.org/wiki/SXML">SXML</a> is an alternative syntax for writing XML data, using the form of S-expressions.
+</p>
+
+<p>
+SXML is to Scheme as JSON is to ECMAScript(the so-called javascript). Maybe this explains clearer.
+</p>
+
+<p>
+The benifit of SXML is to take advantage of quasiquote in Scheme. If you no little about it, then you may google "scheme quasiquote" for more details.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-scheme">(tpl-&gt;response '(html (body (p (@ (id <span style="color: #ff0000;">"content"</span>)) <span style="color: #ff0000;">"hello world"</span>))))
+</pre>
+</div>
+
+<p>
+You would get a html string <code class="src src-scheme"><span style="color: #ff0000;">"&lt;html&gt;&lt;body&gt;&lt;p id=\"content\"&gt;hello world&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"</span>
+</code>.
+</p>
+
+<p>
+Let's see an example of quasiquote:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-scheme">(<span style="color: #4169e1;">let</span> ((content <span style="color: #ff0000;">"hello world"</span>))
+  (tpl-&gt;response `(html (body (p (@ (id <span style="color: #ff0000;">"content"</span>)) ,content)))))
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-9" class="outline-2">
+<h2 id="sec-9"><span class="section-number-2">9</span> Database</h2>
+<div class="outline-text-2" id="text-9">
+</div><div id="outline-container-sec-9-1" class="outline-3">
+<h3 id="sec-9-1"><span class="section-number-3">9.1</span> ORM problem</h3>
+<div class="outline-text-3" id="text-9-1">
+<p>
+ORM stands for Object Relational Mapping, which is a popular approach to handle relational DB nowadays, in OOP.
+</p>
+
+<p>
+Of course, Guile has it's own Object System named <a href="https://www.gnu.org/software/guile/manual/html_node/GOOPS.html#GOOPS">GOOPS</a>. Users may use OOP with it. And it's possible to implement ORM in Artanis as well.
+</p>
+
+<p>
+However, FP fans realized that they don't have to use OOP if they can use FP features reasonably.
+</p>
+
+<p>
+Besides, there're some criticism pointing to ORM:
+</p>
+<ul class="org-ul">
+<li><a href="http://martinfowler.com/bliki/OrmHate.html">ORM Hate</a></li>
+
+<li><a href="http://blogs.tedneward.com/2006/06/26/The+Vietnam+Of+Computer+Science.aspx">Vietnam of Computer Science</a></li>
+
+<li><a href="http://blog.codinghorror.com/object-relational-mapping-is-the-vietnam-of-computer-science/">Object-Relational Mapping is the Vietnam of Computer Science</a></li>
+</ul>
+
+<p>
+And here're some known ways for trying to solve the problems of ORM:
+</p>
+
+<ul class="org-ul">
+<li>1. <b><i>Give up ORM</i></b>.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>2. <b><i>Give up relational storage model</i></b>. Don't use relational DB, pick up others, say, No-SQL. Well, this way is not cool when you have to use relational DB.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>3. <b><i>Manual mapping</i></b>. Write SQL code directly. It's fine sometimes. But the code increases when things get complicated. Refactoring and reusing would be worth to consider.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>4. <b><i>Limited ORM</i></b>. Limited the utility of ORM. And use ORM to solve part of your work rather than whole, depends on you. This may avoid some problems.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>5. <b><i>SQL related DSL</i></b>. Design a new language. LINQ from Microsoft is one of the cases.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>6. <b><i>Integration of relational concepts into frameworks</i></b>. Well, harder than 5, but worth to try.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>7. <b><i>Stateless</i></b>. This is the critical hit to complexity and unreliability.</li>
+</ul>
+
+<p>
+Basically, Artanis has no ORM yet, and maybe never. Artanis is trying to experiment new ways to solve the problems of ORM.
+</p>
+
+<p>
+Artanis provides three ways to complete this mission. All of them, are <b>experimental</b> at present.
+</p>
+
+<ul class="org-ul">
+<li>SSQL (1,3,5)</li>
+
+<li>FPRM (4,7)</li>
+
+<li>SQL Mapping (1,3,6)</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-9-2" class="outline-3">
+<h3 id="sec-9-2"><span class="section-number-3">9.2</span> SSQL (experimental)</h3>
+<div class="outline-text-3" id="text-9-2">
+<p>
+The concept of SSQL is very easy. Write SQL in S-expr. 
+</p>
+
+<p>
+Usage:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(-&gt;sql sql-statement)
+(where <span style="color: #40e0d0;">#:key</span> val ... [literal string])
+(having <span style="color: #40e0d0;">#:key</span> val ... [literal string])
+(/or conds ...)
+(/and conds ...)
+</pre>
+</div>
+
+<p>
+For example:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(-&gt;sql select * from 'Persons (where <span style="color: #40e0d0;">#:city</span> <span style="color: #ff0000;">"Shenzhen"</span>))
+(-&gt;sql select '(age name) from 'Persons (where <span style="color: #ff0000;">"age &lt; 30"</span>))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-9-3" class="outline-3">
+<h3 id="sec-9-3"><span class="section-number-3">9.3</span> FPRM (experimental)</h3>
+<div class="outline-text-3" id="text-9-3">
+<p>
+FPRM stands for Functional Programming Relational Mapping. It's a new word I invented. But it's not new concept. FP here indicates <b>stateless</b>. 
+</p>
+
+<p>
+<i>FPRM is still experimental and work-in-progress.</i>
+</p>
+</div>
+<div id="outline-container-sec-9-3-1" class="outline-4">
+<h4 id="sec-9-3-1"><span class="section-number-4">9.3.1</span> Connect to DB server</h4>
+<div class="outline-text-4" id="text-9-3-1">
+<div class="org-src-container">
+
+<pre class="src src-scheme"><span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">usage 1:</span>
+(connect-db dbd init-str)
+
+<span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">usage 2:</span>
+(connect-db dbd <span style="color: #40e0d0;">#:db-name</span> <span style="color: #ff0000;">"artanis"</span> <span style="color: #40e0d0;">#:db-username</span> <span style="color: #ff0000;">"root"</span> <span style="color: #40e0d0;">#:db-passwd</span> <span style="color: #ff0000;">""</span> <span style="color: #40e0d0;">#:proto</span> <span style="color: #ff0000;">"tcp"</span> <span style="color: #40e0d0;">#:host</span> <span style="color: #ff0000;">"localhost"</span> <span style="color: #40e0d0;">#:port</span> 3306)
+</pre>
+</div>
+
+<ul class="org-ul">
+<li><b>dbd</b> is a string, could be "mysql", "postgresql", and "sqlite3".</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><b>init-str</b> is a string for DB init, for example:</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(connect-db <span style="color: #ff0000;">"mysql"</span> <span style="color: #ff0000;">"root:123:artanis:tcp:localhost:3306"</span>)
+</pre>
+</div>
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:db-name</span>
+</code> specifies the DB name.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:db-username</span>
+</code> specifis the DB username.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:proto</span>
+</code> specifies the socket protocol, which is related to DB server you choosen.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:host</span>
+</code> specifies the host name.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:port</span>
+</code> specifies the socket port.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-9-3-2" class="outline-4">
+<h4 id="sec-9-3-2"><span class="section-number-4">9.3.2</span> Map DB table</h4>
+<div class="outline-text-4" id="text-9-3-2">
+<div class="org-src-container">
+
+<pre class="src src-scheme">(<span style="color: #4169e1;">define</span> <span style="color: #ffd700;">my-table</span> (map-table-from-DB rc/conn))
+</pre>
+</div>
+
+<p>
+<b>rc/conn</b> can be route-context or connection of DB.
+</p>
+
+<p>
+map-table-from-DB returns a function, we named it <b>my-table</b> here for explaining.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-9-3-3" class="outline-4">
+<h4 id="sec-9-3-3"><span class="section-number-4">9.3.3</span> Create table</h4>
+<div class="outline-text-4" id="text-9-3-3">
+<div class="org-src-container">
+
+<pre class="src src-scheme">(my-table 'create table-name defs <span style="color: #40e0d0;">#:if-exists?</span> #f <span style="color: #40e0d0;">#:primary-keys</span> '() <span style="color: #40e0d0;">#:engine</span> #f)
+</pre>
+</div>
+
+<ul class="org-ul">
+<li><b>table-name</b> specifies the name of the table in DB.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><b>defs</b> is a list to define the columns' types. For example:</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-scheme">'((name varchar 10) (age integer) (email varchar 20))
+</pre>
+</div>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:if-exists?</span>
+</code> has two kinds of possible options:
+<ul class="org-ul">
+<li>'<b>overwrite</b> or '<b>drop</b> means overwriting the existed table if possible.</li>
+<li>'<b>ignore</b> means ignore the table when there's an existed one.</li>
+</ul></li>
+</ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:primary-keys</span>
+</code> specifies the primary keys in the created table.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:engine</span>
+</code> specifies the engine, depends on the dbd you chosen.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-9-3-4" class="outline-4">
+<h4 id="sec-9-3-4"><span class="section-number-4">9.3.4</span> Get columns from table</h4>
+<div class="outline-text-4" id="text-9-3-4">
+<div class="org-src-container">
+
+<pre class="src src-scheme">(my-table 'get table-name <span style="color: #40e0d0;">#:columns</span> '(*) <span style="color: #40e0d0;">#:functions</span> '() <span style="color: #40e0d0;">#:ret</span> 'all <span style="color: #40e0d0;">#:group-by</span> #f <span style="color: #40e0d0;">#:order-by</span> #f)
+</pre>
+</div>
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:column</span>
+</code> is the columns list you wanted.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:functions</span>
+</code> is built-in functions calling, e.g:</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-scheme"><span style="color: #40e0d0;">#:functions</span> '((count Persons.Lastname))
+</pre>
+</div>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:ret</span>
+</code> specifies how to return the result, there're three options:
+<ul class="org-ul">
+<li>'all for returning all results</li>
+<li>'top for returning the first result</li>
+<li>integer (larger than 0), you specify the number.</li>
+</ul></li>
+</ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:group-by</span>
+</code> used in conjunction with the aggregate functions to group the result-set by one or more columns.</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><code class="src src-scheme"><span style="color: #40e0d0;">#:order-by</span>
+</code> used to sort the result-set by one or more columns.</li>
+</ul>
+
+
+<p>
+For example, to get Lastname and City column, and return the first result.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(my-table 'get 'Persons <span style="color: #40e0d0;">#:columns</span> '(Lastname City) <span style="color: #40e0d0;">#:ret</span> 'top)
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-9-3-5" class="outline-4">
+<h4 id="sec-9-3-5"><span class="section-number-4">9.3.5</span> Set values to table</h4>
+<div class="outline-text-4" id="text-9-3-5">
+<div class="org-src-container">
+
+<pre class="src src-scheme">(my-table 'set table-name . kargs)
+</pre>
+</div>
+
+<p>
+<b>kargs</b> is a var-list to accept the key-value arguments.
+</p>
+
+<p>
+For example:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(mtable 'set 'Persons <span style="color: #40e0d0;">#:name</span> <span style="color: #ff0000;">"nala"</span> <span style="color: #40e0d0;">#:age</span> 99 <span style="color: #40e0d0;">#:email</span> <span style="color: #ff0000;">"nala@artanis.com"</span>)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-9-3-6" class="outline-4">
+<h4 id="sec-9-3-6"><span class="section-number-4">9.3.6</span> Drop a table</h4>
+<div class="outline-text-4" id="text-9-3-6">
+<div class="org-src-container">
+
+<pre class="src src-scheme">(mtable 'drop table-name)
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-9-3-7" class="outline-4">
+<h4 id="sec-9-3-7"><span class="section-number-4">9.3.7</span> Check existance of table</h4>
+<div class="outline-text-4" id="text-9-3-7">
+<div class="org-src-container">
+
+<pre class="src src-scheme"><span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">case sensitive</span>
+(mtable 'exists? table-name . columns)
+<span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">or for case-insensitive</span>
+(mtable 'ci-exists? table-name . columns)
+</pre>
+</div>
+
+<p>
+For example:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(mtable 'exists? 'Persons 'city 'lastname)
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-9-3-8" class="outline-4">
+<h4 id="sec-9-3-8"><span class="section-number-4">9.3.8</span> Get schema of a table</h4>
+<div class="outline-text-4" id="text-9-3-8">
+<div class="org-src-container">
+
+<pre class="src src-scheme">(mtable 'schema table-name)
+</pre>
+</div>
+
+<p>
+<i>NOTE: all the returned name of schema will be downcased.</i>
+</p>
+</div>
+</div>
+<div id="outline-container-sec-9-3-9" class="outline-4">
+<h4 id="sec-9-3-9"><span class="section-number-4">9.3.9</span> SQL Mapping (experimental)</h4>
+<div class="outline-text-4" id="text-9-3-9">
+<p>
+To be continued &#x2026;
+</p>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-10" class="outline-2">
+<h2 id="sec-10"><span class="section-number-2">10</span> MIME</h2>
+<div class="outline-text-2" id="text-10">
+<p>
+<code class="src src-scheme"><span style="color: #40e0d0;">#:mime</span>
+</code> method is used to return the proper MIME type in the HTTP response.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme"><span style="color: #40e0d0;">#:mime</span> type <span style="color: #66cdaa;">; </span><span style="color: #66cdaa;">for registering type</span>
+(<span style="color: #40e0d0;">:mime</span> rc body) <span style="color: #66cdaa;">; </span><span style="color: #66cdaa;">for emit the reponse with the proper MIME</span>
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-10-1" class="outline-3">
+<h3 id="sec-10-1"><span class="section-number-3">10.1</span> JSON</h3>
+<div class="outline-text-3" id="text-10-1">
+<p>
+Artanis intergrated the third-party module <a href="https://github.com/aconchillo/guile-json">guile-json</a>. 
+You may use #:mime method to handle JSON:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/json"</span> <span style="color: #40e0d0;">#:mime</span> 'json
+  (<span style="color: #4169e1;">lambda</span> (rc)
+    (<span style="color: #4169e1;">let</span> ((j (json (object (<span style="color: #ff0000;">"name"</span> <span style="color: #ff0000;">"nala"</span>) (<span style="color: #ff0000;">"age"</span> <span style="color: #ff0000;">"15"</span>)))))
+      (<span style="color: #40e0d0;">:mime</span> rc j))))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-10-2" class="outline-3">
+<h3 id="sec-10-2"><span class="section-number-3">10.2</span> CSV</h3>
+<div class="outline-text-3" id="text-10-2">
+<p>
+Artanis intergrated the third-party module <a href="https://github.com/NalaGinrut/guile-csv">guile-csv</a>. You may use #:mime method to handle CSV:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/csv"</span> <span style="color: #40e0d0;">#:mime</span> 'csv
+  (<span style="color: #4169e1;">lambda</span> (rc)
+    (<span style="color: #40e0d0;">:mime</span> rc '((<span style="color: #ff0000;">"a"</span> <span style="color: #ff0000;">"1"</span>) (<span style="color: #ff0000;">"b"</span> <span style="color: #ff0000;">"2"</span>)))))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-10-3" class="outline-3">
+<h3 id="sec-10-3"><span class="section-number-3">10.3</span> XML</h3>
+<div class="outline-text-3" id="text-10-3">
+<p>
+In Scheme, XML is handled with SXML. Another way is to use strings appending method.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/xml"</span> <span style="color: #40e0d0;">#:mime</span> 'xml
+  (<span style="color: #4169e1;">lambda</span> (rc)
+    (<span style="color: #40e0d0;">:mime</span> rc '(*TOP* (WEIGHT (@ (unit <span style="color: #ff0000;">"pound"</span>)) (NET (@ (certified <span style="color: #ff0000;">"certified"</span>)) <span style="color: #ff0000;">"67"</span>) (GROSS <span style="color: #ff0000;">"95"</span>))))))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-10-4" class="outline-3">
+<h3 id="sec-10-4"><span class="section-number-3">10.4</span> SXML</h3>
+<div class="outline-text-3" id="text-10-4">
+<p>
+You can use SXML to replace XML for exchanging data format. This way saves some bandwidth.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/sxml"</span> <span style="color: #40e0d0;">#:mime</span> 'sxml
+  (<span style="color: #4169e1;">lambda</span> (rc)
+    (<span style="color: #40e0d0;">:mime</span> rc '((a 1) (b 2)))))
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-11" class="outline-2">
+<h2 id="sec-11"><span class="section-number-2">11</span> Sessions</h2>
+<div class="outline-text-2" id="text-11">
+<p>
+You have to use <code class="src src-scheme"><span style="color: #40e0d0;">#:session</span> #t
+</code> while you defining URL rule handler.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(post <span style="color: #ff0000;">"/auth"</span> <span style="color: #40e0d0;">#:session</span> mode
+  (<span style="color: #4169e1;">lambda</span> (rc) ...))
+</pre>
+</div>
+
+<p>
+<b>mode</b> could be:
+</p>
+<ul class="org-ul">
+<li>#t or 'spawn, to spawn a new session, the name of sid is "sid" in default.</li>
+<li>`(spawn ,sid) specify a name of sid to spawn.</li>
+<li>`(spawn ,sid ,proc) specify a name of sid and a proc to <b>define your own session spawner</b>.</li>
+</ul>
+
+<p>
+And the APIs of session is :session
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(<span style="color: #40e0d0;">:session</span> rc cmd)
+</pre>
+</div>
+
+<p>
+<b>cmd</b> could be:
+</p>
+<ul class="org-ul">
+<li>'check to check session with name "sid".</li>
+<li>`(check ,sid) to check session with a specified sid name.</li>
+<li>'check-and-spawn check "sid" first, if no, then spawn it.</li>
+<li>`(check-and-spawn ,sid) the same with above, but specifed name of sid.</li>
+<li>`(check-and-spawn-and-keep ,sid) check then spawn then keep it, with the name of sid.</li>
+<li>'spawn spawn a session with the name "sid".</li>
+<li>'spawn-and-keep spawn a session then keep with the name "sid".</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-12" class="outline-2">
+<h2 id="sec-12"><span class="section-number-2">12</span> Cookies</h2>
+<div class="outline-text-2" id="text-12">
+<p>
+You have to use <code class="src src-scheme"><span style="color: #40e0d0;">#:session</span> #t
+</code> while you defining URL rule handler.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/cookie-test"</span> <span style="color: #40e0d0;">#:cookies</span> mode
+  (<span style="color: #4169e1;">lambda</span> (rc) ...))
+</pre>
+</div>
+
+<p>
+<b>mode</b> could be:
+</p>
+<ul class="org-ul">
+<li>('names names &#x2026;) specifies the name list of the cookies.</li>
+<li>('custom (names &#x2026;) maker setter getter modifier) specify a more complicated customized cookie handers.</li>
+</ul>
+
+<p>
+And the APIs:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(<span style="color: #40e0d0;">:cookies-set!</span> rc cookie-name key val)
+
+(<span style="color: #40e0d0;">:cookies-ref</span> rc cookie-name key)
+
+(<span style="color: #40e0d0;">:cookies-setattr!</span> rc cookie-name <span style="color: #40e0d0;">#:expir</span> #f <span style="color: #40e0d0;">#:domain</span> #f <span style="color: #40e0d0;">#:path</span> #f <span style="color: #40e0d0;">#:secure</span> #f <span style="color: #40e0d0;">#:http-only</span> #f)
+
+(<span style="color: #40e0d0;">:cookies-remove!</span> rc key) <span style="color: #66cdaa;">; </span><span style="color: #66cdaa;">remove cookie from client</span>
+
+(<span style="color: #40e0d0;">:cookies-update!</span> rc) <span style="color: #66cdaa;">; </span><span style="color: #66cdaa;">cookies operations won't work unless you update it</span>
+</pre>
+</div>
+
+<p>
+<b>NOTE</b>: You don't have to call <code class="src src-scheme"><span style="color: #40e0d0;">:cookies-update!</span>
+</code> yourself, since it'll be called automatically by the hook before response.
+</p>
+
+<p>
+For example:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/cookie"</span> <span style="color: #40e0d0;">#:cookies</span> '(names cc)
+  (<span style="color: #4169e1;">lambda</span> (rc)
+    (<span style="color: #40e0d0;">:cookies-set!</span> rc 'cc <span style="color: #ff0000;">"sid"</span> <span style="color: #ff0000;">"123321"</span>)
+    <span style="color: #ff0000;">"ok"</span>))
+
+(get <span style="color: #ff0000;">"/cookie/:expires"</span> <span style="color: #40e0d0;">#:cookies</span> '(names cc)
+  (<span style="color: #4169e1;">lambda</span> (rc)
+    (<span style="color: #40e0d0;">:cookies-set!</span> rc 'cc <span style="color: #ff0000;">"sid"</span> <span style="color: #ff0000;">"123321"</span>)
+    (<span style="color: #40e0d0;">:cookies-setattr!</span> rc 'cc <span style="color: #40e0d0;">#:expir</span> (string-&gt;number (params rc <span style="color: #ff0000;">"expires"</span>)))
+    <span style="color: #ff0000;">"ok"</span>))
+</pre>
+</div>
+
+<p>
+Now you may use this command in the console to see the result:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-nil">curl --head localhost:3000/cookie
+# and
+curl --head localhost:3000/cookie/120
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-13" class="outline-2">
+<h2 id="sec-13"><span class="section-number-2">13</span> Authentication</h2>
+<div class="outline-text-2" id="text-13">
+<p>
+Artanis provides flexible mechanism for authentication.
+</p>
+</div>
+<div id="outline-container-sec-13-1" class="outline-3">
+<h3 id="sec-13-1"><span class="section-number-3">13.1</span> Basic Authentication</h3>
+<div class="outline-text-3" id="text-13-1">
+<p>
+HTTP Basic authentication (BA) implementation is the simplest technique for enforcing access controls to web resources because it doesn't require cookies, session identifier and login pages. Rather, HTTP Basic authentication uses static, standard HTTP headers which means that no handshakes have to be done in anticipation.
+</p>
+
+<p>
+The BA mechanism provides no confidentiality protection for the transmitted credentials. They are merely encoded with Base64 in transit, but not encrypted or hashed in any way. Basic Authentication is, therefore, typically used over HTTPS.
+</p>
+
+<p>
+<i><b>GNU Artanis doesn't support HTTPS at present, it's planned to support it in the future.</b></i>
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-14" class="outline-2">
+<h2 id="sec-14"><span class="section-number-2">14</span> Cache</h2>
+<div class="outline-text-2" id="text-14">
+<p>
+To be continued &#x2026;
+</p>
+</div>
+</div>
+<div id="outline-container-sec-15" class="outline-2">
+<h2 id="sec-15"><span class="section-number-2">15</span> Appendix A GNU Free Documentation License</h2>
+<div class="outline-text-2" id="text-15">
+<p>
+Version 1.3, 3 November 2008
+Copyright © 2000, 2001, 2002, 2007, 2008 Free Software Foundation, Inc.
+<a href="http://fsf.org/">http://fsf.org/</a>
+</p>
+
+<p>
+Everyone is permitted to copy and distribute verbatim copies
+of this license document, but changing it is not allowed.
+PREAMBLE
+The purpose of this License is to make a manual, textbook, or other functional and useful document free in the sense of freedom: to assure everyone the effective freedom to copy and redistribute it, with or without modifying it, either commercially or noncommercially. Secondarily, this License preserves for the author and publisher a way to get credit for their work, while not being considered responsible for modifications made by others.
+</p>
+
+<p>
+This License is a kind of “copyleft”, which means that derivative works of the document must themselves be free in the same sense. It complements the GNU General Public License, which is a copyleft license designed for free software.
+</p>
+
+<p>
+We have designed this License in order to use it for manuals for free software, because free software needs free documentation: a free program should come with manuals providing the same freedoms that the software does. But this License is not limited to software manuals; it can be used for any textual work, regardless of subject matter or whether it is published as a printed book. We recommend this License principally for works whose purpose is instruction or reference.
+</p>
+
+<p>
+APPLICABILITY AND DEFINITIONS
+This License applies to any manual or other work, in any medium, that contains a notice placed by the copyright holder saying it can be distributed under the terms of this License. Such a notice grants a world-wide, royalty-free license, unlimited in duration, to use that work under the conditions stated herein. The “Document”, below, refers to any such manual or work. Any member of the public is a licensee, and is addressed as “you”. You accept the license if you copy, modify or distribute the work in a way requiring permission under copyright law.
+</p>
+
+<p>
+A “Modified Version” of the Document means any work containing the Document or a portion of it, either copied verbatim, or with modifications and/or translated into another language.
+</p>
+
+<p>
+A “Secondary Section” is a named appendix or a front-matter section of the Document that deals exclusively with the relationship of the publishers or authors of the Document to the Document’s overall subject (or to related matters) and contains nothing that could fall directly within that overall subject. (Thus, if the Document is in part a textbook of mathematics, a Secondary Section may not explain any mathematics.) The relationship could be a matter of historical connection with the subject or with related matters, or of legal, commercial, philosophical, ethical or political position regarding them.
+</p>
+
+<p>
+The “Invariant Sections” are certain Secondary Sections whose titles are designated, as being those of Invariant Sections, in the notice that says that the Document is released under this License. If a section does not fit the above definition of Secondary then it is not allowed to be designated as Invariant. The Document may contain zero Invariant Sections. If the Document does not identify any Invariant Sections then there are none.
+</p>
+
+<p>
+The “Cover Texts” are certain short passages of text that are listed, as Front-Cover Texts or Back-Cover Texts, in the notice that says that the Document is released under this License. A Front-Cover Text may be at most 5 words, and a Back-Cover Text may be at most 25 words.
+</p>
+
+<p>
+A “Transparent” copy of the Document means a machine-readable copy, represented in a format whose specification is available to the general public, that is suitable for revising the document straightforwardly with generic text editors or (for images composed of pixels) generic paint programs or (for drawings) some widely available drawing editor, and that is suitable for input to text formatters or for automatic translation to a variety of formats suitable for input to text formatters. A copy made in an otherwise Transparent file format whose markup, or absence of markup, has been arranged to thwart or discourage subsequent modification by readers is not Transparent. An image format is not Transparent if used for any substantial amount of text. A copy that is not “Transparent” is called “Opaque”.
+</p>
+
+<p>
+Examples of suitable formats for Transparent copies include plain ASCII without markup, Texinfo input format, LaTeX input format, SGML or XML using a publicly available DTD, and standard-conforming simple HTML, PostScript or PDF designed for human modification. Examples of transparent image formats include PNG, XCF and JPG. Opaque formats include proprietary formats that can be read and edited only by proprietary word processors, SGML or XML for which the DTD and/or processing tools are not generally available, and the machine-generated HTML, PostScript or PDF produced by some word processors for output purposes only.
+</p>
+
+<p>
+The “Title Page” means, for a printed book, the title page itself, plus such following pages as are needed to hold, legibly, the material this License requires to appear in the title page. For works in formats which do not have any title page as such, “Title Page” means the text near the most prominent appearance of the work’s title, preceding the beginning of the body of the text.
+</p>
+
+<p>
+The “publisher” means any person or entity that distributes copies of the Document to the public.
+</p>
+
+<p>
+A section “Entitled XYZ” means a named subunit of the Document whose title either is precisely XYZ or contains XYZ in parentheses following text that translates XYZ in another language. (Here XYZ stands for a specific section name mentioned below, such as “Acknowledgements”, “Dedications”, “Endorsements”, or “History”.) To “Preserve the Title” of such a section when you modify the Document means that it remains a section “Entitled XYZ” according to this definition.
+</p>
+
+<p>
+The Document may include Warranty Disclaimers next to the notice which states that this License applies to the Document. These Warranty Disclaimers are considered to be included by reference in this License, but only as regards disclaiming warranties: any other implication that these Warranty Disclaimers may have is void and has no effect on the meaning of this License.
+</p>
+
+<p>
+VERBATIM COPYING
+You may copy and distribute the Document in any medium, either commercially or noncommercially, provided that this License, the copyright notices, and the license notice saying this License applies to the Document are reproduced in all copies, and that you add no other conditions whatsoever to those of this License. You may not use technical measures to obstruct or control the reading or further copying of the copies you make or distribute. However, you may accept compensation in exchange for copies. If you distribute a large enough number of copies you must also follow the conditions in section 3.
+</p>
+
+<p>
+You may also lend copies, under the same conditions stated above, and you may publicly display copies.
+</p>
+
+<p>
+COPYING IN QUANTITY
+If you publish printed copies (or copies in media that commonly have printed covers) of the Document, numbering more than 100, and the Document’s license notice requires Cover Texts, you must enclose the copies in covers that carry, clearly and legibly, all these Cover Texts: Front-Cover Texts on the front cover, and Back-Cover Texts on the back cover. Both covers must also clearly and legibly identify you as the publisher of these copies. The front cover must present the full title with all words of the title equally prominent and visible. You may add other material on the covers in addition. Copying with changes limited to the covers, as long as they preserve the title of the Document and satisfy these conditions, can be treated as verbatim copying in other respects.
+</p>
+
+<p>
+If the required texts for either cover are too voluminous to fit legibly, you should put the first ones listed (as many as fit reasonably) on the actual cover, and continue the rest onto adjacent pages.
+</p>
+
+<p>
+If you publish or distribute Opaque copies of the Document numbering more than 100, you must either include a machine-readable Transparent copy along with each Opaque copy, or state in or with each Opaque copy a computer-network location from which the general network-using public has access to download using public-standard network protocols a complete Transparent copy of the Document, free of added material. If you use the latter option, you must take reasonably prudent steps, when you begin distribution of Opaque copies in quantity, to ensure that this Transparent copy will remain thus accessible at the stated location until at least one year after the last time you distribute an Opaque copy (directly or through your agents or retailers) of that edition to the public.
+</p>
+
+<p>
+It is requested, but not required, that you contact the authors of the Document well before redistributing any large number of copies, to give them a chance to provide you with an updated version of the Document.
+</p>
+
+<p>
+MODIFICATIONS
+You may copy and distribute a Modified Version of the Document under the conditions of sections 2 and 3 above, provided that you release the Modified Version under precisely this License, with the Modified Version filling the role of the Document, thus licensing distribution and modification of the Modified Version to whoever possesses a copy of it. In addition, you must do these things in the Modified Version:
+</p>
+
+<p>
+Use in the Title Page (and on the covers, if any) a title distinct from that of the Document, and from those of previous versions (which should, if there were any, be listed in the History section of the Document). You may use the same title as a previous version if the original publisher of that version gives permission.
+List on the Title Page, as authors, one or more persons or entities responsible for authorship of the modifications in the Modified Version, together with at least five of the principal authors of the Document (all of its principal authors, if it has fewer than five), unless they release you from this requirement.
+State on the Title page the name of the publisher of the Modified Version, as the publisher.
+Preserve all the copyright notices of the Document.
+Add an appropriate copyright notice for your modifications adjacent to the other copyright notices.
+Include, immediately after the copyright notices, a license notice giving the public permission to use the Modified Version under the terms of this License, in the form shown in the Addendum below.
+Preserve in that license notice the full lists of Invariant Sections and required Cover Texts given in the Document’s license notice.
+Include an unaltered copy of this License.
+Preserve the section Entitled “History”, Preserve its Title, and add to it an item stating at least the title, year, new authors, and publisher of the Modified Version as given on the Title Page. If there is no section Entitled “History” in the Document, create one stating the title, year, authors, and publisher of the Document as given on its Title Page, then add an item describing the Modified Version as stated in the previous sentence.
+Preserve the network location, if any, given in the Document for public access to a Transparent copy of the Document, and likewise the network locations given in the Document for previous versions it was based on. These may be placed in the “History” section. You may omit a network location for a work that was published at least four years before the Document itself, or if the original publisher of the version it refers to gives permission.
+For any section Entitled “Acknowledgements” or “Dedications”, Preserve the Title of the section, and preserve in the section all the substance and tone of each of the contributor acknowledgements and/or dedications given therein.
+Preserve all the Invariant Sections of the Document, unaltered in their text and in their titles. Section numbers or the equivalent are not considered part of the section titles.
+Delete any section Entitled “Endorsements”. Such a section may not be included in the Modified Version.
+Do not retitle any existing section to be Entitled “Endorsements” or to conflict in title with any Invariant Section.
+Preserve any Warranty Disclaimers.
+If the Modified Version includes new front-matter sections or appendices that qualify as Secondary Sections and contain no material copied from the Document, you may at your option designate some or all of these sections as invariant. To do this, add their titles to the list of Invariant Sections in the Modified Version’s license notice. These titles must be distinct from any other section titles.
+</p>
+
+<p>
+You may add a section Entitled “Endorsements”, provided it contains nothing but endorsements of your Modified Version by various parties—for example, statements of peer review or that the text has been approved by an organization as the authoritative definition of a standard.
+</p>
+
+<p>
+You may add a passage of up to five words as a Front-Cover Text, and a passage of up to 25 words as a Back-Cover Text, to the end of the list of Cover Texts in the Modified Version. Only one passage of Front-Cover Text and one of Back-Cover Text may be added by (or through arrangements made by) any one entity. If the Document already includes a cover text for the same cover, previously added by you or by arrangement made by the same entity you are acting on behalf of, you may not add another; but you may replace the old one, on explicit permission from the previous publisher that added the old one.
+</p>
+
+<p>
+The author(s) and publisher(s) of the Document do not by this License give permission to use their names for publicity for or to assert or imply endorsement of any Modified Version.
+</p>
+
+<p>
+COMBINING DOCUMENTS
+You may combine the Document with other documents released under this License, under the terms defined in section 4 above for modified versions, provided that you include in the combination all of the Invariant Sections of all of the original documents, unmodified, and list them all as Invariant Sections of your combined work in its license notice, and that you preserve all their Warranty Disclaimers.
+</p>
+
+<p>
+The combined work need only contain one copy of this License, and multiple identical Invariant Sections may be replaced with a single copy. If there are multiple Invariant Sections with the same name but different contents, make the title of each such section unique by adding at the end of it, in parentheses, the name of the original author or publisher of that section if known, or else a unique number. Make the same adjustment to the section titles in the list of Invariant Sections in the license notice of the combined work.
+</p>
+
+<p>
+In the combination, you must combine any sections Entitled “History” in the various original documents, forming one section Entitled “History”; likewise combine any sections Entitled “Acknowledgements”, and any sections Entitled “Dedications”. You must delete all sections Entitled “Endorsements.”
+</p>
+
+<p>
+COLLECTIONS OF DOCUMENTS
+You may make a collection consisting of the Document and other documents released under this License, and replace the individual copies of this License in the various documents with a single copy that is included in the collection, provided that you follow the rules of this License for verbatim copying of each of the documents in all other respects.
+</p>
+
+<p>
+You may extract a single document from such a collection, and distribute it individually under this License, provided you insert a copy of this License into the extracted document, and follow this License in all other respects regarding verbatim copying of that document.
+</p>
+
+<p>
+AGGREGATION WITH INDEPENDENT WORKS
+A compilation of the Document or its derivatives with other separate and independent documents or works, in or on a volume of a storage or distribution medium, is called an “aggregate” if the copyright resulting from the compilation is not used to limit the legal rights of the compilation’s users beyond what the individual works permit. When the Document is included in an aggregate, this License does not apply to the other works in the aggregate which are not themselves derivative works of the Document.
+</p>
+
+<p>
+If the Cover Text requirement of section 3 is applicable to these copies of the Document, then if the Document is less than one half of the entire aggregate, the Document’s Cover Texts may be placed on covers that bracket the Document within the aggregate, or the electronic equivalent of covers if the Document is in electronic form. Otherwise they must appear on printed covers that bracket the whole aggregate.
+</p>
+
+<p>
+TRANSLATION
+Translation is considered a kind of modification, so you may distribute translations of the Document under the terms of section 4. Replacing Invariant Sections with translations requires special permission from their copyright holders, but you may include translations of some or all Invariant Sections in addition to the original versions of these Invariant Sections. You may include a translation of this License, and all the license notices in the Document, and any Warranty Disclaimers, provided that you also include the original English version of this License and the original versions of those notices and disclaimers. In case of a disagreement between the translation and the original version of this License or a notice or disclaimer, the original version will prevail.
+</p>
+
+<p>
+If a section in the Document is Entitled “Acknowledgements”, “Dedications”, or “History”, the requirement (section 4) to Preserve its Title (section 1) will typically require changing the actual title.
+</p>
+
+<p>
+TERMINATION
+You may not copy, modify, sublicense, or distribute the Document except as expressly provided under this License. Any attempt otherwise to copy, modify, sublicense, or distribute it is void, and will automatically terminate your rights under this License.
+</p>
+
+<p>
+However, if you cease all violation of this License, then your license from a particular copyright holder is reinstated (a) provisionally, unless and until the copyright holder explicitly and finally terminates your license, and (b) permanently, if the copyright holder fails to notify you of the violation by some reasonable means prior to 60 days after the cessation.
+</p>
+
+<p>
+Moreover, your license from a particular copyright holder is reinstated permanently if the copyright holder notifies you of the violation by some reasonable means, this is the first time you have received notice of violation of this License (for any work) from that copyright holder, and you cure the violation prior to 30 days after your receipt of the notice.
+</p>
+
+<p>
+Termination of your rights under this section does not terminate the licenses of parties who have received copies or rights from you under this License. If your rights have been terminated and not permanently reinstated, receipt of a copy of some or all of the same material does not give you any rights to use it.
+</p>
+
+<p>
+FUTURE REVISIONS OF THIS LICENSE
+The Free Software Foundation may publish new, revised versions of the GNU Free Documentation License from time to time. Such new versions will be similar in spirit to the present version, but may differ in detail to address new problems or concerns. See <a href="http://www.gnu.org/copyleft/">http://www.gnu.org/copyleft/</a>.
+</p>
+
+<p>
+Each version of the License is given a distinguishing version number. If the Document specifies that a particular numbered version of this License “or any later version” applies to it, you have the option of following the terms and conditions either of that specified version or of any later version that has been published (not as a draft) by the Free Software Foundation. If the Document does not specify a version number of this License, you may choose any version ever published (not as a draft) by the Free Software Foundation. If the Document specifies that a proxy can decide which future versions of this License can be used, that proxy’s public statement of acceptance of a version permanently authorizes you to choose that version for the Document.
+</p>
+
+<p>
+RELICENSING
+“Massive Multiauthor Collaboration Site” (or “MMC Site”) means any World Wide Web server that publishes copyrightable works and also provides prominent facilities for anybody to edit those works. A public wiki that anybody can edit is an example of such a server. A “Massive Multiauthor Collaboration” (or “MMC”) contained in the site means any set of copyrightable works thus published on the MMC site.
+</p>
+
+<p>
+“CC-BY-SA” means the Creative Commons Attribution-Share Alike 3.0 license published by Creative Commons Corporation, a not-for-profit corporation with a principal place of business in San Francisco, California, as well as future copyleft versions of that license published by that same organization.
+</p>
+
+<p>
+“Incorporate” means to publish or republish a Document, in whole or in part, as part of another Document.
+</p>
+
+<p>
+An MMC is “eligible for relicensing” if it is licensed under this License, and if all works that were first published under this License somewhere other than this MMC, and subsequently incorporated in whole or in part into the MMC, (1) had no cover texts or invariant sections, and (2) were thus incorporated prior to November 1, 2008.
+</p>
+
+<p>
+The operator of an MMC Site may republish an MMC contained in the site under CC-BY-SA on the same site at any time before August 1, 2009, provided the MMC is eligible for relicensing.
+</p>
+
+<p>
+ADDENDUM: How to use this License for your documents
+</p>
+
+<p>
+To use this License in a document you have written, include a copy of the License in the document and put the following copyright and license notices just after the title page:
+</p>
+
+<p>
+  Copyright (C)  year  your name.
+  Permission is granted to copy, distribute and/or modify this document
+  under the terms of the GNU Free Documentation License, Version 1.3
+  or any later version published by the Free Software Foundation;
+  with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
+  Texts.  A copy of the license is included in the section entitled ``GNU
+  Free Documentation License''.
+If you have Invariant Sections, Front-Cover Texts and Back-Cover Texts, replace the “with…Texts.” line with this:
+</p>
+
+<p>
+    with the Invariant Sections being list their titles, with
+    the Front-Cover Texts being list, and with the Back-Cover Texts
+    being list.
+If you have Invariant Sections without Cover Texts, or some other combination of the three, merge those two alternatives to suit the situation.
+</p>
+
+<p>
+If your document contains nontrivial examples of program code, we recommend releasing these examples in parallel under your choice of free software license, such as the GNU General Public License, to permit their use in free software.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Mu Lei known as NalaGinrut</p>
+<p class="date">Created: 2015-01-22 Thu 18:21</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.2.1 (<a href="http://orgmode.org">Org</a> mode 8.3beta)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>
