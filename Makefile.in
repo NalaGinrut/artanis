@@ -20,6 +20,13 @@ VERSION := @PACKAGE_VERSION@
 PREFIX := @prefix@
 INSTALL := install -c
 HEADER := @srcdir@/.HEAD
+DOCS := @srcdir@/docs
+DOCS_OBJ := $(OBJ)/docs/
+MANUALS := $(DOCS_OBJ)/manuals/
+TEXI_SRC := $(DOCS)/artanis.texi
+BUILD_AUX := @srcdir@/build-aux
+GENDOCS :=$(BUILD_AUX)/gendocs.sh
+CHK_TEXINFO := $(BUILD_AUX)/check_texinfo.scm
 CP := cp -frd -P
 V := @
 
@@ -48,11 +55,13 @@ $(MOD)/version.scm:
 	$(V) cat $(HEADER) > $@
 	$(V)$(GUILE) -c '(let ((port (open-file "$@" "a")))(format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"Artanis-~a\")~%" "$(VERSION)"))'
 
-.PHONY: clean modules install distclean distclean-mk bin version test
+.PHONY: clean modules install distclean distclean-mk bin version test docs
 
 clean:
 	-rm -fr $(OBJ)
 	-rm -f *.log
+	-rm -f *.err
+	-rm -f *.info
 	-rm -rf autom4te.cache
 	-rm -f $(MOD)/version.scm
 
@@ -86,3 +95,8 @@ test:
 	@echo $(VERSION)
 	@echo $(LIBS)
 	@echo $(mod-ofile)
+
+docs: $(TEXI_SRC)
+	$(CHK_TEXINFO)
+	GENDOCS_TEMPLATE_DIR=$(BUILD_AUX) $(GENDOCS) --email bug-artanis@gnu.org -s $< -o $(MANUALS) "GNU Artanis Manual" --html --no-headers
+	-rm -f ./*.{cp,ky,tp,aux,fn,log,pg,toc,vr}
