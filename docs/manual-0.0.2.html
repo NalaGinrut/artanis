@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>GNU Artanis web-framework Manual</title>
-<!-- 2015-01-22 Thu 18:30 -->
+<!-- 2015-01-22 Thu 18:38 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Mu Lei known as NalaGinrut" />
@@ -160,7 +160,7 @@ for the JavaScript code in this tag.
 </li>
 <li><a href="#sec-4">4. Hello World</a>
 <ul>
-<li><a href="#sec-4-1">4.1. Use Guile REPL and verify Artanis installation</a></li>
+<li><a href="#sec-4-1">4.1. Use Guile REPL and verify GNU Artanis installation</a></li>
 <li><a href="#sec-4-2">4.2. Simple HTTP server</a></li>
 <li><a href="#sec-4-3">4.3. Try simple URL remapping</a></li>
 <li><a href="#sec-4-4">4.4. More complex URL remapping</a></li>
@@ -176,9 +176,9 @@ for the JavaScript code in this tag.
 <li><a href="#sec-5-4">5.4. For deep learners</a></li>
 </ul>
 </li>
-<li><a href="#sec-6">6. Basic in Artanis</a>
+<li><a href="#sec-6">6. Basic in GNU Artanis</a>
 <ul>
-<li><a href="#sec-6-1">6.1. How to run a site with Artanis</a></li>
+<li><a href="#sec-6-1">6.1. How to run a site with GNU Artanis</a></li>
 <li><a href="#sec-6-2">6.2. Initialization</a></li>
 <li><a href="#sec-6-3">6.3. Registering handler of HTTP methods</a></li>
 <li><a href="#sec-6-4">6.4. Emit Response</a></li>
@@ -194,7 +194,7 @@ for the JavaScript code in this tag.
 <li><a href="#sec-7-4">7.4. Redirect link</a></li>
 </ul>
 </li>
-<li><a href="#sec-8">8. Layouts and Rendering in Artanis</a>
+<li><a href="#sec-8">8. Layouts and Rendering in GNU Artanis</a>
 <ul>
 <li><a href="#sec-8-1">8.1. Templating</a></li>
 <li><a href="#sec-8-2">8.2. Templating for Pythoners</a></li>
@@ -268,11 +268,11 @@ GNU Artanis is a web application framework(WAF) written in <a href="http://www.g
 A <a href="http://en.wikipedia.org/wiki/Web_application_framework">web application framework (WAF)</a> is a software framework that is designed to support the development of dynamic websites,
 web applications, web services and web resources.
 The framework aims to alleviate the overhead associated with common activities performed in web development.
-Artanis provides several tools for web development: database access, templating frameworks, session management, <a href="http://en.wikipedia.org/wiki/Rewrite_engine">URL-remapping</a> for <a href="http://en.wikipedia.org/wiki/Representational_state_transfer">RESTful</a>, page caching, and so on.
+GNU Artanis provides several tools for web development: database access, templating frameworks, session management, <a href="http://en.wikipedia.org/wiki/Rewrite_engine">URL-remapping</a> for <a href="http://en.wikipedia.org/wiki/Representational_state_transfer">RESTful</a>, page caching, and so on.
 </p>
 
 <p>
-This manual describes how to use Artanis, and usage of APIs.
+This manual describes how to use GNU Artanis, and usage of APIs.
 </p>
 
 <p>
@@ -412,7 +412,7 @@ You may find other dbd <a href="http://download.gna.org/guile-dbi">here</a>. And
 </p>
 
 <ul class="org-ul">
-<li>Artanis-0.0.1:</li>
+<li>GNU Artanis-0.0.1:</li>
 </ul>
 <div class="org-src-container">
 
@@ -474,7 +474,7 @@ There's a config skeleton named default.conf, you may copy it to <code>/etc/arta
 <h2 id="sec-4"><span class="section-number-2">4</span> Hello World</h2>
 <div class="outline-text-2" id="text-4">
 </div><div id="outline-container-sec-4-1" class="outline-3">
-<h3 id="sec-4-1"><span class="section-number-3">4.1</span> Use Guile REPL and verify Artanis installation</h3>
+<h3 id="sec-4-1"><span class="section-number-3">4.1</span> Use Guile REPL and verify GNU Artanis installation</h3>
 <div class="outline-text-3" id="text-4-1">
 <p>
 If you're NOT freshman of Guile, please skip this section.
@@ -502,7 +502,7 @@ Welcome to Guile world!
 </p>
 
 <p>
-Now, we're going to play Artanis. Before we start, please follow these instructions in the REPL to ensure that you installed Artanis correctly:
+Now, we're going to play GNU Artanis. Before we start, please follow these instructions in the REPL to ensure that you installed GNU Artanis correctly:
 </p>
 
 <p>
@@ -521,7 +521,7 @@ The expected output should be similar to this:
 </p>
 <div class="org-src-container">
 
-<pre class="src src-scheme">$1 = <span style="color: #ff0000;">"Artanis-0.0.1"</span>
+<pre class="src src-scheme">$1 = <span style="color: #ff0000;">"GNU Artanis-0.0.1"</span>
 </pre>
 </div>
 </div>
@@ -574,17 +574,17 @@ Let me explain these code.
 </p>
 
 <ul class="org-ul">
-<li><i>line 1:</i> Load Artanis module, (artanis artanis) is the name.</li>
+<li><i>line 1:</i> Load GNU Artanis module, (artanis artanis) is the name.</li>
 </ul>
 
 
 <ul class="org-ul">
-<li><i>line 2:</i> The first argument <i>get</i> is Artanis API corresponding to GET method in HTTP protocol. The second argument "/hello" is the URL rule to register. The Third argument is the handler which will be triggered if the registered URL rule is hit.</li>
+<li><i>line 2:</i> The first argument <i>get</i> is GNU Artanis API corresponding to GET method in HTTP protocol. The second argument "/hello" is the URL rule to register. The Third argument is the handler which will be triggered if the registered URL rule is hit.</li>
 </ul>
 
 
 <ul class="org-ul">
-<li><i>line 3:</i> Run Artanis server, and listenning socket port 8080.</li>
+<li><i>line 3:</i> Run GNU Artanis server, and listenning socket port 8080.</li>
 </ul>
 
 <p>
@@ -618,7 +618,7 @@ There're two differences:
 <li>1. The special rule, "<code>/hello/:who</code>", <i>:who</i> means you can use <i>params</i> to reference the value of this section of URL with the key "who". <code class="src src-scheme">(params rc <span style="color: #ff0000;">"who"</span>)
 </code> is the way for that.</li>
 
-<li>2. You may notice that the handler defined as an anonymous function with <i>lambda</i> has one argument <i>rc</i>. It means <i>route context</i> which preserve all the related context information. Many Artanis APIs need it, say, <i>params</i>.</li>
+<li>2. You may notice that the handler defined as an anonymous function with <i>lambda</i> has one argument <i>rc</i>. It means <i>route context</i> which preserve all the related context information. Many GNU Artanis APIs need it, say, <i>params</i>.</li>
 </ul>
 
 <p>
@@ -640,7 +640,7 @@ You can use regex in the URL rule.
 </div>
 
 <p>
-<i>static-page-emitter</i> is an Artanis API which emits a static file like images to the client.
+<i>static-page-emitter</i> is an GNU Artanis API which emits a static file like images to the client.
 </p>
 </div>
 </div>
@@ -648,7 +648,7 @@ You can use regex in the URL rule.
 <h3 id="sec-4-6"><span class="section-number-3">4.6</span> Database operating</h3>
 <div class="outline-text-3" id="text-4-6">
 <p>
-Artanis supports mysql/postgresql/sqlite3, we use mysql as a example here.
+GNU Artanis supports mysql/postgresql/sqlite3, we use mysql as a example here.
 </p>
 
 <p>
@@ -674,7 +674,7 @@ You can use DB without running a server.
 </div>
 
 <ul class="org-ul">
-<li><i>map-table-from-DB</i> is Artanis API handling tables in DB. Here, we define this mapping as the var <i>mtable</i>.</li>
+<li><i>map-table-from-DB</i> is GNU Artanis API handling tables in DB. Here, we define this mapping as the var <i>mtable</i>.</li>
 </ul>
 
 
@@ -832,11 +832,11 @@ These two books are very good for learning Scheme seriously:
 </ol>
 
 <p>
-Please don't read them if you just want to use Artanis to build your webapp/site in few minutes.
+Please don't read them if you just want to use GNU Artanis to build your webapp/site in few minutes.
 </p>
 
 <p>
-If you really want to try these books seriously, please ignore Artanis before you done them.
+If you really want to try these books seriously, please ignore GNU Artanis before you done them.
 </p>
 
 <p>
@@ -850,10 +850,10 @@ Hold your horses. ;-)
 </div>
 </div>
 <div id="outline-container-sec-6" class="outline-2">
-<h2 id="sec-6"><span class="section-number-2">6</span> Basic in Artanis</h2>
+<h2 id="sec-6"><span class="section-number-2">6</span> Basic in GNU Artanis</h2>
 <div class="outline-text-2" id="text-6">
 </div><div id="outline-container-sec-6-1" class="outline-3">
-<h3 id="sec-6-1"><span class="section-number-3">6.1</span> How to run a site with Artanis</h3>
+<h3 id="sec-6-1"><span class="section-number-3">6.1</span> How to run a site with GNU Artanis</h3>
 <div class="outline-text-3" id="text-6-1">
 <p>
 This is the simplest case to run a site:
@@ -874,7 +874,7 @@ This is the simplest case to run a site:
 <h3 id="sec-6-2"><span class="section-number-3">6.2</span> Initialization</h3>
 <div class="outline-text-3" id="text-6-2">
 <p>
-It's better to use (init-server) to init Artanis.
+It's better to use (init-server) to init GNU Artanis.
 </p>
 <div class="org-src-container">
 
@@ -883,7 +883,7 @@ It's better to use (init-server) to init Artanis.
 </div>
 <p>
 <code class="src src-scheme"><span style="color: #40e0d0;">#:statics</span>
-</code> specifies the static files with the extension file. Artanis is based on URL remapping, so this keyword avoids you to handle each static file types. In default, it coveres the most static file types. So you may ignore it usually.
+</code> specifies the static files with the extension file. GNU Artanis is based on URL remapping, so this keyword avoids you to handle each static file types. In default, it coveres the most static file types. So you may ignore it usually.
 </p>
 
 <p>
@@ -930,7 +930,7 @@ Please read <a href="#sec-7-2">URL handling</a>.
 
 <p>
 <code class="src src-scheme"><span style="color: #40e0d0;">#:mtime</span>
-</code> specifies the modify time in the response. Artanis will generate it for you if you just ignore it.
+</code> specifies the modify time in the response. GNU Artanis will generate it for you if you just ignore it.
 </p>
 
 <div class="org-src-container">
@@ -984,7 +984,7 @@ But you can specify them as will.
 
 <p>
 <code class="src src-scheme"><span style="color: #40e0d0;">#:use-db?</span>
-</code> set #t if you want to use DB, and Artanis will init DB config for you.
+</code> set #t if you want to use DB, and GNU Artanis will init DB config for you.
 </p>
 
 <p>
@@ -1012,11 +1012,11 @@ But you can specify them as will.
 <h3 id="sec-6-6"><span class="section-number-3">6.6</span> Working with Nginx</h3>
 <div class="outline-text-3" id="text-6-6">
 <p>
-You may try Artanis+Nginx with so-called reverse proxy. 
+You may try GNU Artanis+Nginx with so-called reverse proxy. 
 </p>
 
 <p>
-<b><i>I would recommend you use Nginx as the front server, since Artanis hasn't done its own async server-core which will be based on delimited-continuations. The current server has some caveats, in spite of the performance, you may suffer from slow-header-ddos if you use Artanis to serv you site directly. But it's fine when you use Nginx in front of Artanis.</i></b>
+<b><i>I would recommend you use Nginx as the front server, since GNU Artanis hasn't done its own async server-core which will be based on delimited-continuations. The current server has some caveats, in spite of the performance, you may suffer from slow-header-ddos if you use GNU Artanis to serv you site directly. But it's fine when you use Nginx in front of GNU Artanis.</i></b>
 </p>
 
 <p>
@@ -1074,7 +1074,7 @@ According to RFC2616, there're GET, POST, PUT, PATCH and DELETE methods. You may
 </p>
 
 <p>
-<i>There'd be HEAD method, but in Artanis, HEAD method is handled by the server, users can't use it.</i>
+<i>There'd be HEAD method, but in GNU Artanis, HEAD method is handled by the server, users can't use it.</i>
 </p>
 
 <p>
@@ -1154,7 +1154,7 @@ For POST method:
 </div>
 </div>
 <div id="outline-container-sec-8" class="outline-2">
-<h2 id="sec-8"><span class="section-number-2">8</span> Layouts and Rendering in Artanis</h2>
+<h2 id="sec-8"><span class="section-number-2">8</span> Layouts and Rendering in GNU Artanis</h2>
 <div class="outline-text-2" id="text-8">
 </div><div id="outline-container-sec-8-1" class="outline-3">
 <h3 id="sec-8-1"><span class="section-number-3">8.1</span> Templating</h3>
@@ -1168,11 +1168,11 @@ Templating provides a way to mix programming code into HTML.
 <h3 id="sec-8-2"><span class="section-number-3">8.2</span> Templating for Pythoners</h3>
 <div class="outline-text-3" id="text-8-2">
 <p>
-If you're familiar with Django, which implemented a DSL(Domain Specific Language) to express presentation rather than program logic. You may realize that the templating of Artanis has different philosophy.
+If you're familiar with Django, which implemented a DSL(Domain Specific Language) to express presentation rather than program logic. You may realize that the templating of GNU Artanis has different philosophy.
 </p>
 
 <p>
-In templating of Artanis, it's simply embedded Scheme code into HTML. Why? Because of the philosophy of FP(Functional Programming), everything could be a function. So obviously, <code class="src src-scheme">(filesizeformat size)
+In templating of GNU Artanis, it's simply embedded Scheme code into HTML. Why? Because of the philosophy of FP(Functional Programming), everything could be a function. So obviously, <code class="src src-scheme">(filesizeformat size)
 </code> is enough for understanding, and it's just simple function calling in prefix-notation. There's no need to implement DSL like <code class="src src-python">size|filesizeformat
 </code> to increase the complexity of code. Let alone the syntax is very different from Python.
 </p>
@@ -1183,7 +1183,7 @@ The syntax like <code class="src src-python">size|filesizeformat
 </p>
 
 <p>
-The philosophy of Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce the unnecessary complexities. <a href="http://en.wikipedia.org/wiki/KISS_principle">KISS</a>.
+The philosophy of GNU Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce the unnecessary complexities. <a href="http://en.wikipedia.org/wiki/KISS_principle">KISS</a>.
 </p>
 </div>
 </div>
@@ -1191,7 +1191,7 @@ The philosophy of Artanis templating is to bring it into correspondence with the
 <h3 id="sec-8-3"><span class="section-number-3">8.3</span> Templating for Rubyists</h3>
 <div class="outline-text-3" id="text-8-3">
 <p>
-Templating in Artanis looks very similar to Rails.
+Templating in GNU Artanis looks very similar to Rails.
 </p>
 
 <p>
@@ -1207,7 +1207,7 @@ The Rails code:
 </div>
 
 <p>
-And the same function in Artanis code:
+And the same function in GNU Artanis code:
 </p>
 
 <div class="org-src-container">
@@ -1279,7 +1279,7 @@ Of course, the ext filename ".tpl" is trivial, you may name it whatever you like
 </div>
 
 <p>
-In this case, make sure to put my.tpl to the same path with your Artanis code.
+In this case, make sure to put my.tpl to the same path with your GNU Artanis code.
 </p>
 
 <p>
@@ -1347,7 +1347,7 @@ ORM stands for Object Relational Mapping, which is a popular approach to handle 
 </p>
 
 <p>
-Of course, Guile has it's own Object System named <a href="https://www.gnu.org/software/guile/manual/html_node/GOOPS.html#GOOPS">GOOPS</a>. Users may use OOP with it. And it's possible to implement ORM in Artanis as well.
+Of course, Guile has it's own Object System named <a href="https://www.gnu.org/software/guile/manual/html_node/GOOPS.html#GOOPS">GOOPS</a>. Users may use OOP with it. And it's possible to implement ORM in GNU Artanis as well.
 </p>
 
 <p>
@@ -1404,11 +1404,11 @@ And here're some known ways for trying to solve the problems of ORM:
 </ul>
 
 <p>
-Basically, Artanis has no ORM yet, and maybe never. Artanis is trying to experiment new ways to solve the problems of ORM.
+Basically, GNU Artanis has no ORM yet, and maybe never. GNU Artanis is trying to experiment new ways to solve the problems of ORM.
 </p>
 
 <p>
-Artanis provides three ways to complete this mission. All of them, are <b>experimental</b> at present.
+GNU Artanis provides three ways to complete this mission. All of them, are <b>experimental</b> at present.
 </p>
 
 <ul class="org-ul">
@@ -1740,7 +1740,7 @@ To be continued &#x2026;
 <h3 id="sec-10-1"><span class="section-number-3">10.1</span> JSON</h3>
 <div class="outline-text-3" id="text-10-1">
 <p>
-Artanis intergrated the third-party module <a href="https://github.com/aconchillo/guile-json">guile-json</a>. 
+GNU Artanis intergrated the third-party module <a href="https://github.com/aconchillo/guile-json">guile-json</a>. 
 You may use #:mime method to handle JSON:
 </p>
 <div class="org-src-container">
@@ -1757,7 +1757,7 @@ You may use #:mime method to handle JSON:
 <h3 id="sec-10-2"><span class="section-number-3">10.2</span> CSV</h3>
 <div class="outline-text-3" id="text-10-2">
 <p>
-Artanis intergrated the third-party module <a href="https://github.com/NalaGinrut/guile-csv">guile-csv</a>. You may use #:mime method to handle CSV:
+GNU Artanis intergrated the third-party module <a href="https://github.com/NalaGinrut/guile-csv">guile-csv</a>. You may use #:mime method to handle CSV:
 </p>
 <div class="org-src-container">
 
@@ -1923,7 +1923,7 @@ curl --head localhost:3000/cookie/120
 <h2 id="sec-13"><span class="section-number-2">13</span> Authentication</h2>
 <div class="outline-text-2" id="text-13">
 <p>
-Artanis provides flexible mechanism for authentication.
+GNU Artanis provides flexible mechanism for authentication.
 </p>
 </div>
 <div id="outline-container-sec-13-1" class="outline-3">
@@ -2203,7 +2203,7 @@ If your document contains nontrivial examples of program code, we recommend rele
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Mu Lei known as NalaGinrut</p>
-<p class="date">Created: 2015-01-22 Thu 18:30</p>
+<p class="date">Created: 2015-01-22 Thu 18:38</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.2.1 (<a href="http://orgmode.org">Org</a> mode 8.3beta)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
