@@ -20,12 +20,12 @@ Seriously, Artanis is written with [GNU Guile](http://www.gnu.org/software/guile
 Someday GNU guys talked about "what language to write GNU website", many guys choose Python. But I think it's strange because GNU Guile
 **IS** the official extension language of GNU. And I asked why not start a brand new project to provide web framework written with GNU Guile, and RMS said "it's cool, I like this idea". But at that time, it's just an idea without any plan.
 
-Fortunately, few months later(in 2012), Guile community holds the [potluck party](http://lists.gnu.org/archive/html/guile-user/2013-01/msg00007.html) 
+Fortunately, few months later, Guile community holds the [potluck party](http://lists.gnu.org/archive/html/guile-user/2013-01/msg00007.html) 
 to celibrate 2 years birthday of Guile2. It's actually a contest to write cool program in several weeks. So, Artanis was born.
 
 * History
 
-In 2012 GNU Guile potluck party, Artanis was born.
+In 2013 Feb, GNU Guile potluck party, Artanis was born.
 
 In 2013, Artanis was submitted to "Lisp In Summer Projects" contest. And it received "Certificated awesome project award" in 2014.
 
