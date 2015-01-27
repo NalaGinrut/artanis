@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>GNU Artanis web-framework Manual</title>
-<!-- 2015-01-22 Thu 18:38 -->
+<!-- 2015-01-27 Tue 22:26 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Mu Lei known as NalaGinrut" />
@@ -235,11 +235,26 @@ for the JavaScript code in this tag.
 <li><a href="#sec-12">12. Cookies</a></li>
 <li><a href="#sec-13">13. Authentication</a>
 <ul>
-<li><a href="#sec-13-1">13.1. Basic Authentication</a></li>
+<li><a href="#sec-13-1">13.1. Init Authentication</a></li>
+<li><a href="#sec-13-2">13.2. Basic Authentication</a></li>
+<li><a href="#sec-13-3">13.3. Common Authentication</a></li>
 </ul>
 </li>
-<li><a href="#sec-14">14. Cache</a></li>
-<li><a href="#sec-15">15. Appendix A GNU Free Documentation License</a></li>
+<li><a href="#sec-14">14. Cache</a>
+<ul>
+<li><a href="#sec-14-1">14.1. On web caching</a></li>
+<li><a href="#sec-14-2">14.2. Cache APIs</a></li>
+</ul>
+</li>
+<li><a href="#sec-15">15. Utils</a>
+<ul>
+<li><a href="#sec-15-1">15.1. String Template</a></li>
+<li><a href="#sec-15-2">15.2. Random Number Generator</a></li>
+<li><a href="#sec-15-3">15.3. Encryption</a></li>
+<li><a href="#sec-15-4">15.4. Stack &amp; Queue</a></li>
+</ul>
+</li>
+<li><a href="#sec-16">16. Appendix A GNU Free Documentation License</a></li>
 </ul>
 </div>
 </div>
@@ -451,7 +466,7 @@ Anyway, here's the git repo:
 <h3 id="sec-3-3"><span class="section-number-3">3.3</span> Configuration</h3>
 <div class="outline-text-3" id="text-3-3">
 <p>
-Before the first time to run, Artanis needs a config file. The default path is <code>/etc/artanis/artanis.conf</code>.
+Before the first time to run, GNU Artanis needs a config file. The default path is <code>/etc/artanis/artanis.conf</code>.
 </p>
 
 <p>
@@ -521,7 +536,7 @@ The expected output should be similar to this:
 </p>
 <div class="org-src-container">
 
-<pre class="src src-scheme">$1 = <span style="color: #ff0000;">"GNU Artanis-0.0.1"</span>
+<pre class="src src-scheme">$1 = <span style="color: #ff0000;">"GNU Artanis-0.0.2"</span>
 </pre>
 </div>
 </div>
@@ -840,7 +855,7 @@ If you really want to try these books seriously, please ignore GNU Artanis befor
 </p>
 
 <p>
-But once you've done them <b>carefully</b>, you may want to write a new Artanis all by yourself.
+But once you've done them <b>carefully</b>, you may want to write a new GNU Artanis all by yourself.
 </p>
 
 <p>
@@ -1044,7 +1059,7 @@ Then restart you Nginx:
 </div>
 
 <p>
-And run artanis:
+And run GNU Artanis:
 </p>
 <div class="org-src-container">
 
@@ -1803,7 +1818,7 @@ You can use SXML to replace XML for exchanging data format. This way saves some 
 <h2 id="sec-11"><span class="section-number-2">11</span> Sessions</h2>
 <div class="outline-text-2" id="text-11">
 <p>
-You have to use <code class="src src-scheme"><span style="color: #40e0d0;">#:session</span> #t
+You have to use <code class="src src-scheme"><span style="color: #40e0d0;">#:session</span> mode
 </code> while you defining URL rule handler.
 </p>
 <div class="org-src-container">
@@ -1849,12 +1864,12 @@ And the APIs of session is :session
 <h2 id="sec-12"><span class="section-number-2">12</span> Cookies</h2>
 <div class="outline-text-2" id="text-12">
 <p>
-You have to use <code class="src src-scheme"><span style="color: #40e0d0;">#:session</span> #t
+You have to use <code class="src src-scheme"><span style="color: #40e0d0;">#:session</span> mode
 </code> while you defining URL rule handler.
 </p>
 <div class="org-src-container">
 
-<pre class="src src-scheme">(get <span style="color: #ff0000;">"/cookie-test"</span> <span style="color: #40e0d0;">#:cookies</span> mode
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/certain-rule"</span> <span style="color: #40e0d0;">#:cookies</span> mode
   (<span style="color: #4169e1;">lambda</span> (rc) ...))
 </pre>
 </div>
@@ -1922,13 +1937,47 @@ curl --head localhost:3000/cookie/120
 <div id="outline-container-sec-13" class="outline-2">
 <h2 id="sec-13"><span class="section-number-2">13</span> Authentication</h2>
 <div class="outline-text-2" id="text-13">
+</div><div id="outline-container-sec-13-1" class="outline-3">
+<h3 id="sec-13-1"><span class="section-number-3">13.1</span> Init Authentication</h3>
+<div class="outline-text-3" id="text-13-1">
 <p>
 GNU Artanis provides flexible mechanism for authentication.
 </p>
+
+<p>
+You have to use <code class="src src-scheme"><span style="color: #40e0d0;">#:auth</span> mode
+</code> while you defining URL rule handler.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/certain-rule"</span> <span style="color: #40e0d0;">#:auth</span> mode
+  (<span style="color: #4169e1;">lambda</span> (rc) ...))
+</pre>
 </div>
-<div id="outline-container-sec-13-1" class="outline-3">
-<h3 id="sec-13-1"><span class="section-number-3">13.1</span> Basic Authentication</h3>
-<div class="outline-text-3" id="text-13-1">
+
+<p>
+<b>mode</b> could be:
+</p>
+<ul class="org-ul">
+<li>SQL as <a href="#sec-15-1">string template</a>. You may write your own customized SQL for fetching &amp; checking username and passwd.</li>
+<li>('basic (lambda (rc user passwd) &#x2026;)) init a Basic Authentication mode. <i>user</i> is submitted username, <i>passwd</i> is submitted password value.</li>
+<li>('table table-name username-field passwd-field) init a common Authentication mode. <b>The passwd will be encrypted by default algorithm</b>.</li>
+<li>('table table-name username-field passwd-field crypto-proc) similar to the above item, but encrypt passwd with crypto-proc.</li>
+<li>(table-name crypto-proc), so passwd field will be "passwd" and username will be "username" in default, and you may encrypt passwd with crypto-proc.</li>
+</ul>
+
+<p>
+Available crypto-proc helper functions listed here:
+</p>
+<ul class="org-ul">
+<li>(string-&gt;md5 str)</li>
+<li>(string-&gt;sha-1 str)</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-13-2" class="outline-3">
+<h3 id="sec-13-2"><span class="section-number-3">13.2</span> Basic Authentication</h3>
+<div class="outline-text-3" id="text-13-2">
 <p>
 HTTP Basic authentication (BA) implementation is the simplest technique for enforcing access controls to web resources because it doesn't require cookies, session identifier and login pages. Rather, HTTP Basic authentication uses static, standard HTTP headers which means that no handshakes have to be done in anticipation.
 </p>
@@ -1940,20 +1989,260 @@ The BA mechanism provides no confidentiality protection for the transmitted cred
 <p>
 <i><b>GNU Artanis doesn't support HTTPS at present, it's planned to support it in the future.</b></i>
 </p>
+
+<p>
+Let's see a simple example:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/bauth"</span> <span style="color: #40e0d0;">#:auth</span> `(basic ,(<span style="color: #4169e1;">lambda</span> (rc u p) (<span style="color: #4169e1;">and</span> (string=? u <span style="color: #ff0000;">"mmr"</span>) (string=? p <span style="color: #ff0000;">"123"</span>))))
+  (<span style="color: #4169e1;">lambda</span> (rc) 
+    (<span style="color: #4169e1;">if</span> (<span style="color: #40e0d0;">:auth</span> rc)
+        <span style="color: #ff0000;">"auth ok"</span>
+        (throw-auth-needed))))
+</pre>
+</div>
+
+<p>
+You have to define your own checker with the anonymous function <code class="src src-scheme">(<span style="color: #4169e1;">lambda</span> (rc u p) ...)
+</code>. #t for succeed, #f for failed.
+</p>
+
+<p>
+APIs:
+</p>
+
+<ul class="org-ul">
+<li><code class="src src-scheme">(<span style="color: #40e0d0;">:auth</span> rc)
+</code> will check if Basic Authentication succeeded, #f for failed.</li>
+<li><code class="src src-scheme">(throw-auth-needed)
+</code> is a useful helper function to ask for auth in client side.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-13-3" class="outline-3">
+<h3 id="sec-13-3"><span class="section-number-3">13.3</span> Common Authentication</h3>
+<div class="outline-text-3" id="text-13-3">
+<p>
+Actually, there're various authentication methods could be used by developers. Most of them are sort of tricky hacks. Here, we only introduce the most common way.
+</p>
+
+<p>
+The most common and relative safe way for authentication is to use POST method. And check username and passwd from a table in DB.
+</p>
+
+<p>
+Here is a simple example:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(post <span style="color: #ff0000;">"/auth"</span> <span style="color: #40e0d0;">#:auth</span> '(table user <span style="color: #ff0000;">"user"</span> <span style="color: #ff0000;">"passwd"</span>) <span style="color: #40e0d0;">#:session</span> #t
+  (<span style="color: #4169e1;">lambda</span> (rc)
+    (<span style="color: #4169e1;">cond</span>
+     ((<span style="color: #40e0d0;">:session</span> rc 'check) <span style="color: #ff0000;">"auth ok (session)"</span>)
+     ((<span style="color: #40e0d0;">:auth</span> rc)
+      (<span style="color: #40e0d0;">:session</span> rc 'spawn)
+      <span style="color: #ff0000;">"auth ok"</span>)
+     (<span style="color: #4169e1;">else</span> (redirect-to rc <span style="color: #ff0000;">"/login?login_failed=true"</span>)))))
+</pre>
+</div>
+
+<p>
+<b>NOTE: The passwd will be encrypted by default algorithm.</b>
+</p>
 </div>
 </div>
 </div>
 <div id="outline-container-sec-14" class="outline-2">
 <h2 id="sec-14"><span class="section-number-2">14</span> Cache</h2>
 <div class="outline-text-2" id="text-14">
+</div><div id="outline-container-sec-14-1" class="outline-3">
+<h3 id="sec-14-1"><span class="section-number-3">14.1</span> On web caching</h3>
+<div class="outline-text-3" id="text-14-1">
 <p>
-To be continued &#x2026;
+Web caching is very important nowadays. This section raises a discussion on proper web caching. It's couldn't be guide for product. But may help you to understand how to use cache in GNU Artanis.
+</p>
+
+<p>
+(to be continued&#x2026;)
 </p>
 </div>
 </div>
+<div id="outline-container-sec-14-2" class="outline-3">
+<h3 id="sec-14-2"><span class="section-number-3">14.2</span> Cache APIs</h3>
+<div class="outline-text-3" id="text-14-2">
+<p>
+You have to use <code class="src src-scheme"><span style="color: #40e0d0;">#:cache</span> mode
+</code> while you defining URL rule handler.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/certain-rule"</span> <span style="color: #40e0d0;">#:cache</span> mode
+  (<span style="color: #4169e1;">lambda</span> (rc) ...))
+</pre>
+</div>
+
+<p>
+<b><i>NOTE</i></b>: the default value of maxage is defined by cache.maxage in <code class="src src-scheme">/etc/artanis/artanis.conf
+</code>. The default value is 3600 seconds.
+</p>
+
+<p>
+<b>mode</b> could be:
+</p>
+<ul class="org-ul">
+<li><code class="src src-scheme">#t
+</code> for enabling caching the page.</li>
+<li><code class="src src-scheme">#f
+</code> for disabling caching the page explicitly. It's default to not cache.</li>
+<li><code class="src src-scheme">('static [maxage &lt;- 3600])
+</code> This mode must be used for static files, which means the URL rule must be a real path to a static file.</li>
+<li><code class="src src-scheme">(filename [maxage &lt;- 3600])
+</code> Specify a static file to cache. This is useful when you don't want to reveal actual path of the static file, but use a fake URL for it.</li>
+<li><code class="src src-scheme">('public filename [maxage &lt;- 3600])
+</code> Allow proxies cache the content of specified static file. If HTTP authentication is required, responses are automatically private.</li>
+<li><code class="src src-scheme">('private filename [maxage &lt;- 3600])
+</code> Not-Allow proxies cache the content of specified static file.</li>
+</ul>
+
+<p>
+Let's see the simplest cache test (for dynamica content):
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/new"</span> <span style="color: #40e0d0;">#:cache</span> #t
+  (<span style="color: #4169e1;">lambda</span> (rc)
+    (<span style="color: #40e0d0;">:cache</span> rc <span style="color: #ff0000;">"hello world"</span>)))
+</pre>
+</div>
+
+<p>
+If you want to cache a static file, and permit proxies cache the content:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/hide"</span> <span style="color: #40e0d0;">#:cache</span> '(public <span style="color: #ff0000;">"pub/some.html"</span>)
+  (<span style="color: #4169e1;">lambda</span> (rc)
+    (<span style="color: #40e0d0;">:cache</span> rc)))
+</pre>
+</div>
+
+<p>
+But, if your current URL rule is used for authentication (once you use <code class="src src-scheme"><span style="color: #40e0d0;">#:auth</span>
+</code>), the cache will be changed to <b>private</b> even if you specify <b>public</b>.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/pauth"</span>
+  <span style="color: #40e0d0;">#:auth</span> `(basic ,(<span style="color: #4169e1;">lambda</span> (rc u p) (<span style="color: #4169e1;">and</span> (string=? u <span style="color: #ff0000;">"nala"</span>) (string=? p <span style="color: #ff0000;">"123"</span>))))
+  <span style="color: #40e0d0;">#:cache</span> '(public <span style="color: #ff0000;">"pub/some.html"</span>) <span style="color: #66cdaa;">; </span><span style="color: #66cdaa;">will be changed to 'private' automatically.</span>
+  (<span style="color: #4169e1;">lambda</span> (rc) (<span style="color: #40e0d0;">:cache</span> rc)))
+</pre>
+</div>
+</div>
+</div>
+</div>
 <div id="outline-container-sec-15" class="outline-2">
-<h2 id="sec-15"><span class="section-number-2">15</span> Appendix A GNU Free Documentation License</h2>
+<h2 id="sec-15"><span class="section-number-2">15</span> Utils</h2>
 <div class="outline-text-2" id="text-15">
+<p>
+<b>The functions introduced here need to import (artanis utils) module.</b>
+</p>
+</div>
+<div id="outline-container-sec-15-1" class="outline-3">
+<h3 id="sec-15-1"><span class="section-number-3">15.1</span> String Template</h3>
+<div class="outline-text-3" id="text-15-1">
+<p>
+GNU Artanis provides Python3-like template strings:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(make-string-template tpl . vals)
+</pre>
+</div>
+
+<ul class="org-ul">
+<li><b>tpl</b> stands for template string.</li>
+<li><b>vals</b> is varg-list specifying default value to certain key.</li>
+</ul>
+
+<p>
+For an example:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(<span style="color: #4169e1;">define</span> <span style="color: #ffd700;">st</span> (make-string-template <span style="color: #ff0000;">"hello ${name}"</span>))
+(st <span style="color: #40e0d0;">#:name</span> <span style="color: #ff0000;">"nala"</span>)
+<span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">==&gt; "hello nala"</span>
+
+<span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">or you may specify a default value for ${name}</span>
+(<span style="color: #4169e1;">define</span> <span style="color: #ffd700;">st</span> (make-string-template <span style="color: #ff0000;">"hello ${name}"</span> <span style="color: #40e0d0;">#:name</span> <span style="color: #ff0000;">"unknown"</span>))
+(st)
+<span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">==&gt; "hello unknown"</span>
+(st <span style="color: #40e0d0;">#:name</span> <span style="color: #ff0000;">"john"</span>)
+<span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">==&gt; "hello john"</span>
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-15-2" class="outline-3">
+<h3 id="sec-15-2"><span class="section-number-3">15.2</span> Random Number Generator</h3>
+<div class="outline-text-3" id="text-15-2">
+<p>
+Get random number string from <code>/dev/urandom</code>.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme">(get-random-from-dev <span style="color: #40e0d0;">#:length</span> 8 <span style="color: #40e0d0;">#:uppercase</span> #f)
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-15-3" class="outline-3">
+<h3 id="sec-15-3"><span class="section-number-3">15.3</span> Encryption</h3>
+<div class="outline-text-3" id="text-15-3">
+<div class="org-src-container">
+
+<pre class="src src-scheme"><span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">hash a string with MD5</span>
+(string-&gt;md5 str)
+<span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">hash a string with SHA-1</span>
+(string-&gt;sha-1 str)
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-15-4" class="outline-3">
+<h3 id="sec-15-4"><span class="section-number-3">15.4</span> Stack &amp; Queue</h3>
+<div class="outline-text-3" id="text-15-4">
+<p>
+GNU Artanis provides simple interfaces for stack &amp; queue:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-scheme"><span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">stack operations</span>
+(new-stack)
+(stack-pop! stk)
+(stack-push! stk elem)
+(stack-top stk)
+(stack-remove! stk key)
+(stack-empty? stk)
+
+<span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">queue operations</span>
+(new-queue)
+(queue-out! q)
+(queue-in! q elem)
+(queue-head q)
+(queue-tail q)
+(queue-remove! q key)
+(queue-empty? q)
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-16" class="outline-2">
+<h2 id="sec-16"><span class="section-number-2">16</span> Appendix A GNU Free Documentation License</h2>
+<div class="outline-text-2" id="text-16">
 <p>
 Version 1.3, 3 November 2008
 Copyright © 2000, 2001, 2002, 2007, 2008 Free Software Foundation, Inc.
@@ -2203,7 +2492,7 @@ If your document contains nontrivial examples of program code, we recommend rele
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Mu Lei known as NalaGinrut</p>
-<p class="date">Created: 2015-01-22 Thu 18:38</p>
+<p class="date">Created: 2015-01-27 Tue 22:26</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.2.1 (<a href="http://orgmode.org">Org</a> mode 8.3beta)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>

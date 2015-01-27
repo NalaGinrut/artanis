@@ -1,21 +1,148 @@
-#+TITLE: GNU Artanis web-framework Manual
-#+AUTHOR: Mu Lei known as NalaGinrut
-#+EMAIL: mulei@gnu.org
-#+LANGUAGE: en
-#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="../css/manual.css" />
-#+STARTUP: hidestar latexpreview
+\input texinfo    @c -*- texinfo -*-
+@c %**start of header
+@setfilename artanis.info
+@settitle GNU Artanis web-framework Manual
+@documentencoding UTF-8
+@documentlanguage en
+@syncodeindex pg cp
+@c %**end of header
 
-#+TEXINFO_FILENAME: artanis.info
-#+TEXINFO_HEADER: @syncodeindex pg cp
-#+TEXINFO_PRINTED_TITLE: GNU Artanis
+@finalout
+@titlepage
+@title GNU Artanis
+@author Mu Lei known as NalaGinrut
+@end titlepage
 
-#+OPTIONS: H:3 toc:t \n:nil ::t |:t ^:nil -:t f:t *:t tex:t d:(HIDE) tags:not-in-toc
-#+OPTIONS: tex:t          Do the right thing automatically (MathJax)
-#+OPTIONS: tex:verbatim   Verbatim export, for jsMath or so
+@contents
 
-* Introduction
+@ifnottex
+@node Top
+@top GNU Artanis web-framework Manual
+@end ifnottex
 
-#+begin_src nil
+@menu
+* Introduction::
+* License::
+* Installation::
+* Hello World::
+* Basic in Scheme::
+* Basic in GNU Artanis::
+* URL remapping::
+* Layouts and Rendering in GNU Artanis::
+* Database::
+* MIME::
+* Sessions::
+* Cookies::
+* Authentication::
+* Cache::
+* Utils::
+* Appendix A GNU Free Documentation License::
+
+@detailmenu
+--- The Detailed Node Listing ---
+
+Introduction
+
+* Conventions::
+* No warranty::
+
+Installation
+
+* For users::
+* For contributors::
+* Configuration::
+
+Hello World
+
+* Use Guile REPL and verify GNU Artanis installation::
+* Simple HTTP server::
+* Try simple URL remapping::
+* More complex URL remapping::
+* Regex in URL remapping::
+* Database operating::
+
+Basic in Scheme
+
+* For newbies::
+* For Pythoners::
+* For Rubyist::
+* For deep learners::
+
+Basic in GNU Artanis
+
+* How to run a site with GNU Artanis::
+* Initialization::
+* Registering handler of HTTP methods::
+* Emit Response::
+* Running server::
+* Working with Nginx::
+
+URL remapping
+
+* Introduction to URL remapping::
+* URL handling::
+* Get params from URL::
+* Redirect link::
+
+Layouts and Rendering in GNU Artanis
+
+* Templating::
+* Templating for Pythoners::
+* Templating for Rubyists::
+* Templating APIs::
+* Embedded Templating::
+* SXML Templating::
+
+Database
+
+* ORM problem::
+* SSQL (experimental)::
+* FPRM (experimental)::
+
+FPRM (experimental)
+
+* Connect to DB server::
+* Map DB table::
+* Create table::
+* Get columns from table::
+* Set values to table::
+* Drop a table::
+* Check existance of table::
+* Get schema of a table::
+* SQL Mapping (experimental)::
+MIME
+
+* JSON::
+* CSV::
+* XML::
+* SXML::
+
+Authentication
+
+* Init Authentication::
+* Basic Authentication::
+* Common Authentication::
+
+Cache
+
+* On web caching::
+* Cache APIs::
+
+Utils
+
+* String Template::
+* Random Number Generator::
+* Encryption::
+* Stack & Queue::
+@end detailmenu
+@end menu
+
+
+
+@node Introduction
+@chapter Introduction
+
+@example
 Copyright (C)  2015  Mu Lei known as NalaGinrut.
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3
@@ -23,122 +150,184 @@ or any later version published by the Free Software Foundation;
 with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
 Texts.  A copy of the license is included in the section entitled ``GNU
 Free Documentation License''.
-#+end_src
+@end example
 
 
-GNU Artanis is a web application framework(WAF) written in [[http://www.gnu.org/software/guile/][Guile Scheme]].
+GNU Artanis is a web application framework(WAF) written in @uref{http://www.gnu.org/software/guile/,Guile Scheme}.
 
-A [[http://en.wikipedia.org/wiki/Web_application_framework][web application framework (WAF)]] is a software framework that is designed to support the development of dynamic websites,
+A @uref{http://en.wikipedia.org/wiki/Web_application_framework,web application framework (WAF)} is a software framework that is designed to support the development of dynamic websites,
 web applications, web services and web resources.
 The framework aims to alleviate the overhead associated with common activities performed in web development.
-GNU Artanis provides several tools for web development: database access, templating frameworks, session management, [[http://en.wikipedia.org/wiki/Rewrite_engine][URL-remapping]] for [[http://en.wikipedia.org/wiki/Representational_state_transfer][RESTful]], page caching, and so on.
+GNU Artanis provides several tools for web development: database access, templating frameworks, session management, @uref{http://en.wikipedia.org/wiki/Rewrite_engine,URL-remapping} for @uref{http://en.wikipedia.org/wiki/Representational_state_transfer,RESTful}, page caching, and so on.
 
 This manual describes how to use GNU Artanis, and usage of APIs.
 
-Guile is the GNU Ubiquitous Intelligent Language for Extensions, the official extension language for the [[http://www.gnu.org/][GNU operating system]].
+Guile is the GNU Ubiquitous Intelligent Language for Extensions, the official extension language for the @uref{http://www.gnu.org/,GNU operating system}.
 Guile is also an interpreter and compiler for other dynamic programming languages except Scheme programming language.
 
-[[http://en.wikipedia.org/wiki/Scheme_%28programming_language%29][Scheme]] is a functional programming language and one of the two main dialects of the programming language [[http://en.wikipedia.org/wiki/Lisp_(programming_language)][Lisp]].
+@uref{http://en.wikipedia.org/wiki/Scheme_%28programming_language%29,Scheme} is a functional programming language and one of the two main dialects of the programming language @uref{http://en.wikipedia.org/wiki/Lisp_(programming_language),Lisp}.
 Scheme follows a minimalist design philosophy specifying a small standard core with powerful tools for language extension.
-** Conventions
+@menu
+* Conventions::
+* No warranty::
+@end menu
+
+@node Conventions
+@section Conventions
+
 In this manual, we'll use this kind of syntax to indicate the usage of API:
-#+begin_src scheme
-(api-name arg1 arg2 #:key0 val0 ... [optional-arg1 <- default-value1] ...) 
-#+end_src
-If you're not comfortable with this syntax, maybe you're a newbie of Scheme, and I would recommend you read [[Basic in Scheme][Basic in Scheme]] chapter first.
-** No warranty
+@example
+(api-name arg1 arg2 #:key0 val0 ... [optional-arg1 <- default-value1] ...)
+@end example
+If you're not comfortable with this syntax, maybe you're a newbie of Scheme, and I would recommend you read @ref{Basic in Scheme,Basic in Scheme} chapter first.
+
+@node No warranty
+@section No warranty
+
 We distribute software in the hope that it will be useful, but without any warranty. No author or distributor of this software accepts responsibility to anyone for the consequences of using it or for whether it serves any particular purpose or works at all, unless they say so in writing. This is exactly the same warranty that proprietary software companies offer: none.
-* License
-GNU Artanis is [[http://www.gnu.org/philosophy/free-sw.html][Free Software]]. GNU Artanis is under the terms of the GNU Lesser General Public License version 3 or later.
+
+@node License
+@chapter License
+
+GNU Artanis is @uref{http://www.gnu.org/philosophy/free-sw.html,Free Software}. GNU Artanis is under the terms of the GNU Lesser General Public License version 3 or later.
 See the files COPYING.LESSER and COPYING in toplevel of source code.
 
-The manual you’re now reading is published under the terms of the [[http://www.gnu.org/copyleft/fdl.html][GNU Free Documentation License]] 1.3 or later.
+The manual you’re now reading is published under the terms of the @uref{http://www.gnu.org/copyleft/fdl.html,GNU Free Documentation License} 1.3 or later.
 
-*/You must be aware there is no warranty whatsoever for GNU Artanis. This is described in full in the licenses./*
-* Installation
-** For users
+@strong{@emph{You must be aware there is no warranty whatsoever for GNU Artanis. This is described in full in the licenses.}}
 
-*Install GNU Guile-2.0.11 or higher version:*
+@node Installation
+@chapter Installation
 
-+ Debian/Ubuntu users
-#+begin_src null
+@menu
+* For users::
+* For contributors::
+* Configuration::
+@end menu
+
+@node For users
+@section For users
+
+@strong{Install GNU Guile-2.0.11 or higher version:}
+
+@itemize
+@item
+Debian/Ubuntu users
+@end itemize
+@example
 sudo apt-get install guile-2.0-dev guile-2.0
-#+end_src
+@end example
 
-+ SUSE/openSUSE users
-#+begin_src null
+@itemize
+@item
+SUSE/openSUSE users
+@end itemize
+@example
 sudo zypper install guile guile-devel
-#+end_src
+@end example
 
-+ RedHat/Fedora
-#+begin_src null
+@itemize
+@item
+RedHat/Fedora
+@end itemize
+@example
 sudo yum install guile guile-devel
-#+end_src
+@end example
 
-+ For LFS Guru
-#+begin_src null
+@itemize
+@item
+For LFS Guru
+@end itemize
+@example
 wget -c ftp://ftp.gnu.org/gnu/guile/guile-2.0.11.tar.gz
 tar xvzf guile-2.0.11.tar.gz
 cd guile-2.0.11 && ./configure && make #(NOTE: this may take very long time even looks like halting)
 sudo make install
-#+end_src
+@end example
 
 I would NOT recommend you trying to compile/install Guile from Git repo, since it'll take too much time of you.
 
-*Install dependencies:*
+@strong{Install dependencies:}
 
-+ guile-dbi-2.1.5 *[Required]*
-#+begin_src null
+@itemize
+@item
+guile-dbi-2.1.5 @strong{[Required]}
+@end itemize
+@example
 wget -c http://download.gna.org/guile-dbi/guile-dbi-2.1.5.tar.gz
 tar xvzf guile-dbi-2.1.5.tar.gz
 cd guile-dbi-2.1.5 && ./configure && make
 sudo make install
-#+end_src
+@end example
 
-+ guile-dbd *[Optional]*, there're three dbd, mysql/postgresql/sqlite3
-#+begin_src null
+@itemize
+@item
+guile-dbd @strong{[Optional]}, there're three dbd, mysql/postgresql/sqlite3
+@end itemize
+@example
 wget -c http://download.gna.org/guile-dbi/guile-dbd-mysql-2.1.4.tar.gz
 tar xvzf guile-dbd-mysql-2.1.4.tar.gz
 cd guile-dbd-mysql-2.1.4 && ./configure && make
 sudo make install
-#+end_src
-You may find other dbd [[http://download.gna.org/guile-dbi][here]]. And the installation is similar.
+@end example
+You may find other dbd @uref{http://download.gna.org/guile-dbi,here}. And the installation is similar.
 
-+ GNU Artanis-0.0.1:
-#+begin_src null
+@itemize
+@item
+GNU Artanis-0.0.1:
+@end itemize
+@example
 wget -c http://szdiy.org/download/artanis-0.0.1.tar.gz
 tar xvzf artanis-0.0.1.tar.gz
 cd artanis-0.0.1 && ./configure && make
 sudo make install
-#+end_src
+@end example
 
-** For contributors
+@node For contributors
+@section For contributors
+
 First, thanks for you contributions!
 
-If you're comfortable with [[https://github.com/NalaGinrut/artanis][GitHub]], then just follow the steps which you've already known.
+If you're comfortable with @uref{https://github.com/NalaGinrut/artanis,GitHub}, then just follow the steps which you've already known.
 
 Anyway, here's the git repo:
 
-#+begin_src null
-git clone git@github.com:NalaGinrut/artanis.git
-#+end_src
-** Configuration
-Before the first time to run, GNU Artanis needs a config file. The default path is =/etc/artanis/artanis.conf=.
+@example
+git clone git@@github.com:NalaGinrut/artanis.git
+@end example
 
-There's a config skeleton named default.conf, you may copy it to =/etc/artanis/artanis.conf=.
+@node Configuration
+@section Configuration
 
-#+begin_src nil
+Before the first time to run, GNU Artanis needs a config file. The default path is @verb{~/etc/artanis/artanis.conf~}.
+
+There's a config skeleton named default.conf, you may copy it to @verb{~/etc/artanis/artanis.conf~}.
+
+@example
 sudo cp /etc/artanis/default.conf /etc/artanis/artanis.conf
-#+end_src
+@end example
 
-(To be continued ...) 
-* Hello World
-** Use Guile REPL and verify GNU Artanis installation
+(To be continued @dots{}) 
+
+@node Hello World
+@chapter Hello World
+
+@menu
+* Use Guile REPL and verify GNU Artanis installation::
+* Simple HTTP server::
+* Try simple URL remapping::
+* More complex URL remapping::
+* Regex in URL remapping::
+* Database operating::
+@end menu
+
+@node Use Guile REPL and verify GNU Artanis installation
+@section Use Guile REPL and verify GNU Artanis installation
 
 If you're NOT freshman of Guile, please skip this section.
 
 Just type `guile' in your console to enter Guile REPL, and you will see this screen:
-#+begin_src null
+@example
 GNU Guile 2.0.11
 Copyright (C) 1995-2014 Free Software Foundation, Inc.
 
@@ -147,120 +336,163 @@ This program is free software, and you are welcome to redistribute it
 under certain conditions; type `,show c' for details.
 
 Enter `,help' for help.
-scheme@(guile-user)>
-#+end_src
+scheme@@(guile-user)>
+@end example
 
 Welcome to Guile world!
 
 Now, we're going to play GNU Artanis. Before we start, please follow these instructions in the REPL to ensure that you installed GNU Artanis correctly:
 
-*(Just type them, you don't have to understand them at present)*
+@strong{(Just type them, you don't have to understand them at present)}
 
-#+begin_src scheme
+@example
 ,use (artanis artanis)
 artanis-version
-#+end_src
+@end example
 
 The expected output should be similar to this:
-#+begin_src scheme
+@example
 $1 = "GNU Artanis-0.0.2"
-#+end_src
-** Simple HTTP server
+@end example
+
+@node Simple HTTP server
+@section Simple HTTP server
+
 Run this code in your console:
-#+begin_src nil
+@example
 guile -c "(use-modules (artanis artanis))(init-server)(run)"
 ## You'll see this screen:
 Anytime you want to Quit just try Ctrl+C, thanks!
 http://0.0.0.0:3000
-#+end_src
+@end example
 
-Assuming there's a file named "index.html" in the current path. Now you may try http://localhost:3000/index.html in your browser.
-It's simple to fetch static file with the path in URL: http://localhost:3000/path/filename
-** Try simple URL remapping
+Assuming there's a file named "index.html" in the current path. Now you may try @uref{http://localhost:3000/index.html} in your browser.
+It's simple to fetch static file with the path in URL: @uref{http://localhost:3000/path/filename}
+
+@node Try simple URL remapping
+@section Try simple URL remapping
+
 Type these code in Guile REPL:
-#+begin_src scheme
+@example
 (use-modules (artanis artanis))
 (get "/hello" (lambda () "hello world"))
 (run #:port 8080)
-#+end_src
+@end example
 
-Now you can visit http://localhost:8080/hello with your browser, and see the result.
+Now you can visit @uref{http://localhost:8080/hello} with your browser, and see the result.
 
-/If you encounter "[EXCEPTION] /favicon.ico is abnormal request", please ignore it./
+@emph{If you encounter "[EXCEPTION] /favicon.ico is abnormal request", please ignore it.}
 
 Let me explain these code.
 
-+ /line 1:/ Load GNU Artanis module, (artanis artanis) is the name.
+@itemize
+@item
+@emph{line 1:} Load GNU Artanis module, (artanis artanis) is the name.
+@end itemize
 
 
-+ /line 2:/ The first argument /get/ is GNU Artanis API corresponding to GET method in HTTP protocol. The second argument "/hello" is the URL rule to register. The Third argument is the handler which will be triggered if the registered URL rule is hit.
+@itemize
+@item
+@emph{line 2:} The first argument @emph{get} is GNU Artanis API corresponding to GET method in HTTP protocol. The second argument "/hello" is the URL rule to register. The Third argument is the handler which will be triggered if the registered URL rule is hit.
+@end itemize
 
 
-+ /line 3:/ Run GNU Artanis server, and listenning socket port 8080.
+@itemize
+@item
+@emph{line 3:} Run GNU Artanis server, and listenning socket port 8080.
+@end itemize
 
 You may type Ctrl+C to quit the server according to the hint from your screen.
-** More complex URL remapping
+
+@node More complex URL remapping
+@section More complex URL remapping
+
 Try this code:
-#+begin_src scheme
+@example
 (get "/hello/:who"
   (lambda (rc)
     (format #f "<p>hello ~a</p> " (params rc "who"))))
 (run #:port 8080)
-#+end_src
+@end example
 
-Now you can try http://localhost:8080/hello/artanis in your browser.
+Now you can try @uref{http://localhost:8080/hello/artanis} in your browser.
 
 There're two differences:
-+ 1. The special rule, "=/hello/:who=", /:who/ means you can use /params/ to reference the value of this section of URL with the key "who". src_scheme[:exports code]{(params rc "who")} is the way for that.
+@itemize
+@item
+1. The special rule, "@verb{~/hello/:who~}", @emph{:who} means you can use @emph{params} to reference the value of this section of URL with the key "who". @verb{~(params rc "who")~} is the way for that.
 
-+ 2. You may notice that the handler defined as an anonymous function with /lambda/ has one argument /rc/. It means /route context/ which preserve all the related context information. Many GNU Artanis APIs need it, say, /params/.
+@item
+2. You may notice that the handler defined as an anonymous function with @emph{lambda} has one argument @emph{rc}. It means @emph{route context} which preserve all the related context information. Many GNU Artanis APIs need it, say, @emph{params}.
+@end itemize
 
-And /format/ is a Scheme lib function. It is similar to /sprintf/ in C language, which outputs with a formatted pattern.
+And @emph{format} is a Scheme lib function. It is similar to @emph{sprintf} in C language, which outputs with a formatted pattern.
 The second argument #f (means FALSE) indicates that returning the result as string type rather than printing out.
-** Regex in URL remapping
-You can use regex in the URL rule.
-#+begin_src scheme
-(get "/.+\\.(png|gif|jpeg)" static-page-emitter)
-#+end_src
 
-/static-page-emitter/ is an GNU Artanis API which emits a static file like images to the client.
-** Database operating
+@node Regex in URL remapping
+@section Regex in URL remapping
+
+You can use regex in the URL rule.
+@example
+(get "/.+\\.(png|gif|jpeg)" static-page-emitter)
+@end example
+
+@emph{static-page-emitter} is an GNU Artanis API which emits a static file like images to the client.
+
+@node Database operating
+@section Database operating
+
 GNU Artanis supports mysql/postgresql/sqlite3, we use mysql as a example here.
 
 Please ensure that your DB service was started before you try.
 
-*/If you encountered any problems, please check your config of DB first./* 
+@strong{@emph{If you encountered any problems, please check your config of DB first.}} 
 You can use DB without running a server.
-#+begin_src scheme
+@example
 (use-module (artanis artanis))
 (define conn (connect-db 'mysql #:db-username "your_db_username"
                          #:db-name "your_db_name" #:db-passwd "your_passwd"))
 (define mtable (map-table-from-DB conn))
 ((mtable 'create 'Persons '((name varchar 10) (age integer) (email varchar 20))) 'valid?)
 ;; ==> #t
-(mtable 'set 'Persons #:name "nala" #:age 99 #:email "nala@artanis.com")
+(mtable 'set 'Persons #:name "nala" #:age 99 #:email "nala@@artanis.com")
 (mtable 'get 'Persons #:columns '(name email))
-;; ==> ((("name" . "nala") ("email" . "nala@artanis.com")))
-#+end_src
+;; ==> ((("name" . "nala") ("email" . "nala@@artanis.com")))
+@end example
 
-+ /map-table-from-DB/ is GNU Artanis API handling tables in DB. Here, we define this mapping as the var /mtable/.
-
-
-+ And we can use /mtable/ to handle tables, you can get values from table with 'get command. 
-
-
-+ /mtable/ is a functon which accepts the first argument as a command, say 'create is a command to create a new table; 'set command is used to insert/update the table; 'get command for fetch the values of specified columns.
+@itemize
+@item
+@emph{map-table-from-DB} is GNU Artanis API handling tables in DB. Here, we define this mapping as the var @emph{mtable}.
+@end itemize
 
 
-+ The second argument of /mtable/ is the name of the table as you guess. Please note that it's case sensitive. But the columns name could be case insensitive.
+@itemize
+@item
+And we can use @emph{mtable} to handle tables, you can get values from table with 'get command. 
+@end itemize
 
 
-+ 'create command returns a function too, which also accepts an argument as a command. Here, we use 'valid? command to check if the table has been created successfully.
+@itemize
+@item
+@emph{mtable} is a functon which accepts the first argument as a command, say 'create is a command to create a new table; 'set command is used to insert/update the table; 'get command for fetch the values of specified columns.
+@end itemize
+
+
+@itemize
+@item
+The second argument of @emph{mtable} is the name of the table as you guess. Please note that it's case sensitive. But the columns name could be case insensitive.
+@end itemize
+
+
+@itemize
+@item
+'create command returns a function too, which also accepts an argument as a command. Here, we use 'valid? command to check if the table has been created successfully.
+@end itemize
 
 Here's just simple introduction. You may read the DB section in this manual for detail describing. 
 
 Of course, you can use DB in your web application.
-#+begin_src scheme
+@example
 (get "/dbtest" #:conn #t ; apply for a DB connection from pool
   (lambda (rc)
     (let ((mtable (map-table-from-DB (:conn rc))))
@@ -269,18 +501,27 @@ Of course, you can use DB in your web application.
 
 (run #:use-db? #t #:dbd 'mysql #:db-username "your_db_username"
      #:db-name "your_db_name" #:db-passwd "your_passwd" #:port 8080)
-#+end_src
+@end example
 
-Now, try http://localhost:8080/dbtest in your browser.
+Now, try @uref{http://localhost:8080/dbtest} in your browser.
 
 Here're some explains:
-+ The keyword-value pair src_scheme[:exports code]{#:conn #t} means applying for a DB connection from connection-pool. Then you can use src_scheme[:exports code]{(:conn rc)} to get the allocated connection for DB operations.
+@itemize
+@item
+The keyword-value pair @verb{~#:conn #t~} means applying for a DB connection from connection-pool. Then you can use @verb{~(:conn rc)~} to get the allocated connection for DB operations.
+@end itemize
 
 
-+ Finally, the handler needs to return a string as the HTTP response body, so we have to use Guile API /object->string/ to convert the query result to string, for this naive example case.
+@itemize
+@item
+Finally, the handler needs to return a string as the HTTP response body, so we have to use Guile API @emph{object->string} to convert the query result to string, for this naive example case.
+@end itemize
 
-/Exercise: Return a beautiful table in HTML rather than using object->string./
-* Basic in Scheme
+@emph{Exercise: Return a beautiful table in HTML rather than using object->string.}
+
+@node Basic in Scheme
+@chapter Basic in Scheme
+
 This chapter introduces some useful documents to help you understand Scheme language well.
 Feel free to come back here if you have any problem with Scheme syntax.
 
@@ -292,157 +533,223 @@ supporting only a handful of predefined syntactic forms and procedures. Scheme i
 it still derives its power from a small set of key concepts. Early implementations of the language were interpreter-based and slow, but
 Guile Scheme is trying to implement sophisticated compiler that generate better optimized code, and even a plan for AOT compiler generated
 native code in the future.
+@menu
+* For newbies::
+* For Pythoners::
+* For Rubyist::
+* For deep learners::
+@end menu
 
-** For newbies
+@node For newbies
+@section For newbies
 
 If you're not familiar with Guile Scheme, here's a simplest tutorial for you.
 
 If you know basics of Scheme language, please skip this section.
 
 I would recommend newbies to type/paste the code in Guile REPL following the guide in tutorial: 
-[[http://web-artanis.com/scheme.html][Learn Scheme in 15 minutes]]
+@uref{http://web-artanis.com/scheme.html,Learn Scheme in 15 minutes}
 
 And here's a nice section in Guile manual for basics in Scheme:
-[[https://www.gnu.org/software/guile/manual/guile.html#Hello-Scheme_0021][Hello Scheme]]
+@uref{https://www.gnu.org/software/guile/manual/guile.html#Hello-Scheme_0021,Hello Scheme}
 
 Please don't spend too much time on these tutorials, the purose is to let newbies get a little familiar with the grammar of Scheme.
 
-** For Pythoners
+@node For Pythoners
+@section For Pythoners
 
 These are good articles for Pythoners:
 
-1. [[http://draketo.de/proj/guile-basics/][Guile basics from the perspective of a Pythonista]]
-2. [[http://draketo.de/proj/py2guile][Going from Python to Guile Scheme]]
+@enumerate
+@item
+@uref{http://draketo.de/proj/guile-basics/,Guile basics from the perspective of a Pythonista}
+@item
+@uref{http://draketo.de/proj/py2guile,Going from Python to Guile Scheme}
+@end enumerate
 
 Still, please don't spend too much time on them, the purose is to let newbies get a little familiar with the grammar of Scheme.
 
-** For Rubyist
+@node For Rubyist
+@section For Rubyist
+
 Here's a geat article for Rubyist to learn Scheme:
-1. [[http://wiki.call-cc.org/chicken-for-ruby-programmers][Scheme for ruby programmers]]
-** For deep learners
+@enumerate
+@item
+@uref{http://wiki.call-cc.org/chicken-for-ruby-programmers,Scheme for ruby programmers}
+@end enumerate
+
+@node For deep learners
+@section For deep learners
 
 These two books are very good for learning Scheme seriously:
 
-1. [[http://www.scheme.com/tspl4/][The Scheme Programming Language]]
-2. [[http://mitpress.mit.edu/sicp/][Structure and Interpretation of Computer Programs(SICP)]]
+@enumerate
+@item
+@uref{http://www.scheme.com/tspl4/,The Scheme Programming Language}
+@item
+@uref{http://mitpress.mit.edu/sicp/,Structure and Interpretation of Computer Programs(SICP)}
+@end enumerate
 
 Please don't read them if you just want to use GNU Artanis to build your webapp/site in few minutes.
 
 If you really want to try these books seriously, please ignore GNU Artanis before you done them.
 
-But once you've done them *carefully*, you may want to write a new GNU Artanis all by yourself.
+But once you've done them @strong{carefully}, you may want to write a new GNU Artanis all by yourself.
 
 Hold your horses. ;-)
-* Basic in GNU Artanis
-** How to run a site with GNU Artanis
+
+@node Basic in GNU Artanis
+@chapter Basic in GNU Artanis
+
+@menu
+* How to run a site with GNU Artanis::
+* Initialization::
+* Registering handler of HTTP methods::
+* Emit Response::
+* Running server::
+* Working with Nginx::
+@end menu
+
+@node How to run a site with GNU Artanis
+@section How to run a site with GNU Artanis
+
 This is the simplest case to run a site:
-#+begin_src scheme
+@example
 #!/bin/env guile
 !#
 (use-modules (artanis artanis))
 (init-server)
 (get "/hello" (lambda () "hello world"))
 (run)
-#+end_src
-** Initialization
+@end example
+
+@node Initialization
+@section Initialization
+
 It's better to use (init-server) to init GNU Artanis.
-#+begin_src scheme
+@example
 (init-server #:statics '(png jpg jpeg ico html js css) #:cache-statics? #f #:exclude '())
-#+end_src
-src_scheme[:exports code]{#:statics} specifies the static files with the extension file. GNU Artanis is based on URL remapping, so this keyword avoids you to handle each static file types. In default, it coveres the most static file types. So you may ignore it usually.
+@end example
+@verb{~#:statics~} specifies the static files with the extension file. GNU Artanis is based on URL remapping, so this keyword avoids you to handle each static file types. In default, it coveres the most static file types. So you may ignore it usually.
 
-src_scheme[:exports code]{#:cache-statics?} indicates if the static files should be cached.
+@verb{~#:cache-statics?~} indicates if the static files should be cached.
 
-src_scheme[:exports code]{#:exclude} specifies the types should be excluded. This is useful when you want to generate image files dynamically. Even js/css could be generated dynamically, depends your design.
-** Registering handler of HTTP methods
-Please read [[URL handling][URL handling]].
-** Emit Response
-#+begin_src scheme
+@verb{~#:exclude~} specifies the types should be excluded. This is useful when you want to generate image files dynamically. Even js/css could be generated dynamically, depends your design.
+
+@node Registering handler of HTTP methods
+@section Registering handler of HTTP methods
+
+Please read @ref{URL handling,URL handling}.
+
+@node Emit Response
+@section Emit Response
+
+@example
 (response-emit body #:status 200 #:headers '() #:mtime (current-time))
-#+end_src
+@end example
 
-*body* is the response body, it can be bytevector or literal string (in HTML).
+@strong{body} is the response body, it can be bytevector or literal string (in HTML).
 
-src_scheme[:exports code]{#:status} is HTTP status, 200 in default, which means OK.
+@verb{~#:status~} is HTTP status, 200 in default, which means OK.
 
-src_scheme[:exports code]{#:headers} let you specify customized HTTP headers. The headers must follow certain format, you have to read about the [[http://www.gnu.org/software/guile/manual/html_node/HTTP-Headers.html#Response-Headers][Response Headers]].
+@verb{~#:headers~} let you specify customized HTTP headers. The headers must follow certain format, you have to read about the @uref{http://www.gnu.org/software/guile/manual/html_node/HTTP-Headers.html#Response-Headers,Response Headers}.
 
-src_scheme[:exports code]{#:mtime} specifies the modify time in the response. GNU Artanis will generate it for you if you just ignore it.
+@verb{~#:mtime~} specifies the modify time in the response. GNU Artanis will generate it for you if you just ignore it.
 
-#+begin_src scheme
+@example
 (emit-response-with-file filename [headers <- '()])
-#+end_src
+@end example
 
-*filename* is the filename to be sent as a response.
+@strong{filename} is the filename to be sent as a response.
 
 [headers] is the customized HTTP headers.
 
-** Running server
-#+begin_src scheme
+@node Running server
+@section Running server
+
+@example
 (run #:host #f #:port #f #:debug #f #:use-db? #f
      #:dbd #f #:db-username #f #:db-passwd #f #:db-name #f)
-#+end_src
+@end example
 
-/You may see all the keyword is #f in default, this means these items will be gotten from config file./
+@emph{You may see all the keyword is #f in default, this means these items will be gotten from config file.}
 
 But you can specify them as will.
 
-src_scheme[:exports code]{#:host} specify the hostname.
+@verb{~#:host~} specify the hostname.
 
-src_scheme[:exports code]{#:port} specify the socket port of the server.
+@verb{~#:port~} specify the socket port of the server.
 
-src_scheme[:exports code]{#:debug} set #t if you want to enable debug mode. Maybe verbose.
+@verb{~#:debug~} set #t if you want to enable debug mode. Maybe verbose.
 
-src_scheme[:exports code]{#:use-db?} set #t if you want to use DB, and GNU Artanis will init DB config for you.
+@verb{~#:use-db?~} set #t if you want to use DB, and GNU Artanis will init DB config for you.
 
-src_scheme[:exports code]{#:dbd} choose dbd, there're three supported dbd: mysql, postgresql, and sqlite3.
+@verb{~#:dbd~} choose dbd, there're three supported dbd: mysql, postgresql, and sqlite3.
 
-src_scheme[:exports code]{#:db-username} specify the username of your DB server.
+@verb{~#:db-username~} specify the username of your DB server.
 
-src_scheme[:exports code]{#:db-passwd} the DB password.
+@verb{~#:db-passwd~} the DB password.
 
-src_scheme[:exports code]{#:db-name} specify DB name.
-** Working with Nginx
+@verb{~#:db-name~} specify DB name.
+
+@node Working with Nginx
+@section Working with Nginx
+
 You may try GNU Artanis+Nginx with so-called reverse proxy. 
 
-*/I would recommend you use Nginx as the front server, since GNU Artanis hasn't done its own async server-core which will be based on delimited-continuations. The current server has some caveats, in spite of the performance, you may suffer from slow-header-ddos if you use GNU Artanis to serv you site directly. But it's fine when you use Nginx in front of GNU Artanis./*
+@strong{@emph{I would recommend you use Nginx as the front server, since GNU Artanis hasn't done its own async server-core which will be based on delimited-continuations. The current server has some caveats, in spite of the performance, you may suffer from slow-header-ddos if you use GNU Artanis to serv you site directly. But it's fine when you use Nginx in front of GNU Artanis.}}
 
 For example, you may add these lines to your /etc/nginx/nginx.conf:
 
-#+begin_src conf
-     location / {
-             proxy_pass http://127.0.0.1:1234;
-             proxy_set_header Host $host;
-             proxy_set_header X-Real-IP $remote_addr;
-             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-     }
-#+end_src
+@example
+location / @{
+        proxy_pass http://127.0.0.1:1234;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+@}
+@end example
 Then restart you Nginx:
 
-#+begin_src null
+@example
 sudo service nginx restart
-#+end_src
+@end example
 
 And run GNU Artanis:
-#+begin_src scheme
+@example
 (run #:port 1234)
-#+end_src
-* URL remapping
-** Introduction to URL remapping
+@end example
+
+@node URL remapping
+@chapter URL remapping
+
+@menu
+* Introduction to URL remapping::
+* URL handling::
+* Get params from URL::
+* Redirect link::
+@end menu
+
+@node Introduction to URL remapping
+@section Introduction to URL remapping
+
 URL remapping is used to modify a web URL's appearance to provide short, pretty or fancy, search engine friendly URLs. 
 It's largly used in modern WAF(web application framework) to provide RESTful web APIs.
-** URL handling
+
+@node URL handling
+@section URL handling
+
 According to RFC2616, there're GET, POST, PUT, PATCH and DELETE methods. You may register handler for specified URL rule to these methods.
 
-/There'd be HEAD method, but in GNU Artanis, HEAD method is handled by the server, users can't use it./
+@emph{There'd be HEAD method, but in GNU Artanis, HEAD method is handled by the server, users can't use it.}
 
 The usage:
-#+begin_src scheme
+@example
 (method rule handler)
-#+end_src
+@end example
 
 And the handler could be two types, depends on your need:
-#+begin_src scheme
+@example
 (lambda ()
   ...
   ret)
@@ -450,394 +757,622 @@ And the handler could be two types, depends on your need:
 (lambda (rc)
   ...
   ret)
-#+end_src
+@end example
 
-*ret* also has two types:
+@strong{ret} also has two types:
 
-+ 1. literal string as the returned response body
+@itemize
+@item
+1. literal string as the returned response body
 
-+ 2. See [[Emit Response][Emit Response]] 
+@item
+2. See @ref{Emit Response,Emit Response} 
+@end itemize
 
-#+begin_src scheme
+@example
 (get "/hello" (lambda () "hello world"))
-#+end_src
+@end example
 
 For POST method:
-#+begin_src scheme
+@example
 (post "/auth" (lambda (rc) ...))
-#+end_src
-** Get params from URL
-#+begin_src scheme
+@end example
+
+@node Get params from URL
+@section Get params from URL
+
+@example
 (params rc name)
 ;; e.g 
 (get "/hello/:who" (lambda (rc) (params rc "who")))
-#+end_src
-** Redirect link
-#+begin_src scheme
+@end example
+
+@node Redirect link
+@section Redirect link
+
+@example
 (redirect-to rc path [status <- 301])
 ;; e.g
 (get "/aaa" (lambda (rc) (redirect-to rc "/bbb")))
 (get "/bbb" (lambda () "ok bbb"))
-#+end_src
-* Layouts and Rendering in GNU Artanis
-** Templating
+@end example
+
+@node Layouts and Rendering in GNU Artanis
+@chapter Layouts and Rendering in GNU Artanis
+
+@menu
+* Templating::
+* Templating for Pythoners::
+* Templating for Rubyists::
+* Templating APIs::
+* Embedded Templating::
+* SXML Templating::
+@end menu
+
+@node Templating
+@section Templating
+
 Templating provides a way to mix programming code into HTML.
-** Templating for Pythoners
+
+@node Templating for Pythoners
+@section Templating for Pythoners
+
 If you're familiar with Django, which implemented a DSL(Domain Specific Language) to express presentation rather than program logic. You may realize that the templating of GNU Artanis has different philosophy.
 
-In templating of GNU Artanis, it's simply embedded Scheme code into HTML. Why? Because of the philosophy of FP(Functional Programming), everything could be a function. So obviously, src_scheme[:exports code]{(filesizeformat size)} is enough for understanding, and it's just simple function calling in prefix-notation. There's no need to implement DSL like src_python[:exports code]{size|filesizeformat} to increase the complexity of code. Let alone the syntax is very different from Python.
+In templating of GNU Artanis, it's simply embedded Scheme code into HTML. Why? Because of the philosophy of FP(Functional Programming), everything could be a function. So obviously, @verb{~(filesizeformat size)~} is enough for understanding, and it's just simple function calling in prefix-notation. There's no need to implement DSL like @verb{~size|filesizeformat~} to increase the complexity of code. Let alone the syntax is very different from Python.
 
-The syntax like src_python[:exports code]{size|filesizeformat} is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme(functional programming), and the paradigm of Python(imperative programming).
+The syntax like @verb{~size|filesizeformat~} is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme(functional programming), and the paradigm of Python(imperative programming).
 
-The philosophy of GNU Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce the unnecessary complexities. [[http://en.wikipedia.org/wiki/KISS_principle][KISS]].
-** Templating for Rubyists
+The philosophy of GNU Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce the unnecessary complexities. @uref{http://en.wikipedia.org/wiki/KISS_principle,KISS}.
+
+@node Templating for Rubyists
+@section Templating for Rubyists
+
 Templating in GNU Artanis looks very similar to Rails.
 
 The Rails code:
 
-#+begin_src ruby
-<% if( @fullscreen == 1 ) %>
+@example
+<% if( @@fullscreen == 1 ) %>
 <%= "<div class='full'><p>...</p></div>" %>
 <% end %>
-#+end_src
+@end example
 
 And the same function in GNU Artanis code:
 
-#+begin_src scheme
+@example
 <% (if (= fullscreen 1) %>
 <% "<div class='full'><p>...</p></div>" %>
 <% ) %>
-#+end_src
-** Templating APIs
-#+begin_src scheme
+@end example
+
+@node Templating APIs
+@section Templating APIs
+
+@example
 (tpl->response filename/sxml [environment <- (the-environment)] [escape? <- #f])
 (tpl->html filename/sxm [environment <- (the-environment)] [escape? <- #f])
-#+end_src
+@end example
 
-/The difference is that tpl->html returns a string, but tpl->response will return HTTP response./
+@emph{The difference is that tpl->html returns a string, but tpl->response will return HTTP response.}
 
 [environment] is the environment you want to pass in. We often ignore it. But if you want to ref some vars defined outside your
 template string, you should pass (the-environment).
 
 [escape?] If you want to HTML char-escaping with the returned string, set it to #t.
- 
+
 There're two kinds of different templating:
-** Embedded Templating
+
+@node Embedded Templating
+@section Embedded Templating
+
 Example:
 Write a tpl file named "my.tpl":
-#+begin_src html
+@example
 <html>
   <p> <%= "This is tpl test!" %> </p>
   <p> <% (format #t "And this is ~a" (getcwd)) %> </p>
   <p> <%= external-var %> </p>
 </html>
-#+end_src
+@end example
 
 Of course, the ext filename ".tpl" is trivial, you may name it whatever you like.
 
-#+begin_src scheme
+@example
 (get "/test"
   (lambda (rc)
     (let ((external-var 123))
       (tpl->response "my.tpl" (the-environment)))))
 (run #:port 8080)
-#+end_src
+@end example
 
 In this case, make sure to put my.tpl to the same path with your GNU Artanis code.
 
-Because *exteral-var* is defined outside the file "my.tpl", and it's bound in /let/ with 123, you have to pass (the-environment). Or the template render will blame that it can't find variable named *external-var*.
+Because @strong{exteral-var} is defined outside the file "my.tpl", and it's bound in @emph{let} with 123, you have to pass (the-environment). Or the template render will blame that it can't find variable named @strong{external-var}.
 
-If you don't have any external var needs to be referenced, just use src_scheme[:exports code]{(tpl->response "file.tpl")} is fine.
- 
-Then see http://localhost:3000/test in your browser.
-** SXML Templating
-[[http://en.wikipedia.org/wiki/SXML][SXML]] is an alternative syntax for writing XML data, using the form of S-expressions.
+If you don't have any external var needs to be referenced, just use @verb{~(tpl->response "file.tpl")~} is fine.
+
+Then see @uref{http://localhost:3000/test} in your browser.
+
+@node SXML Templating
+@section SXML Templating
+
+@uref{http://en.wikipedia.org/wiki/SXML,SXML} is an alternative syntax for writing XML data, using the form of S-expressions.
 
 SXML is to Scheme as JSON is to ECMAScript(the so-called javascript). Maybe this explains clearer.
 
 The benifit of SXML is to take advantage of quasiquote in Scheme. If you no little about it, then you may google "scheme quasiquote" for more details.
 
-#+begin_src scheme
-(tpl->response '(html (body (p (@ (id "content")) "hello world"))))
-#+end_src
+@example
+(tpl->response '(html (body (p (@@ (id "content")) "hello world"))))
+@end example
 
-You would get a html string src_scheme[:exports code]{"<html><body><p id=\"content\">hello world</p></body></html>"}.
+You would get a html string @verb{~"<html><body><p id=\"content\">hello world</p></body></html>"~}.
 
 Let's see an example of quasiquote:
 
-#+begin_src scheme
+@example
 (let ((content "hello world"))
-  (tpl->response `(html (body (p (@ (id "content")) ,content)))))
-#+end_src
+  (tpl->response `(html (body (p (@@ (id "content")) ,content)))))
+@end example
 
-* Database
-** ORM problem
+@node Database
+@chapter Database
+
+@menu
+* ORM problem::
+* SSQL (experimental)::
+* FPRM (experimental)::
+@end menu
+
+@node ORM problem
+@section ORM problem
+
 ORM stands for Object Relational Mapping, which is a popular approach to handle relational DB nowadays, in OOP.
 
-Of course, Guile has it's own Object System named [[https://www.gnu.org/software/guile/manual/html_node/GOOPS.html#GOOPS][GOOPS]]. Users may use OOP with it. And it's possible to implement ORM in GNU Artanis as well.
+Of course, Guile has it's own Object System named @uref{https://www.gnu.org/software/guile/manual/html_node/GOOPS.html#GOOPS,GOOPS}. Users may use OOP with it. And it's possible to implement ORM in GNU Artanis as well.
 
 However, FP fans realized that they don't have to use OOP if they can use FP features reasonably.
 
 Besides, there're some criticism pointing to ORM:
-+ [[http://martinfowler.com/bliki/OrmHate.html][ORM Hate]]
+@itemize
+@item
+@uref{http://martinfowler.com/bliki/OrmHate.html,ORM Hate}
 
-+ [[http://blogs.tedneward.com/2006/06/26/The+Vietnam+Of+Computer+Science.aspx][Vietnam of Computer Science]]
+@item
+@uref{http://blogs.tedneward.com/2006/06/26/The+Vietnam+Of+Computer+Science.aspx,Vietnam of Computer Science}
 
-+ [[http://blog.codinghorror.com/object-relational-mapping-is-the-vietnam-of-computer-science/][Object-Relational Mapping is the Vietnam of Computer Science]]
+@item
+@uref{http://blog.codinghorror.com/object-relational-mapping-is-the-vietnam-of-computer-science/,Object-Relational Mapping is the Vietnam of Computer Science}
+@end itemize
 
 And here're some known ways for trying to solve the problems of ORM:
 
-+ 1. */Give up ORM/*.
+@itemize
+@item
+1. @strong{@emph{Give up ORM}}.
+@end itemize
 
 
-+ 2. */Give up relational storage model/*. Don't use relational DB, pick up others, say, No-SQL. Well, this way is not cool when you have to use relational DB.
+@itemize
+@item
+2. @strong{@emph{Give up relational storage model}}. Don't use relational DB, pick up others, say, No-SQL. Well, this way is not cool when you have to use relational DB.
+@end itemize
 
 
-+ 3. */Manual mapping/*. Write SQL code directly. It's fine sometimes. But the code increases when things get complicated. Refactoring and reusing would be worth to consider.
+@itemize
+@item
+3. @strong{@emph{Manual mapping}}. Write SQL code directly. It's fine sometimes. But the code increases when things get complicated. Refactoring and reusing would be worth to consider.
+@end itemize
 
 
-+ 4. */Limited ORM/*. Limited the utility of ORM. And use ORM to solve part of your work rather than whole, depends on you. This may avoid some problems.
+@itemize
+@item
+4. @strong{@emph{Limited ORM}}. Limited the utility of ORM. And use ORM to solve part of your work rather than whole, depends on you. This may avoid some problems.
+@end itemize
 
 
-+ 5. */SQL related DSL/*. Design a new language. LINQ from Microsoft is one of the cases.
+@itemize
+@item
+5. @strong{@emph{SQL related DSL}}. Design a new language. LINQ from Microsoft is one of the cases.
+@end itemize
 
 
-+ 6. */Integration of relational concepts into frameworks/*. Well, harder than 5, but worth to try.
+@itemize
+@item
+6. @strong{@emph{Integration of relational concepts into frameworks}}. Well, harder than 5, but worth to try.
+@end itemize
 
 
-+ 7. */Stateless/*. This is the critical hit to complexity and unreliability.
+@itemize
+@item
+7. @strong{@emph{Stateless}}. This is the critical hit to complexity and unreliability.
+@end itemize
 
 Basically, GNU Artanis has no ORM yet, and maybe never. GNU Artanis is trying to experiment new ways to solve the problems of ORM.
 
-GNU Artanis provides three ways to complete this mission. All of them, are *experimental* at present.
+GNU Artanis provides three ways to complete this mission. All of them, are @strong{experimental} at present.
 
-+ SSQL (1,3,5)
+@itemize
+@item
+SSQL (1,3,5)
 
-+ FPRM (4,7)
+@item
+FPRM (4,7)
 
-+ SQL Mapping (1,3,6)
-** SSQL (experimental)
+@item
+SQL Mapping (1,3,6)
+@end itemize
+
+@node SSQL (experimental)
+@section SSQL (experimental)
+
 The concept of SSQL is very easy. Write SQL in S-expr. 
 
 Usage:
-#+begin_src scheme
+@example
 (->sql sql-statement)
 (where #:key val ... [literal string])
 (having #:key val ... [literal string])
 (/or conds ...)
 (/and conds ...)
-#+end_src
+@end example
 
 For example:
-#+begin_src scheme
+@example
 (->sql select * from 'Persons (where #:city "Shenzhen"))
 (->sql select '(age name) from 'Persons (where "age < 30"))
-#+end_src
-** FPRM (experimental)
-FPRM stands for Functional Programming Relational Mapping. It's a new word I invented. But it's not new concept. FP here indicates *stateless*. 
+@end example
 
-/FPRM is still experimental and work-in-progress./
-*** Connect to DB server
-#+begin_src scheme
+@node FPRM (experimental)
+@section FPRM (experimental)
+
+FPRM stands for Functional Programming Relational Mapping. It's a new word I invented. But it's not new concept. FP here indicates @strong{stateless}. 
+
+@emph{FPRM is still experimental and work-in-progress.}
+@menu
+* Connect to DB server::
+* Map DB table::
+* Create table::
+* Get columns from table::
+* Set values to table::
+* Drop a table::
+* Check existance of table::
+* Get schema of a table::
+* SQL Mapping (experimental)::
+@end menu
+
+@node Connect to DB server
+@subsection Connect to DB server
+
+@example
 ;; usage 1:
 (connect-db dbd init-str)
 
 ;; usage 2:
-(connect-db dbd #:db-name "artanis" #:db-username "root" #:db-passwd "" #:proto "tcp" #:host "localhost" #:port 3306) 
-#+end_src
+(connect-db dbd #:db-name "artanis" #:db-username "root" #:db-passwd "" #:proto "tcp" #:host "localhost" #:port 3306)
+@end example
 
-+ *dbd* is a string, could be "mysql", "postgresql", and "sqlite3".
+@itemize
+@item
+@strong{dbd} is a string, could be "mysql", "postgresql", and "sqlite3".
+@end itemize
 
 
-+ *init-str* is a string for DB init, for example:
-#+begin_src scheme
+@itemize
+@item
+@strong{init-str} is a string for DB init, for example:
+@end itemize
+@example
 (connect-db "mysql" "root:123:artanis:tcp:localhost:3306")
-#+end_src
+@end example
 
-+ src_scheme[:exports code]{#:db-name} specifies the DB name.
-
-
-+ src_scheme[:exports code]{#:db-username} specifis the DB username.
-
-
-+ src_scheme[:exports code]{#:proto} specifies the socket protocol, which is related to DB server you choosen.
+@itemize
+@item
+@verb{~#:db-name~} specifies the DB name.
+@end itemize
 
 
-+ src_scheme[:exports code]{#:host} specifies the host name.
+@itemize
+@item
+@verb{~#:db-username~} specifis the DB username.
+@end itemize
 
 
-+ src_scheme[:exports code]{#:port} specifies the socket port.
-*** Map DB table
-#+begin_src scheme
+@itemize
+@item
+@verb{~#:proto~} specifies the socket protocol, which is related to DB server you choosen.
+@end itemize
+
+
+@itemize
+@item
+@verb{~#:host~} specifies the host name.
+@end itemize
+
+
+@itemize
+@item
+@verb{~#:port~} specifies the socket port.
+@end itemize
+
+@node Map DB table
+@subsection Map DB table
+
+@example
 (define my-table (map-table-from-DB rc/conn))
-#+end_src
+@end example
 
-*rc/conn* can be route-context or connection of DB.
+@strong{rc/conn} can be route-context or connection of DB.
 
-map-table-from-DB returns a function, we named it *my-table* here for explaining.
-*** Create table
-#+begin_src scheme
+map-table-from-DB returns a function, we named it @strong{my-table} here for explaining.
+
+@node Create table
+@subsection Create table
+
+@example
 (my-table 'create table-name defs #:if-exists? #f #:primary-keys '() #:engine #f)
-#+end_src
+@end example
 
-+ *table-name* specifies the name of the table in DB.
+@itemize
+@item
+@strong{table-name} specifies the name of the table in DB.
+@end itemize
 
 
-+ *defs* is a list to define the columns' types. For example:
-#+begin_src scheme
+@itemize
+@item
+@strong{defs} is a list to define the columns' types. For example:
+@end itemize
+@example
 '((name varchar 10) (age integer) (email varchar 20))
-#+end_src
+@end example
 
 
-+ src_scheme[:exports code]{#:if-exists?} has two kinds of possible options:
-  + '*overwrite* or '*drop* means overwriting the existed table if possible.
-  + '*ignore* means ignore the table when there's an existed one.
+@itemize
+@item
+@verb{~#:if-exists?~} has two kinds of possible options:
+@itemize
+@item
+'@strong{overwrite} or '@strong{drop} means overwriting the existed table if possible.
+@item
+'@strong{ignore} means ignore the table when there's an existed one.
+@end itemize
+@end itemize
 
 
-+ src_scheme[:exports code]{#:primary-keys} specifies the primary keys in the created table.
+@itemize
+@item
+@verb{~#:primary-keys~} specifies the primary keys in the created table.
+@end itemize
 
 
-+ src_scheme[:exports code]{#:engine} specifies the engine, depends on the dbd you chosen.
-*** Get columns from table
-#+begin_src scheme
+@itemize
+@item
+@verb{~#:engine~} specifies the engine, depends on the dbd you chosen.
+@end itemize
+
+@node Get columns from table
+@subsection Get columns from table
+
+@example
 (my-table 'get table-name #:columns '(*) #:functions '() #:ret 'all #:group-by #f #:order-by #f)
-#+end_src
+@end example
 
-+ src_scheme[:exports code]{#:column} is the columns list you wanted.
+@itemize
+@item
+@verb{~#:column~} is the columns list you wanted.
+@end itemize
 
 
-+ src_scheme[:exports code]{#:functions} is built-in functions calling, e.g:
-#+begin_src scheme
+@itemize
+@item
+@verb{~#:functions~} is built-in functions calling, e.g:
+@end itemize
+@example
 #:functions '((count Persons.Lastname))
-#+end_src
+@end example
 
 
-+ src_scheme[:exports code]{#:ret} specifies how to return the result, there're three options:
-  + 'all for returning all results
-  + 'top for returning the first result
-  + integer (larger than 0), you specify the number.
+@itemize
+@item
+@verb{~#:ret~} specifies how to return the result, there're three options:
+@itemize
+@item
+'all for returning all results
+@item
+'top for returning the first result
+@item
+integer (larger than 0), you specify the number.
+@end itemize
+@end itemize
 
 
-+ src_scheme[:exports code]{#:group-by} used in conjunction with the aggregate functions to group the result-set by one or more columns.
+@itemize
+@item
+@verb{~#:group-by~} used in conjunction with the aggregate functions to group the result-set by one or more columns.
+@end itemize
 
 
-+ src_scheme[:exports code]{#:order-by} used to sort the result-set by one or more columns.
+@itemize
+@item
+@verb{~#:order-by~} used to sort the result-set by one or more columns.
+@end itemize
 
 
 For example, to get Lastname and City column, and return the first result.
-#+begin_src scheme
+@example
 (my-table 'get 'Persons #:columns '(Lastname City) #:ret 'top)
-#+end_src
-*** Set values to table
-#+begin_src scheme
-(my-table 'set table-name . kargs)
-#+end_src
+@end example
 
-*kargs* is a var-list to accept the key-value arguments.
+@node Set values to table
+@subsection Set values to table
+
+@example
+(my-table 'set table-name . kargs)
+@end example
+
+@strong{kargs} is a var-list to accept the key-value arguments.
 
 For example:
-#+begin_src scheme
-(mtable 'set 'Persons #:name "nala" #:age 99 #:email "nala@artanis.com")
-#+end_src
+@example
+(mtable 'set 'Persons #:name "nala" #:age 99 #:email "nala@@artanis.com")
+@end example
 
-*** Drop a table
-#+begin_src scheme
+@node Drop a table
+@subsection Drop a table
+
+@example
 (mtable 'drop table-name)
-#+end_src
-*** Check existance of table
-#+begin_src scheme
+@end example
+
+@node Check existance of table
+@subsection Check existance of table
+
+@example
 ;; case sensitive
 (mtable 'exists? table-name . columns)
 ;; or for case-insensitive
 (mtable 'ci-exists? table-name . columns)
-#+end_src
+@end example
 
 For example:
-#+begin_src scheme
+@example
 (mtable 'exists? 'Persons 'city 'lastname)
-#+end_src
-*** Get schema of a table
-#+begin_src scheme
-(mtable 'schema table-name)
-#+end_src
+@end example
 
-/NOTE: all the returned name of schema will be downcased./
-*** SQL Mapping (experimental)
-To be continued ...
-* MIME
-src_scheme[:exports code]{#:mime} method is used to return the proper MIME type in the HTTP response.
-#+begin_src scheme
+@node Get schema of a table
+@subsection Get schema of a table
+
+@example
+(mtable 'schema table-name)
+@end example
+
+@emph{NOTE: all the returned name of schema will be downcased.}
+
+@node SQL Mapping (experimental)
+@subsection SQL Mapping (experimental)
+
+To be continued @dots{}
+
+@node MIME
+@chapter MIME
+
+@verb{~#:mime~} method is used to return the proper MIME type in the HTTP response.
+@example
 #:mime type ; for registering type
-(:mime rc body) ; for emit the reponse with the proper MIME 
-#+end_src
-** JSON
-GNU Artanis intergrated the third-party module [[https://github.com/aconchillo/guile-json][guile-json]]. 
+(:mime rc body) ; for emit the reponse with the proper MIME
+@end example
+@menu
+* JSON::
+* CSV::
+* XML::
+* SXML::
+@end menu
+
+@node JSON
+@section JSON
+
+GNU Artanis intergrated the third-party module @uref{https://github.com/aconchillo/guile-json,guile-json}. 
 You may use #:mime method to handle JSON:
-#+begin_src scheme
+@example
 (get "/json" #:mime 'json
   (lambda (rc)
     (let ((j (json (object ("name" "nala") ("age" "15")))))
       (:mime rc j))))
-#+end_src
-** CSV
-GNU Artanis intergrated the third-party module [[https://github.com/NalaGinrut/guile-csv][guile-csv]]. You may use #:mime method to handle CSV:
-#+begin_src scheme
+@end example
+
+@node CSV
+@section CSV
+
+GNU Artanis intergrated the third-party module @uref{https://github.com/NalaGinrut/guile-csv,guile-csv}. You may use #:mime method to handle CSV:
+@example
 (get "/csv" #:mime 'csv
   (lambda (rc)
     (:mime rc '(("a" "1") ("b" "2")))))
-#+end_src
-** XML
+@end example
+
+@node XML
+@section XML
+
 In Scheme, XML is handled with SXML. Another way is to use strings appending method.
-#+begin_src scheme
+@example
 (get "/xml" #:mime 'xml
   (lambda (rc)
-    (:mime rc '(*TOP* (WEIGHT (@ (unit "pound")) (NET (@ (certified "certified")) "67") (GROSS "95"))))))
-#+end_src
-** SXML
+    (:mime rc '(*TOP* (WEIGHT (@@ (unit "pound")) (NET (@@ (certified "certified")) "67") (GROSS "95"))))))
+@end example
+
+@node SXML
+@section SXML
+
 You can use SXML to replace XML for exchanging data format. This way saves some bandwidth.
-#+begin_src scheme
+@example
 (get "/sxml" #:mime 'sxml
   (lambda (rc)
     (:mime rc '((a 1) (b 2)))))
-#+end_src
-* Sessions
-You have to use src_scheme[:exports code]{#:session mode} while you defining URL rule handler.
-#+begin_src scheme
-(post "/auth" #:session mode
-  (lambda (rc) ...))    
-#+end_src
+@end example
 
-*mode* could be:
-+ #t or 'spawn, to spawn a new session, the name of sid is "sid" in default.
-+ `(spawn ,sid) specify a name of sid to spawn.
-+ `(spawn ,sid ,proc) specify a name of sid and a proc to *define your own session spawner*.
+@node Sessions
+@chapter Sessions
+
+You have to use @verb{~#:session mode~} while you defining URL rule handler.
+@example
+(post "/auth" #:session mode
+  (lambda (rc) ...))
+@end example
+
+@strong{mode} could be:
+@itemize
+@item
+#t or 'spawn, to spawn a new session, the name of sid is "sid" in default.
+@item
+`(spawn ,sid) specify a name of sid to spawn.
+@item
+`(spawn ,sid ,proc) specify a name of sid and a proc to @strong{define your own session spawner}.
+@end itemize
 
 And the APIs of session is :session
-#+begin_src scheme
+@example
 (:session rc cmd)
-#+end_src
+@end example
 
-*cmd* could be:
-+  'check to check session with name "sid".
-+  `(check ,sid) to check session with a specified sid name.
-+  'check-and-spawn check "sid" first, if no, then spawn it.
-+  `(check-and-spawn ,sid) the same with above, but specifed name of sid.
-+  `(check-and-spawn-and-keep ,sid) check then spawn then keep it, with the name of sid.
-+  'spawn spawn a session with the name "sid".
-+  'spawn-and-keep spawn a session then keep with the name "sid".
-* Cookies
-You have to use src_scheme[:exports code]{#:session mode} while you defining URL rule handler.
-#+begin_src scheme
+@strong{cmd} could be:
+@itemize
+@item
+'check to check session with name "sid".
+@item
+`(check ,sid) to check session with a specified sid name.
+@item
+'check-and-spawn check "sid" first, if no, then spawn it.
+@item
+`(check-and-spawn ,sid) the same with above, but specifed name of sid.
+@item
+`(check-and-spawn-and-keep ,sid) check then spawn then keep it, with the name of sid.
+@item
+'spawn spawn a session with the name "sid".
+@item
+'spawn-and-keep spawn a session then keep with the name "sid".
+@end itemize
+
+@node Cookies
+@chapter Cookies
+
+You have to use @verb{~#:session mode~} while you defining URL rule handler.
+@example
 (get "/certain-rule" #:cookies mode
-  (lambda (rc) ...))    
-#+end_src
+  (lambda (rc) ...))
+@end example
 
-*mode* could be:
-+ ('names names ...) specifies the name list of the cookies.
-+ ('custom (names ...) maker setter getter modifier) specify a more complicated customized cookie handers.
+@strong{mode} could be:
+@itemize
+@item
+('names names @dots{}) specifies the name list of the cookies.
+@item
+('custom (names @dots{}) maker setter getter modifier) specify a more complicated customized cookie handers.
+@end itemize
 
 And the APIs:
-#+begin_src scheme
+@example
 (:cookies-set! rc cookie-name key val)
 
 (:cookies-ref rc cookie-name key)
@@ -847,12 +1382,12 @@ And the APIs:
 (:cookies-remove! rc key) ; remove cookie from client
 
 (:cookies-update! rc) ; cookies operations won't work unless you update it
-#+end_src
+@end example
 
-*NOTE*: You don't have to call src_scheme[:exports code]{:cookies-update!} yourself, since it'll be called automatically by the hook before response.
+@strong{NOTE}: You don't have to call @verb{~:cookies-update!~} yourself, since it'll be called automatically by the hook before response.
 
 For example:
-#+begin_src scheme
+@example
 (get "/cookie" #:cookies '(names cc)
   (lambda (rc)
     (:cookies-set! rc 'cc "sid" "123321")
@@ -863,63 +1398,95 @@ For example:
     (:cookies-set! rc 'cc "sid" "123321")
     (:cookies-setattr! rc 'cc #:expir (string->number (params rc "expires")))
     "ok"))
-#+end_src
+@end example
 
 Now you may use this command in the console to see the result:
-#+begin_src nil
+@example
 curl --head localhost:3000/cookie
 # and
 curl --head localhost:3000/cookie/120
-#+end_src
-* Authentication
-** Init Authentication
+@end example
+
+@node Authentication
+@chapter Authentication
+
+@menu
+* Init Authentication::
+* Basic Authentication::
+* Common Authentication::
+@end menu
+
+@node Init Authentication
+@section Init Authentication
+
 GNU Artanis provides flexible mechanism for authentication.
 
-You have to use src_scheme[:exports code]{#:auth mode} while you defining URL rule handler.
-#+begin_src scheme
+You have to use @verb{~#:auth mode~} while you defining URL rule handler.
+@example
 (get "/certain-rule" #:auth mode
   (lambda (rc) ...))
-#+end_src
+@end example
 
-*mode* could be:
-+ SQL as [[String Template][string template]]. You may write your own customized SQL for fetching & checking username and passwd.
-+ ('basic (lambda (rc user passwd) ...)) init a Basic Authentication mode. /user/ is submitted username, /passwd/ is submitted password value.
-+ ('table table-name username-field passwd-field) init a common Authentication mode. *The passwd will be encrypted by default algorithm*.
-+ ('table table-name username-field passwd-field crypto-proc) similar to the above item, but encrypt passwd with crypto-proc.
-+ (table-name crypto-proc), so passwd field will be "passwd" and username will be "username" in default, and you may encrypt passwd with crypto-proc.
+@strong{mode} could be:
+@itemize
+@item
+SQL as @ref{String Template,string template}. You may write your own customized SQL for fetching & checking username and passwd.
+@item
+('basic (lambda (rc user passwd) @dots{})) init a Basic Authentication mode. @emph{user} is submitted username, @emph{passwd} is submitted password value.
+@item
+('table table-name username-field passwd-field) init a common Authentication mode. @strong{The passwd will be encrypted by default algorithm}.
+@item
+('table table-name username-field passwd-field crypto-proc) similar to the above item, but encrypt passwd with crypto-proc.
+@item
+(table-name crypto-proc), so passwd field will be "passwd" and username will be "username" in default, and you may encrypt passwd with crypto-proc.
+@end itemize
 
 Available crypto-proc helper functions listed here:
-+ (string->md5 str)
-+ (string->sha-1 str)
-** Basic Authentication
+@itemize
+@item
+(string->md5 str)
+@item
+(string->sha-1 str)
+@end itemize
+
+@node Basic Authentication
+@section Basic Authentication
+
 HTTP Basic authentication (BA) implementation is the simplest technique for enforcing access controls to web resources because it doesn't require cookies, session identifier and login pages. Rather, HTTP Basic authentication uses static, standard HTTP headers which means that no handshakes have to be done in anticipation.
 
 The BA mechanism provides no confidentiality protection for the transmitted credentials. They are merely encoded with Base64 in transit, but not encrypted or hashed in any way. Basic Authentication is, therefore, typically used over HTTPS.
 
-/*GNU Artanis doesn't support HTTPS at present, it's planned to support it in the future.*/
+@emph{@strong{GNU Artanis doesn't support HTTPS at present, it's planned to support it in the future.}}
 
 Let's see a simple example:
-#+begin_src scheme
+@example
 (get "/bauth" #:auth `(basic ,(lambda (rc u p) (and (string=? u "mmr") (string=? p "123"))))
   (lambda (rc) 
     (if (:auth rc)
         "auth ok"
         (throw-auth-needed))))
-#+end_src
+@end example
 
-You have to define your own checker with the anonymous function src_scheme[:exports code]{(lambda (rc u p) ...)}. #t for succeed, #f for failed.
+You have to define your own checker with the anonymous function @verb{~(lambda (rc u p) ...)~}. #t for succeed, #f for failed.
 
 APIs:
 
-+ src_scheme[:exports code]{(:auth rc)} will check if Basic Authentication succeeded, #f for failed.
-+ src_scheme[:exports code]{(throw-auth-needed)} is a useful helper function to ask for auth in client side.
-** Common Authentication
+@itemize
+@item
+@verb{~(:auth rc)~} will check if Basic Authentication succeeded, #f for failed.
+@item
+@verb{~(throw-auth-needed)~} is a useful helper function to ask for auth in client side.
+@end itemize
+
+@node Common Authentication
+@section Common Authentication
+
 Actually, there're various authentication methods could be used by developers. Most of them are sort of tricky hacks. Here, we only introduce the most common way.
 
 The most common and relative safe way for authentication is to use POST method. And check username and passwd from a table in DB.
- 
+
 Here is a simple example:
-#+begin_src scheme
+@example
 (post "/auth" #:auth '(table user "user" "passwd") #:session #t
   (lambda (rc)
     (cond
@@ -928,91 +1495,137 @@ Here is a simple example:
       (:session rc 'spawn)
       "auth ok")
      (else (redirect-to rc "/login?login_failed=true")))))
-#+end_src
+@end example
 
-*NOTE: The passwd will be encrypted by default algorithm.*
-* Cache
-** On web caching
+@strong{NOTE: The passwd will be encrypted by default algorithm.}
+
+@node Cache
+@chapter Cache
+
+@menu
+* On web caching::
+* Cache APIs::
+@end menu
+
+@node On web caching
+@section On web caching
+
 Web caching is very important nowadays. This section raises a discussion on proper web caching. It's couldn't be guide for product. But may help you to understand how to use cache in GNU Artanis.
 
-(to be continued...)
-** Cache APIs
-You have to use src_scheme[:exports code]{#:cache mode} while you defining URL rule handler.
-#+begin_src scheme
+(to be continued@dots{})
+
+@node Cache APIs
+@section Cache APIs
+
+You have to use @verb{~#:cache mode~} while you defining URL rule handler.
+@example
 (get "/certain-rule" #:cache mode
-  (lambda (rc) ...))    
-#+end_src
+  (lambda (rc) ...))
+@end example
 
-*/NOTE/*: the default value of maxage is defined by cache.maxage in src_scheme[:exports code]{/etc/artanis/artanis.conf}. The default value is 3600 seconds.
+@strong{@emph{NOTE}}: the default value of maxage is defined by cache.maxage in @verb{~/etc/artanis/artanis.conf~}. The default value is 3600 seconds.
 
-*mode* could be:
-+ src_scheme[:exports code]{#t} for enabling caching the page.
-+ src_scheme[:exports code]{#f} for disabling caching the page explicitly. It's default to not cache.
-+ src_scheme[:exports code]{('static [maxage <- 3600])} This mode must be used for static files, which means the URL rule must be a real path to a static file.
-+ src_scheme[:exports code]{(filename [maxage <- 3600])} Specify a static file to cache. This is useful when you don't want to reveal actual path of the static file, but use a fake URL for it.
-+ src_scheme[:exports code]{('public filename [maxage <- 3600])} Allow proxies cache the content of specified static file. If HTTP authentication is required, responses are automatically private.
-+ src_scheme[:exports code]{('private filename [maxage <- 3600])} Not-Allow proxies cache the content of specified static file.
+@strong{mode} could be:
+@itemize
+@item
+@verb{~#t~} for enabling caching the page.
+@item
+@verb{~#f~} for disabling caching the page explicitly. It's default to not cache.
+@item
+@verb{~('static [maxage <- 3600])~} This mode must be used for static files, which means the URL rule must be a real path to a static file.
+@item
+@verb{~(filename [maxage <- 3600])~} Specify a static file to cache. This is useful when you don't want to reveal actual path of the static file, but use a fake URL for it.
+@item
+@verb{~('public filename [maxage <- 3600])~} Allow proxies cache the content of specified static file. If HTTP authentication is required, responses are automatically private.
+@item
+@verb{~('private filename [maxage <- 3600])~} Not-Allow proxies cache the content of specified static file.
+@end itemize
 
 Let's see the simplest cache test (for dynamica content):
-#+begin_src scheme
+@example
 (get "/new" #:cache #t
   (lambda (rc)
     (:cache rc "hello world")))
-#+end_src
+@end example
 
 If you want to cache a static file, and permit proxies cache the content:
-#+begin_src scheme
+@example
 (get "/hide" #:cache '(public "pub/some.html")
   (lambda (rc)
     (:cache rc)))
-#+end_src
+@end example
 
-But, if your current URL rule is used for authentication (once you use src_scheme[:exports code]{#:auth}), the cache will be changed to *private* even if you specify *public*.
-#+begin_src scheme
+But, if your current URL rule is used for authentication (once you use @verb{~#:auth~}), the cache will be changed to @strong{private} even if you specify @strong{public}.
+@example
 (get "/pauth"
   #:auth `(basic ,(lambda (rc u p) (and (string=? u "nala") (string=? p "123"))))
   #:cache '(public "pub/some.html") ; will be changed to 'private' automatically.
   (lambda (rc) (:cache rc)))
-#+end_src
-* Utils
- *The functions introduced here need to import (artanis utils) module.*
-** String Template
-GNU Artanis provides Python3-like template strings:
-#+begin_src scheme
-(make-string-template tpl . vals)
-#+end_src
+@end example
 
-+ *tpl* stands for template string.
-+ *vals* is varg-list specifying default value to certain key.
+@node Utils
+@chapter Utils
+
+@strong{The functions introduced here need to import (artanis utils) module.}
+@menu
+* String Template::
+* Random Number Generator::
+* Encryption::
+* Stack & Queue::
+@end menu
+
+@node String Template
+@section String Template
+
+GNU Artanis provides Python3-like template strings:
+@example
+(make-string-template tpl . vals)
+@end example
+
+@itemize
+@item
+@strong{tpl} stands for template string.
+@item
+@strong{vals} is varg-list specifying default value to certain key.
+@end itemize
 
 For an example:
-#+begin_src scheme
-(define st (make-string-template "hello ${name}"))
+@example
+(define st (make-string-template "hello $@{name@}"))
 (st #:name "nala")
 ;; ==> "hello nala"
 
-;; or you may specify a default value for ${name}
-(define st (make-string-template "hello ${name}" #:name "unknown"))
+;; or you may specify a default value for $@{name@}
+(define st (make-string-template "hello $@{name@}" #:name "unknown"))
 (st)
 ;; ==> "hello unknown"
 (st #:name "john")
 ;; ==> "hello john"
-#+end_src
-** Random Number Generator
-Get random number string from =/dev/urandom=.
-#+begin_src scheme
+@end example
+
+@node Random Number Generator
+@section Random Number Generator
+
+Get random number string from @verb{~/dev/urandom~}.
+@example
 (get-random-from-dev #:length 8 #:uppercase #f)
-#+end_src
-** Encryption
-#+begin_src scheme
+@end example
+
+@node Encryption
+@section Encryption
+
+@example
 ;; hash a string with MD5
 (string->md5 str)
 ;; hash a string with SHA-1
 (string->sha-1 str)
-#+end_src
-** Stack & Queue
+@end example
+
+@node Stack & Queue
+@section Stack & Queue
+
 GNU Artanis provides simple interfaces for stack & queue:
-#+begin_src scheme
+@example
 ;; stack operations
 (new-stack)
 (stack-pop! stk)
@@ -1029,11 +1642,14 @@ GNU Artanis provides simple interfaces for stack & queue:
 (queue-tail q)
 (queue-remove! q key)
 (queue-empty? q)
-#+end_src
-* Appendix A GNU Free Documentation License
+@end example
+
+@node Appendix A GNU Free Documentation License
+@chapter Appendix A GNU Free Documentation License
+
 Version 1.3, 3 November 2008
 Copyright © 2000, 2001, 2002, 2007, 2008 Free Software Foundation, Inc.
-http://fsf.org/
+@uref{http://fsf.org/}
 
 Everyone is permitted to copy and distribute verbatim copies
 of this license document, but changing it is not allowed.
@@ -1057,7 +1673,7 @@ The “Cover Texts” are certain short passages of text that are listed, as Fro
 
 A “Transparent” copy of the Document means a machine-readable copy, represented in a format whose specification is available to the general public, that is suitable for revising the document straightforwardly with generic text editors or (for images composed of pixels) generic paint programs or (for drawings) some widely available drawing editor, and that is suitable for input to text formatters or for automatic translation to a variety of formats suitable for input to text formatters. A copy made in an otherwise Transparent file format whose markup, or absence of markup, has been arranged to thwart or discourage subsequent modification by readers is not Transparent. An image format is not Transparent if used for any substantial amount of text. A copy that is not “Transparent” is called “Opaque”.
 
-Examples of suitable formats for Transparent copies include plain ASCII without markup, Texinfo input format, LaTeX input format, SGML or XML using a publicly available DTD, and standard-conforming simple HTML, PostScript or PDF designed for human modification. Examples of transparent image formats include PNG, XCF and JPG. Opaque formats include proprietary formats that can be read and edited only by proprietary word processors, SGML or XML for which the DTD and/or processing tools are not generally available, and the machine-generated HTML, PostScript or PDF produced by some word processors for output purposes only.
+Examples of suitable formats for Transparent copies include plain ASCII without markup, Texinfo input format, @LaTeX{} input format, SGML or XML using a publicly available DTD, and standard-conforming simple HTML, PostScript or PDF designed for human modification. Examples of transparent image formats include PNG, XCF and JPG. Opaque formats include proprietary formats that can be read and edited only by proprietary word processors, SGML or XML for which the DTD and/or processing tools are not generally available, and the machine-generated HTML, PostScript or PDF produced by some word processors for output purposes only.
 
 The “Title Page” means, for a printed book, the title page itself, plus such following pages as are needed to hold, legibly, the material this License requires to appear in the title page. For works in formats which do not have any title page as such, “Title Page” means the text near the most prominent appearance of the work’s title, preceding the beginning of the body of the text.
 
@@ -1139,7 +1755,7 @@ Moreover, your license from a particular copyright holder is reinstated permanen
 Termination of your rights under this section does not terminate the licenses of parties who have received copies or rights from you under this License. If your rights have been terminated and not permanently reinstated, receipt of a copy of some or all of the same material does not give you any rights to use it.
 
 FUTURE REVISIONS OF THIS LICENSE
-The Free Software Foundation may publish new, revised versions of the GNU Free Documentation License from time to time. Such new versions will be similar in spirit to the present version, but may differ in detail to address new problems or concerns. See http://www.gnu.org/copyleft/.
+The Free Software Foundation may publish new, revised versions of the GNU Free Documentation License from time to time. Such new versions will be similar in spirit to the present version, but may differ in detail to address new problems or concerns. See @uref{http://www.gnu.org/copyleft/}.
 
 Each version of the License is given a distinguishing version number. If the Document specifies that a particular numbered version of this License “or any later version” applies to it, you have the option of following the terms and conditions either of that specified version or of any later version that has been published (not as a draft) by the Free Software Foundation. If the Document does not specify a version number of this License, you may choose any version ever published (not as a draft) by the Free Software Foundation. If the Document specifies that a proxy can decide which future versions of this License can be used, that proxy’s public statement of acceptance of a version permanently authorizes you to choose that version for the Document.
 
@@ -1173,3 +1789,6 @@ If you have Invariant Sections, Front-Cover Texts and Back-Cover Texts, replace 
 If you have Invariant Sections without Cover Texts, or some other combination of the three, merge those two alternatives to suit the situation.
 
 If your document contains nontrivial examples of program code, we recommend releasing these examples in parallel under your choice of free software license, such as the GNU General Public License, to permit their use in free software.
+
+@c Emacs 24.2.1 (Org mode 8.3beta)
+@bye
