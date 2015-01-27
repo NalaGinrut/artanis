@@ -19,7 +19,7 @@
       (ul (@ (id "links"))
        (li (a (@ (href "index.html")) "Home"))
        (li (a (@ (href "about.html") (class "active")) "About"))
-       (li (a (@ (href "docs/manual-0.0.2.html")) "Documents"))
+       (li (a (@ (href "http://gnu.org/software/artanis/manuals")) "Documents"))
        (li (a (@ (href "http://szdiy.org/download/artanis-0.0.1.tar.gz")) "Latest release"))
        (li (@ (class "last")) (a (@ (href "donate.html")) "Donate")))
 
