@@ -52,6 +52,12 @@
   (lambda (rc)
     (:cache rc "hello world")))
 
+;; 4.1
+;; cache in auth should be private
+(get "/pauth" #:auth `(basic ,(lambda (rc u p) #t)) #:cache '(public "./test.scm")
+  (lambda (rc)
+    (:cache rc)))
+
 ;; test database (here we use mysql/mariaDB for an example)
 ;; there's a table for testing:
 ;; CREATE TABLE Persons
@@ -172,7 +178,7 @@
 (get "/login"
   (lambda (rc)
     (let ((blog-title "test auth")
-          (footer "<p>Powered by Artanis</p>")
+          (footer "<p>Powered by GNU Artanis</p>")
           (failed (params rc "login_failed")))
       (tpl->response "login.tpl" (the-environment)))))
 
