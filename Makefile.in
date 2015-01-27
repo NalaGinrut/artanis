@@ -28,6 +28,7 @@ BUILD_AUX := @srcdir@/build-aux
 GENDOCS :=$(BUILD_AUX)/gendocs.sh
 CHK_TEXINFO := $(BUILD_AUX)/check_texinfo.scm
 CP := cp -frd -P
+INFO_DIR := $(PREFIX)/share/info/
 V := @
 
 mod-sfile := $(shell find $(MOD) -name *.scm)
@@ -75,6 +76,7 @@ install: $(ALL_TARGETS)
 	$(CP) $(MOD_OBJ) $(MOD_TARGET_PATH)
 	$(CP) $(ARTANIS_ETC) /etc
 	$(CP) $(ARTANIS_PAGES) /etc/artanis
+	$(CP) artanis.info $(INFO_DIR)
 
 distclean: distclean-mk clean clean-config
 
