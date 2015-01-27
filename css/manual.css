@@ -164,3 +164,16 @@ a.artanis:visited {
     color: #b6a754;
     text-decoration: none;
 }
+
+code.src {
+    padding-left: 8px;
+    margin-right: 8px;
+    margin-left: 3px;
+    font-family: Monaco, "Lucida Console", monospace;
+    font-size: 13px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    background: rgba(19,32,27,0.87);
+    color: wheat;
+    border: 0;
+}
