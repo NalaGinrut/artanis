@@ -214,7 +214,8 @@
           (emit-static-file-with-cache file etag status max-age))))
    (else (emit-static-file-without-cache file))))
 
-(define-syntax-rule (->maxage maxage)
+(define (->maxage maxage)
+  (display maxage)
   (match maxage
     ((? integer? m) m)
     (((? integer? m)) m)

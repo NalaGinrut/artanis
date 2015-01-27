@@ -110,6 +110,10 @@
          (h (and oht (hash-ref oht opt))))
     (if h (h rc args ...) values)))
 
+(define-syntax-rule (auth-enabled? rc)
+  (begin
+    (format #t "adfa~%")
+    (hash-ref (get-oht rc) #:auth)))
 ;; --------------------------------------------------------------
 ;; oht handlers
 
@@ -142,21 +146,22 @@
 ;; for #:cache
 (define (cache-maker pattern rule keys)
   (define (non-cache rc body) body)
+  (define-syntax-rule (try-public rc) (if (auth-enabled? rc) 'private 'public))
   (match pattern
     ;; disable cache explicitly, sometimes users want to make sure there's no any cache.
     ((#f) non-cache)
-    (('static . maxage)
+    (('static maxage ...)
      (lambda (rc)
-       (try-to-cache-static-file rc (static-filename (rc-path rc)) "public" maxage)))
-    (((? string=? file) . maxage0)
+       (try-to-cache-static-file rc (static-filename (rc-path rc)) (try-public rc) (->maxage maxage))))
+    (((? string? file) maxage0 ...)
      (lambda* (rc #:key (maxage (->maxage maxage0)))
-       (try-to-cache-static-file rc file "public" maxage)))
-    (('public (? string=? file) . maxage0)
+       (try-to-cache-static-file rc file (try-public rc) maxage)))
+    (('public (? string? file) maxage0 ...)
      (lambda* (rc #:key (maxage (->maxage maxage0)))
-       (try-to-cache-static-file rc file "public" maxage)))
-    (('private (? string=? file) . maxage0)
+       (try-to-cache-static-file rc file (try-public rc) maxage)))
+    (('private (? string? file) maxage0 ...)
      (lambda* (rc #:key (maxage (->maxage maxage0)))
-       (try-to-cache-static-file rc file "private" maxage)))
+       (try-to-cache-static-file rc file 'private maxage)))
     ((or (? boolean? opts) (? list? opts))
      (lambda (rc body) (try-to-cache-body rc body opts)))
     (else (throw 'artanis-err "cache-maker: invalid pattern!" pattern))))
@@ -321,7 +326,7 @@
 
     ;; short-cut for authentication
     ;; #:auth accepts these values:
-    ;; 1. SQL as string
+    ;; 1. SQL as string template.
     ;; 2. (table-name username-field passwd-field crypto-proc)
     ;; 3. (table-name crypto-proc), so passwd field will be "passwd" in default.
     ;; e.g (get "/auth" 
