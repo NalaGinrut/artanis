@@ -9,6 +9,8 @@
 <p>This manual (%%PACKAGE%%) is available in the following formats:</p>
 
 <ul>
+<li><a href="http://web-artanis.com/docs/manual.html">Well formatted & color HTML5 version</a>
+    - entirely on one web page.</li>
 <li><a href="%%PACKAGE%%.html">HTML
     (%%HTML_MONO_SIZE%%K bytes)</a> - entirely on one web page.</li>
 <li><a href="html_node/index.html">HTML</a> - with one web page per
