@@ -104,11 +104,11 @@ sudo make install
 #+end_src
 You may find other dbd [[http://download.gna.org/guile-dbi][here]]. And the installation is similar.
 
-+ GNU Artanis-0.0.1:
++ GNU Artanis-0.0.2:
 #+begin_src null
-wget -c http://szdiy.org/download/artanis-0.0.1.tar.gz
-tar xvzf artanis-0.0.1.tar.gz
-cd artanis-0.0.1 && ./configure && make
+wget -c http://szdiy.org/download/artanis-0.0.2.tar.gz
+tar xvzf artanis-0.0.2.tar.gz
+cd artanis-0.0.2 && ./configure && make
 sudo make install
 #+end_src
 
