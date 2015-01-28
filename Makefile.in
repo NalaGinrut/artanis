@@ -1,4 +1,9 @@
 TOP := $(shell pwd)
+RELEASE_TYPE := alpha
+PREV_VER := 0.0.1
+GPG_KEY := EE78E925
+BOOT_TOOLS := autoconf,guile
+URL_DIR := "http://alpha.gnu.org/gnu/artanis/"
 INCLUDES := -I$(TOP)
 CFLAGS := @GUILE_CFLAGS@ -fPIC -MD -DHAVE_CONFIG_H $(INCLUDES)
 LIBS := @GUILE_LIBS@ -shared
@@ -31,6 +36,7 @@ CP := cp -frd -P
 INFO_DIR := $(PREFIX)/share/info/
 TARBALL_NAME := artanis-$(VERSION)
 TMP_DIR := $(shell mktemp -d)
+ANN_GEN := $(BUILD_AUX)/announce-gen
 V := @
 
 mod-sfile := $(shell find $(MOD) -name *.scm)
@@ -58,9 +64,14 @@ $(MOD)/version.scm:
 	$(V) cat $(HEADER) > $@
 	$(V)$(GUILE) -c '(let ((port (open-file "$@" "a")))(format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"GNU Artanis-~a\")~%" "$(VERSION)"))'
 
-.PHONY: release prepare clean modules install distclean distclean-mk bin version test docs
+.PHONY: release.gz release.bz2 prepare clean modules install distclean distclean-mk bin version test docs
 
-release: $(TARBALL_NAME).tar.bz2
+announce: release.bz2
+	$(V) $(ANN_GEN) --release-type=$(RELEASE_TYPE) --package-name=artanis --previous-version=$(PREV_VER) --current-version=$(VERSION) --gpg-key-id=$(GPG_KEY) --url-directory=$(URL_DIR) --news=NEWS --bootstrap-tools=$(BOOT_TOOLS)
+
+release.gz: $(TARBALL_NAME).tar.gz
+
+release.bz2: $(TARBALL_NAME).tar.bz2
 
 prepare:
 	$(V) $(MAKE) clean
@@ -72,14 +83,18 @@ prepare:
 $(TARBALL_NAME).tar.bz2:
 	$(V) $(MAKE) prepare
 	$(V) tar cjf $@ $(TARBALL_NAME)
+#$(V) $(MAKE) announce
+	$(V) rm -fr $(TMP_DIR) $(TARBALL_NAME)
+
+$(TARBALL_NAME).tar.gz:
+	$(V) $(MAKE) prepare
+	$(V) tar czf $@ $(TARBALL_NAME)
+	$(V) $(MAKE) announce
 	$(V) rm -fr $(TMP_DIR) $(TOP)/$(TARBALL_NAME)
 
 clean:
-	-rm -fr $(OBJ)
-	-rm -f *.log
-	-rm -f *.err
-	-rm -f *.info
-	-rm -rf autom4te.cache
+	-rm -fr $(OBJ) autom4te.cache
+	-rm -f *.log *.err *.info *.bz2 *.gz
 	-rm -f $(MOD)/version.scm
 	find . -name "*~" -exec rm {} \;
 
