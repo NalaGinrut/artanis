@@ -4,7 +4,7 @@
 AC_PREREQ([2.65])
 AC_INIT([Artanis], 
 	m4_esyscmd([build-aux/git-version-gen .tarball-version]),
-	[nalaginrut@gmail.com])
+	[bug-artanis@gnu.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR(ARTANIS-VERSION)
