@@ -1,4 +1,598 @@
+2015-01-28  Nala Ginrut  <nalaginrut@gmail.com>
+
+	generate release tarball and announcement properly
+
+	update NEWS
+
+	update gendocs_template
+
+	update artanis.texi
+
+	update Makefile.in to generate tarball
+
+	fixed ARTANIS-VERSION
+
+	added NEWS
+
+2015-01-27  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update Makefile.in to install artanis.info
+
+	update gendocs_template, added well formatted HTML5 manual
+
+	fixed correct name in Makefile.in
+
+	add new test for testing cache while auth enable
+
+	fixed cache to support private/public correctly
+
+2015-01-22  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated online manual to 0.0.2
+
+	added tools for generating manuals, updated Makefile.in
+
+	added manuals in texinfo
+
+2015-01-21  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed license header with @srcdir@
+
+	update README, updated distro testing list
+
+	generate license header for version.scm
+
+2015-01-20  Nala Ginrut  <nalaginrut@gmail.com>
+
+	remove useless images
+
+	updated license header
+
+2015-01-14  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed configure for guile-2.2
+
+	added build-testing report under Fedora, thanks atommann@gmail.com
+
+2015-01-02  Nala Ginrut  <nalaginrut@gmail.com>
+
+	add version check for guile & guile-dbi
+
+	fixed version problem
+
+2015-01-01  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed Makefile.in, should support srcdir
+
+	add config.h.in
+
+2014-12-31  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed cookie bug
+
+2014-12-30  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update README.md
+
+	misc fix
+
+2014-12-28  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed fields expand in ->sql-select
+
+2014-12-26  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated TODO
+
+	fixed misusage of control-cache in Guile HTTP API
+
+	don't add default content-type while there's a specified MIME
+
+	fixed default sys pages path
+
+	use artanis.conf as the name of global config name, default.conf is the template
+
+2014-12-24  Nala Ginrut  <nalaginrut@gmail.com>
+
+	support symbol in connect-db
+
+2014-12-23  Nala Ginrut  <nalaginrut@gmail.com>
+
+	remove all-write permission of *.go
+
+	fix Makefile.in for precompile
+
+	updated configure
+
+	slightly change db.scm
+
+	add new feature to connect-db
+
+	export more symbols in artanis.scm
+
+	add new feature to :conn
+
+	fixed make-table-builder
+
+	fixed sql-insert
+
+2014-12-22  Nala Ginrut  <nalaginrut@gmail.com>
+
+	export static-page-eimitter
+
+	optimized oht init, no hashtable will be produced if there's no opts
+
+	remove debug info
+
+2014-12-18  Nala Ginrut  <nalaginrut@gmail.com>
+
+	move default.conf to etc/artanis
+
+2014-12-17  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update TODO
+
+2014-12-16  Nala Ginrut  <nalaginrut@gmail.com>
+
+	export artanis-version
+
+	tweaked Makefile.in
+
+	added configure
+
+2014-12-04  Mu Lei  <NalaGinrut@gmail.com>
+
+	Merge pull request #36 from NalaGinrut/wip-sql-mapping
+	merge wip-sql-mapping
+
+2014-12-04  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Merge branch 'master' of github.com:NalaGinrut/artanis
+
+	merge wip-sql-mapping
+
+2014-12-03  Nala Ginrut  <nalaginrut@gmail.com>
+
+	refixed file sql-mapping
+
+	remove wrong chars
+
+	remove (artanis oht) in page.scm
+
+	re export artanis-version in env
+
+	import version.scm in env
+
+	fixed version bug
+
+	added missing build-aux files
+
+	added autotools for making
+
+	updated .gitignore
+
+	finish file mapping
+
+	added COPYING and COPYING.LESSER
+
+	update TODO
+
+	update TODO
+
+	fixed upload Chinese filename bug
+
+	import config.scm in sql-mapping/handers.scm
+
+2014-12-02  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated upload example
+
+	use r6rs record-type for upload
+
+	export upload functions
+
+	update BUGS
+
+	move blog2 to blog
+
+2014-11-29  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added sql-mapping/built-in.scm
+
+	updated TODO
+
+	use brand new sql-mapping feature in blog2.scm
+
+	sql-mapping/mapping.scm works
+
+	remove whitespace
+
+	move generate-kv-from-post-qstr to utils
+
+	fixed sql-mapping/fetcher.scm
+
+	use generate-kv-from-post-qstr in sql-mapping.scm
+
+	remove rubbish in tpl code
+
+	fixed from-post-maker
+
+	add new sxml wrapper to drop redudant HTML escape chars convert
+
+	fixed sql-create in ssql
+
+2014-11-27  Nala Ginrut  <nalaginrut@gmail.com>
+
+	elegant code for mapping.scm
+
+	proper handler for fetcher
+
+	added show-to-user and valid-whitespace sm-handler
+
+2014-11-26  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed ssql error in get-table-schema
+
+2014-11-24  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added sql-mapping/handlers.scm
+
+	update sql-mapping/mapping.scm, added literal-RE
+
+	added literal-RE to fetcher example in the comments
+
+	added make-pipeline to utils.scm
+
+	more elegant error handling in utils.scm
+
+	updated TODO
+
+	added comments support in sql-mapping
+
+2014-11-17  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added FPRM to #:sql-mapping
+
+	remove blank line
+
+	added (artanis sql-mapping mapping)
+
+2014-11-13  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed typo in fprm.scm
+
+2014-11-12  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update examples/blog2.scm with brand new oht and sql-mapping
+
+	sql-mapping works!
+
+	slight tweak the code for more clear
+
+	added :from-post
+
+	updated SECURITY_WARNING
+
+	added complex mode to store-uploaded-files to return more info
+
+	fixed bug in nvp->string
+
+	fixed oht permit string as special handler
+
+	added session test
+
+	fix post key-value parsing in :auth
+
+	rename get-from-qstr/post to get-from-qstr, get key-values from post data in params is not allowed any more
+
+	session oht works
+
+2014-11-10  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added comments on env.scm
+
+	added #:session short cut
+
+2014-11-07  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added sql-mapping fetcher functions
+
+	update TODO
+
+2014-11-06  Nala Ginrut  <nalaginrut@gmail.com>
+
+	qstr initialization dropped POST data, and AUTH will handler POST qstr alone
+
+2014-11-05  Nala Ginrut  <nalaginrut@gmail.com>
+
+	properly handle the logging of HTTP body
+
+	updated TODO list
+
+2014-10-26  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added sm-ref and sm-set\!
+
+	add comments to env.scm
+
+2014-10-14  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed #:cookie after new feature added
+
+2014-10-07  Nala Ginrut  <nalaginrut@gmail.com>
+
+	add comments
+
+	updated sql-mapping
+
+	added *sql-mapping-lookup-table*
+
+2014-10-04  Nala Ginrut  <nalaginrut@gmail.com>
+
+	use having clause in get-table-schema
+
+	fixed exception throw in auth-maker
+
+	added custom cookies handler
+
+	added having clause in ssql
+
+2014-09-26  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added more reasonable result for mime-guess
+
+2014-09-03  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added rule-18 test
+
+	fixed wrong 404 throw when static file doesn't exist
+
+	support dot as the delimiter of key-bindings, and added static mode in #:cache
+
+	update init-server to support some options
+
+2014-08-31  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update TODO
+
+2014-08-26  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed MIME
+
+	added gz bz2 into MIME
+
+2014-08-25  Nala Ginrut  <nalaginrut@gmail.com>
+
+	prettier debug out put
+
+	updated TODO
+
+	added several example for :auth
+
+	auth-maker works\!
+
+	added :auth
+
+	fixed missing '/' bug in tpl/lexer.scm
+
+	added get-header and added missed init-query\!
+
+	fixed bugs in sql-select
+
+	fixed throw-auth-needed
+
+	exported get-header and :auth
+
+	fixed login.tpl
+
+2014-08-24  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated BUGS and SECURITY_WARNING
+
+	update :cookies comment
+
+	fixed oht fetcher to support hooks
+
+	use hook to handle :cookies-update\! rather than do it manually
+
+	move run-after-request\! and run-before-response\! to utils.scm
+
+2014-08-23  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added example for :cookies-setattr\!
+
+	added cookie-modify
+
+	added :cookies-setattr\!
+
+	:cookies works
+
+	exported :cookies-remove\!
+
+	fixed nvp->string
+
+2014-08-22  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added tests for :mime oht
+
+	finish mime-maker
+
+	fixed year in csv.scm
+
+	added sxml MIME
+
+	exported json/csv symbols, and :mime
+
+	fixed default server-info
+
+	fixed sxml->xml-string
+
+2014-08-21  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update comments in FPRM
+
+	added #:mime oht
+
+	added json MIME and indent the file
+
+	added sxml->csv-string
+
+	added sxml->xml-string
+
+2014-08-18  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated README for various file format support
+
+	added csv support
+
+	fixed module name in json
+
+	added engine support to make-table-builder in FPRM
+
+	added engine support for create in ssql
+
+	updated README
+
+2014-08-17  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added json support from third-party
+
+	add comments in FPRM
+
+2014-08-16  Nala Ginrut  <nalaginrut@gmail.com>
+
+	exported /or and /and in artanis.scm and fprm.scm
+
+	fixed where and added /and
+
+	fixed where and added /or
+
+	Optimized schema fetching in FPRM
+	* modified:   artanis/fprm.scm
+	    Optimized schema fetching.
+	    Added ci mode for checking columns.
+
+	added ci to normalize-column
+
+	fixed where in ssql
+
+	use ssql for getting schema
+
+	update sql-select
+
+2014-08-15  Nala Ginrut  <nalaginrut@gmail.com>
+
+	removed non-standard 'show' in ssql
+
+	optimized columns checker in FPRM
+
+2014-08-14  Nala Ginrut  <nalaginrut@gmail.com>
+
+	modified map-table-from-DB according to the principle of FPRM, and added comments
+
+	added normalize-column in utils
+
+2014-08-13  Nala Ginrut  <nalaginrut@gmail.com>
+
+	refactor some code in FPRM
+
+	remove useless keyword->column
+
+2014-08-12  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update FPRM and added column checking
+
+	added 'show' to ssql
+
+	added misc keyword and symbol ops
+
+	added check mode to DB-query
+
+	added check mode for DB-query
+
+	remove debug info
+
+2014-08-11  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update comments in sql-mapping.scm
+
+	remove srfi-1 from imported list to half-fix #35
+
+	remove useless imported module from mime.scm
+
+2014-08-10  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update FPRM, and setter works
+
+	fixed 'update' and other misc bugs in ssql
+
+2014-08-08  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update make-table-builder
+
+2014-08-07  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added map-table-from-DB, and FPRM works
+
+	update default.conf
+	* modified:   default.conf
+	   Removed: error fields
+	   Modified: upload types
+
+2014-08-07  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update config.scm and db.scm
+	* modified:   config.scm
+
+	* modified:   config.scm
+	   Removed: error namespace
+	   Added: default values init
+
+	* modified:   db.scm
+	   Exported: <connection>?
+	   Added: connect-db
+
+2014-08-07  Nala Ginrut  <nalaginrut@gmail.com>
+
+	export <connection>?
+
+2014-08-05  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added make-table-setter and make-table-getter
+
+2014-08-04  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed sql-alter
+
+	export db-conn-success? from db.scm
+
+	update table-builder
+
+2014-08-01  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed ->create and added ->drop
+
+	added table-builder and table-drop\!
+
+2014-07-31  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated fprm, added generic/mysql/postgresql types
+
+	update example/test.scm
+
+	fixed conn recycling, should be before response return
+
+	added session engine item parsing
+
+	remove premature lazy optimizing
+
+	fixed typo
+
 2014-07-30  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added TODO of session encoding
+
+	update ChangeLog
 
 	added TODO of session engine
 
@@ -181,6 +775,15 @@
 	* modified:   artanis/artanis.scm: Change macro -> into function, or
 		      it can't be called with `map'.
 
+2014-07-10  Mu Lei  <nalaginrut@gmail.com>
+
+	Merge pull request #33 from jedbarlow/master
+	cat: use optional output port even when first argument is a port
+
+2014-07-10  E. Jed Barlow  <jed@jedbarlow.ca>
+
+	cat: use optional output port even when first argument is a port
+
 2014-05-19  Nala Ginrut  <nalaginrut@gmail.com>
 
 	update tpl lexer * artanis/tpl/lexer.scm: Added lexer debug tools, and skip whitespace                          before HTML.
@@ -322,7 +925,18 @@
 
 	add some ORM stuffs
 
+2013-11-24  Mu Lei  <nalaginrut@gmail.com>
+
+	Merge pull request #16 from snotling/patch-1
+	Fix typo
+
+2013-11-24  snotling  <damiano.albani@gmail.com>
+
+	Fix typo
+
 2013-11-22  Nala Ginrut  <nalaginrut@gmail.com>
+
+	add LICENSE
 
 	add LICENSE
 
