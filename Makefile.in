@@ -83,7 +83,7 @@ prepare:
 $(TARBALL_NAME).tar.bz2:
 	$(V) $(MAKE) prepare
 	$(V) tar cjf $@ $(TARBALL_NAME)
-#$(V) $(MAKE) announce
+	$(V) $(MAKE) announce
 	$(V) rm -fr $(TMP_DIR) $(TARBALL_NAME)
 
 $(TARBALL_NAME).tar.gz:
