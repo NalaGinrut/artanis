@@ -274,12 +274,12 @@ You may find other dbd @uref{http://download.gna.org/guile-dbi,here}. And the in
 
 @itemize
 @item
-GNU Artanis-0.0.1:
+GNU Artanis-0.0.2:
 @end itemize
 @example
-wget -c http://szdiy.org/download/artanis-0.0.1.tar.gz
-tar xvzf artanis-0.0.1.tar.gz
-cd artanis-0.0.1 && ./configure && make
+wget -c http://szdiy.org/download/artanis-0.0.2.tar.gz
+tar xvzf artanis-0.0.2.tar.gz
+cd artanis-0.0.2 && ./configure && make
 sudo make install
 @end example
 
