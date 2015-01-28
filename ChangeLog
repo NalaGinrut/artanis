@@ -1,5 +1,21 @@
 2015-01-28  Nala Ginrut  <nalaginrut@gmail.com>
 
+	fixed announce auto-generation
+
+	fixe announce when generating bz2
+
+	updated build-aux/announce-gen script
+
+	update NEWS to generate correct announcement
+
+	update configure for correct version
+
+	added .tarball-version
+
+	update configure, fixed bug report mailing list
+
+	update ChangeLog
+
 	generate release tarball and announcement properly
 
 	update NEWS
