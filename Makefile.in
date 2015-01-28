@@ -66,7 +66,7 @@ $(MOD)/version.scm:
 
 .PHONY: release.gz release.bz2 prepare clean modules install distclean distclean-mk bin version test docs
 
-announce: release.bz2
+announce: release.gz release.bz2
 	$(V) $(ANN_GEN) --release-type=$(RELEASE_TYPE) --package-name=artanis --previous-version=$(PREV_VER) --current-version=$(VERSION) --gpg-key-id=$(GPG_KEY) --url-directory=$(URL_DIR) --news=NEWS --bootstrap-tools=$(BOOT_TOOLS)
 
 release.gz: $(TARBALL_NAME).tar.gz
@@ -83,20 +83,21 @@ prepare:
 $(TARBALL_NAME).tar.bz2:
 	$(V) $(MAKE) prepare
 	$(V) tar cjf $@ $(TARBALL_NAME)
-	$(V) $(MAKE) announce
-	$(V) rm -fr $(TMP_DIR) $(TARBALL_NAME)
+	$(V) rm -fr $(TMP_DIR) $(TOP)/$(TARBALL_NAME)
 
 $(TARBALL_NAME).tar.gz:
 	$(V) $(MAKE) prepare
 	$(V) tar czf $@ $(TARBALL_NAME)
-	$(V) $(MAKE) announce
 	$(V) rm -fr $(TMP_DIR) $(TOP)/$(TARBALL_NAME)
 
 clean:
 	-rm -fr $(OBJ) autom4te.cache
-	-rm -f *.log *.err *.info *.bz2 *.gz
+	-rm -f *.log *.err *.info
 	-rm -f $(MOD)/version.scm
 	find . -name "*~" -exec rm {} \;
+
+clean-tarball:
+	-rm -f *.bz2 *.gz
 
 clean-config:
 	-rm -f config.{h,log}
@@ -110,7 +111,7 @@ install: $(ALL_TARGETS)
 	$(CP) $(ARTANIS_PAGES) /etc/artanis
 	$(CP) artanis.info $(INFO_DIR)
 
-distclean: distclean-mk clean clean-config
+distclean: distclean-mk clean clean-config clean-tarball
 
 distclean-mk:
 	-rm -f Makefile
