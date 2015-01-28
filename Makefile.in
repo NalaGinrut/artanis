@@ -37,6 +37,7 @@ INFO_DIR := $(PREFIX)/share/info/
 TARBALL_NAME := artanis-$(VERSION)
 TMP_DIR := $(shell mktemp -d)
 ANN_GEN := $(BUILD_AUX)/announce-gen
+DIRE_GEN := $(BUILD_AUX)/gen-directive.scm
 V := @
 
 mod-sfile := $(shell find $(MOD) -name *.scm)
@@ -83,11 +84,16 @@ prepare:
 $(TARBALL_NAME).tar.bz2:
 	$(V) $(MAKE) prepare
 	$(V) tar cjf $@ $(TARBALL_NAME)
+	$(V) $(DIRE_GEN) bz2 $(VERSION)
+	$(V) gpg -b $@
+	$(V) gpg --clearsign $@
+	$(V) gpg --clearsign $@.directive
 	$(V) rm -fr $(TMP_DIR) $(TOP)/$(TARBALL_NAME)
 
 $(TARBALL_NAME).tar.gz:
 	$(V) $(MAKE) prepare
 	$(V) tar czf $@ $(TARBALL_NAME)
+	$(V) gpg -b $@
 	$(V) rm -fr $(TMP_DIR) $(TOP)/$(TARBALL_NAME)
 
 clean:
@@ -97,7 +103,7 @@ clean:
 	find . -name "*~" -exec rm {} \;
 
 clean-tarball:
-	-rm -f *.bz2 *.gz
+	-rm -f *.bz2 *.gz *.sig *.directive *.asc
 
 clean-config:
 	-rm -f config.{h,log}
