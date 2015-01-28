@@ -3,13 +3,13 @@ eval '(exit $?0)' && eval 'exec perl -wS "$0" ${1+"$@"}'
     if 0;
 # Generate a release announcement message.
 
-my $VERSION = '2011-05-17 20:25'; # UTC
+my $VERSION = '2015-01-28 12:02'; # UTC
 # The definition above must lie within the first 8 lines in order
 # for the Emacs time-stamp write hook (at end) to update it.
 # If you change this file with Emacs, please let the write hook
 # do its job.  Otherwise, update this string manually.
 
-# Copyright (C) 2002-2011 Free Software Foundation, Inc.
+# Copyright (C) 2002-2014 Free Software Foundation, Inc.
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@ use POSIX qw(strftime);
 
 my %valid_release_types = map {$_ => 1} qw (alpha beta stable);
 my @archive_suffixes = ('tar.gz', 'tar.bz2', 'tar.lzma', 'tar.xz');
+my $srcdir = '.';
 
 sub usage ($)
 {
@@ -44,14 +45,14 @@ sub usage ($)
   my $STREAM = ($exit_code == 0 ? *STDOUT : *STDERR);
   if ($exit_code != 0)
     {
-      print $STREAM "Try `$ME --help' for more information.\n";
+      print $STREAM "Try '$ME --help' for more information.\n";
     }
   else
     {
       my @types = sort keys %valid_release_types;
       print $STREAM <<EOF;
 Usage: $ME [OPTIONS]
-Generate an announcement message.
+Generate an announcement message.  Run this from builddir.
 
 OPTIONS:
 
@@ -66,7 +67,9 @@ These options must be specified:
 
 The following are optional:
 
-   --news=NEWS_FILE
+   --news=NEWS_FILE             include the NEWS section about this release
+                                from this NEWS_FILE; accumulates.
+   --srcdir=DIR                 where to find the NEWS_FILEs (default: $srcdir)
    --bootstrap-tools=TOOL_LIST  a comma-separated list of tools, e.g.,
                                 autoconf,automake,bison,gnulib
    --gnulib-version=VERSION     report VERSION as the gnulib version, where
@@ -102,13 +105,13 @@ sub sizes (@)
   my %res;
   foreach my $f (@file)
     {
-      my $cmd = "du --human $f";
+      my $cmd = "du -h $f";
       my $t = `$cmd`;
       # FIXME-someday: give a better diagnostic, a la $PROCESS_STATUS
       $@
-        and (warn "$ME: command failed: `$cmd'\n"), $fail = 1;
+        and (warn "command failed: '$cmd'\n"), $fail = 1;
       chomp $t;
-      $t =~ s/^([\d.]+[MkK]).*/${1}B/;
+      $t =~ s/^\s*([\d.]+[MkK]).*/${1}B/;
       $res{$f} = $t;
     }
   return $fail ? undef : %res;
@@ -181,7 +184,7 @@ sub print_news_deltas ($$$)
   my ($news_file, $prev_version, $curr_version) = @_;
 
   my $news_name = $news_file;
-  $news_name =~ s|^\./||;
+  $news_name =~ s|^\Q$srcdir\E/||;
 
   print "\n$news_name\n\n";
 
@@ -210,7 +213,7 @@ sub print_news_deltas ($$$)
       else
         {
           # This regexp must not match version numbers in NEWS items.
-          # For example, they might well say `introduced in 4.5.5',
+          # For example, they might well say "introduced in 4.5.5",
           # and we don't want that to match.
           $line =~ /^$re_prefix.*(?:[^\d.]|$)\Q$prev_version\E(?:[^\d.]|$)/o
             and last;
@@ -222,9 +225,9 @@ sub print_news_deltas ($$$)
   close NEWS;
 
   $in_items
-    or die "$ME: $news_file: no matching lines for `$curr_version'\n";
+    or die "$ME: $news_file: no matching lines for '$curr_version'\n";
   $found_news
-    or die "$ME: $news_file: no news item found for `$curr_version'\n";
+    or die "$ME: $news_file: no news item found for '$curr_version'\n";
 }
 
 sub print_changelog_deltas ($$)
@@ -269,7 +272,7 @@ sub print_changelog_deltas ($$)
   # Append any remaining ChangeLog files.
   push @reordered, sort keys %changelog;
 
-  # Remove leading `./'.
+  # Remove leading './'.
   @reordered = map { s!^\./!!; $_ } @reordered;
 
   print "\nChangeLog entries:\n\n";
@@ -280,11 +283,11 @@ sub print_changelog_deltas ($$)
 
   my $cmd = "cvs -n diff -u -r$prev_cvs_tag -rHEAD @reordered";
   open DIFF, '-|', $cmd
-    or die "$ME: cannot run `$cmd': $!\n";
+    or die "$ME: cannot run '$cmd': $!\n";
   # Print two types of lines, making minor changes:
-  # Lines starting with `+++ ', e.g.,
+  # Lines starting with '+++ ', e.g.,
   # +++ ChangeLog   22 Feb 2003 16:52:51 -0000      1.247
-  # and those starting with `+'.
+  # and those starting with '+'.
   # Don't print the others.
   my $prev_printed_line_empty = 1;
   while (defined (my $line = <DIFF>))
@@ -310,7 +313,7 @@ sub print_changelog_deltas ($$)
   # The exit code should be 1.
   # Allow in case there are no modified ChangeLog entries.
   $? == 256 || $? == 128
-    or warn "$ME: warning: `cmd' had unexpected exit code or signal ($?)\n";
+    or warn "warning: '$cmd' had unexpected exit code or signal ($?)\n";
 }
 
 sub get_tool_versions ($$)
@@ -329,7 +332,7 @@ sub get_tool_versions ($$)
           next;
         }
       # Assume that the last "word" on the first line of
-      # `tool --version` output is the version string.
+      # 'tool --version' output is the version string.
       my ($first_line, undef) = split ("\n", `$t --version`);
       if ($first_line =~ /.* (\d[\w.-]+)$/)
         {
@@ -340,7 +343,7 @@ sub get_tool_versions ($$)
         {
           defined $first_line
             and $first_line = '';
-          warn "$ME: $t: unexpected --version output\n:$first_line";
+          warn "$t: unexpected --version output\n:$first_line";
           $fail = 1;
         }
     }
@@ -368,6 +371,15 @@ sub get_tool_versions ($$)
   my $gnulib_version;
   my $print_checksums_p = 1;
 
+  # Reformat the warnings before displaying them.
+  local $SIG{__WARN__} = sub
+    {
+      my ($msg) = @_;
+      # Warnings from GetOptions.
+      $msg =~ s/Option (\w)/option --$1/;
+      warn "$ME: $msg";
+    };
+
   GetOptions
     (
      'mail-headers=s'     => \$mail_headers,
@@ -378,6 +390,7 @@ sub get_tool_versions ($$)
      'gpg-key-id=s'       => \$gpg_key_id,
      'url-directory=s'    => \@url_dir_list,
      'news=s'             => \@news_file,
+     'srcdir=s'           => \$srcdir,
      'bootstrap-tools=s'  => \$bootstrap_tools,
      'gnulib-version=s'   => \$gnulib_version,
      'print-checksums!'   => \$print_checksums_p,
@@ -388,32 +401,32 @@ sub get_tool_versions ($$)
     ) or usage 1;
 
   my $fail = 0;
-  # Ensure that sure each required option is specified.
+  # Ensure that each required option is specified.
   $release_type
-    or (warn "$ME: release type not specified\n"), $fail = 1;
+    or (warn "release type not specified\n"), $fail = 1;
   $package_name
-    or (warn "$ME: package name not specified\n"), $fail = 1;
+    or (warn "package name not specified\n"), $fail = 1;
   $prev_version
-    or (warn "$ME: previous version string not specified\n"), $fail = 1;
+    or (warn "previous version string not specified\n"), $fail = 1;
   $curr_version
-    or (warn "$ME: current version string not specified\n"), $fail = 1;
+    or (warn "current version string not specified\n"), $fail = 1;
   $gpg_key_id
-    or (warn "$ME: GnuPG key ID not specified\n"), $fail = 1;
+    or (warn "GnuPG key ID not specified\n"), $fail = 1;
   @url_dir_list
-    or (warn "$ME: URL directory name(s) not specified\n"), $fail = 1;
+    or (warn "URL directory name(s) not specified\n"), $fail = 1;
 
   my @tool_list = split ',', $bootstrap_tools;
 
   grep (/^gnulib$/, @tool_list) ^ defined $gnulib_version
-    and (warn "$ME: when specifying gnulib as a tool, you must also specify\n"
+    and (warn "when specifying gnulib as a tool, you must also specify\n"
         . "--gnulib-version=V, where V is the result of running git describe\n"
         . "in the gnulib source directory.\n"), $fail = 1;
 
   exists $valid_release_types{$release_type}
-    or (warn "$ME: `$release_type': invalid release type\n"), $fail = 1;
+    or (warn "'$release_type': invalid release type\n"), $fail = 1;
 
   @ARGV
-    and (warn "$ME: too many arguments:\n", join ("\n", @ARGV), "\n"),
+    and (warn "too many arguments:\n", join ("\n", @ARGV), "\n"),
       $fail = 1;
   $fail
     and usage 1;
@@ -453,28 +466,50 @@ FIXME: put comments here
 
 EOF
 
-  print_locations ("compressed sources", @url_dir_list, %size, @tarballs);
-  -f $xd
-    and print_locations ("xdelta diffs (useful? if so, "
-                         . "please tell bug-gnulib\@gnu.org)",
-                         @url_dir_list, %size, $xd);
-  my @sig_files = map { "$_.sig" } @tarballs;
-  print_locations ("GPG detached signatures[*]", @url_dir_list, %size,
-                   @sig_files);
+  if (@url_dir_list == 1 && @tarballs == 1)
+    {
+      # When there's only one tarball and one URL, use a more concise form.
+      my $m = "$url_dir_list[0]/$tarballs[0]";
+      print "Here are the compressed sources and a GPG detached signature[*]:\n"
+        . "  $m\n"
+        . "  $m.sig\n\n";
+    }
+  else
+    {
+      print_locations ("compressed sources", @url_dir_list, %size, @tarballs);
+      -f $xd
+        and print_locations ("xdelta diffs (useful? if so, "
+                             . "please tell bug-gnulib\@gnu.org)",
+                             @url_dir_list, %size, $xd);
+      my @sig_files = map { "$_.sig" } @tarballs;
+      print_locations ("GPG detached signatures[*]", @url_dir_list, %size,
+                       @sig_files);
+    }
+
   if ($url_dir_list[0] =~ "gnu\.org")
     {
-      print "To reduce load on the main server, use a mirror listed at:\n";
-      print "  http://www.gnu.org/order/ftp.html\n\n";
+      print "Use a mirror for higher download bandwidth:\n";
+      if (@tarballs == 1 && $url_dir_list[0] =~ m!http://ftp\.gnu\.org/gnu/!)
+        {
+          (my $m = "$url_dir_list[0]/$tarballs[0]")
+            =~ s!http://ftp\.gnu\.org/gnu/!http://ftpmirror\.gnu\.org/!;
+          print "  $m\n"
+              . "  $m.sig\n\n";
+
+        }
+      else
+        {
+          print "  http://www.gnu.org/order/ftp.html\n\n";
+        }
     }
 
   $print_checksums_p
     and print_checksums (@sizable);
 
   print <<EOF;
-[*] You can use either of the above signature files to verify that
-the corresponding file (without the .sig suffix) is intact.  First,
-be sure to download both the .sig file and the corresponding tarball.
-Then, run a command like this:
+[*] Use a .sig file to verify that the corresponding file (without the
+.sig suffix) is intact.  First, be sure to download both the .sig file
+and the corresponding tarball.  Then, run a command like this:
 
   gpg --verify $tarballs[0].sig
 
@@ -483,7 +518,7 @@ then run this command to import it:
 
   gpg --keyserver keys.gnupg.net --recv-keys $gpg_key_id
 
-and rerun the \`gpg --verify' command.
+and rerun the 'gpg --verify' command.
 EOF
 
   my @tool_versions = get_tool_versions (\@tool_list, $gnulib_version);
