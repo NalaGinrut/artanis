@@ -29,6 +29,8 @@ GENDOCS :=$(BUILD_AUX)/gendocs.sh
 CHK_TEXINFO := $(BUILD_AUX)/check_texinfo.scm
 CP := cp -frd -P
 INFO_DIR := $(PREFIX)/share/info/
+TARBALL_NAME := artanis-$(VERSION)
+TMP_DIR := $(shell mktemp -d)
 V := @
 
 mod-sfile := $(shell find $(MOD) -name *.scm)
@@ -56,7 +58,21 @@ $(MOD)/version.scm:
 	$(V) cat $(HEADER) > $@
 	$(V)$(GUILE) -c '(let ((port (open-file "$@" "a")))(format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"GNU Artanis-~a\")~%" "$(VERSION)"))'
 
-.PHONY: clean modules install distclean distclean-mk bin version test docs
+.PHONY: release prepare clean modules install distclean distclean-mk bin version test docs
+
+release: $(TARBALL_NAME).tar.bz2
+
+prepare:
+	$(V) $(MAKE) clean
+	$(V) rm -fr $(TARBALL_NAME)
+	$(V) cp -fr $(TOP)/* $(TMP_DIR)
+	$(V) rm -fr $(TMP_DIR)/.git
+	$(V) mv $(TMP_DIR) $(TOP)/$(TARBALL_NAME)
+
+$(TARBALL_NAME).tar.bz2:
+	$(V) $(MAKE) prepare
+	$(V) tar cjf $@ $(TARBALL_NAME)
+	$(V) rm -fr $(TMP_DIR) $(TOP)/$(TARBALL_NAME)
 
 clean:
 	-rm -fr $(OBJ)
@@ -65,6 +81,7 @@ clean:
 	-rm -f *.info
 	-rm -rf autom4te.cache
 	-rm -f $(MOD)/version.scm
+	find . -name "*~" -exec rm {} \;
 
 clean-config:
 	-rm -f config.{h,log}
