@@ -26,15 +26,16 @@
 * Installation::
 * Hello World::
 * Basic in Scheme::
-* Basic in Artanis::
+* Basic in GNU Artanis::
 * URL remapping::
-* Layouts and Rendering in Artanis::
+* Layouts and Rendering in GNU Artanis::
 * Database::
 * MIME::
 * Sessions::
 * Cookies::
 * Authentication::
 * Cache::
+* Utils::
 * Appendix A GNU Free Documentation License::
 
 @detailmenu
@@ -53,7 +54,7 @@ Installation
 
 Hello World
 
-* Use Guile REPL and verify Artanis installation::
+* Use Guile REPL and verify GNU Artanis installation::
 * Simple HTTP server::
 * Try simple URL remapping::
 * More complex URL remapping::
@@ -67,9 +68,9 @@ Basic in Scheme
 * For Rubyist::
 * For deep learners::
 
-Basic in Artanis
+Basic in GNU Artanis
 
-* How to run a site with Artanis::
+* How to run a site with GNU Artanis::
 * Initialization::
 * Registering handler of HTTP methods::
 * Emit Response::
@@ -83,7 +84,7 @@ URL remapping
 * Get params from URL::
 * Redirect link::
 
-Layouts and Rendering in Artanis
+Layouts and Rendering in GNU Artanis
 
 * Templating::
 * Templating for Pythoners::
@@ -109,7 +110,6 @@ FPRM (experimental)
 * Check existance of table::
 * Get schema of a table::
 * SQL Mapping (experimental)::
-
 MIME
 
 * JSON::
@@ -119,7 +119,21 @@ MIME
 
 Authentication
 
+* Init Authentication::
 * Basic Authentication::
+* Common Authentication::
+
+Cache
+
+* On web caching::
+* Cache APIs::
+
+Utils
+
+* String Template::
+* Random Number Generator::
+* Encryption::
+* Stack & Queue::
 @end detailmenu
 @end menu
 
@@ -144,9 +158,9 @@ GNU Artanis is a web application framework(WAF) written in @uref{http://www.gnu.
 A @uref{http://en.wikipedia.org/wiki/Web_application_framework,web application framework (WAF)} is a software framework that is designed to support the development of dynamic websites,
 web applications, web services and web resources.
 The framework aims to alleviate the overhead associated with common activities performed in web development.
-Artanis provides several tools for web development: database access, templating frameworks, session management, @uref{http://en.wikipedia.org/wiki/Rewrite_engine,URL-remapping} for @uref{http://en.wikipedia.org/wiki/Representational_state_transfer,RESTful}, page caching, and so on.
+GNU Artanis provides several tools for web development: database access, templating frameworks, session management, @uref{http://en.wikipedia.org/wiki/Rewrite_engine,URL-remapping} for @uref{http://en.wikipedia.org/wiki/Representational_state_transfer,RESTful}, page caching, and so on.
 
-This manual describes how to use Artanis, and usage of APIs.
+This manual describes how to use GNU Artanis, and usage of APIs.
 
 Guile is the GNU Ubiquitous Intelligent Language for Extensions, the official extension language for the @uref{http://www.gnu.org/,GNU operating system}.
 Guile is also an interpreter and compiler for other dynamic programming languages except Scheme programming language.
@@ -175,7 +189,7 @@ We distribute software in the hope that it will be useful, but without any warra
 @node License
 @chapter License
 
-GNU Artanis is @uref{http://www.gnu.org/philosophy/free-sw.html,Free Software}. Artanis is under the terms of the GNU Lesser General Public License version 3 or later.
+GNU Artanis is @uref{http://www.gnu.org/philosophy/free-sw.html,Free Software}. GNU Artanis is under the terms of the GNU Lesser General Public License version 3 or later.
 See the files COPYING.LESSER and COPYING in toplevel of source code.
 
 The manual you’re now reading is published under the terms of the @uref{http://www.gnu.org/copyleft/fdl.html,GNU Free Documentation License} 1.3 or later.
@@ -260,7 +274,7 @@ You may find other dbd @uref{http://download.gna.org/guile-dbi,here}. And the in
 
 @itemize
 @item
-Artanis-0.0.1:
+GNU Artanis-0.0.1:
 @end itemize
 @example
 wget -c http://szdiy.org/download/artanis-0.0.1.tar.gz
@@ -285,7 +299,7 @@ git clone git@@github.com:NalaGinrut/artanis.git
 @node Configuration
 @section Configuration
 
-Before the first time to run, Artanis needs a config file. The default path is @verb{~/etc/artanis/artanis.conf~}.
+Before the first time to run, GNU Artanis needs a config file. The default path is @verb{~/etc/artanis/artanis.conf~}.
 
 There's a config skeleton named default.conf, you may copy it to @verb{~/etc/artanis/artanis.conf~}.
 
@@ -299,7 +313,7 @@ sudo cp /etc/artanis/default.conf /etc/artanis/artanis.conf
 @chapter Hello World
 
 @menu
-* Use Guile REPL and verify Artanis installation::
+* Use Guile REPL and verify GNU Artanis installation::
 * Simple HTTP server::
 * Try simple URL remapping::
 * More complex URL remapping::
@@ -307,8 +321,8 @@ sudo cp /etc/artanis/default.conf /etc/artanis/artanis.conf
 * Database operating::
 @end menu
 
-@node Use Guile REPL and verify Artanis installation
-@section Use Guile REPL and verify Artanis installation
+@node Use Guile REPL and verify GNU Artanis installation
+@section Use Guile REPL and verify GNU Artanis installation
 
 If you're NOT freshman of Guile, please skip this section.
 
@@ -327,7 +341,7 @@ scheme@@(guile-user)>
 
 Welcome to Guile world!
 
-Now, we're going to play Artanis. Before we start, please follow these instructions in the REPL to ensure that you installed Artanis correctly:
+Now, we're going to play GNU Artanis. Before we start, please follow these instructions in the REPL to ensure that you installed GNU Artanis correctly:
 
 @strong{(Just type them, you don't have to understand them at present)}
 
@@ -338,7 +352,7 @@ artanis-version
 
 The expected output should be similar to this:
 @example
-$1 = "Artanis-0.0.1"
+$1 = "GNU Artanis-0.0.2"
 @end example
 
 @node Simple HTTP server
@@ -373,19 +387,19 @@ Let me explain these code.
 
 @itemize
 @item
-@emph{line 1:} Load Artanis module, (artanis artanis) is the name.
+@emph{line 1:} Load GNU Artanis module, (artanis artanis) is the name.
 @end itemize
 
 
 @itemize
 @item
-@emph{line 2:} The first argument @emph{get} is Artanis API corresponding to GET method in HTTP protocol. The second argument "/hello" is the URL rule to register. The Third argument is the handler which will be triggered if the registered URL rule is hit.
+@emph{line 2:} The first argument @emph{get} is GNU Artanis API corresponding to GET method in HTTP protocol. The second argument "/hello" is the URL rule to register. The Third argument is the handler which will be triggered if the registered URL rule is hit.
 @end itemize
 
 
 @itemize
 @item
-@emph{line 3:} Run Artanis server, and listenning socket port 8080.
+@emph{line 3:} Run GNU Artanis server, and listenning socket port 8080.
 @end itemize
 
 You may type Ctrl+C to quit the server according to the hint from your screen.
@@ -409,7 +423,7 @@ There're two differences:
 1. The special rule, "@verb{~/hello/:who~}", @emph{:who} means you can use @emph{params} to reference the value of this section of URL with the key "who". @verb{~(params rc "who")~} is the way for that.
 
 @item
-2. You may notice that the handler defined as an anonymous function with @emph{lambda} has one argument @emph{rc}. It means @emph{route context} which preserve all the related context information. Many Artanis APIs need it, say, @emph{params}.
+2. You may notice that the handler defined as an anonymous function with @emph{lambda} has one argument @emph{rc}. It means @emph{route context} which preserve all the related context information. Many GNU Artanis APIs need it, say, @emph{params}.
 @end itemize
 
 And @emph{format} is a Scheme lib function. It is similar to @emph{sprintf} in C language, which outputs with a formatted pattern.
@@ -423,12 +437,12 @@ You can use regex in the URL rule.
 (get "/.+\\.(png|gif|jpeg)" static-page-emitter)
 @end example
 
-@emph{static-page-emitter} is an Artanis API which emits a static file like images to the client.
+@emph{static-page-emitter} is an GNU Artanis API which emits a static file like images to the client.
 
 @node Database operating
 @section Database operating
 
-Artanis supports mysql/postgresql/sqlite3, we use mysql as a example here.
+GNU Artanis supports mysql/postgresql/sqlite3, we use mysql as a example here.
 
 Please ensure that your DB service was started before you try.
 
@@ -448,7 +462,7 @@ You can use DB without running a server.
 
 @itemize
 @item
-@emph{map-table-from-DB} is Artanis API handling tables in DB. Here, we define this mapping as the var @emph{mtable}.
+@emph{map-table-from-DB} is GNU Artanis API handling tables in DB. Here, we define this mapping as the var @emph{mtable}.
 @end itemize
 
 
@@ -576,19 +590,19 @@ These two books are very good for learning Scheme seriously:
 @uref{http://mitpress.mit.edu/sicp/,Structure and Interpretation of Computer Programs(SICP)}
 @end enumerate
 
-Please don't read them if you just want to use Artanis to build your webapp/site in few minutes.
+Please don't read them if you just want to use GNU Artanis to build your webapp/site in few minutes.
 
-If you really want to try these books seriously, please ignore Artanis before you done them.
+If you really want to try these books seriously, please ignore GNU Artanis before you done them.
 
-But once you've done them @strong{carefully}, you may want to write a new Artanis all by yourself.
+But once you've done them @strong{carefully}, you may want to write a new GNU Artanis all by yourself.
 
 Hold your horses. ;-)
 
-@node Basic in Artanis
-@chapter Basic in Artanis
+@node Basic in GNU Artanis
+@chapter Basic in GNU Artanis
 
 @menu
-* How to run a site with Artanis::
+* How to run a site with GNU Artanis::
 * Initialization::
 * Registering handler of HTTP methods::
 * Emit Response::
@@ -596,8 +610,8 @@ Hold your horses. ;-)
 * Working with Nginx::
 @end menu
 
-@node How to run a site with Artanis
-@section How to run a site with Artanis
+@node How to run a site with GNU Artanis
+@section How to run a site with GNU Artanis
 
 This is the simplest case to run a site:
 @example
@@ -612,11 +626,11 @@ This is the simplest case to run a site:
 @node Initialization
 @section Initialization
 
-It's better to use (init-server) to init Artanis.
+It's better to use (init-server) to init GNU Artanis.
 @example
 (init-server #:statics '(png jpg jpeg ico html js css) #:cache-statics? #f #:exclude '())
 @end example
-@verb{~#:statics~} specifies the static files with the extension file. Artanis is based on URL remapping, so this keyword avoids you to handle each static file types. In default, it coveres the most static file types. So you may ignore it usually.
+@verb{~#:statics~} specifies the static files with the extension file. GNU Artanis is based on URL remapping, so this keyword avoids you to handle each static file types. In default, it coveres the most static file types. So you may ignore it usually.
 
 @verb{~#:cache-statics?~} indicates if the static files should be cached.
 
@@ -640,7 +654,7 @@ Please read @ref{URL handling,URL handling}.
 
 @verb{~#:headers~} let you specify customized HTTP headers. The headers must follow certain format, you have to read about the @uref{http://www.gnu.org/software/guile/manual/html_node/HTTP-Headers.html#Response-Headers,Response Headers}.
 
-@verb{~#:mtime~} specifies the modify time in the response. Artanis will generate it for you if you just ignore it.
+@verb{~#:mtime~} specifies the modify time in the response. GNU Artanis will generate it for you if you just ignore it.
 
 @example
 (emit-response-with-file filename [headers <- '()])
@@ -668,7 +682,7 @@ But you can specify them as will.
 
 @verb{~#:debug~} set #t if you want to enable debug mode. Maybe verbose.
 
-@verb{~#:use-db?~} set #t if you want to use DB, and Artanis will init DB config for you.
+@verb{~#:use-db?~} set #t if you want to use DB, and GNU Artanis will init DB config for you.
 
 @verb{~#:dbd~} choose dbd, there're three supported dbd: mysql, postgresql, and sqlite3.
 
@@ -681,9 +695,9 @@ But you can specify them as will.
 @node Working with Nginx
 @section Working with Nginx
 
-You may try Artanis+Nginx with so-called reverse proxy. 
+You may try GNU Artanis+Nginx with so-called reverse proxy. 
 
-@strong{@emph{I would recommend you use Nginx as the front server, since Artanis hasn't done its own async server-core which will be based on delimited-continuations. The current server has some caveats, in spite of the performance, you may suffer from slow-header-ddos if you use Artanis to serv you site directly. But it's fine when you use Nginx in front of Artanis.}}
+@strong{@emph{I would recommend you use Nginx as the front server, since GNU Artanis hasn't done its own async server-core which will be based on delimited-continuations. The current server has some caveats, in spite of the performance, you may suffer from slow-header-ddos if you use GNU Artanis to serv you site directly. But it's fine when you use Nginx in front of GNU Artanis.}}
 
 For example, you may add these lines to your /etc/nginx/nginx.conf:
 
@@ -701,7 +715,7 @@ Then restart you Nginx:
 sudo service nginx restart
 @end example
 
-And run artanis:
+And run GNU Artanis:
 @example
 (run #:port 1234)
 @end example
@@ -727,7 +741,7 @@ It's largly used in modern WAF(web application framework) to provide RESTful web
 
 According to RFC2616, there're GET, POST, PUT, PATCH and DELETE methods. You may register handler for specified URL rule to these methods.
 
-@emph{There'd be HEAD method, but in Artanis, HEAD method is handled by the server, users can't use it.}
+@emph{There'd be HEAD method, but in GNU Artanis, HEAD method is handled by the server, users can't use it.}
 
 The usage:
 @example
@@ -783,8 +797,8 @@ For POST method:
 (get "/bbb" (lambda () "ok bbb"))
 @end example
 
-@node Layouts and Rendering in Artanis
-@chapter Layouts and Rendering in Artanis
+@node Layouts and Rendering in GNU Artanis
+@chapter Layouts and Rendering in GNU Artanis
 
 @menu
 * Templating::
@@ -803,18 +817,18 @@ Templating provides a way to mix programming code into HTML.
 @node Templating for Pythoners
 @section Templating for Pythoners
 
-If you're familiar with Django, which implemented a DSL(Domain Specific Language) to express presentation rather than program logic. You may realize that the templating of Artanis has different philosophy.
+If you're familiar with Django, which implemented a DSL(Domain Specific Language) to express presentation rather than program logic. You may realize that the templating of GNU Artanis has different philosophy.
 
-In templating of Artanis, it's simply embedded Scheme code into HTML. Why? Because of the philosophy of FP(Functional Programming), everything could be a function. So obviously, @verb{~(filesizeformat size)~} is enough for understanding, and it's just simple function calling in prefix-notation. There's no need to implement DSL like @verb{~size|filesizeformat~} to increase the complexity of code. Let alone the syntax is very different from Python.
+In templating of GNU Artanis, it's simply embedded Scheme code into HTML. Why? Because of the philosophy of FP(Functional Programming), everything could be a function. So obviously, @verb{~(filesizeformat size)~} is enough for understanding, and it's just simple function calling in prefix-notation. There's no need to implement DSL like @verb{~size|filesizeformat~} to increase the complexity of code. Let alone the syntax is very different from Python.
 
 The syntax like @verb{~size|filesizeformat~} is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme(functional programming), and the paradigm of Python(imperative programming).
 
-The philosophy of Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce the unnecessary complexities. @uref{http://en.wikipedia.org/wiki/KISS_principle,KISS}.
+The philosophy of GNU Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce the unnecessary complexities. @uref{http://en.wikipedia.org/wiki/KISS_principle,KISS}.
 
 @node Templating for Rubyists
 @section Templating for Rubyists
 
-Templating in Artanis looks very similar to Rails.
+Templating in GNU Artanis looks very similar to Rails.
 
 The Rails code:
 
@@ -824,7 +838,7 @@ The Rails code:
 <% end %>
 @end example
 
-And the same function in Artanis code:
+And the same function in GNU Artanis code:
 
 @example
 <% (if (= fullscreen 1) %>
@@ -872,7 +886,7 @@ Of course, the ext filename ".tpl" is trivial, you may name it whatever you like
 (run #:port 8080)
 @end example
 
-In this case, make sure to put my.tpl to the same path with your Artanis code.
+In this case, make sure to put my.tpl to the same path with your GNU Artanis code.
 
 Because @strong{exteral-var} is defined outside the file "my.tpl", and it's bound in @emph{let} with 123, you have to pass (the-environment). Or the template render will blame that it can't find variable named @strong{external-var}.
 
@@ -916,7 +930,7 @@ Let's see an example of quasiquote:
 
 ORM stands for Object Relational Mapping, which is a popular approach to handle relational DB nowadays, in OOP.
 
-Of course, Guile has it's own Object System named @uref{https://www.gnu.org/software/guile/manual/html_node/GOOPS.html#GOOPS,GOOPS}. Users may use OOP with it. And it's possible to implement ORM in Artanis as well.
+Of course, Guile has it's own Object System named @uref{https://www.gnu.org/software/guile/manual/html_node/GOOPS.html#GOOPS,GOOPS}. Users may use OOP with it. And it's possible to implement ORM in GNU Artanis as well.
 
 However, FP fans realized that they don't have to use OOP if they can use FP features reasonably.
 
@@ -975,9 +989,9 @@ And here're some known ways for trying to solve the problems of ORM:
 7. @strong{@emph{Stateless}}. This is the critical hit to complexity and unreliability.
 @end itemize
 
-Basically, Artanis has no ORM yet, and maybe never. Artanis is trying to experiment new ways to solve the problems of ORM.
+Basically, GNU Artanis has no ORM yet, and maybe never. GNU Artanis is trying to experiment new ways to solve the problems of ORM.
 
-Artanis provides three ways to complete this mission. All of them, are @strong{experimental} at present.
+GNU Artanis provides three ways to complete this mission. All of them, are @strong{experimental} at present.
 
 @itemize
 @item
@@ -1259,7 +1273,7 @@ To be continued @dots{}
 @node JSON
 @section JSON
 
-Artanis intergrated the third-party module @uref{https://github.com/aconchillo/guile-json,guile-json}. 
+GNU Artanis intergrated the third-party module @uref{https://github.com/aconchillo/guile-json,guile-json}. 
 You may use #:mime method to handle JSON:
 @example
 (get "/json" #:mime 'json
@@ -1271,7 +1285,7 @@ You may use #:mime method to handle JSON:
 @node CSV
 @section CSV
 
-Artanis intergrated the third-party module @uref{https://github.com/NalaGinrut/guile-csv,guile-csv}. You may use #:mime method to handle CSV:
+GNU Artanis intergrated the third-party module @uref{https://github.com/NalaGinrut/guile-csv,guile-csv}. You may use #:mime method to handle CSV:
 @example
 (get "/csv" #:mime 'csv
   (lambda (rc)
@@ -1301,7 +1315,7 @@ You can use SXML to replace XML for exchanging data format. This way saves some 
 @node Sessions
 @chapter Sessions
 
-You have to use @verb{~#:session #t~} while you defining URL rule handler.
+You have to use @verb{~#:session mode~} while you defining URL rule handler.
 @example
 (post "/auth" #:session mode
   (lambda (rc) ...))
@@ -1343,9 +1357,9 @@ And the APIs of session is :session
 @node Cookies
 @chapter Cookies
 
-You have to use @verb{~#:session #t~} while you defining URL rule handler.
+You have to use @verb{~#:session mode~} while you defining URL rule handler.
 @example
-(get "/cookie-test" #:cookies mode
+(get "/certain-rule" #:cookies mode
   (lambda (rc) ...))
 @end example
 
@@ -1396,10 +1410,44 @@ curl --head localhost:3000/cookie/120
 @node Authentication
 @chapter Authentication
 
-Artanis provides flexible mechanism for authentication.
 @menu
+* Init Authentication::
 * Basic Authentication::
+* Common Authentication::
 @end menu
+
+@node Init Authentication
+@section Init Authentication
+
+GNU Artanis provides flexible mechanism for authentication.
+
+You have to use @verb{~#:auth mode~} while you defining URL rule handler.
+@example
+(get "/certain-rule" #:auth mode
+  (lambda (rc) ...))
+@end example
+
+@strong{mode} could be:
+@itemize
+@item
+SQL as @ref{String Template,string template}. You may write your own customized SQL for fetching & checking username and passwd.
+@item
+('basic (lambda (rc user passwd) @dots{})) init a Basic Authentication mode. @emph{user} is submitted username, @emph{passwd} is submitted password value.
+@item
+('table table-name username-field passwd-field) init a common Authentication mode. @strong{The passwd will be encrypted by default algorithm}.
+@item
+('table table-name username-field passwd-field crypto-proc) similar to the above item, but encrypt passwd with crypto-proc.
+@item
+(table-name crypto-proc), so passwd field will be "passwd" and username will be "username" in default, and you may encrypt passwd with crypto-proc.
+@end itemize
+
+Available crypto-proc helper functions listed here:
+@itemize
+@item
+(string->md5 str)
+@item
+(string->sha-1 str)
+@end itemize
 
 @node Basic Authentication
 @section Basic Authentication
@@ -1410,10 +1458,191 @@ The BA mechanism provides no confidentiality protection for the transmitted cred
 
 @emph{@strong{GNU Artanis doesn't support HTTPS at present, it's planned to support it in the future.}}
 
+Let's see a simple example:
+@example
+(get "/bauth" #:auth `(basic ,(lambda (rc u p) (and (string=? u "mmr") (string=? p "123"))))
+  (lambda (rc) 
+    (if (:auth rc)
+        "auth ok"
+        (throw-auth-needed))))
+@end example
+
+You have to define your own checker with the anonymous function @verb{~(lambda (rc u p) ...)~}. #t for succeed, #f for failed.
+
+APIs:
+
+@itemize
+@item
+@verb{~(:auth rc)~} will check if Basic Authentication succeeded, #f for failed.
+@item
+@verb{~(throw-auth-needed)~} is a useful helper function to ask for auth in client side.
+@end itemize
+
+@node Common Authentication
+@section Common Authentication
+
+Actually, there're various authentication methods could be used by developers. Most of them are sort of tricky hacks. Here, we only introduce the most common way.
+
+The most common and relative safe way for authentication is to use POST method. And check username and passwd from a table in DB.
+
+Here is a simple example:
+@example
+(post "/auth" #:auth '(table user "user" "passwd") #:session #t
+  (lambda (rc)
+    (cond
+     ((:session rc 'check) "auth ok (session)")
+     ((:auth rc)
+      (:session rc 'spawn)
+      "auth ok")
+     (else (redirect-to rc "/login?login_failed=true")))))
+@end example
+
+@strong{NOTE: The passwd will be encrypted by default algorithm.}
+
 @node Cache
 @chapter Cache
 
-To be continued @dots{}
+@menu
+* On web caching::
+* Cache APIs::
+@end menu
+
+@node On web caching
+@section On web caching
+
+Web caching is very important nowadays. This section raises a discussion on proper web caching. It's couldn't be guide for product. But may help you to understand how to use cache in GNU Artanis.
+
+(to be continued@dots{})
+
+@node Cache APIs
+@section Cache APIs
+
+You have to use @verb{~#:cache mode~} while you defining URL rule handler.
+@example
+(get "/certain-rule" #:cache mode
+  (lambda (rc) ...))
+@end example
+
+@strong{@emph{NOTE}}: the default value of maxage is defined by cache.maxage in @verb{~/etc/artanis/artanis.conf~}. The default value is 3600 seconds.
+
+@strong{mode} could be:
+@itemize
+@item
+@verb{~#t~} for enabling caching the page.
+@item
+@verb{~#f~} for disabling caching the page explicitly. It's default to not cache.
+@item
+@verb{~('static [maxage <- 3600])~} This mode must be used for static files, which means the URL rule must be a real path to a static file.
+@item
+@verb{~(filename [maxage <- 3600])~} Specify a static file to cache. This is useful when you don't want to reveal actual path of the static file, but use a fake URL for it.
+@item
+@verb{~('public filename [maxage <- 3600])~} Allow proxies cache the content of specified static file. If HTTP authentication is required, responses are automatically private.
+@item
+@verb{~('private filename [maxage <- 3600])~} Not-Allow proxies cache the content of specified static file.
+@end itemize
+
+Let's see the simplest cache test (for dynamica content):
+@example
+(get "/new" #:cache #t
+  (lambda (rc)
+    (:cache rc "hello world")))
+@end example
+
+If you want to cache a static file, and permit proxies cache the content:
+@example
+(get "/hide" #:cache '(public "pub/some.html")
+  (lambda (rc)
+    (:cache rc)))
+@end example
+
+But, if your current URL rule is used for authentication (once you use @verb{~#:auth~}), the cache will be changed to @strong{private} even if you specify @strong{public}.
+@example
+(get "/pauth"
+  #:auth `(basic ,(lambda (rc u p) (and (string=? u "nala") (string=? p "123"))))
+  #:cache '(public "pub/some.html") ; will be changed to 'private' automatically.
+  (lambda (rc) (:cache rc)))
+@end example
+
+@node Utils
+@chapter Utils
+
+@strong{The functions introduced here need to import (artanis utils) module.}
+@menu
+* String Template::
+* Random Number Generator::
+* Encryption::
+* Stack & Queue::
+@end menu
+
+@node String Template
+@section String Template
+
+GNU Artanis provides Python3-like template strings:
+@example
+(make-string-template tpl . vals)
+@end example
+
+@itemize
+@item
+@strong{tpl} stands for template string.
+@item
+@strong{vals} is varg-list specifying default value to certain key.
+@end itemize
+
+For an example:
+@example
+(define st (make-string-template "hello $@{name@}"))
+(st #:name "nala")
+;; ==> "hello nala"
+
+;; or you may specify a default value for $@{name@}
+(define st (make-string-template "hello $@{name@}" #:name "unknown"))
+(st)
+;; ==> "hello unknown"
+(st #:name "john")
+;; ==> "hello john"
+@end example
+
+@node Random Number Generator
+@section Random Number Generator
+
+Get random number string from @verb{~/dev/urandom~}.
+@example
+(get-random-from-dev #:length 8 #:uppercase #f)
+@end example
+
+@node Encryption
+@section Encryption
+
+@example
+;; hash a string with MD5
+(string->md5 str)
+;; hash a string with SHA-1
+(string->sha-1 str)
+@end example
+
+@node Stack & Queue
+@section Stack & Queue
+
+GNU Artanis provides simple interfaces for stack & queue:
+@example
+;; stack operations
+(new-stack)
+(stack-pop! stk)
+(stack-push! stk elem)
+(stack-top stk)
+(stack-remove! stk key)
+(stack-empty? stk)
+
+;; queue operations
+(new-queue)
+(queue-out! q)
+(queue-in! q elem)
+(queue-head q)
+(queue-tail q)
+(queue-remove! q key)
+(queue-empty? q)
+@end example
 
 @node Appendix A GNU Free Documentation License
 @chapter Appendix A GNU Free Documentation License
