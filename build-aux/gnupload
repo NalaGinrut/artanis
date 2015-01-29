@@ -1,14 +1,13 @@
 #!/bin/sh
 # Sign files and upload them.
 
-scriptversion=2010-05-23.15; # UTC
+scriptversion=2013-03-19.17; # UTC
 
-# Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010 Free Software
-# Foundation, Inc.
+# Copyright (C) 2004-2015 Free Software Foundation, Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 3, or (at your option)
+# the Free Software Foundation; either version 2, or (at your option)
 # any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -20,6 +19,8 @@ scriptversion=2010-05-23.15; # UTC
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # Originally written by Alexandre Duret-Lutz <adl@gnu.org>.
+# The master copy of this file is maintained in the gnulib Git repository.
+# Please send bug reports and feature requests to bug-gnulib@gnu.org.
 
 set -e
 
@@ -27,6 +28,7 @@ GPG='gpg --batch --no-tty'
 conffile=.gnuploadrc
 to=
 dry_run=false
+replace=
 symlink_files=
 delete_files=
 delete_symlinks=
@@ -37,9 +39,8 @@ nl='
 
 usage="Usage: $0 [OPTION]... [CMD] FILE... [[CMD] FILE...]
 
-Sign all FILES, and process them at selected destinations according to CMD.
-<http://www.gnu.org/prep/maintain/html_node/Automated-FTP-Uploads.html>
-explains further.
+Sign all FILES, and process them at the destinations specified with --to.
+If CMD is not given, it defaults to uploading.  See examples below.
 
 Commands:
   --delete                 delete FILES from destination
@@ -48,17 +49,18 @@ Commands:
   --                       treat the remaining arguments as files to upload
 
 Options:
-  --help                   print this help text and exit
-  --to DEST                specify one destination for FILES
+  --to DEST                specify a destination DEST for FILES
                            (multiple --to options are allowed)
   --user NAME              sign with key NAME
+  --replace                allow replacements of existing files
   --symlink-regex[=EXPR]   use sed script EXPR to compute symbolic link names
   --dry-run                do nothing, show what would have been done
+                           (including the constructed directive file)
   --version                output version information and exit
+  --help                   print this help text and exit
 
 If --symlink-regex is given without EXPR, then the link target name
-is created by replacing the version information with \`-latest', e.g.:
-
+is created by replacing the version information with '-latest', e.g.:
   foo-1.3.4.tar.gz -> foo-latest.tar.gz
 
 Recognized destinations are:
@@ -75,6 +77,9 @@ Options and commands are applied in order.  If the file $conffile exists
 in the current working directory, its contents are prepended to the
 actual command line options.  Use this to keep your defaults.  Comments
 (#) and empty lines in $conffile are allowed.
+
+<http://www.gnu.org/prep/maintain/html_node/Automated-FTP-Uploads.html>
+gives some further background.
 
 Examples:
 1. Upload foobar-1.0.tar.gz to ftp.gnu.org:
@@ -100,13 +105,12 @@ Examples:
            --delete oopsbar-0.9.91.tar.gz \\
            -- foobar-0.9.91.tar.gz
 
-gnupload uses the ncftpput program to do the transfers; if you don't
+gnupload executes a program ncftpput to do the transfers; if you don't
 happen to have an ncftp package installed, the ncftpput-ftp script in
 the build-aux/ directory of the gnulib package
 (http://savannah.gnu.org/projects/gnulib) may serve as a replacement.
 
-Report bugs to <bug-automake@gnu.org>.
-Send patches to <automake-patches@gnu.org>."
+Send patches and bug reports to <bug-gnulib@gnu.org>."
 
 # Read local configuration file
 if test -r "$conffile"; then
@@ -129,6 +133,12 @@ while test -n "$1"; do
       if test -z "$2"; then
         echo "$0: Missing argument for --to" 1>&2
         exit 1
+      elif echo "$2" | grep 'ftp-upload\.gnu\.org' >/dev/null; then
+        echo "$0: Use ftp.gnu.org:PKGNAME or alpha.gnu.org:PKGNAME" >&2
+        echo "$0: for the destination, not ftp-upload.gnu.org (which" >&2
+        echo "$0:  is used for direct ftp uploads, not with gnupload)." >&2
+        echo "$0: See --help and its examples if need be." >&2
+        exit 1
       else
         to="$to $2"
         shift
@@ -145,6 +155,9 @@ while test -n "$1"; do
       ;;
     --delete)
       collect_var=delete_files
+      ;;
+    --replace)
+      replace="replace: true"
       ;;
     --rmsymlink)
       collect_var=delete_symlinks
@@ -170,7 +183,7 @@ while test -n "$1"; do
       break
       ;;
     -*)
-      echo "$0: Unknown option \`$1', try \`$0 --help'" 1>&2
+      echo "$0: Unknown option '$1', try '$0 --help'" 1>&2
       exit 1
       ;;
     esac
@@ -219,7 +232,7 @@ else
   for file
   do
     if test ! -f $file; then
-      echo "$0: Cannot find \`$file'" 1>&2
+      echo "$0: Cannot find '$file'" 1>&2
       exit 1
     elif test -n "$symlink_expr"; then
       linkname=`echo $file | sed "$symlink_expr"`
@@ -236,25 +249,30 @@ fi
 
 # Make sure passphrase is not exported in the environment.
 unset passphrase
+unset passphrase_fd_0
+GNUPGHOME=${GNUPGHOME:-$HOME/.gnupg}
 
 # Reset PATH to be sure that echo is a built-in.  We will later use
-# `echo $passphrase' to output the passphrase, so it is important that
-# it is a built-in (third-party programs tend to appear in `ps'
+# 'echo $passphrase' to output the passphrase, so it is important that
+# it is a built-in (third-party programs tend to appear in 'ps'
 # listings with their arguments...).
-# Remember this script runs with `set -e', so if echo is not built-in
+# Remember this script runs with 'set -e', so if echo is not built-in
 # it will exit now.
-PATH=/empty echo -n "Enter GPG passphrase: "
-stty -echo
-read -r passphrase
-stty echo
-echo
+if $dry_run || grep -q "^use-agent" $GNUPGHOME/gpg.conf; then :; else
+  PATH=/empty echo -n "Enter GPG passphrase: "
+  stty -echo
+  read -r passphrase
+  stty echo
+  echo
+  passphrase_fd_0="--passphrase-fd 0"
+fi
 
 if test $# -ne 0; then
   for file
   do
     echo "Signing $file ..."
     rm -f $file.sig
-    echo "$passphrase" | $dbg $GPG --passphrase-fd 0 -ba -o $file.sig $file
+    echo "$passphrase" | $dbg $GPG $passphrase_fd_0 -ba -o $file.sig $file
   done
 fi
 
@@ -270,7 +288,7 @@ filename: $3$stmt"
   fi
 
   cat >${2}.directive<<EOF
-version: 1.1
+version: 1.2
 directory: $1
 comment: gnupload v. $scriptversion$stmt
 EOF
@@ -312,12 +330,12 @@ upload ()
   case $dest in
     alpha.gnu.org:*)
       mkdirective "$destdir" "$base" "$file" "$stmt"
-      echo "$passphrase" | $dbg $GPG --passphrase-fd 0 --clearsign $base.directive
+      echo "$passphrase" | $dbg $GPG $passphrase_fd_0 --clearsign $base.directive
       $dbg ncftpput ftp-upload.gnu.org /incoming/alpha $files $base.directive.asc
       ;;
     ftp.gnu.org:*)
       mkdirective "$destdir" "$base" "$file" "$stmt"
-      echo "$passphrase" | $dbg $GPG --passphrase-fd 0 --clearsign $base.directive
+      echo "$passphrase" | $dbg $GPG $passphrase_fd_0 --clearsign $base.directive
       $dbg ncftpput ftp-upload.gnu.org /incoming/ftp $files $base.directive.asc
       ;;
     savannah.gnu.org:*)
@@ -336,7 +354,7 @@ upload ()
       destdir_p1=`echo "$destdir" | sed 's,^[^/]*/,,'`
       destdir_topdir=`echo "$destdir" | sed 's,/.*,,'`
       mkdirective "$destdir_p1" "$base" "$file" "$stmt"
-      echo "$passphrase" | $dbg $GPG --passphrase-fd 0 --clearsign $base.directive
+      echo "$passphrase" | $dbg $GPG $passphrase_fd_0 --clearsign $base.directive
       for f in $files $base.directive.asc
       do
         echo put $f
@@ -345,7 +363,7 @@ upload ()
     /*)
       dest_host=`echo "$dest" | sed 's,:.*,,'`
       mkdirective "$destdir" "$base" "$file" "$stmt"
-      echo "$passphrase" | $dbg $GPG --passphrase-fd 0 --clearsign $base.directive
+      echo "$passphrase" | $dbg $GPG $passphrase_fd_0 --clearsign $base.directive
       $dbg cp $files $base.directive.asc $dest_host
       ;;
     *)
@@ -393,6 +411,12 @@ do
   do
     echo "Uploading $file to $dest ..."
     stmt=
+    #
+    # allowing file replacement is all or nothing.
+    if test -n "$replace"; then stmt="$stmt
+$replace"
+    fi
+    #
     files="$file $file.sig"
     destdir=`echo $dest | sed 's/[^:]*://'`
     if test -n "$symlink_expr"; then

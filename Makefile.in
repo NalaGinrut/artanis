@@ -38,6 +38,7 @@ TARBALL_NAME := artanis-$(VERSION)
 TMP_DIR := $(shell mktemp -d)
 ANN_GEN := $(BUILD_AUX)/announce-gen
 DIRE_GEN := $(BUILD_AUX)/gen-directive.scm
+GNUPLOAD := $(BUILD_AUX)/gnupload
 V := @
 
 mod-sfile := $(shell find $(MOD) -name *.scm)
@@ -65,7 +66,7 @@ $(MOD)/version.scm:
 	$(V) cat $(HEADER) > $@
 	$(V)$(GUILE) -c '(let ((port (open-file "$@" "a")))(format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"GNU Artanis-~a\")~%" "$(VERSION)"))'
 
-.PHONY: release.gz release.bz2 prepare clean modules install distclean distclean-mk bin version test docs
+.PHONY: upload upload.gz upload.bz2 announce release.gz release.bz2 prepare clean modules install distclean distclean-mk bin version test docs
 
 announce: release.gz release.bz2
 	$(V) $(ANN_GEN) --release-type=$(RELEASE_TYPE) --package-name=artanis --previous-version=$(PREV_VER) --current-version=$(VERSION) --gpg-key-id=$(GPG_KEY) --url-directory=$(URL_DIR) --news=NEWS --bootstrap-tools=$(BOOT_TOOLS)
@@ -74,26 +75,28 @@ release.gz: $(TARBALL_NAME).tar.gz
 
 release.bz2: $(TARBALL_NAME).tar.bz2
 
+upload: release.gz release.bz2
+	$(V) $(GUILE) -c '(exit (if (string=? "yes I am crazy" (getpass "Are you sure? ")) 0 233))' && \
+	$(GNUPLOAD) --to $(RELEASE_TYPE).gnu.org:artanis \
+	--symlink-regex \
+	artanis-$(VERSION).tar.gz artanis-$(VERSION).tar.bz2
+
 prepare:
-	$(V) $(MAKE) clean
 	$(V) rm -fr $(TARBALL_NAME)
-	$(V) cp -fr $(TOP)/* $(TMP_DIR)
+	$(V) cp -fr $(TOP)/. $(TMP_DIR)
+	$(V) $(MAKE) -C $(TMP_DIR) distclean
+	$(V) git --git-dir=$(TMP_DIR)/.git --work-tree=$(TMP_DIR) clean -fdqX
 	$(V) rm -fr $(TMP_DIR)/.git
 	$(V) mv $(TMP_DIR) $(TOP)/$(TARBALL_NAME)
 
 $(TARBALL_NAME).tar.bz2:
 	$(V) $(MAKE) prepare
 	$(V) tar cjf $@ $(TARBALL_NAME)
-	$(V) $(DIRE_GEN) bz2 $(VERSION)
-	$(V) gpg -b $@
-	$(V) gpg --clearsign $@
-	$(V) gpg --clearsign $@.directive
 	$(V) rm -fr $(TMP_DIR) $(TOP)/$(TARBALL_NAME)
 
 $(TARBALL_NAME).tar.gz:
 	$(V) $(MAKE) prepare
 	$(V) tar czf $@ $(TARBALL_NAME)
-	$(V) gpg -b $@
 	$(V) rm -fr $(TMP_DIR) $(TOP)/$(TARBALL_NAME)
 
 clean:
@@ -107,7 +110,6 @@ clean-tarball:
 
 clean-config:
 	-rm -f config.{h,log}
-	-rm -f configure
 
 install: $(ALL_TARGETS)
 	$(CP) $(MOD) $(MOD_PATH)
