@@ -20,7 +20,7 @@
        (li (a (@ (href "index.html")) "Home"))
        (li (a (@ (href "about.html")) "About"))
        (li (a (@ (href "http://gnu.org/software/artanis/manual")) "Documents"))
-       (li (a (@ (href "http://szdiy.org/download/artanis-0.0.1.tar.gz")) "Latest release"))
+       (li (a (@ (href "http://alpha.gnu.org/gnu/artanis/")) "Download"))
        (li (@ (class "last")) (a (@ (href "donate.html")) "Donate")))
 
     (p (@ (id "honor")) "2013 Lisp in summer projects")
