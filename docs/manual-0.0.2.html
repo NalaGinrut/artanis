@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>GNU Artanis web-framework Manual</title>
-<!-- 2015-01-29 Thu 00:21 -->
+<!-- 2015-01-30 Fri 13:57 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Mu Lei known as NalaGinrut" />
@@ -427,13 +427,13 @@ You may find other dbd <a href="http://download.gna.org/guile-dbi">here</a>. And
 </p>
 
 <ul class="org-ul">
-<li>GNU Artanis-0.0.2:</li>
+<li>The latest GNU Artanis:</li>
 </ul>
 <div class="org-src-container">
 
-<pre class="src src-null">wget -c http://szdiy.org/download/artanis-0.0.2.tar.gz
-tar xvzf artanis-0.0.2.tar.gz
-cd artanis-0.0.2 &amp;&amp; ./configure &amp;&amp; make
+<pre class="src src-null">wget -c http://alpha.gnu.org/gnu/artanis/artanis-latest.tar.bz2
+tar xvjf artanis-latest.tar.bz2
+cd artanis-latest &amp;&amp; ./configure &amp;&amp; make
 sudo make install
 </pre>
 </div>
@@ -457,7 +457,10 @@ Anyway, here's the git repo:
 
 <div class="org-src-container">
 
-<pre class="src src-null">git clone git@github.com:NalaGinrut/artanis.git
+<pre class="src src-null">git clone git://git.savannah.gnu.org/artanis.git
+
+# mirror on Github
+git clone git@github.com:NalaGinrut/artanis.git
 </pre>
 </div>
 </div>
@@ -536,7 +539,7 @@ The expected output should be similar to this:
 </p>
 <div class="org-src-container">
 
-<pre class="src src-scheme">$1 = <span style="color: #ff0000;">"GNU Artanis-0.0.2"</span>
+<pre class="src src-scheme">$1 = <span style="color: #ff0000;">"GNU Artanis-x.x.x"</span>
 </pre>
 </div>
 </div>
@@ -2492,7 +2495,7 @@ If your document contains nontrivial examples of program code, we recommend rele
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Mu Lei known as NalaGinrut</p>
-<p class="date">Created: 2015-01-29 Thu 00:21</p>
+<p class="date">Created: 2015-01-30 Fri 13:57</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.2.1 (<a href="http://orgmode.org">Org</a> mode 8.3beta)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>

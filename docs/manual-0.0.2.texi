@@ -274,12 +274,12 @@ You may find other dbd @uref{http://download.gna.org/guile-dbi,here}. And the in
 
 @itemize
 @item
-GNU Artanis-0.0.1:
+The latest GNU Artanis:
 @end itemize
 @example
-wget -c http://szdiy.org/download/artanis-0.0.1.tar.gz
-tar xvzf artanis-0.0.1.tar.gz
-cd artanis-0.0.1 && ./configure && make
+wget -c http://alpha.gnu.org/gnu/artanis/artanis-latest.tar.bz2
+tar xvjf artanis-latest.tar.bz2
+cd artanis-latest && ./configure && make
 sudo make install
 @end example
 
@@ -293,6 +293,9 @@ If you're comfortable with @uref{https://github.com/NalaGinrut/artanis,GitHub}, 
 Anyway, here's the git repo:
 
 @example
+git clone git://git.savannah.gnu.org/artanis.git
+
+# mirror on Github
 git clone git@@github.com:NalaGinrut/artanis.git
 @end example
 
@@ -352,7 +355,7 @@ artanis-version
 
 The expected output should be similar to this:
 @example
-$1 = "GNU Artanis-0.0.2"
+$1 = "GNU Artanis-x.x.x"
 @end example
 
 @node Simple HTTP server

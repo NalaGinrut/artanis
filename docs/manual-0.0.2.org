@@ -104,11 +104,11 @@ sudo make install
 #+end_src
 You may find other dbd [[http://download.gna.org/guile-dbi][here]]. And the installation is similar.
 
-+ GNU Artanis-0.0.2:
++ The latest GNU Artanis:
 #+begin_src null
-wget -c http://szdiy.org/download/artanis-0.0.2.tar.gz
-tar xvzf artanis-0.0.2.tar.gz
-cd artanis-0.0.2 && ./configure && make
+wget -c http://alpha.gnu.org/gnu/artanis/artanis-latest.tar.bz2
+tar xvjf artanis-latest.tar.bz2
+cd artanis-latest && ./configure && make
 sudo make install
 #+end_src
 
@@ -120,6 +120,9 @@ If you're comfortable with [[https://github.com/NalaGinrut/artanis][GitHub]], th
 Anyway, here's the git repo:
 
 #+begin_src null
+git clone git://git.savannah.gnu.org/artanis.git
+
+# mirror on Github
 git clone git@github.com:NalaGinrut/artanis.git
 #+end_src
 ** Configuration
@@ -163,7 +166,7 @@ artanis-version
 
 The expected output should be similar to this:
 #+begin_src scheme
-$1 = "GNU Artanis-0.0.2"
+$1 = "GNU Artanis-x.x.x"
 #+end_src
 ** Simple HTTP server
 Run this code in your console:
