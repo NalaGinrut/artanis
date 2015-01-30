@@ -1,3 +1,4 @@
+.tarball-version
 *.info
 *.pdf
 build.log
