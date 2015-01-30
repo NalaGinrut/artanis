@@ -18,7 +18,7 @@ when you play it.
 * Efficient HTML template parsing.
 
 ## Manual:
-http://web-artanis.com/docs/manual-0.0.2.html
+http://gnu.org/software/artanis/manual
 
 ## Thanks for testing
 * Fedora release 20 (Heisenbug)
