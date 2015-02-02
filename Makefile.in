@@ -117,7 +117,7 @@ install: $(ALL_TARGETS)
 	$(CP) $(MOD_OBJ) $(MOD_TARGET_PATH)
 	$(CP) $(ARTANIS_ETC) /etc
 	$(CP) $(ARTANIS_PAGES) /etc/artanis
-	$(CP) artanis.info $(INFO_DIR)
+	if [ -e artanis.info ]; then $(CP) artanis.info $(INFO_DIR); fi
 
 distclean: distclean-mk clean clean-config clean-tarball
 
