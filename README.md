@@ -8,6 +8,7 @@ when you play it.
 
 ## Features:
 
+* GPLv3+ & LGPLv3+
 * Very lightweight: easy to hack and learn for newbies.
 * Support Json/CSV/XML/SXML.
 * A complete web-server implementation, include error page handler.
