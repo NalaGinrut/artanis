@@ -42,7 +42,8 @@
      (div (@ (class "wrap")) (pre (code (inject ,contents))))
 
      (p (@ (class "foot up"))
-        "Source: "
+	(a (@ (href "http://gnu.org/software/artanis")) "Copyright  2015 Free Software Foundation, Inc.")
+        " Source: "
         (a (@ (href "http://github.com/NalaGinrut/artanis")) "Artanis ")
         "powered by " (a (@ (href "http://www.gnu.org/software/guile/")) "GNU Guile ")
         "This page is Powered by " (a (@ (href "http://wiki.call-cc.org/eggref/4/hyde")) "Hyde of Chicken Scheme")))
