@@ -119,7 +119,10 @@
    ((dbd str) (%do-connect dbd str))
    ((dbd #:key (db-name "artanis") (db-username "root") (db-passwd "")
          (proto "tcp") (host "localhost") (port 3306))
-    (let ((str (format #f "~a:~a:~a:~a:~a:~a" db-username db-passwd db-name proto host port)))
+    (let ((str (case dbd
+                 ((mysql) (format #f "~a:~a:~a:~a:~a:~a" db-username db-passwd db-name proto host port))
+                 ((postgresql) (format #f "~a:~a:~a:tcp:~a:~a" db-username db-passwd db-name host port))
+                 ((sqlite3) (format #f "~a" db-name)))))
       (%do-connect dbd str)))))
 
 (define (new-DB)
