@@ -1,4 +1,5 @@
 TOP := $(shell pwd)
+SRC := @srcdir@
 RELEASE_TYPE := alpha
 PREV_VER := 0.0.1
 GPG_KEY := EE78E925
@@ -10,26 +11,26 @@ LIBS := @GUILE_LIBS@ -shared
 LDFLAGS := @GUILE_LDFLAGS@ -fPIC -shared
 CC := @CC@
 OBJ := obj
-MOD := @srcdir@/artanis
+MOD := $(SRC)/artanis
 MOD_OBJ := $(OBJ)/artanis
 BIN_OBJ := $(OBJ)/bin
-TEMP_LIB_PATH := $(shell pwd)/$(OBJ)
+TEMP_LIB_PATH := $(OBJ)
 MOD_PATH := $(shell guile -c "(display (%site-dir))")
 MOD_COMPILED_PATH := $(shell guile -c "(display (%site-ccache-dir))")
 MOD_TARGET_PATH := $(MOD_COMPILED_PATH)
 GUILEC := GUILE_LOAD_COMPILED_PATH=$(TEMP_LIB_PATH) guild compile
-ARTANIS_ETC := @srcdir@/etc/artanis
-ARTANIS_PAGES := @srcdir@/pages
+ARTANIS_ETC := $(SRC)/etc/artanis
+ARTANIS_PAGES := $(SRC)/pages
 GUILE := @GUILE@
 VERSION := @PACKAGE_VERSION@
 PREFIX := @prefix@
 INSTALL := install -c
-HEADER := @srcdir@/.HEAD
-DOCS := @srcdir@/docs
+HEADER := $(SRC)/.HEAD
+DOCS := $(SRC)/docs
 DOCS_OBJ := $(OBJ)/docs/
 MANUALS := $(DOCS_OBJ)/manuals/
 TEXI_SRC := $(DOCS)/artanis.texi
-BUILD_AUX := @srcdir@/build-aux
+BUILD_AUX := $(SRC)/build-aux
 GENDOCS :=$(BUILD_AUX)/gendocs.sh
 CHK_TEXINFO := $(BUILD_AUX)/check_texinfo.scm
 CP := cp -frd -P
@@ -53,12 +54,12 @@ all: $(ALL_TARGETS)
 $(MOD_OBJ)/%.go: $(MOD)/%.scm
 	@echo + compiling $<
 	@mkdir -p $(@D)
-	$(V)$(GUILEC) -L $(TOP) -o $@ $< 1>> build.log 2>> build.err
+	$(V)$(GUILEC) -L $(SRC) -o $@ $< 1>> build.log 2>> build.err
 
 $(MOD_OBJ)/version.go: $(MOD)/version.scm
 	@echo + compiling $<
 	@mkdir -p $(@D)
-	$(V)$(GUILEC) -L $(TOP) -o $@ $< 1> build.log 2> build.err
+	$(V)$(GUILEC) -L $(SRC) -o $@ $< 1> build.log 2> build.err
 
 $(MOD)/version.scm:
 	@echo "Regenerating artanis/version.scm"
