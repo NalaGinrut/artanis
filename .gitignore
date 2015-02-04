@@ -3,8 +3,6 @@
 *.pdf
 build.log
 build.err
-config.guess
-config.sub
 #configure
 obj/*
 *.so
