@@ -35,7 +35,8 @@ script:
   - mkdir -p build && cd build && ../configure
   - make V=""
   - cat build.err
-  - sudo make install && guile -c '(display (@ (artanis artanis) artanis-version))'
+  - sudo make install
+  - guile -c '(display (@ (artanis artanis) artanis-version))'
 
 branches:
   only:
