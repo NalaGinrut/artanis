@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/NalaGinrut/artanis.svg)](https://travis-ci.org/NalaGinrut/artanis)
+
 Artanis
 =========
 
