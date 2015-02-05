@@ -1,9 +1,9 @@
 [![Build Status](https://travis-ci.org/NalaGinrut/artanis.svg)](https://travis-ci.org/NalaGinrut/artanis)
 
-Artanis
+GNU Artanis
 =========
 
-Artanis aims to be a web application framework for Scheme.
+GNU Artanis aims to be a web application framework for Scheme.
 The philosophy of Artanis would be very radical to try cutting-edge things.
 So you are under your own risk to use it. However, it may bring cool experiences
 when you play it. 
