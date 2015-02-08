@@ -27,14 +27,14 @@
   #:use-module (artanis third-party json upstream builder)
   #:use-module (artanis third-party json upstream parser)
   #:use-module (artanis third-party json upstream syntax)
+  #:export (->json-string)
   #:re-export (scm->json
                scm->json-string
                json->scm
                json-string->scm
                json-parser?
                json-parser-port
-               json
-               ->json-string))
+               json))
 
 (define* (->json-string sxml #:key (jsonp #f))
   (if jsonp
