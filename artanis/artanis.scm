@@ -124,6 +124,7 @@
                sxml->csv-string
 
                ;; json
+               ->json-string
                scm->json
                scm->json-string
                json->scm

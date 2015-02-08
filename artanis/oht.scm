@@ -222,7 +222,7 @@
     (define headers `((content-type . (,(mime-guess type)))))
     (define-syntax-rule (-> func) (values (apply func args) #:pre-headers headers))
     (case type
-      ((json) (-> scm->json-string))
+      ((json) (-> ->json-string))
       ((xml) (-> sxml->xml-string))
       ((csv) (-> sxml->csv-string))
       ((sxml) (values (object->string (car args)) #:pre-headers headers))

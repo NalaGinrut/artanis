@@ -33,4 +33,10 @@
                json-string->scm
                json-parser?
                json-parser-port
-               json))
+               json
+               ->json-string))
+
+(define* (->json-string sxml #:key (jsonp #f))
+  (if jsonp
+      (format #f "~a(~a)" jsonp (scm->json-string sxml))
+      (scm->json-string sxml)))
