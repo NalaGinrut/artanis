@@ -53,7 +53,7 @@
             symbol-downcase symbol-upcase normalize-column
             sxml->xml-string run-after-request! run-before-response!
             make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
-            generate-kv-from-post-qstr)
+            generate-kv-from-post-qstr handle-proper-owner)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -628,3 +628,20 @@
   (map (lambda (x)
          (%convert (map -> (string-split (cook x) #\=))))
        (string-split (utf8->string body) #\&)))
+
+(define (handle-proper-owner file uid gid)
+  (define-syntax-rule (print-the-warning exe reason)
+    (format (current-error-port) "[WARNING] '~a' encountered system error: ~s~%" exe reason))
+  (catch 'system-error
+   (lambda ()
+     (chown file (or uid (getuid)) (or gid (getgid))))
+   (lambda (k . e)
+     (let ((exe (car e))
+           (reason (caaddr e)))
+       (match (cons k reason)
+         ('(system-error . "Operation not permitted")
+          (print-the-warning exe reason)
+          (display "Maybe you run Artanis as unprivileged user? (say, not as root)\n" (current-error-port)))
+         ('(system-error . "No such file or directory")
+          (throw 'artanis-err 500 reason file))
+         (else (apply throw k e)))))))

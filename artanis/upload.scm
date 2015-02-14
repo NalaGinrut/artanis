@@ -175,9 +175,6 @@
          (ll (irregex-split (format #f "(\n|\r\n)?(--)?~a" boundary) str)))
     (mfd-parser ll)))
 
-(define (handle-proper-owner file uid gid)
-  (chown file (or uid (getuid)) (or gid (getgid))))
-
 (define* (make-mfd-dumper #:key (path (current-upload-path))
                           (uid #f) (gid #f)
                           (mode #o664) (path-mode #o775) (sync #f))
