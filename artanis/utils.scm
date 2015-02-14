@@ -624,14 +624,18 @@
       (else (throw 'artanis-err 500 "generate-kv-from-post-qstr: Fatal! Can't be here!" lst))))
   (define (-> x)
     (string-trim-both x (lambda (c) (member c '(#\sp #\: #\return)))))
-  (format #t "GGGGGGG: ~a~%" (utf8->string body))
   (map (lambda (x)
          (%convert (map -> (string-split (cook x) #\=))))
        (string-split (utf8->string body) #\&)))
 
+;; NOTE: We accept warnings, which means if warnings occurred, it'll be 200(OK) anyway, but
+;;       Artanis will throw warnings in the server-side log.
+;; NOTE: We *DO NOT* accept errors, which means if errors occurred, Artanis will throw 500.
 (define (handle-proper-owner file uid gid)
   (define-syntax-rule (print-the-warning exe reason)
     (format (current-error-port) "[WARNING] '~a' encountered system error: ~s~%" exe reason))
+  (define-syntax-rule (->err-reason exe reason)
+    (format #f "'~a' encoutered system error: ~s" exe reason))
   (catch 'system-error
    (lambda ()
      (chown file (or uid (getuid)) (or gid (getgid))))
@@ -643,5 +647,5 @@
           (print-the-warning exe reason)
           (display "Maybe you run Artanis as unprivileged user? (say, not as root)\n" (current-error-port)))
          ('(system-error . "No such file or directory")
-          (throw 'artanis-err 500 reason file))
+          (throw 'artanis-err 500 (->err-reason exe reason) file))
          (else (apply throw k e)))))))
