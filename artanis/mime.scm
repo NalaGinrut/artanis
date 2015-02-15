@@ -18,7 +18,7 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis mime)
-  #:export (mime-guess))
+  #:export (mime-guess mime-check))
 
 (define mime-list
   `((application/andrew-inset (ez))
@@ -402,17 +402,41 @@
     (text/scheme (sxml))
     (application/scheme (ss scm))))
 
+;; NOTE: "application/octet-stream" should be the default if there's no further
+;;       information to guess. Accroding to RFC1341:
+;; http://www.w3.org/Protocols/rfc1341/4_Content-Type.html
+;; "When a mail reader encounters mail with an unknown Content- type value, it
+;; should generally treat it as equivalent to "application/octet-stream", as
+;; described later in this document."
 (define mime-guess
   (lambda (ext)
     (or (hash-ref *mime-types-table*
                   (cond
                    ((symbol? ext) ext)
                    ((string? ext) (string->symbol ext))
-                   (else (throw 'artanis-err 500 "mime-guess: wrong ext type to guess mime!"))))
-        'application/misc)))
+                   (else (throw 'artanis-err 500
+                                "mime-guess: wrong ext type to guess mime!"))))
+        'application/octet-stream)))
 
 ;; TODO: generate this table on the env init time, and save a copy in env.
 (define *mime-types-table* (make-hash-table))
+
+;; ENHANCEMENT: This search is inefficient since it's pure linked list, we may
+;;              need faster data structure, although it's not necessary.
+;; NOTE: mime-check is useful for checking if your program is wrong, so we
+;;       throw error if it doesn't pass. It's recommended to use when debug
+;;       mode is enabled.
+(define (mime-check mime)
+  (or
+   (assq-ref
+    *mime-types-table*
+    (cond
+     ((symbol? mime) mime)
+    ((string? mime) (string->symbol mime))
+    (else (throw 'artanis-err 500
+                 "mime-check: Invalid MIME! Should be symbol or string" mime))))
+   (throw 'artanis-err 500
+          "mime-check: MIME check failed, maybe your program has bug?")))
 
 ;; init mime type table
 (define (init-mime)
