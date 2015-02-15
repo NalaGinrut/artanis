@@ -20,6 +20,7 @@
 (define-module (artanis utils)
   #:use-module (artanis crypto md5)
   #:use-module (artanis crypto sha-1)
+  #:use-module (artanis crypto base64)
   #:use-module (artanis tpl sxml)
   #:use-module (artanis config)
   #:use-module (artanis irregex)
@@ -53,7 +54,8 @@
             symbol-downcase symbol-upcase normalize-column
             sxml->xml-string run-after-request! run-before-response!
             make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
-            generate-kv-from-post-qstr handle-proper-owner)
+            generate-kv-from-post-qstr handle-proper-owner
+            generate-data-url)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -645,7 +647,33 @@
        (match (cons k reason)
          ('(system-error . "Operation not permitted")
           (print-the-warning exe reason)
-          (display "Maybe you run Artanis as unprivileged user? (say, not as root)\n" (current-error-port)))
+          (display
+           "Maybe you run Artanis as unprivileged user? (say, not as root)\n"
+           (current-error-port)))
          ('(system-error . "No such file or directory")
           (throw 'artanis-err 500 (->err-reason exe reason) file))
          (else (apply throw k e)))))))
+
+;; According to wiki, here's the standard format of data_url_scheme:
+;; data:[<MIME-type>][;charset=<encoding>][;base64],<data>
+(define* (generate-data-url bv/str #:key (mime 'application/octet-stream)
+                            (crypto 'base64) (charset 'utf-8))
+  (define-syntax-rule (->crypto)
+    (match crypto
+      ((or 'base64 "base64") ";base64")
+      (else "")))
+  (define-syntax-rule (->charset)
+    (if (or (string? charset) (symbol? charset))
+        (format #f ",charset=~a" charset)
+        ""))
+  (define-syntax-rule (->mime)
+    (match mime
+      (`(guess ,ext) (or (mime-guess ext) 'application/octet-stream))
+      ((or (? symbol?) (? string?))
+       (or (and (get-conf 'debug-mode) (mime-check mime) (format #f "~a" mime))
+           (format #f "~a" mime)))
+      (else (throw 'artanis-err 500
+                   "generate-data-url: Invalid MIME! Should be symbol or string"
+                   mime))))
+  (let ((b64 (base64-encode bv/str)))
+    (string-concatenate (list "data:" (->mime) (->crypto) (->charset) "," b64))))
