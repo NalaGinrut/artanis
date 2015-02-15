@@ -1,5 +1,4 @@
-#! /usr/local/bin/guile \
--L ../
+#! /usr/bin/env guile
 !#
 
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
@@ -125,6 +124,12 @@
   (lambda (rc)
     (let ((j (json (object ("name" "nala") ("age" "15")))))
       (:mime rc j))))
+
+;; 9.1
+;; JSONP test
+(get "/jsonp/:callback" #:mime 'json
+  (lambda (rc)
+    (:mime rc (json (object ("name" "nala") ("age" "15"))) #:jsonp (params rc "callback"))))
 
 ;; 10
 (get "/csv" #:mime 'csv
