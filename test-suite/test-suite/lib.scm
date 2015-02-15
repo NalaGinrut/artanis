@@ -1,6 +1,7 @@
 ;;;; test-suite/lib.scm --- generic support for testing
 ;;;; Copyright (C) 1999, 2000, 2001, 2004, 2006, 2007, 2009, 2010,
 ;;;;   2011, 2012, 2013 Free Software Foundation, Inc.
+;;;;   2015 MuLei known as NalaGinrut <mulei@gnu.org>
 ;;;;
 ;;;; This program is free software; you can redistribute it and/or
 ;;;; modify it under the terms of the GNU Lesser General Public
@@ -439,7 +440,7 @@
              (begin
                (display separator port)
                (display (car name) port)
-               (loop (cdr name) ": "))))))))
+               (loop (cdr name) " <== "))))))))
 
 ;;;; For a given test-name, deliver the full name including all prefixes.
 (define (full-name name)
