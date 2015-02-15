@@ -1,5 +1,6 @@
 TOP := $(shell pwd)
 SRC := @srcdir@
+SHELL := /bin/bash
 RELEASE_TYPE := alpha
 PREV_VER := 0.0.1
 GPG_KEY := EE78E925
@@ -40,11 +41,16 @@ TMP_DIR := $(shell mktemp -d)
 ANN_GEN := $(BUILD_AUX)/announce-gen
 DIRE_GEN := $(BUILD_AUX)/gen-directive.scm
 GNUPLOAD := $(BUILD_AUX)/gnupload
+TEST_SUITE := $(SRC)/test-suite
+TESTS := $(TEST_SUITE)/tests
 V := @
 
 mod-sfile := $(shell find $(MOD) -name *.scm)
 mod-ofile := $(mod-sfile:.scm=.go)
 mod-ofile := $(subst $(MOD)/,$(MOD_OBJ)/,$(mod-ofile))
+
+test-cases := $(shell find $(TESTS) -name *.test)
+#test-cases := $(test-scm:.test=.go)
 
 ALL_TARGETS :=  version \
 		modules
@@ -129,16 +135,8 @@ version: $(MOD)/version.scm
 
 modules: $(MOD_OBJ)/version.go $(mod-ofile)
 
-test:
-	@echo $(PREFIX)
-	@echo $(MOD_COMPILED_PATH)
-	@echo $(MOD_PATH)
-	@echo $(CC)
-	@echo $(CFLAGS)
-	@echo $(GUILE)
-	@echo $(VERSION)
-	@echo $(LIBS)
-	@echo $(mod-ofile)
+test: 
+	for t in $(test-cases); do $(GUILE) -L $(TEST_SUITE) $$t; done
 
 docs: $(TEXI_SRC)
 	$(CHK_TEXINFO)
