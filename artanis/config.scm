@@ -18,6 +18,7 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis config)
+  #:use-module (artanis version)
   #:use-module (artanis env)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 match)
@@ -46,7 +47,7 @@
     ((db passwd) "")
 
     ;; for server namespace
-    ((server info) "Artanis-0.0.1")
+    ((server info) ,artanis-version)
     ((server nginx) #f)
     ((server charset) "utf-8")
     ((server syspage path) "/etc/artanis/pages")
