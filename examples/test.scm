@@ -127,7 +127,7 @@
 
 ;; 9.1
 ;; JSONP test
-(get "/jsonp/:callback" #:mime 'json
+(get "/jsonp/:callback" #:mime 'jsonp
   (lambda (rc)
     (:mime rc (json (object ("name" "nala") ("age" "15"))) #:jsonp (params rc "callback"))))
 
