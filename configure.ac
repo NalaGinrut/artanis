@@ -49,5 +49,5 @@ AC_CHECK_LIB([guile-dbi], [init_db_handle_type], ,[AC_MSG_ERROR(No guile-dbi was
 
 LT_INIT([dlopen disable-fast-install disable-static win32-dll])
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile bin/art])
 AC_OUTPUT
