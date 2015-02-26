@@ -17,11 +17,28 @@
 ;;  and GNU Lesser General Public License along with this program.
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
-(define-module (artanis commands create))
+(define-module (artanis commands create)
+  #:use-module (ice-9 match))
 
 (define %summary "Create a new Artanis project.")
 
+(define (show-help)
+  (display "[USAGE] art create proj-name\n"))
+
+(define (create-project name)
+  (define fullname (string-append (getcwd) "/" name))
+  (cond
+   ((file-exists? fullname)
+    (format #t
+            "`~a' exists, please choose a new name or remove the existed one!~%"
+            name))
+   (else
+    (format #t "creating ~a...~%" name))))
+
 (define (create . args)
-  (format #t "ok, it's just a test! args:~a~%" args))
+  (match args
+    (((or () "help" "-h")) (show-help))
+    ((name) (create-project name))
+    (else (show-help))))
 
 (define main create)
