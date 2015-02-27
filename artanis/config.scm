@@ -59,10 +59,10 @@
 
     ;; for session namespace
     ((session path) "session")
-    ((session engine) 'simple)
+    ((session engine) simple)
 
     ;; for upload namespace
-    ((upload types) '(jpg png gif))
+    ((upload types) (jpg png gif))
     ((upload path) "upload")
 
     ;; for mail namespace
