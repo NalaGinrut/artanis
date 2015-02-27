@@ -78,11 +78,12 @@
     (close fp)))
 
 (define *dir-arch*
-  '((app (module controller view)) ; MVC stuff
+  '((app (model controller view)) ; MVC stuff
     (sys (pages i18n)) ; system stuff
+    (fprm) ; FPRM scripts
     (log) ; log files
     (lib) ; libs
-    (pub ((img upload) css js)) ; public assets
+    (pub ((img (upload)) css js)) ; public assets
     (prv) ; private stuff, say, something dedicated config or tokens
     (tmp (cache)) ; temporary files
     (test (unit functional benchmark)))) ; tests stuffs
@@ -90,28 +91,26 @@
 ;; Simple recursive depth-first order traverser for generic tree (in list).
 ;; We use this function for making *dir-arch* directory tree, it's little data,
 ;; so we don't care about the performance very much.
-(define (dfs t p)
+(define (dfs t p l)
   (match t
-    (() (display "--\n"))
+    (() #t)
     (((r (children ...)) rest ...)
-     (p r)
-     (for-each (lambda (x) (dfs x p)) children)
-     (dfs rest p))
+     (p r l)
+     (for-each (lambda (x) (dfs (list x) p (cons r l))) children)
+     (dfs rest p l))
     (((r) rest ...)
-     (p r)
-     (dfs rest p))
+     (p r l)
+     (dfs rest p l))
     ((children ...)
-     (p (car children))
-     (dfs (cdr children) p))
-    (else (p t))))
+     (p (car children) l)
+     (dfs (cdr children) p l))
+    (else (error dfs "BUG: Impossible pattern! Please report it!" t))))
 
 (define (create-framework)
-  (for-each (lambda (d)
-              (match d
-                ((root others)
-                 (mkdir root)
-                 (for-each (lambda (sub)
-                             
+  (define (->path x l)
+    (format #f "~{~a~^/~}" (reverse (cons x l))))
+  (dfs *dir-arch* (lambda (x l) (mkdir (->path x l))) '()))
+
 (define (create-project name)
   (cond
    ((file-exists? name)
