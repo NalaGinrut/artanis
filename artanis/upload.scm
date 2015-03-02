@@ -243,8 +243,7 @@
       mfds)
      (display (string-append "\r\n--" boundary "--\r\n") port))))
 
-;; FIXME: This is a temp path, should use (get-conf "upload") instead
-(define current-upload-path (make-parameter "upload/"))
+(define (current-upload-path) (get-conf '(upload path)))
 
 ;; Usage: the pattern should be:
 ;; '((file filelist ...) (data datalist ...))
