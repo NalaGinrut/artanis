@@ -25,16 +25,21 @@ http://gnu.org/software/artanis/manual
 
 ## Thanks for testing
 * Fedora release 20 (Heisenbug)
+
   Long Li <atommann AT gmail.com>
 
 * Arch
+
   @42cmonkey
 
 * Debian 7.8
+
   NalaGinrut
 
 * Debian 8.0 GNU/Hurd 0.5 & GNU-Mach 1.4+git20150208
+
   NalaGinrut
 
 * OpenSUSE 12.2
+
   NalaGinrut
