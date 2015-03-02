@@ -1,4 +1,101 @@
+2015-03-02  Nala Ginrut  <nalaginrut@gmail.com>
+
+	prepare for v0.0.3 release
+
+	removed redundant LICENSE
+
+	updated README
+
+	updated README
+
+	use upload.path in config instead of hardcoded path
+	*  artanis/upload.scm
+
+2015-02-27  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed list type in config.scm
+
+2015-02-26  Nala Ginrut  <nalaginrut@gmail.com>
+
+	generate correct server-info from version.scm
+
+	generate proper MIME for JSON and JSONP
+	* artanis/oht.scm
+	* artanis/mime.scm
+	* example/test.scm
+
+	  JSON  -> application/json
+	  JSONP -> application/javascript
+
+2015-02-15  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added generate-data-url
+
+	added mime-check which will be triggerred in debug-mode
+
+	added jsonp test
+
+2015-02-14  Nala Ginrut  <nalaginrut@gmail.com>
+
+	little tweak for handle-proper-owner
+	*  artanis/utils.scm: (handle-proper-owner) "Permission denied" while calling
+	                      'chown' should be warning (return 200).
+	                      And "file doesn't exist" should be error (return 500).
+
+	Fixed handle-proper-owner to throw proper exception *  artanis/upload.scm: removed handle-proper-owner. *  artanis/utils.scm: added handler-proper-owner, and fixed to throw proper exception.
+
+2015-02-09  Nala Ginrut  <nalaginrut@gmail.com>
+
+	export ->json-string properly
+
+	added jsonp support
+
+2015-02-05  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update README.md for proper naming
+
+2015-02-04  Nala Ginrut  <nalaginrut@gmail.com>
+
+	tweaked .travis.yml
+
+	added support for travis-ci
+
+	fixed Makefile.in for building in external path properly
+
+	don't ignore config.sub and config.guess
+
+2015-02-03  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Fixed connect-db while connect to sqlite3 when specifying db-name with keyword
+	* artanis/db.scm: format proper init string for different dbd while using keywords.
+
+2015-02-02  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Fixed #37 "cp: cannot stat artanis.info: No such file or directory"
+
+	update README for licensing
+
+2015-01-30  Nala Ginrut  <nalaginrut@gmail.com>
+
+	ignore .tarball-version
+
+	update docs for proper tarball version
+
+	fixed manual link in README
+
+2015-01-29  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added gnupload and ftp upload stuffs
+
+	added stuffs to generate triplet for GNU ftp
+
+	added build-aux/gen-directive.scm
+
+	fixed version in manual
+
 2015-01-28  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update ChangeLog
 
 	fixed announce auto-generation
 
@@ -555,8 +652,6 @@
 	   Removed: error fields
 	   Modified: upload types
 
-2014-08-07  Nala Ginrut  <nalaginrut@gmail.com>
-
 	update config.scm and db.scm
 	* modified:   config.scm
 
@@ -567,8 +662,6 @@
 	* modified:   db.scm
 	   Exported: <connection>?
 	   Added: connect-db
-
-2014-08-07  Nala Ginrut  <nalaginrut@gmail.com>
 
 	export <connection>?
 
@@ -814,8 +907,6 @@
 
 	fix default uid and gid
 
-2014-05-09  Nala Ginrut  <nalaginrut@gmail.com>
-
 	Fixed upload bug
 	* modified:   artanis/upload.scm:
 	  Fixed: The attatched file will be cut the first line of code, the
@@ -1040,8 +1131,6 @@
 	re-commit for upload fix
 	* artanis/upload.scm: fix some bugs, now upload works for text & binary
 	* artanis/utils.scm(checkout-the-path): fix checkout-the-path
-
-2013-08-22  Nala Ginrut  <nalaginrut@gmail.com>
 
 	upload is done and added example of upload
 	* artanis/upload.scm: fix some bugs, now upload works for text & binary
@@ -1411,8 +1500,6 @@
 	modified:   artanis/utils.scm
 	new file:   favicon.ico
 
-2013-02-05  Nala Ginrut  <nalaginrut@gmail.com>
-
 	Add last-modified time, and fixed 'favicon.ico' fetch.
 	* Add: last-modified time
 	* Fixed: 'favicon.ico' fetch
@@ -1424,8 +1511,6 @@
 	modified:   test.scm
 
 	new file:   BUGS
-
-2013-02-05  Nala Ginrut  <nalaginrut@gmail.com>
 
 	ADD: site enable/disabe
 

@@ -8,3 +8,8 @@ Please send Artanis bug reports to bug-artanis@gnu.org.
 Changes in 0.0.2
 * Notable changes
   Updated for GNU project.
+
+Changes in 0.0.3
+* Notable changes
+  Fixed several bugs.
+  Support JSONP.
