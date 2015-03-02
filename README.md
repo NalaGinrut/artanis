@@ -33,5 +33,8 @@ http://gnu.org/software/artanis/manual
 * Debian 7.8
   NalaGinrut
 
+* Debian 8.0 GNU/Hurd 0.5 & GNU-Mach 1.4+git20150208
+  NalaGinrut
+
 * OpenSUSE 12.2
   NalaGinrut
