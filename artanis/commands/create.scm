@@ -108,7 +108,7 @@
 
 (define (create-framework)
   (define (->path x l)
-    (format #f "~{~a~^/~}" (reverse (cons x l))))
+    (format #t "~{~a~^/~}~%" (reverse (cons x l))))
   (dfs *dir-arch* (lambda (x l) (mkdir (->path x l))) '()))
 
 (define (create-project name)
