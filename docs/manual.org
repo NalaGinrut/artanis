@@ -803,6 +803,54 @@ You can use SXML to replace XML for exchanging data format. This way saves some 
   (lambda (rc)
     (:mime rc '((a 1) (b 2)))))
 #+end_src
+* Upload files
+If you want to deal with uploading files, store-uploaded-files would be you friend.
+** Receive upload from client
+
+#+begin_src scheme
+(store-uploaded-files rc #:path (current-upload-path)
+                         #:uid #f
+                         #:gid #f
+                         #:simple-ret? #t
+                         #:mode #o664
+                         #:path-mode #o775
+                         #:sync #f)
+#+end_src
+
+*rc* is the route-context.
+
+src_scheme[:exports code]{#:path} is specified path to put uploaded files.
+
+src_scheme[:exports code]{#:uid} is new uid for uploaded files, #f means don't change the default uid.
+
+src_scheme[:exports code]{#:gid} specifies new gid.
+
+src_scheme[:exports code]{#:simple-ret?} specifies the mode of return:
++ if #t, there're only two possible return value, 'sucess for sucess, 'none for nothing has been done.
++ if #f, and while it's successful, it returns a list to show more detais: (success size-list filename-list).
+
+src_scheme[:exports code]{#:mode} chmod files to mode.
+
+src_scheme[:exports code]{#:path-mode} chmod upload path to mode.
+
+src_scheme[:exports code]{#:sync} sync while storing files.
+** Send upload to Server
+Although GNU Artanis is often used in server-side, we provide this function for users to upload files from client.
+#+begin_src scheme
+ (upload-files-to uri pattern)
+#+end_src
+
+*uri* is standard HTTP URL:
+#+begin_src nil
+scheme://[user:password@]domain:port/path?query_string#fragment_id
+#+end_src
+
+*pattern* should be:  ((file filelist ...) (data datalist ...)), for example:
+#+begin_src scheme
+(upload-files-to "ftp://nala:123@myupload.com/"
+ '((data ("data1" "hello world"))
+   (file ("file1" "filename") ("file2" "filename2"))))
+#+end_src
 * Sessions
 You have to use src_scheme[:exports code]{#:session mode} while you defining URL rule handler.
 #+begin_src scheme
