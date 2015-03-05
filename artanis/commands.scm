@@ -1,6 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  === Websocket tests ===
-;;  Copyright (C) 2013,2014,2015
+;;  Copyright (C) 2015
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -18,23 +17,18 @@
 ;;  and GNU Lesser General Public License along with this program.
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
-(define-module (test websocket)
-  #:use-module (artanis utils)
-  #:use-module (test-suite lib))
+(define-module (artanis commands)
+  #:export (find-command
+            no-command?
+            no-command-args?))
 
-;; export all things, since we need to test inner functions
-(eval-when (eval load compile)
-  (export-all-from-module! '(artanis websocket)))
+(define (no-command? args)
+  (< (length args) 2))
 
-(with-test-prefix "websocket test"
+(define (no-command-args? args)
+  (< (length args) 3))
 
-  (pass-if "websocket key->accept"
-    (let ((ts (websocket:key->accept "x3JJHMbDL1EzLkh9GBhXDw==")))
-      (string=? ts "HSmrc0sMlYUkAGmm5OPpG2HaGWk=")))
+(define command-path '(artanis commands))
 
-  (pass-if "websocket one frame as string decode"
-    (let ((str (websocket:decode-body-string "\x81\x8cÿ¸½½·ÝÑÑ\x90\x98êÒ\x8dÔÙ\x9c")))
-      (string=? str "Hello World!")))
-
-  ;; TODO: fill other tests
-  )
+(define (find-command name)
+  (resolve-module `(,@command-path ,(string->symbol name)) #:ensure #f))
