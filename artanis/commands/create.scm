@@ -18,6 +18,7 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis commands create)
+  #:use-module (artanis irregex)
   #:use-module (ice-9 match))
 
 (define %summary "Create a new Artanis project.")
@@ -27,7 +28,7 @@
 
 (define conf-header
 "##  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-##  Copyright (C) 2014
+##  Copyright (C) 2015
 ##      \"Mu Lei\" known as \"NalaGinrut\" <NalaGinrut@gmail.com>
 ##  Artanis is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU General Public License as published by
@@ -108,8 +109,26 @@
 
 (define (create-framework)
   (define (->path x l)
-    (format #t "~{~a~^/~}~%" (reverse (cons x l))))
+    (format #f "~{~a~^/~}" (reverse (cons x l))))
   (dfs *dir-arch* (lambda (x l) (mkdir (->path x l))) '()))
+
+(define *entry-string*
+  "
+ (use-modules (artanis artanis)
+              ;; Put modules you want to be imported here
+
+              (artanis utils))
+ ;; Put whatever you want to be called before server initilization here
+
+ (init-server)
+
+ ;; Put whatever you want to be called before server running here
+")
+
+(define (create-entry)
+  (let ((fp (open-file "ENTRY" "w")))
+    (display *entry-string* fp)
+    (close fp)))
 
 (define (create-project name)
   (cond
@@ -124,11 +143,13 @@
     (create-local-config)
     (create-framework)
     (create-entry)
-    )))
+    (format #t "OK~%"))))
 
 (define (create . args)
+  (define (validname? x)
+    (irregex-search "^-.*" x))
   (match args
-    (((or () "help" "-h")) (show-help))
+    (((or () (? validname?) "help" "--help" "-help" "-h")) (show-help))
     ((name) (create-project name))
     (else (show-help))))
 
