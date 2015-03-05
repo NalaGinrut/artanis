@@ -31,9 +31,9 @@
     (cond
      ((find-command (if (no-command? args) "help" (cadr args)))
       => (lambda (mod)
-           (exit (apply (module-ref mod 'main) (if (no-command-args? args)
-                                                   '()
-                                                   (cddr args))))))
+           (apply (module-ref mod 'main) (if (no-command-args? args)
+                                             '()
+                                             (cddr args)))))
      (else
       (format (current-error-port)
               "art: unknown command ~s~%" (cadr args))
