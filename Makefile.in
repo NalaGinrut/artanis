@@ -14,7 +14,7 @@ CC := @CC@
 OBJ := obj
 MOD := $(SRC)/artanis
 MOD_OBJ := $(OBJ)/artanis
-BIN_OBJ := $(OBJ)/bin
+BIN := $(SRC)/bin
 TEMP_LIB_PATH := $(OBJ)
 MOD_PATH := $(shell guile -c "(display (%site-dir))")
 MOD_COMPILED_PATH := $(shell guile -c "(display (%site-ccache-dir))")
@@ -53,7 +53,8 @@ test-cases := $(shell find $(TESTS) -name *.test)
 #test-cases := $(test-scm:.test=.go)
 
 ALL_TARGETS :=  version \
-		modules
+		modules \
+		scripts
 
 all: $(ALL_TARGETS)
 
@@ -73,7 +74,7 @@ $(MOD)/version.scm:
 	$(V) cat $(HEADER) > $@
 	$(V)$(GUILE) -c '(let ((port (open-file "$@" "a")))(format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"GNU Artanis-~a\")~%" "$(VERSION)"))'
 
-.PHONY: upload upload.gz upload.bz2 announce release.gz release.bz2 prepare clean modules install distclean distclean-mk bin version test docs
+.PHONY: upload upload.gz upload.bz2 announce release.gz release.bz2 prepare clean modules install distclean distclean-mk bin version test docs scripts
 
 announce: release.gz release.bz2
 	$(V) $(ANN_GEN) --release-type=$(RELEASE_TYPE) --package-name=artanis --previous-version=$(PREV_VER) --current-version=$(VERSION) --gpg-key-id=$(GPG_KEY) --url-directory=$(URL_DIR) --news=NEWS --bootstrap-tools=$(BOOT_TOOLS)
@@ -124,6 +125,7 @@ install: $(ALL_TARGETS)
 	$(CP) $(MOD_OBJ) $(MOD_TARGET_PATH)
 	$(CP) $(ARTANIS_ETC) /etc
 	$(CP) $(ARTANIS_PAGES) /etc/artanis
+	$(CP) $(BIN)/art $(PREFIX)/bin
 	if [ -e artanis.info ]; then $(CP) artanis.info $(INFO_DIR); fi
 
 distclean: distclean-mk clean clean-config clean-tarball
@@ -142,3 +144,6 @@ docs: $(TEXI_SRC)
 	$(CHK_TEXINFO)
 	GENDOCS_TEMPLATE_DIR=$(BUILD_AUX) $(GENDOCS) --email bug-artanis@gnu.org -s $< -o $(MANUALS) "GNU Artanis Manual" --html --no-headers
 	-rm -f ./*.{cp,ky,tp,aux,fn,log,pg,toc,vr}
+
+scripts:
+	chmod +x $(BIN)/art
