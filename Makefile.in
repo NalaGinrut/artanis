@@ -111,7 +111,6 @@ clean:
 	-rm -fr $(OBJ) autom4te.cache
 	-rm -f *.log *.err *.info
 	-rm -f $(MOD)/version.scm
-	-rm -f $(BIN)/art
 	find . -name "*~" -exec rm {} \;
 
 clean-tarball:
@@ -130,6 +129,7 @@ install: $(ALL_TARGETS)
 	if [ -e artanis.info ]; then $(CP) artanis.info $(INFO_DIR); fi
 
 distclean: distclean-mk clean clean-config clean-tarball
+	-rm -f $(BIN)/art
 
 distclean-mk:
 	-rm -f Makefile
