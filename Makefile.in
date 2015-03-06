@@ -61,12 +61,12 @@ all: $(ALL_TARGETS)
 $(MOD_OBJ)/%.go: $(MOD)/%.scm
 	@echo + compiling $<
 	@mkdir -p $(@D)
-	$(V)$(GUILEC) -L $(SRC) -o $@ $< 1>> build.log 2>> build.err
+	$(V)$(GUILEC) -L $(SRC) -o $@ $< 1>> build.log 2>> build.err || (cat build.err && exit 1)
 
 $(MOD_OBJ)/version.go: $(MOD)/version.scm
 	@echo + compiling $<
 	@mkdir -p $(@D)
-	$(V)$(GUILEC) -L $(SRC) -o $@ $< 1> build.log 2> build.err
+	$(V)$(GUILEC) -L $(SRC) -o $@ $< 1> build.log 2> build.err || (cat build.err && exit 1)
 
 $(MOD)/version.scm:
 	@echo "Regenerating artanis/version.scm"
