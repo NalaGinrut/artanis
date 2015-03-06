@@ -33,7 +33,7 @@
       => (lambda (mod)
            (apply (module-ref mod 'main) (if (no-command-args? args)
                                              '()
-                                             (cddr args)))))
+                                             (cdr args)))))
      (else
       (format (current-error-port)
               "art: unknown command ~s~%" (cadr args))
