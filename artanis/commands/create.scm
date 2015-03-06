@@ -149,8 +149,8 @@
   (define (validname? x)
     (irregex-search "^-.*" x))
   (match args
-    (((or () (? validname?) "help" "--help" "-help" "-h")) (show-help))
-    ((name) (create-project name))
+    (("create" (or () (? validname?) "help" "--help" "-help" "-h")) (show-help))
+    (("create" name) (create-project name))
     (else (show-help))))
 
 (define main create)
