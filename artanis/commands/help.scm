@@ -18,20 +18,9 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis commands help)
-  #:use-module (artanis version)
+  #:use-module (artanis commands)
   #:use-module (srfi srfi-1)
   #:use-module (ice-9 ftw))
-
-(define help-str-head
-  "
-GNU Artanis is a lightweight web framework written in Scheme.
-NalaGinrut <mulei@gnu.org>
-
-commands:
-")
-
-(define help-str-foot
-  (format #f "~%~a~%Version: ~a.~%God bless hacking.~%~%" "GPLv3+ & LGPLv3+" artanis-version))
 
 (define (remove-ext str)
   (let ((i (string-contains str ".")))
@@ -58,7 +47,10 @@ commands:
                 cmds))))
 
 (define (gen-help-str)
-  (string-append help-str-head (show-cmds-info) help-str-foot))
+  (string-append announce-head
+                 "\ncommands:\n"
+                 (show-cmds-info)
+                 announce-foot))
 
 (define (show-help) (display (gen-help-str)))
 

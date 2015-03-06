@@ -18,9 +18,12 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis commands)
+  #:use-module (artanis version)
   #:export (find-command
             no-command?
-            no-command-args?))
+            no-command-args?
+            announce-head
+            announce-foot))
 
 (define (no-command? args)
   (< (length args) 2))
@@ -32,3 +35,12 @@
 
 (define (find-command name)
   (resolve-module `(,@command-path ,(string->symbol name)) #:ensure #f))
+
+(define announce-head
+  "
+GNU Artanis is a lightweight web framework written in Guile Scheme.
+NalaGinrut <mulei@gnu.org>
+")
+
+(define announce-foot
+  (format #f "~%~a~%Version: ~a.~%God bless hacking.~%~%" "GPLv3+ & LGPLv3+" artanis-version))

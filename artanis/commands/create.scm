@@ -18,13 +18,16 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis commands create)
+  #:use-module (artanis commands)
   #:use-module (artanis irregex)
   #:use-module (ice-9 match))
 
 (define %summary "Create a new Artanis project.")
 
 (define (show-help)
-  (display "[USAGE] art create proj-path\n"))
+  (display announce-head)
+  (display "\nUsage:\n  art create proj-path\n")
+  (display announce-foot))
 
 (define conf-header
 "##  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
