@@ -18,6 +18,7 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis commands work)
+  #:use-module (artanis commands)
   #:use-module (artanis artanis)
   #:use-module (ice-9 getopt-long)
   #:use-module (ice-9 match))
@@ -32,7 +33,7 @@
     (port (single-char #\p) (value #t))
     (usedb (single-char #\d) (value #f))
     (dbd (single-char #\b) (value #t))
-    (db (single-char #\n) (value #t))
+    (name (single-char #\n) (value #t))
     (host (single-char #\h) (value #t))
     (user (single-char #\u) (value #t))
     (passwd (single-char #\w) (value #t))
@@ -55,15 +56,44 @@
      (else
       (try-load-entry)
       (run #:host (->opt 'host)
-           #:port (->opt 'port)
+           #:port (and=> (->opt 'port) string->number)
            #:debug (->opt 'debug)
            #:use-db? (->opt 'usedb)
-           #:dbd (->opt 'dbd)
-           #:db-name (->opt 'db)
+           #:dbd (and=> (->opt 'dbd) string->symbol)
+           #:db-name (->opt 'name)
            #:db-username (->opt 'user)
            #:db-passwd (->opt 'passwd))))))
 
+(define help-str
+"
+Usage:
+  art work [options]
+
+Options:
+  -h, [--host=HOST]              # Specify the network host
+                                   Default: 0.0.0.0
+  -d, [--usedb]                  # Whether to use Database
+                                   Default: false
+  -b, [--dbd=DBD]                # Specify DBD, mysql/postgresql/sqlit3
+                                   Default: mysql
+  -n, [--name=DATABASE_NAME]     # Database name
+                                   Default: artanis
+  -w, [--passwd=PASSWD]          # Database password
+                                   Default: none
+  -u, [--user=USER]              # Database user name
+                                   Default: root
+  -p, [--port=PORT]              # Specify listenning port
+                                   Default: 3000
+  -g, [--debug]                  # Debug mode
+                                   Default: disable
+  -s, [--server=SERVER]          # Specify server core
+                                   Default: inner (Guile built-in server)
+  --help                         # Show this screen
+")
+
 (define (show-help)
-  (display "help todo\n"))
+  (display announce-head)
+  (display help-str)
+  (display announce-foot))
 
 (define main work)
