@@ -477,7 +477,8 @@ For POST method:
 #+end_src
 ** Redirect link
 #+begin_src scheme
-(redirect-to rc path [status <- 301])
+(redirect-to rc path #:status 301
+                     #:scheme 'http)
 ;; e.g
 (get "/aaa" (lambda (rc) (redirect-to rc "/bbb")))
 (get "/bbb" (lambda () "ok bbb"))
