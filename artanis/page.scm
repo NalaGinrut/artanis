@@ -198,11 +198,12 @@
    (else #f))) ; wrong param causes 404
 
 ;; 301 is good for SEO and avoid some client problem
-(define* (redirect-to rc path #:optional (status 301))
+;; Use `URL scheme' incase users need to redirect to HTTPS or others. 
+(define* (redirect-to rc path #:key (status 301) (scheme 'http))
   (response-emit
    ""
    #:status status
-   #:headers `((location . ,(build-uri 'http #:path path));;,(string->uri (string-append (current-myhost) path)))
+   #:headers `((location . ,(build-uri scheme #:path path))
                (content-length . 0)
                (content-type . (text/html)))))
 
