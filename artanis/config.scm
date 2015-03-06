@@ -96,9 +96,15 @@
         i
         (error "Invalid integer!" x))))
 
+(define-syntax-rule (->symbol x)
+  (cond
+   ((string? x) (string->symbol x))
+   ((symbol? x) x)
+   (else (error "Invalid value, should be string or symbol!" x))))
+
 (define (parse-namespace-db item)
   (match item
-    (('dbd dbd) (conf-set! '(db dbd) dbd))
+    (('dbd dbd) (conf-set! '(db dbd) (->symbol dbd)))
     (('port port) (conf-set! '(db port) (->integer port)))
     (('addr addr) (conf-set! '(db addr) addr))
     (('name name) (conf-set! '(db name) name))
@@ -208,7 +214,7 @@
 
 (define (init-database-config dbd user passwd dbname)
   ;; if dbd is not specified, it's mysql in default.
-  (conf-set! '(db dbd) (or dbd "mysql"))
+  (conf-set! '(db dbd) (or dbd 'mysql))
   ;; if username is not specified, it's root in default.
   (conf-set! '(db username) (or user "root"))
   ;; if passwd is not specified, it's null in default.
