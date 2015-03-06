@@ -14,7 +14,7 @@ CC := @CC@
 OBJ := obj
 MOD := $(SRC)/artanis
 MOD_OBJ := $(OBJ)/artanis
-BIN := $(SRC)/bin
+BIN := bin
 TEMP_LIB_PATH := $(OBJ)
 MOD_PATH := $(shell guile -c "(display (%site-dir))")
 MOD_COMPILED_PATH := $(shell guile -c "(display (%site-ccache-dir))")
@@ -111,6 +111,7 @@ clean:
 	-rm -fr $(OBJ) autom4te.cache
 	-rm -f *.log *.err *.info
 	-rm -f $(MOD)/version.scm
+	-rm -f $(BIN)/art
 	find . -name "*~" -exec rm {} \;
 
 clean-tarball:
