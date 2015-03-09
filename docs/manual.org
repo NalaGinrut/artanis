@@ -549,7 +549,7 @@ Of course, the ext filename ".tpl" is trivial, you may name it whatever you like
 
 In this case, make sure to put my.tpl to the same path with your GNU Artanis code.
 
-Because *exteral-var* is defined outside the file "my.tpl", and it's bound in /let/ with 123, you have to pass (the-environment). Or the template render will blame that it can't find variable named *external-var*.
+Because *external-var* is defined outside the file "my.tpl", and it's bound in /let/ with 123, you have to pass (the-environment). Or the template render will blame that it can't find variable named *external-var*.
 
 If you don't have any external var needs to be referenced, just use src_scheme[:exports code]{(tpl->response "file.tpl")} is fine.
  
@@ -672,6 +672,19 @@ FPRM stands for Functional Programming Relational Mapping. It's a new word I inv
 
 + src_scheme[:exports code]{#:port} specifies the socket port.
 *** Map DB table
+This step will generate an new instance (as a closure) mapped to database table or view.
+In ORM, it is often called [[http://www.martinfowler.com/eaaCatalog/activeRecord.html][Active Record]] which maps the database view to an class object.
+
+And there're two differences:
++ FPRM doesn't create object for each table. It maps a whole database in concept, and generates SQL for each table as you choose. So it maybe lightweight compared to an ORM object.
++ FPRM doesn't maintain any states at all, say, it keeps stateless in the object (Not in database).
+
+These two points may decrease the power of FPRM, but our main philosophy in GNU Artanis is that
++ /The best way to control DB is SQL itself, don't bother with other guile schemes./
+
+That means we're not going to design a complicated ORM in GNU Artanis, but a promising way to interact with SQL easily.
+This is what [[SQL Mapping (experimental)][SQL Mapping]] provided. FPRM and SQL-Mapping aims to reduce states & complexity to privide reliabality.
+
 #+begin_src scheme
 (define my-table (map-table-from-DB rc/conn))
 #+end_src
@@ -766,7 +779,7 @@ For example:
 #+end_src
 
 /NOTE: all the returned name of schema will be downcased./
-*** SQL Mapping (experimental)
+** SQL Mapping (experimental)
 To be continued ...
 * MIME
 src_scheme[:exports code]{#:mime} method is used to return the proper MIME type in the HTTP response.
