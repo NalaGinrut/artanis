@@ -81,10 +81,43 @@
     (display conf-footer fp)
     (close fp)))
 
+(define (touch f)
+  (close (open-file f "w")))
+
+(define (print-create-info pstr)
+  (format #t "create~10t~a~%" pstr))
+
+(define (tmp-cache-handler p)
+  (define (-> f) (string-append p "/" f))
+  (let ((readme (-> "README")))
+    (print-create-info readme)
+    (touch readme)))
+
+(define (benchmark-handler p)
+  (define (-> f) (string-append p "/" f))
+  (let ((readme (-> "README")))
+    (print-create-info readme)
+    (touch readme)
+    ;; TODO: generate template
+    ))
+
+(define (sm-handler p)
+  (define (-> f) (string-append p "/" f))
+  (let ((readme (-> "README")))
+    (print-create-info readme)
+    (touch readme)
+    ;; TODO: generate template
+    ))
+
+(define *files-handler*
+  `(((sm) . ,sm-handler)
+    ((tmp cache) . ,tmp-cache-handler)
+    ((test benchmark) . ,benchmark-handler)))
+
 (define *dir-arch*
   '((app (model controller view)) ; MVC stuff
     (sys (pages i18n)) ; system stuff
-    (fprm) ; FPRM scripts
+    (sm) ; SQL Mappings
     (log) ; log files
     (lib) ; libs
     (pub ((img (upload)) css js)) ; public assets
@@ -111,9 +144,16 @@
     (else (error dfs "BUG: Impossible pattern! Please report it!" t))))
 
 (define (create-framework)
-  (define (->path x l)
-    (format #f "~{~a~^/~}" (reverse (cons x l))))
-  (dfs *dir-arch* (lambda (x l) (mkdir (->path x l))) '()))
+  (define (->path p)
+    (format #f "~{~a~^/~}" p))
+  (define (generate-elements x l)
+    (let* ((p (reverse (cons x l)))
+           (pstr (->path p)))
+      (mkdir pstr) ; generate path
+      (print-create-info pstr)
+      (and=> (assoc-ref *files-handler* p)
+             (lambda (h) (h pstr)))))
+  (dfs *dir-arch* generate-elements '()))
 
 (define *entry-string*
   "
@@ -133,6 +173,15 @@
     (display *entry-string* fp)
     (close fp)))
 
+(define (working-for-toplevel)
+  (define (gen-readme)
+    (touch "README")
+    (print-create-info "README"))
+
+  (gen-readme)
+  ;; TODO
+  )
+
 (define (create-project name)
   (cond
    ((file-exists? name)
@@ -140,9 +189,10 @@
             "`~a' exists, please choose a new name or remove the existed one!~%"
             name))
    (else
-    (format #t "creating ~a......" name)
+    (print-create-info name)
     (mkdir name)
     (chdir name)
+    (working-for-toplevel)
     (create-local-config)
     (create-framework)
     (create-entry)
