@@ -226,7 +226,7 @@
 
 ;; Could be used by cli for specifying user customized config file.
 ;; TODO: Users don't have to call init-config themselves, but call cli:
-;;       art run -c ./my.conf
+;;       art work -c ./my.conf
 ;; And init-server should be called automatically.
 (define current-conf-file (make-parameter #f))
 (define (current-myhost)

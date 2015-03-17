@@ -84,6 +84,7 @@
 (define (touch f)
   (close (open-file f "w")))
 
+;; ENHANCEME: make some color
 (define (print-create-info pstr)
   (format #t "create~10t~a~%" pstr))
 
