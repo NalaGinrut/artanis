@@ -20,6 +20,7 @@
 (define-module (artanis commands work)
   #:use-module (artanis commands)
   #:use-module (artanis artanis)
+  #:use-module (artanis config)
   #:use-module (ice-9 getopt-long)
   #:use-module (ice-9 match))
 
@@ -30,6 +31,7 @@
 
 (define option-spec
   '((help (value #f))
+    (config (single-char #\c) (value #t))
     (port (single-char #\p) (value #t))
     (usedb (single-char #\d) (value #f))
     (dbd (single-char #\b) (value #t))
@@ -43,26 +45,29 @@
     (server (single-char #\s) (value #t))))
 
 (define (try-load-entry)
-  (define entry (format #f "~a/ENTRY" (getcwd)))
+  (define entry "./ENTRY")
   (when (not (file-exists? entry))
         (error try-load-entry "No ENTRY! Are you in toplevel dir?"))
   (load entry))
-        
+
 (define (work . args)
   (let ((options (if (null? args) '() (getopt-long args option-spec))))
     (define-syntax-rule (->opt k) (option-ref options k #f))
+    (define-syntax-rule (get-conf-file)
+      (or (->opt 'config) "./artanis.conf"))
     (cond
-     ((option-ref options 'help #f) (show-help))
+     ((->opt 'help) (show-help))
      (else
       (try-load-entry)
-      (run #:host (->opt 'host)
-           #:port (and=> (->opt 'port) string->number)
-           #:debug (->opt 'debug)
-           #:use-db? (->opt 'usedb)
-           #:dbd (and=> (->opt 'dbd) string->symbol)
-           #:db-name (->opt 'name)
-           #:db-username (->opt 'user)
-           #:db-passwd (->opt 'passwd))))))
+      (parameterize ((current-conf-file (get-conf-file)))
+        (run #:host (->opt 'host)
+             #:port (and=> (->opt 'port) string->number)
+             #:debug (->opt 'debug)
+             #:use-db? (->opt 'usedb)
+             #:dbd (and=> (->opt 'dbd) string->symbol)
+             #:db-name (->opt 'name)
+             #:db-username (->opt 'user)
+             #:db-passwd (->opt 'passwd)))))))
 
 (define help-str
 "
@@ -70,6 +75,9 @@ Usage:
   art work [options]
 
 Options:
+  -c, [--config=CONFIG]          # Specify config file
+                                   Default: ./artanis.conf
+                                            if no, /etc/artanis/artanis.conf
   -h, [--host=HOST]              # Specify the network host
                                    Default: 0.0.0.0
   -d, [--usedb]                  # Whether to use Database
