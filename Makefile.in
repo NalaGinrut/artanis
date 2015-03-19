@@ -50,7 +50,6 @@ mod-ofile := $(mod-sfile:.scm=.go)
 mod-ofile := $(subst $(MOD)/,$(MOD_OBJ)/,$(mod-ofile))
 
 test-cases := $(shell find $(TESTS) -name *.test)
-#test-cases := $(test-scm:.test=.go)
 
 ALL_TARGETS :=  version \
 		modules \
@@ -138,7 +137,7 @@ version: $(MOD)/version.scm
 
 modules: $(MOD_OBJ)/version.go $(mod-ofile)
 
-test: 
+test: modules
 	for t in $(test-cases); do $(GUILE) -L $(TEST_SUITE) -C $(OBJ) $$t; done
 
 docs: $(TEXI_SRC)
