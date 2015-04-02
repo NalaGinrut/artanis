@@ -1,5 +1,4 @@
-#! /usr/local/bin/guile \
--L ../
+#! /usr/bin/env guile
 !#
 
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
@@ -62,7 +61,6 @@
           (let ((title (result-ref x "title"))
                 (content (result-ref x "content"))
                 (date (result-ref x "date")))
-            (display title)(newline)
             (cons `(div (@ (class "post")) (h2 ,title) 
                         (p (@ (class "post-date")) ,date) 
                         (p ,content))
@@ -72,7 +70,7 @@
 
 (get "/search" "waiting, it's underconstruction!")
 
-(get "/$" #:raw-sql "select * from article"
+(get "/" #:raw-sql "select * from article"
   (lambda (rc)
     (let* ((articles (:raw-sql rc 'all))
            (all-posts (tpl->html (show-all-articles articles))))
