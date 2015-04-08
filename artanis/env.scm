@@ -30,7 +30,8 @@
             *conn-pool*
             *before-response-hook*
             *after-request-hook*
-            *sql-mapping-lookup-table*))
+            *sql-mapping-lookup-table*
+            *artanis-entry*))
 
 ;; WARNING: For concurrency in green-thread, all these stuffs should be immutable
 ;;          in the run time!
@@ -54,3 +55,5 @@
 
 ;; TODO: I don't have much time for it but it should be RB-Tree in the future
 (define *sql-mapping-lookup-table* (make-hash-table))
+
+(define *artanis-entry* "ENTRY")
