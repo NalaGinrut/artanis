@@ -18,8 +18,11 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis commands draw)
+  #:use-module (artanis utils)
+  #:use-module (artanis env)
   #:use-module (artanis commands)
   #:use-module (artanis irregex)
+  #:use-module (artanis mvc controller)
   #:use-module (ice-9 getopt-long)
   #:use-module (ice-9 match))
 
@@ -60,6 +63,11 @@ Example:
   (display help-str)
   (display announce-foot))
 
+;; TODO: handle it more elegantly
+(define (handle-existing-path name)
+  (format #t "~a exists!" name)
+  (exit 1))
+
 (define (%draw-model name)
   #t)
 
@@ -67,16 +75,28 @@ Example:
   #t)
 
 (define (%draw-controller name)
-  #t)
+  (let* ((path (find-ENTRY-path identity))
+         (entry (string-append path "/ENTRY"))
+         (cpath (string-append path "/app/controller/" name)))
+    (cond
+     ((not (verify-ENTRY entry))
+      (error "You're not in a valid Artanis app directory! Or ENTRY is invalid!"))
+     ((file-exists? cpath)
+      (handle-existing-file cpath))
+     (else
+      (controller-create cpath)
+      (%draw-view name)
+      ;; TODO: maybe others
+      (%draw-test name)))))
 
 (define (%draw-test name)
   #t)
 
 (define *component-handlers*
-  `(("model"      . %draw-model)
-    ("view"       . %draw-view)
-    ("controller" . %draw-controller)
-    ("test"       . %draw-test)))
+  `(("model"      . ,%draw-model)
+    ("view"       . ,%draw-view)
+    ("controller" . ,%draw-controller)
+    ("test"       . ,%draw-test)))
 
 (define is-dry-run? (make-parameter #f))
 (define is-force? (make-parameter #f))
@@ -94,7 +114,7 @@ Example:
   (let ((options (if (null? args) '() (getopt-long args option-spec))))
     (define-syntax-rule (->opt k) (option-ref options k #f))
     (cond
-     ((->opt 'help) (show-help))
+     ((or (null? args) (->opt 'help)) (show-help))
      (else
       (parameterize ((is-dry-run? (->opt 'dry))
                      (is-force? (->opt 'force))
