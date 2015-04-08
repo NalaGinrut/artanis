@@ -18,8 +18,11 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis commands create)
+  #:use-module (artanis utils)
+  #:use-module (artanis env)
   #:use-module (artanis commands)
   #:use-module (artanis irregex)
+  #:use-module (ice-9 rdelim)
   #:use-module (ice-9 match))
 
 (define %summary "Create a new Artanis project.")
@@ -169,8 +172,9 @@
  ;; Put whatever you want to be called before server running here
 ")
 
-(define (create-entry)
+(define (create-entry name)
   (let ((fp (open-file "ENTRY" "w")))
+    (format fp ";; Artanis top-level: ~a~%" (getcwd))
     (display *entry-string* fp)
     (close fp)))
 
@@ -184,11 +188,20 @@
   )
 
 (define (create-project name)
+  (define (within-another-app?)
+    (let ((entry (find-ENTRY-path
+                  (lambda (p) (string-append p "/" *artanis-entry*))
+                  #:check-only? #t)))
+      (and entry (verify-ENTRY entry))))
   (cond
    ((file-exists? name)
     (format #t
             "`~a' exists, please choose a new name or remove the existed one!~%"
             name))
+   ((within-another-app?)
+    (display "Can't create a new Artanis app within the directory of another, ")
+    (display "please change to a non-Artanis directory first.\n")
+    (exit 1))
    (else
     (print-create-info name)
     (mkdir name)
@@ -196,7 +209,7 @@
     (working-for-toplevel)
     (create-local-config)
     (create-framework)
-    (create-entry)
+    (create-entry name)
     (format #t "OK~%"))))
 
 (define (create . args)
