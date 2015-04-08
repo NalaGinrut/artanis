@@ -22,6 +22,7 @@
   #:use-module (artanis artanis)
   #:use-module (artanis config)
   #:use-module (ice-9 getopt-long)
+  #:use-module (ice-9 regex)
   #:use-module (ice-9 match))
 
 ;; `art work' command is used to run the server and make the site/app work
@@ -44,10 +45,23 @@
     ;;       but now it's just useless.
     (server (single-char #\s) (value #t))))
 
+(define *entry* "ENTRY")
+
 (define (try-load-entry)
-  (define entry "./ENTRY")
-  (when (not (file-exists? entry))
-        (error try-load-entry "No ENTRY! Are you in toplevel dir?"))
+  (define (-> p)
+    (let ((ff (string-append p "/" *entry*)))
+      (and (file-exists? ff) ff)))
+  (define (last-path pwd)
+    (and=> (string-match "(.*)/.*$" pwd) (lambda (m) (match:substring m 1))))
+  (define entry
+    (let lp((pwd (getcwd)))
+      (cond
+       ((not (string? pwd)) (error find-entry "BUG: please report it!" pwd))
+       ((string-null? pwd) #f)
+       ((-> pwd) => identity)
+       (else (lp (last-path pwd))))))
+  (when (not entry)
+        (error try-load-entry "No ENTRY! Are you in a legal Artanis app dir? Or maybe you need to create a new app?"))
   (load entry))
 
 (define (work . args)
