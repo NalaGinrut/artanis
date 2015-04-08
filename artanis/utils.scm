@@ -27,6 +27,7 @@
   #:use-module (artanis env)
   #:use-module (artanis mime)
   #:use-module (system foreign)
+  #:use-module (ice-9 rdelim)
   #:use-module (ice-9 regex)
   #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)
@@ -55,7 +56,7 @@
             sxml->xml-string run-after-request! run-before-response!
             make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
             generate-kv-from-post-qstr handle-proper-owner
-            generate-data-url)
+            generate-data-url find-ENTRY-path verify-ENTRY)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -677,3 +678,28 @@
                    mime))))
   (let ((b64 (base64-encode bv/str)))
     (string-concatenate (list "data:" (->mime) (->crypto) (->charset) "," b64))))
+
+(define* (find-ENTRY-path proc #:key (check-only? #f))
+  (define (-> p)
+    (let ((ff (string-append p "/" *artanis-entry*)))
+      (and (file-exists? ff) p)))
+  (define (last-path pwd)
+    (and=> (string-match "(.*)/.*$" pwd) (lambda (m) (match:substring m 1))))
+  (let lp((pwd (getcwd)))
+    (cond
+     ((not (string? pwd)) (error find-entry "BUG: please report it!" pwd))
+     ((string-null? pwd)
+      (if check-only?
+          #f
+          (error find-ENTRY-path
+                 "No ENTRY! Are you in a legal Artanis app dir? Or maybe you need to create a new app?")))
+     ((-> pwd) => proc)
+     (else (lp (last-path pwd))))))
+
+(define (verify-ENTRY entry)
+  (cond
+   ((not (file-exists? entry)) #f)
+   (else
+    (let* ((line (call-with-input-file entry read-line))
+           (m (string-match "Artanis top-level: (.*)" line)))
+      (and m (string=? (match:substring m 1) (dirname entry)))))))
