@@ -61,7 +61,8 @@ cscope.files
 *.scan
 *.am
 *.d
-version.scm
+!artanis/commands/version.scm
+artanis/version.scm
 *.m4
 m4/
 ltmain.sh
