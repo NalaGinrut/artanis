@@ -169,7 +169,7 @@
 
 (define (default-route-init statics cache-statics? exclude)
   ;; avoid a common warn
-  (get "^/$" (lambda () "no index.html but it works!"))
+  (get "/" (lambda () "no index.html but it works!"))
   (let ((srule (format #f "^/.+\\.(~{~a~^|~})$" (lset-difference eq? statics exclude))))
     (if cache-statics?
         (get srule #:cache 'static (lambda (rc) (:cache rc)))
