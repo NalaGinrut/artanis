@@ -36,7 +36,7 @@ AC_FUNC_FORK
 AC_CHECK_FUNCS([memchr mkdir])
 
 # Check for Guile
-GUILE_PKG([2.2 2.0])
+GUILE_PKG([2.2 2.1 2.0])
 PKG_CHECK_MODULES([GUILE], [guile-$GUILE_EFFECTIVE_VERSION >= 2.0.11])
 AC_PATH_PROG([GUILECONFIG], [guile-config], :)
 
