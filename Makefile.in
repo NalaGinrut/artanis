@@ -43,6 +43,7 @@ DIRE_GEN := $(BUILD_AUX)/gen-directive.scm
 GNUPLOAD := $(BUILD_AUX)/gnupload
 TEST_SUITE := $(SRC)/test-suite
 TESTS := $(TEST_SUITE)/tests
+CMDCOMP := $(BUILD_AUX)/show-cmds.scm
 V := @
 
 mod-sfile := $(shell find $(MOD) -name *.scm)
@@ -125,6 +126,8 @@ install: $(ALL_TARGETS)
 	$(CP) $(ARTANIS_ETC) /etc
 	$(CP) $(ARTANIS_PAGES) /etc/artanis
 	$(CP) $(BIN)/art $(PREFIX)/bin
+	$(CP) $(CMDCOMP) /etc/bash_completion.d
+	source /etc/bash.bashrc
 	if [ -e artanis.info ]; then $(CP) artanis.info $(INFO_DIR); fi
 
 distclean: distclean-mk clean clean-config clean-tarball

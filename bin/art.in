@@ -34,6 +34,8 @@
            (apply (module-ref mod 'main) (if (no-command-args? args)
                                              '()
                                              (cdr args)))))
+     ((string=? (cadr args) "list-all-cmds")
+      (format #t "~{~a~^    ~}~%" ((@@ (artanis commands help) get-all-commands))))
      (else
       (format (current-error-port)
               "art: unknown command ~s~%" (cadr args))
