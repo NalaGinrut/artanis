@@ -43,7 +43,7 @@ DIRE_GEN := $(BUILD_AUX)/gen-directive.scm
 GNUPLOAD := $(BUILD_AUX)/gnupload
 TEST_SUITE := $(SRC)/test-suite
 TESTS := $(TEST_SUITE)/tests
-CMDCOMP := $(BUILD_AUX)/show-cmds.scm
+CMDCOMP := $(BUILD_AUX)/show-cmds.sh
 V := @
 
 mod-sfile := $(shell find $(MOD) -name *.scm)
