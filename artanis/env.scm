@@ -31,7 +31,12 @@
             *before-response-hook*
             *after-request-hook*
             *sql-mapping-lookup-table*
-            *artanis-entry*))
+            *artanis-entry*
+            draw:is-dry-run?
+            draw:is-force?
+            draw:is-skip?
+            draw:is-quiet?
+            artanis-current-output))
 
 ;; WARNING: For concurrency in green-thread, all these stuffs should be immutable
 ;;          in the run time!
@@ -57,3 +62,15 @@
 (define *sql-mapping-lookup-table* (make-hash-table))
 
 (define *artanis-entry* "ENTRY")
+
+;; parameters for command
+(define draw:is-dry-run? (make-parameter #f))
+(define draw:is-force? (make-parameter #f))
+(define draw:is-skip? (make-parameter #f))
+(define draw:is-quiet? (make-parameter #f))
+
+
+(define (artanis-current-output)
+  (if (draw:is-quite?)
+      (open-output-file *null-device*)
+      (current-output-port)))

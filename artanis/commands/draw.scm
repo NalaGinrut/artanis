@@ -98,11 +98,6 @@ Example:
     ("controller" . ,%draw-controller)
     ("test"       . ,%draw-test)))
 
-(define is-dry-run? (make-parameter #f))
-(define is-force? (make-parameter #f))
-(define is-skip? (make-parameter #f))
-(define is-quiet? (make-parameter #f))
-
 (define (do-draw component name)
   (format #t "dry-run: ~a~%force: ~a~%skip: ~a~%quiet: ~a~%" (is-dry-run?) (is-force?) (is-skip?) (is-quiet?))
   (format #t "drawing ~a ~a~%" component name)
@@ -116,10 +111,10 @@ Example:
     (cond
      ((or (null? args) (->opt 'help)) (show-help))
      (else
-      (parameterize ((is-dry-run? (->opt 'dry))
-                     (is-force? (->opt 'force))
-                     (is-skip? (->opt 'skip))
-                     (is-quiet? (->opt 'quiet)))
+      (parameterize ((draw:is-dry-run? (->opt 'dry))
+                     (draw:is-force? (->opt 'force))
+                     (draw:is-skip? (->opt 'skip))
+                     (draw:is-quiet? (->opt 'quiet)))
         (apply do-draw (->opt '())))))))
 
 (define main draw)
