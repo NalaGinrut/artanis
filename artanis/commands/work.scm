@@ -48,7 +48,7 @@
     (server (single-char #\s) (value #t))))
 
 (define (try-load-entry)
-  (let ((path (find-ENTRY-path
+  (let ((entry (find-ENTRY-path
                (lambda (p) (string-append p "/" *artanis-entry*)))))
     (load entry)))
 
