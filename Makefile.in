@@ -126,6 +126,7 @@ install: $(ALL_TARGETS)
 	$(CP) $(ARTANIS_ETC) /etc
 	$(CP) $(ARTANIS_PAGES) /etc/artanis
 	$(CP) $(BIN)/art $(PREFIX)/bin
+	mkdir -p /etc/bash_completion.d
 	$(CP) $(CMDCOMP) /etc/bash_completion.d
 	source /etc/bash.bashrc
 	if [ -e artanis.info ]; then $(CP) artanis.info $(INFO_DIR); fi
