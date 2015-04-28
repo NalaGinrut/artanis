@@ -121,7 +121,7 @@
 (define *dir-arch*
   '((app (model controller view)) ; MVC stuff
     (sys (pages i18n)) ; system stuff
-    (sm) ; SQL Mappings
+    (db (migration sm)) ; DB (include SQL Mappings)
     (log) ; log files
     (lib) ; libs
     (pub ((img (upload)) css js)) ; public assets
