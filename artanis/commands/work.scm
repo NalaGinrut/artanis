@@ -49,7 +49,7 @@
 
 (define (try-load-entry)
   (let ((entry (find-ENTRY-path
-               (lambda (p) (string-append p "/" *artanis-entry*)))))
+                (lambda (p) (string-append p "/" *artanis-entry*)))))
     (load entry)))
 
 (define (work . args)
