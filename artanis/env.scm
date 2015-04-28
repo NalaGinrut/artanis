@@ -36,10 +36,11 @@
             draw:is-force?
             draw:is-skip?
             draw:is-quiet?
-            artanis-current-output))
+            artanis-current-output
+            *controllers-table*))
 
 ;; WARNING: For concurrency in green-thread, all these stuffs should be immutable
-;;          in the run time!
+;;          IN THE RUN TIME!!!
 
 ;; table structure:
 ;; '((rule-handler-key (handler . keys)) ...)
@@ -69,8 +70,9 @@
 (define draw:is-skip? (make-parameter #f))
 (define draw:is-quiet? (make-parameter #f))
 
-
 (define (artanis-current-output)
-  (if (draw:is-quite?)
+  (if (draw:is-quiet?)
       (open-output-file *null-device*)
       (current-output-port)))
+
+(define *controllers-table* (make-hash-table))
