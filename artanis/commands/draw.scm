@@ -65,32 +65,32 @@ Example:
   (display help-str)
   (display announce-foot))
 
-(define (draw:create maker filename)
+(define (draw:create maker cname filename methods)
   (define name (basename filename))
   (define component (basename (dirname filename)))
-  (format (artanis-current-output) "create app/~a/~a~%" component name)
+  (format (artanis-current-output) "create ~10t app/~a/~a~%" component name)
   (cond
    ((draw:is-dry-run?)
     (call-with-output-file *null-device*
-      (lambda (port) (maker name port))))
+      (lambda (port) (maker cname methods port))))
    ((draw:is-force?)
     (delete-file filename)
     (call-with-output-file filename
-      (lambda (port) (maker name port))))
+      (lambda (port) (maker cname methods port))))
    ((draw:is-skip?)
-    (format (artanis-current-output) "skip app/~a/~a~%" component name))
+    (format (artanis-current-output) "skip ~10t app/~a/~a~%" component name))
    (else
     (when (file-exists? filename)
       (error 'draw-create (format #f "File '~a' exists!" filename)))
     (call-with-output-file filename
-      (lambda (port) (maker name port))))))
+      (lambda (port) (maker cname methods port))))))
 
 ;; TODO: handle it more elegantly
 (define (handle-existing-path name)
   (format #t "~a exists!" name)
   (exit 1))
 
-(define (%draw-model name)
+(define (%draw-model name . methods)
   (let* ((path (find-ENTRY-path identity))
          (entry (string-append path "/ENTRY"))
          (cpath (string-append path "/app/model/" name ".scm")))
@@ -101,11 +101,11 @@ Example:
       (handle-existing-file cpath))
      (else
       (%draw-migration name)
-      (draw:create do-model-create cpath)
+      (draw:create do-model-create name cpath methods)
       ;; TODO: maybe others
       (%draw-test name)))))
 
-(define (%draw-view name)
+(define (%draw-view name . methods)
   (let* ((path (find-ENTRY-path identity))
          (entry (string-append path "/ENTRY"))
          (cpath (string-append path "/app/view/" name ".tpl")))
@@ -115,11 +115,11 @@ Example:
      ((file-exists? cpath)
       (handle-existing-file cpath))
      (else
-      (draw:create do-view-create cpath)
+      (draw:create do-view-create name cpath methods)
       ;; TODO: maybe others
       (%draw-test name)))))
 
-(define (%draw-controller name)
+(define (%draw-controller name . methods)
   (let* ((path (find-ENTRY-path identity))
          (entry (string-append path "/ENTRY"))
          (cpath (string-append path "/app/controller/" name ".scm")))
@@ -129,7 +129,7 @@ Example:
      ((file-exists? cpath)
       (handle-existing-file cpath))
      (else
-      (draw:create do-controller-create cpath)
+      (draw:create do-controller-create name cpath methods)
       (%draw-view name)
       ;; TODO: maybe others
       (%draw-test name)))))
@@ -151,12 +151,14 @@ Example:
 (define *component-handlers*
   `(("model"      . ,%draw-model)
     ("controller" . ,%draw-controller)
-    ("migration"  . ,%draw-migration)))
+    ("migration"  . ,%draw-migration)
+    ;; ("api"     . ,%draw-api)
+    ))
 
-(define (do-draw component name)
-  (format #t "drawing ~a ~a~%" component name)
+(define (do-draw component name . methods)
+  (format #t "drawing ~10t ~a ~a~%" component name)
   (or (and=> (assoc-ref *component-handlers* component)
-             (lambda (h) (h name)))
+             (lambda (h) (apply h name methods)))
       (error do-draw "Invalid component, please see help!" component)))
 
 (define (draw . args)
