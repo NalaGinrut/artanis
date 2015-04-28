@@ -17,26 +17,10 @@
 ;;  and GNU Lesser General Public License along with this program.
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
-(define-module (artanis mvc controller)
+(define-module (artanis mvc view)
   #:use-module (artanis utils)
   #:use-module (artanis env)
-  #:export (do-controller-create))
+  #:export (do-view-create))
 
-(define (get-app-controller name)
-  (hash-ref *controllers-table* name))
-
-(define-macro (define-app-controller name)
-  `(define (symbol-append name '-define)))
-
-(define (gen-controller-header cname)
-  (call-with-output-string
-   (lambda (port)
-     (display ";; Please add your license header here.\n" port)
-     (display ";; This file is generated automatically by GNU Artanis.\n" port)
-     (format port "(define-module (~a app controller ~a))~%" (current-appname) cname))))
-
-(define (do-controller-create name port)
-  (format port "(define-controller ~a~%" name)
-  (format port "~2t(lambda (rc)~%")
-  (format port "~2t;; TODO: add controller ~a~%" name)
-  (format port "~2t))~%"))
+(define (do-view-create name port)
+  #t)
