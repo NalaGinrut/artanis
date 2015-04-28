@@ -22,5 +22,5 @@
   #:use-module (artanis env)
   #:export (do-view-create))
 
-(define (do-view-create name port)
+(define (do-view-create name methods port)
   #t)

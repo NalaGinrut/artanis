@@ -22,5 +22,5 @@
   #:use-module (artanis env)
   #:export (do-migration-create))
 
-(define (do-migration-create name port)
+(define (do-migration-create name methods port)
   #t)

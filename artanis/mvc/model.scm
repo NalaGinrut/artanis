@@ -22,5 +22,5 @@
   #:use-module (artanis env)
   #:export (do-model-create))
 
-(define (do-model-create name port)
+(define (do-model-create name methods port)
   #t)
