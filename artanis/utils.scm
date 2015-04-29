@@ -56,7 +56,8 @@
             sxml->xml-string run-after-request! run-before-response!
             make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
             generate-kv-from-post-qstr handle-proper-owner
-            generate-data-url find-ENTRY-path verify-ENTRY current-appname)
+            generate-data-url find-ENTRY-path verify-ENTRY current-appname
+            draw-expander)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -705,3 +706,11 @@
       (and m (string=? (match:substring m 1) (dirname entry)))))))
 
 (define (current-appname) (basename (find-ENTRY-path identity)))
+
+(define-syntax draw-expander
+  (syntax-rules (rule option)
+    ((_ (option oht mode) rest rest* ...)
+     `(,oht ,mode ,@(draw-expander rest rest* ...)))
+    ((_ (rule url) rest rest* ...)
+     `((rule ,url) ,@(draw-expander rest rest* ...)))
+    ((_ handler) (list handler))))
