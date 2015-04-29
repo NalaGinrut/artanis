@@ -19,21 +19,26 @@
 
 (define-module (artanis mvc controller)
   #:use-module (artanis utils)
-  #:use-module (artanis env)
   #:export (do-controller-create
             define-controller))
 
-(define (get-app-controller name)
-  (hash-ref *controllers-table* name))
-
 (define-macro (define-artanis-controller name)
-  `(define-syntax ,(symbol-append 'define- name)
-     (syntax-rules (rule option)
-       ((_ (option oht mode) rest rest* ...)
-        `(,oht ,mode ,@(draw-expander rest rest* ...)))
-       ((_ (rule url) rest rest* ...)
-        `((rule ,url) ,@(draw-expander rest rest* ...)))
-       ((_ handler) (list handler)))))
+  `(begin
+     ;; NOTE: we have to encapsulate them to a module for protecting namespaces
+     ;; NOTE: we're not going to imort (artanis env) directly to avoid revealing global
+     ;;       env vars to users.
+     (define-module (app controller ,name)
+       #:use-module (artanis artanis)
+       #:use-module (artanis utils))
+     ;; NOTE: it's importan to use macro here, or it'll eval (option ...) later, which
+     ;;       will throw error while calling another macro to expand expr.
+     (define-syntax-rule (__!@$$^d!@%_set-app-controller name handler)
+       (hash-set! (@ (artanis env) *controllers-table*) name handler))
+     (define-syntax ,(symbol-append name '-define)
+       (syntax-rules ()
+         ((_ method rest rest* ...)
+          (__!@$$^d!@%_set-app-controller (symbol-append ',name '- 'method)
+                                          (draw-expander rest rest* ...)))))))
 
 (define (gen-controller-header cname)
   (call-with-output-string
@@ -46,7 +51,7 @@
 (define (do-controller-create name methods port)
   (display (gen-controller-header name) port)
   (for-each (lambda (method)
-              (format port "(define-~a ~a~%" name method)
+              (format port "(~a-define ~a~%" name method)
               (format port "~2t(lambda (rc)~%")
               (format port "~2t;; TODO: add controller method `~a'~%" method)
               (format port "~2t))~%~%"))
