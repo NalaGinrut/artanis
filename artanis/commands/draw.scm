@@ -80,15 +80,20 @@ Example:
    ((draw:is-skip?)
     (format (artanis-current-output) "skip ~10t app/~a/~a~%" component name))
    (else
-    (when (file-exists? filename)
-      (error 'draw-create (format #f "File '~a' exists!" filename)))
+    (when (file-exists? filename) (handle-existing-file filename))
     (call-with-output-file filename
       (lambda (port) (maker cname methods port))))))
 
 ;; TODO: handle it more elegantly
-(define (handle-existing-path name)
-  (format #t "~a exists!" name)
-  (exit 1))
+(define (handle-existing-file path)
+  (define component (basename (dirname path)))
+  (define name (car (string-split (basename path) #\.)))
+  (cond
+   ((draw:is-force?) (delete-file path))
+   (else
+    (format #t "~a `~a' exists! (Use --force/-f to overwrite or --skip/-s to ignore)~%"
+            (string-capitalize component) name)
+    (exit 1))))
 
 (define (%draw-model name . methods)
   (let* ((path (find-ENTRY-path identity))
@@ -97,8 +102,6 @@ Example:
     (cond
      ((not (verify-ENTRY entry))
       (error "You're not in a valid Artanis app directory! Or ENTRY is invalid!"))
-     ((file-exists? cpath)
-      (handle-existing-file cpath))
      (else
       (%draw-migration name)
       (draw:create do-model-create name cpath methods)
@@ -112,8 +115,6 @@ Example:
     (cond
      ((not (verify-ENTRY entry))
       (error "You're not in a valid Artanis app directory! Or ENTRY is invalid!"))
-     ((file-exists? cpath)
-      (handle-existing-file cpath))
      (else
       (draw:create do-view-create name cpath methods)
       ;; TODO: maybe others
@@ -126,14 +127,12 @@ Example:
     (cond
      ((not (verify-ENTRY entry))
       (error "You're not in a valid Artanis app directory! Or ENTRY is invalid!"))
-     ((file-exists? cpath)
-      (handle-existing-file cpath))
      (else
       (draw:create do-controller-create name cpath methods)
       (%draw-view name)
       ;; TODO: maybe others
       (%draw-test name)))))
-  
+
 (define (%draw-migration name)
   (let* ((path (find-ENTRY-path identity))
          (entry (string-append path "/ENTRY"))
@@ -141,8 +140,6 @@ Example:
     (cond
      ((not (verify-ENTRY entry))
       (error "You're not in a valid Artanis app directory! Or ENTRY is invalid!"))
-     ((file-exists? cpath)
-      (handle-existing-file cpath))
      (else (draw:create do-migration-create cpath)))))
 
 (define (%draw-test name)
