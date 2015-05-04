@@ -27,6 +27,7 @@
   #:use-module (artanis mvc view)
   #:use-module (artanis mvc migration)
   #:use-module (ice-9 getopt-long)
+  #:use-module (ice-9 format)
   #:use-module (ice-9 match))
 
 (define %summary "Generate component automatically, say, MVC.")
@@ -111,7 +112,7 @@ Example:
 (define (%draw-view name . methods)
   (let* ((path (find-ENTRY-path identity))
          (entry (string-append path "/ENTRY"))
-         (cpath (string-append path "/app/view/" name ".tpl")))
+         (cpath (string-append path "/app/view/" name ".html.tpl")))
     (cond
      ((not (verify-ENTRY entry))
       (error "You're not in a valid Artanis app directory! Or ENTRY is invalid!"))
@@ -140,7 +141,7 @@ Example:
     (cond
      ((not (verify-ENTRY entry))
       (error "You're not in a valid Artanis app directory! Or ENTRY is invalid!"))
-     (else (draw:create do-migration-create cpath)))))
+     (else (draw:create do-migration-create name cpath '())))))
 
 (define (%draw-test name)
   #t)
