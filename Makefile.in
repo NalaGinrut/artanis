@@ -19,7 +19,8 @@ TEMP_LIB_PATH := $(OBJ)
 MOD_PATH := $(shell guile -c "(display (%site-dir))")
 MOD_COMPILED_PATH := $(shell guile -c "(display (%site-ccache-dir))")
 MOD_TARGET_PATH := $(MOD_COMPILED_PATH)
-GUILEC := GUILE_LOAD_COMPILED_PATH=$(TEMP_LIB_PATH) guild compile
+GUILE_CFLAGS := -Wunsupported-warning -Wunbound-variable -Warity-mismatch -Wduplicate-case-datum -Wbad-case-datum -Wformat
+GUILEC := GUILE_LOAD_COMPILED_PATH=$(TEMP_LIB_PATH) guild compile $(GUILE_CFLAGS)
 ARTANIS_ETC := $(SRC)/etc/artanis
 ARTANIS_PAGES := $(SRC)/pages
 GUILE := @GUILE@
@@ -44,7 +45,12 @@ GNUPLOAD := $(BUILD_AUX)/gnupload
 TEST_SUITE := $(SRC)/test-suite
 TESTS := $(TEST_SUITE)/tests
 CMDCOMP := $(BUILD_AUX)/show-cmds.sh
-V := @
+
+ifndef VERBOSE
+V := @ # "V = " for verbose, "V = @" for non-verbose
+else
+V :=
+endif
 
 mod-sfile := $(shell find $(MOD) -name *.scm)
 mod-ofile := $(mod-sfile:.scm=.go)
@@ -52,26 +58,23 @@ mod-ofile := $(subst $(MOD)/,$(MOD_OBJ)/,$(mod-ofile))
 
 test-cases := $(shell find $(TESTS) -name *.test)
 
-ALL_TARGETS :=  version \
+ALL_TARGETS :=	version \
 		modules \
 		scripts
 
 all: $(ALL_TARGETS)
 
 $(MOD_OBJ)/%.go: $(MOD)/%.scm
-	@echo + compiling $<
-	@mkdir -p $(@D)
-	$(V)$(GUILEC) -L $(SRC) -o $@ $< 1>> build.log 2>> build.err || (cat build.err && exit 1)
-
-$(MOD_OBJ)/version.go: $(MOD)/version.scm
-	@echo + compiling $<
-	@mkdir -p $(@D)
-	$(V)$(GUILEC) -L $(SRC) -o $@ $< 1> build.log 2> build.err || (cat build.err && exit 1)
+	$(V)-rm -f build.err
+	$(V)echo + compiling $<
+	$(V)mkdir -p $(@D)
+	$(V)script -e -c "$(GUILEC) -L $(SRC) $< -o $@" -f build.err > /dev/null || (cat build.err && exit 15)
+	$(V)if [ -e build.err ]; then cat build.err | grep warning; :; fi
 
 $(MOD)/version.scm:
-	@echo "Regenerating artanis/version.scm"
-	$(V) -rm -f $@
-	$(V) cat $(HEADER) > $@
+	$(V)echo "Regenerating artanis/version.scm"
+	$(V)-rm -f $@
+	$(V)cat $(HEADER) > $@
 	$(V)$(GUILE) -c '(let ((port (open-file "$@" "a")))(format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"GNU Artanis-~a\")~%" "$(VERSION)"))'
 
 .PHONY: upload upload.gz upload.bz2 announce release.gz release.bz2 prepare clean modules install distclean distclean-mk bin version test docs scripts
