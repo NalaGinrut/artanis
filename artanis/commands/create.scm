@@ -23,6 +23,7 @@
   #:use-module (artanis commands)
   #:use-module (artanis irregex)
   #:use-module (ice-9 rdelim)
+  #:use-module (ice-9 format)
   #:use-module (ice-9 match))
 
 (define %summary "Create a new Artanis project.")
@@ -93,9 +94,14 @@
 
 (define (tmp-cache-handler p)
   (define (-> f) (string-append p "/" f))
-  (let ((readme (-> "README")))
+  (let ((readme (-> "README"))
+        (route-cache (-> ".route.cache")))
     (print-create-info readme)
-    (touch readme)))
+    (touch readme)
+    (call-with-output-file route-cache
+      (lambda (port)
+        (format port ";; Do not touch anything!!!~%")
+        (format port ";; All things here should be automatically handled properly!!!~%")))))
 
 (define (benchmark-handler p)
   (define (-> f) (string-append p "/" f))
