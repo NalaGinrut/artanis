@@ -18,13 +18,11 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis commands help)
+  #:use-module (artanis utils)
   #:use-module (artanis commands)
   #:use-module (srfi srfi-1)
-  #:use-module (ice-9 ftw))
-
-(define (remove-ext str)
-  (let ((i (string-contains str ".")))
-    (substring str 0 i)))
+  #:use-module (ice-9 ftw)
+  #:use-module (ice-9 format))
 
 ;; NOTE: put your command in the head of %load-path as possible
 (define (get-all-commands)
