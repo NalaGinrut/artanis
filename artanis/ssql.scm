@@ -20,6 +20,7 @@
 (define-module (artanis ssql)
   #:use-module (artanis utils)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 format)
   #:export (->sql
             where
             having

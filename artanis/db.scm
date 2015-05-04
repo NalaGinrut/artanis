@@ -25,6 +25,7 @@
   #:use-module (artanis env)
   #:use-module (dbi dbi)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 format)
   #:use-module ((rnrs) #:select (define-record-type))
   #:export (DB-open
             DB-close

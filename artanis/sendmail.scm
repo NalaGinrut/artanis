@@ -134,7 +134,7 @@
     (%send-the-mail sm t)))
 
 ;; TODO: maybe delay to send calling sender
-(define* (make-simple-mail-sender from to #:key (sender (current-mail-sender)))
+(define* (make-simple-mail-sender from to #:key (sender (get-conf '(mail sender))))
   (let ((sm (%make-sendmail sender from to "no subject" #f '() '())))
     (lambda* (message #:key (attachements #f) (header #f) (subject #f))
       (if (string? message) 

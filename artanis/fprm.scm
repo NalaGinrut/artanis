@@ -28,6 +28,7 @@
   #:use-module (srfi srfi-11)
   #:use-module (srfi srfi-26)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 format)
   #:export (map-table-from-DB
             make-table-getter
             make-table-setter

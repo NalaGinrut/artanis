@@ -34,6 +34,7 @@
   #:use-module (artanis version)
   #:use-module (web server)
   #:use-module (srfi srfi-1)
+  #:use-module (ice-9 format)
   #:re-export (;; page module
                params
                response-emit
