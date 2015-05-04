@@ -30,6 +30,8 @@
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 regex)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 format)
+  #:use-module (ice-9 ftw)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-19)
   #:use-module (ice-9 local-eval)
@@ -57,7 +59,8 @@
             make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
             generate-kv-from-post-qstr handle-proper-owner
             generate-data-url find-ENTRY-path verify-ENTRY current-appname
-            draw-expander)
+            draw-expander remove-ext scan-app-components cache-this-route!
+            dump-route-from-cache)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -686,9 +689,10 @@
       (and (file-exists? ff) p)))
   (define (last-path pwd)
     (and=> (string-match "(.*)/.*$" pwd) (lambda (m) (match:substring m 1))))
+  ;; FIXME: Maybe we should generate relative path?
   (let lp((pwd (getcwd)))
     (cond
-     ((not (string? pwd)) (error find-entry "BUG: please report it!" pwd))
+     ((not (string? pwd)) (error find-ENTRY-path "BUG: please report it!" pwd))
      ((string-null? pwd)
       (if check-only?
           #f
@@ -708,9 +712,54 @@
 (define (current-appname) (basename (find-ENTRY-path identity)))
 
 (define-syntax draw-expander
-  (syntax-rules (rule option)
-    ((_ (option oht mode) rest rest* ...)
-     `(,oht ,mode ,@(draw-expander rest rest* ...)))
+  (syntax-rules (rule options method)
+    ((_ (options options* ...) rest rest* ...)
+     `(,@(list options* ...) ,@(draw-expander rest rest* ...)))
+    ((_ (method method*) rest rest* ...)
+     `((method ,'method*) ,@(draw-expander rest rest* ...)))
     ((_ (rule url) rest rest* ...)
      `((rule ,url) ,@(draw-expander rest rest* ...)))
     ((_ handler) (list handler))))
+
+(define (remove-ext str)
+  (let ((i (string-contains str ".")))
+    (substring str 0 i)))
+
+(define (scan-app-components component)
+  (let ((toplevel (find-ENTRY-path identity)))
+    (map (lambda (f) (string->symbol (remove-ext f)))
+         (scandir (format #f "~a/app/~a/" toplevel component)
+                  (lambda (f) 
+                    (not (or (string=? f ".") 
+                             (string=? f ".."))))))))
+
+(define (cache-this-route! url)
+  (define (write-header port)
+    (format port ";; Do not touch anything!!!~%")
+    (format port ";; All things here should be automatically handled properly!!!~%"))
+  (define route-cache
+    (find-ENTRY-path (lambda (p) (string-append p "/tmp/cache/.route.cache"))))
+  (when (not (file-exists? route-cache))
+    (format #t "[WARNING] route cache is missing, regenerating...~%")
+    (call-with-output-file route-cache write-header))
+  (flock route-cache LOCK_EX)
+  (let ((rl (call-with-output-file route-cache read)))
+    (delete-file route-cache)
+    (call-with-output-file route-cache
+      (lambda (port)
+        (write-header port)
+        (write rl port)))
+    (flock route-cache LOCK_UN)))
+
+(define (dump-route-from-cache)
+  (define toplevel (find-ENTRY-path identity))
+  (define route-cache (string-append toplevel "/tmp/cache/.route.cache"))
+  (define route (string-append toplevel "/route.scm"))
+  (when (file-exists? route) (delete-file route))
+  (when (not (file-exists? route-cache))
+        (error dump-route-from-cache "Can't find route cache!"))
+  (call-with-output-file route
+    (lambda (port)
+      (for-each (lambda (r)
+                  (format port "(get ~s)" r))
+                (call-with-input-file route-cache read)))))
