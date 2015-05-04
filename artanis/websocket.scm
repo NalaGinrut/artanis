@@ -67,7 +67,8 @@
                   ((> len #xffff)
                    (format #f "\x7f~a" (->pack 8 len)))
                   ((> len #x7d)
-                   (format #f "\x7e~a" (->pack 2 len)))
+                   ;; NOTE: `\x7e' happens to be `~' !!!
+                   (format #f "~\x7e~a" (->pack 2 len)))
                   (else (integer->char len))))
          (head (integer->char (logior #x80 opcode))))
     (format #f "~a~a~a" head length data)))    
