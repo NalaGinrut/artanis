@@ -19,8 +19,12 @@
 
 (define-module (artanis mvc controller)
   #:use-module (artanis utils)
+  #:use-module (artanis tpl)
+  #:use-module (artanis env)
+  #:use-module (ice-9 format)
   #:export (do-controller-create
-            define-controller))
+            define-artanis-controller
+            load-app-controllers))
 
 (define-macro (define-artanis-controller name)
   `(begin
@@ -30,15 +34,31 @@
      (define-module (app controller ,name)
        #:use-module (artanis artanis)
        #:use-module (artanis utils))
-     ;; NOTE: it's importan to use macro here, or it'll eval (option ...) later, which
+     ;; NOTE: it's important to use macro here, or it'll eval (option ...) later, which
      ;;       will throw error while calling another macro to expand expr.
      (define-syntax-rule (__!@$$^d!@%_set-app-controller name handler)
-       (hash-set! (@ (artanis env) *controllers-table*) name handler))
+       (hash-set! *controllers-table* name handler))
+     (define-syntax-rule (current-toplevel) (find-ENTRY-path identity))
+     (define-macro (view-render method)
+       `(tpl-render ,(format #f "~a/~a/~a.html.tpl" (current-toplevel) name method)
+                    (the-environment)))
      (define-syntax ,(symbol-append name '-define)
        (syntax-rules ()
          ((_ method rest rest* ...)
-          (__!@$$^d!@%_set-app-controller (symbol-append ',name '- 'method)
+          (__!@$$^d!@%_set-app-controller (format #f "/~a/~a" ,name method)
                                           (draw-expander rest rest* ...)))))))
+
+(define-syntax-rule (scan-controllers) (scan-app-components 'controller))
+
+(define (load-app-controllers)
+  (display "Loading controllers...\n")
+  (let ((cs (scan-controllers)))
+    (for-each (lambda (s)
+                (module-autoload! (resolve-module `(app controller ,s))))
+              cs)))
+
+(define (register-controllers)
+  (hash-for-each cache-this-route! *controllers-table*))
 
 (define (gen-controller-header cname)
   (call-with-output-string
