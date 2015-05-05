@@ -26,7 +26,7 @@
 (define simple-handler
   (lambda (rc) #t))
 
-(with-test-prefix "draw test"
+(with-test-prefix "<CMD> draw test"
 
   (pass-if "draw-expander test1"
     (equal? (draw-expander (method post)
