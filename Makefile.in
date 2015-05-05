@@ -145,7 +145,7 @@ version: $(MOD)/version.scm
 modules: $(MOD_OBJ)/version.go $(mod-ofile)
 
 test: modules
-	for t in $(test-cases); do $(GUILE) -L $(TEST_SUITE) -C $(OBJ) $$t; done
+	$(V)for t in $(test-cases); do $(GUILE) -L $(SRC) -L $(TEST_SUITE) -C $(OBJ) $$t; done
 
 docs: $(TEXI_SRC)
 	$(CHK_TEXINFO)
