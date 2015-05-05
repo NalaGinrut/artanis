@@ -1,0 +1,102 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  === Post tests ===
+;;  Copyright (C) 2015
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License as published by
+;;  the Free Software Foundation, either version 3 of the License, or
+;;  (at your option) any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (test post)
+  #:use-module (artanis version)
+  #:use-module (artanis utils)
+  #:use-module (artanis artanis)
+  #:use-module (artanis page)
+  #:use-module (web request)
+  #:use-module (web response)
+  #:use-module (ice-9 receive)
+  #:use-module (srfi srfi-1)
+  #:use-module (test-suite lib))
+
+;; export all things, since we need to test inner cookie
+(eval-when (eval load compile)
+  (export-all-from-module! '(artanis post)))
+
+(define *unified-modify-time* ((@ (srfi srfi-19) current-time)))
+(define *unified-modify-time-header*
+  (get-global-date
+   (cons ((@ (srfi srfi-19) time-second) *unified-modify-time*)
+         ((@ (srfi srfi-19) time-nanosecond) *unified-modify-time*))))
+(define *unified-global-date* (get-global-date))
+
+;; The newlines are equivalent to \n.
+
+;; TEST1
+(define post-test-1-simple-form
+  "POST /test1 HTTP/1.1\r
+Host: localhost:8080\r
+User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML, like Gecko) Safari/531.2+ Epiphany/2.30.2\r
+Content-Type: application/x-www-form-urlencoded\r
+Content-Length: 20\r
+\r
+name=nala&passwd=123
+")
+
+(post "/test1" #:from-post #t
+  (lambda (rc)
+    (let ((body (object->string `((name ,(:from-post rc 'get "name"))
+                                  (passwd ,(:from-post rc 'get "passwd"))))))
+    (response-emit body
+                   #:mtime *unified-modify-time*
+                   #:headers `((date . ,*unified-global-date*)
+                               ;; NOTE: we have to count content-length here since we
+                               ;;       won't actually trigger a real response where the
+                               ;;       content-length should be counted.
+                               (content-length . ,(string-length body)))))))
+
+(define test1-expect-res
+  (build-response
+   #:version '(1 . 1)
+   #:code 200
+   #:headers `((server . ,artanis-version)
+               (date . ,*unified-global-date*)
+               (last-modified . ,*unified-modify-time-header*)
+               (content-type . (text/html (charset . "utf-8")))
+               (content-length . 30))))
+(define test1-expect-body "((name \"nala\") (passwd \"123\"))")
+;; ==========================================================
+
+(define (test-from-request rq-str)
+  (let* ((rq (read-request (open-input-string rq-str)))
+         (body (read-request-body rq))
+         (null (open-output-file "/dev/null")))
+    (parameterize ((current-output-port null)
+                   (current-error-port null))
+      (server-handler rq body))))
+
+(define (headers-equal? h1 h2)
+  (every (lambda (f)
+           (equal? (assq-ref h1 f) (assq-ref h2 f)))
+         h1))
+
+(define (responses-equal? r1 body1 r2 body2)
+  (and (equal? (response-version r1) (response-version r2))
+       (equal? (response-code r1) (response-code r2))
+       (equal? (response-reason-phrase r1) (response-reason-phrase r2))
+       (headers-equal? (response-headers r1) (response-headers r2))
+       (equal? body1 body2)))
+
+(with-test-prefix "<Methods> POST test"
+
+  (pass-if "simple form post test"
+    (receive (r b) (test-from-request post-test-1-simple-form)
+             (responses-equal? r b test1-expect-res test1-expect-body)))
+  )
