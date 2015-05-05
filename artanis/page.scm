@@ -110,8 +110,6 @@
       (values
        (build-response #:code status
                        #:headers `((server . ,(get-conf '(server info)))
-                                   (date . ,(get-global-date))
-                                   (last-modified . ,(get-local-date mtime))
                                    ,@pre-headers 
                                    ,@(generate-cookies (rc-set-cookie rc))))
        ;; NOTE: For inner-server, sanitize-response will handle 'HEAD method

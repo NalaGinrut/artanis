@@ -453,16 +453,21 @@
   ((@ (rnrs bytevectors) bytevector=?) bv #u8()))
 
 (define (prepare-headers body headers)
+  (define-syntax-rule (-> k) (assq-ref headers k))
   (define *default-header*
-    (if (assq-ref headers 'content-type) '() '((content-type . (text/html)))))
+    (if (assq-ref headers 'content-type) '() `((content-type . (text/html (charset . ,(get-conf '(server charset))))))))
   ;; FIXME: the latest Guile fixed content-length:0 bug, but 2.0.9 is not,
   ;;        so remove it when next release.
   (when (not body)
     (error prepare-headers "Fatal: Something got wrong, the body shouldn't be #f!" body))
   (let* ((check (cond ((bytevector? body) bytevector-null?)
                       ((string? body) string-null?)))
-         (len (if (check body) '((content-length . 0)) '())))
-    `(,@*default-header* ,@headers ,@len)))
+         (len (if (check body) '((content-length . 0)) '()))
+         (date (if (-> 'date) `((date . ,(get-global-date))) '()))
+         (mtime (if (-> 'last-modified)
+                    `((last-modified . ,(get-local-date (-> 'last-modified))))
+                    '())))
+    `(,@*default-header* ,@headers ,@date ,@mtime ,@len)))
 
 (define new-stack make-q)
 (define new-queue make-q)
