@@ -27,6 +27,7 @@
   #:export (*unified-modify-time*
             *unified-modify-time-header*
             *unified-global-date*
+            *default-unified-headers*
             test-from-request
             responses-equal?))
 
@@ -36,6 +37,12 @@
    (cons ((@ (srfi srfi-19) time-second) *unified-modify-time*)
          ((@ (srfi srfi-19) time-nanosecond) *unified-modify-time*))))
 (define *unified-global-date* (get-global-date))
+
+(define *default-unified-headers*
+  `((server . ,artanis-version)
+    (date . ,*unified-global-date*)
+    (last-modified . ,*unified-modify-time-header*)
+    (content-type . (text/html (charset . "utf-8")))))
 
 (define (test-from-request rq-str)
   (let* ((rq (read-request (open-input-string rq-str)))

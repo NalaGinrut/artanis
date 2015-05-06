@@ -16,7 +16,6 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (test post)
-  #:use-module (artanis version)
   #:use-module (artanis artanis)
   #:use-module (artanis utils)
   #:use-module (ice-9 receive)
@@ -45,16 +44,13 @@ name=nala&passwd=123
                    #:mtime *unified-modify-time*
                    #:headers `((date . ,*unified-global-date*))))))
 
+(define test1-expect-body "((name \"nala\") (passwd \"123\"))")
 (define test1-expect-res
   (build-response
    #:version '(1 . 1)
    #:code 200
-   #:headers `((server . ,artanis-version)
-               (date . ,*unified-global-date*)
-               (last-modified . ,*unified-modify-time-header*)
-               (content-type . (text/html (charset . "utf-8")))
-               (content-length . 30))))
-(define test1-expect-body "((name \"nala\") (passwd \"123\"))")
+   #:headers `(,@*default-unified-headers*
+               (content-length . ,(string-length test1-expect-body)))))
 ;; ==========================================================
 
 (with-test-prefix "<Methods> POST test"
