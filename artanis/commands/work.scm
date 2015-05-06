@@ -26,6 +26,7 @@
   #:use-module (artanis mvc controller)
   #:use-module (ice-9 getopt-long)
   #:use-module (ice-9 regex)
+  #:use-module (ice-9 format)
   #:use-module (ice-9 match))
 
 ;; `art work' command is used to run the server and make the site/app work
@@ -64,8 +65,33 @@
   (register-controllers)
   (dump-route-from-cache))
 
+(define *component-meta-table*
+  `((controller . ,*controllers-table*)))
+(define (load-compent-rules component)
+  (define rf (find-ENTRY-path (lambda (p) (string-append p "/route.scm"))))
+  (define (-> k)
+    (module-ref (resolve-module '(artanis artanis)) k))
+  (when (not (file-exists? rf))
+    (error load-rules (format #f "BUG: ~a wasn't generated successfully!" rf)))
+  (let ((ll (call-with-input-file rf read)))
+    (for-each (lambda (r)
+                (let ((method (car r))
+                      (rule (cadr r))
+                      (table (assq-ref *component-meta-table* component)))
+                  (apply (-> method) rule (hash-ref table rule))))
+              ll)))
+
 (define (load-rules)
-  #t)
+  (load-compent-rules 'controller))
+
+(define (clean-stuffs)
+  (define toplevel (find-ENTRY-path identity))
+  (define route-cache (format #f "~a/tmp/cache/.route.cache" toplevel))
+  (define route (format #f "~a/route.scm" toplevel))
+  (define-syntax-rule (clean-it f)
+    (when (file-exists? f) (delete-file f)))
+  (clean-it route-cache)
+  (clean-it route))
 
 (define (work . args)
   (let ((options (if (null? args) '() (getopt-long args option-spec))))
@@ -75,6 +101,8 @@
     (cond
      ((->opt 'help) (show-help))
      (else
+      (clean-stuffs)
+      (add-to-load-path (find-ENTRY-path identity))
       (try-load-entry)
       (try-load-app)
       (register-rules)
