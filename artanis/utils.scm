@@ -40,27 +40,27 @@
   #:use-module (web http)
   #:use-module (web request)
   #:export (regexp-split hash-keys cat bv-cat get-global-time
-            get-local-time string->md5 unsafe-random string-substitute
-            get-file-ext get-global-date get-local-date uri-decode
-            nfx static-filename remote-info seconds-now local-time-stamp
-            parse-date write-date make-expires export-all-from-module!
-            alist->hashtable expires->time-utc local-eval-string
-            time-expired? valid-method? mmap munmap get-random-from-dev
-            string->byteslist string->sha-1 list-slice bv-slice uni-basename
-            checkout-the-path make-string-template guess-mime prepare-headers
-            new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
-            stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
-            queue-empty? list->stack list->queue stack-remove! queue-remove!
-            plist->alist make-db-string-template non-list?
-            keyword->string range oah->handler oah->opts string->keyword
-            alist->klist alist->kblist is-hash-table-empty?
-            symbol-downcase symbol-upcase normalize-column
-            sxml->xml-string run-after-request! run-before-response!
-            make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
-            generate-kv-from-post-qstr handle-proper-owner
-            generate-data-url find-ENTRY-path verify-ENTRY current-appname
-            draw-expander remove-ext scan-app-components cache-this-route!
-            dump-route-from-cache generate-modify-time)
+                         get-local-time string->md5 unsafe-random string-substitute
+                         get-file-ext get-global-date get-local-date uri-decode
+                         nfx static-filename remote-info seconds-now local-time-stamp
+                         parse-date write-date make-expires export-all-from-module!
+                         alist->hashtable expires->time-utc local-eval-string
+                         time-expired? valid-method? mmap munmap get-random-from-dev
+                         string->byteslist string->sha-1 list-slice bv-slice uni-basename
+                         checkout-the-path make-string-template guess-mime prepare-headers
+                         new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
+                         stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
+                         queue-empty? list->stack list->queue stack-remove! queue-remove!
+                         plist->alist make-db-string-template non-list?
+                         keyword->string range oah->handler oah->opts string->keyword
+                         alist->klist alist->kblist is-hash-table-empty?
+                         symbol-downcase symbol-upcase normalize-column
+                         sxml->xml-string run-after-request! run-before-response!
+                         make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
+                         generate-kv-from-post-qstr handle-proper-owner
+                         generate-data-url find-ENTRY-path verify-ENTRY current-appname
+                         draw-expander remove-ext scan-app-components cache-this-route!
+                         dump-route-from-cache generate-modify-time)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -72,7 +72,7 @@
         (if uppercase
             (string-upcase str)
             str)))))
-           
+
 (define uri-decode (@ (web uri) uri-decode))
 (define parse-date (@@ (web http) parse-date))
 (define write-date (@@ (web http) write-date))
@@ -92,10 +92,10 @@
     ht))
 
 (eval-when (eval load compile)
- (define (export-all-from-module! module-name)
-   (let ((mod (resolve-module module-name)))
-         (module-for-each (lambda (s m) 
-                            (module-add! (current-module) s m)) mod))))
+           (define (export-all-from-module! module-name)
+             (let ((mod (resolve-module module-name)))
+               (module-for-each (lambda (s m) 
+                                  (module-add! (current-module) s m)) mod))))
 
 (define (time-expired? expires)
   (if expires
@@ -322,7 +322,7 @@
 ;;        (la (+ addr lo))
 ;;         (len (- hi lo)))
 ;;    (pointer->bytevector (make-pointer la) len)))
-  
+
 (define-syntax bv-slice
   (syntax-rules (:)
     ((_ bv lo : hi)
@@ -335,9 +335,9 @@
 ;; get the unified basename both POSIX and WINDOWS
 (define (uni-basename filename)
   (substring filename
-   (1+ 
-    (string-index-right filename 
-                        (lambda (c) (or (char=? c #\\) (char=? c #\/)))))))
+             (1+ 
+              (string-index-right filename 
+                                  (lambda (c) (or (char=? c #\\) (char=? c #\/)))))))
 
 ;; FIXME: checkout-the-path only support POSIX file path
 ;; FIXME: what's the proper default mode for the dir?
@@ -406,10 +406,10 @@
            (optimize (cdr rev-items)
                      (cons (car rev-items) tail)))
           (else (receive (strings rest) (span string? rev-items)
-                  (let ((s (string-concatenate-reverse strings)))
-                    (if (string-null? s)
-                        (optimize rest tail)
-                        (optimize rest (cons s tail))))))))
+                         (let ((s (string-concatenate-reverse strings)))
+                           (if (string-null? s)
+                               (optimize rest tail)
+                               (optimize rest (cons s tail))))))))
   (define (match->item m)
     (or (and (irregex-match-substring m 'dollar) "$")
         (let* ((name (irregex-match-substring m 'var))
@@ -642,20 +642,20 @@
   (define-syntax-rule (->err-reason exe reason)
     (format #f "'~a' encoutered system error: ~s" exe reason))
   (catch 'system-error
-   (lambda ()
-     (chown file (or uid (getuid)) (or gid (getgid))))
-   (lambda (k . e)
-     (let ((exe (car e))
-           (reason (caaddr e)))
-       (match (cons k reason)
-         ('(system-error . "Operation not permitted")
-          (print-the-warning exe reason)
-          (display
-           "Maybe you run Artanis as unprivileged user? (say, not as root)\n"
-           (current-error-port)))
-         ('(system-error . "No such file or directory")
-          (throw 'artanis-err 500 (->err-reason exe reason) file))
-         (else (apply throw k e)))))))
+         (lambda ()
+           (chown file (or uid (getuid)) (or gid (getgid))))
+         (lambda (k . e)
+           (let ((exe (car e))
+                 (reason (caaddr e)))
+             (match (cons k reason)
+               ('(system-error . "Operation not permitted")
+                (print-the-warning exe reason)
+                (display
+                 "Maybe you run Artanis as unprivileged user? (say, not as root)\n"
+                 (current-error-port)))
+               ('(system-error . "No such file or directory")
+                (throw 'artanis-err 500 (->err-reason exe reason) file))
+               (else (apply throw k e)))))))
 
 ;; According to wiki, here's the standard format of data_url_scheme:
 ;; data:[<MIME-type>][;charset=<encoding>][;base64],<data>
@@ -731,23 +731,30 @@
                     (not (or (string=? f ".") 
                              (string=? f ".."))))))))
 
-(define (cache-this-route! url)
+(define (cache-this-route! url meta)
   (define (write-header port)
     (format port ";; Do not touch anything!!!~%")
     (format port ";; All things here should be automatically handled properly!!!~%"))
   (define route-cache
     (find-ENTRY-path (lambda (p) (string-append p "/tmp/cache/.route.cache"))))
-  (when (not (file-exists? route-cache))
-    (format #t "[WARNING] route cache is missing, regenerating...~%")
-    (call-with-output-file route-cache write-header))
-  (flock route-cache LOCK_EX)
-  (let ((rl (call-with-output-file route-cache read)))
-    (delete-file route-cache)
+  (cond
+   ((or (not (file-exists? route-cache))
+        (and (not url) (not meta))) ; for regenerating route cache
+    (format #t "Route cache is missing, regenerating...~%")
     (call-with-output-file route-cache
-      (lambda (port)
-        (write-header port)
-        (write rl port)))
-    (flock route-cache LOCK_UN)))
+      (lambda (port) (write-header port) (write '() port))))
+   (else
+    (let ((rl (call-with-input-file route-cache read)))
+      (delete-file route-cache)
+      (call-with-output-file route-cache
+        (lambda (port)
+          (flock port LOCK_EX)
+          (write-header port)
+          (if (eof-object? rl)
+              (write '() port)
+              (write (assoc-set! rl url (drop-right meta 1)) port))
+          (flock port LOCK_UN)
+          ))))))
 
 (define (dump-route-from-cache)
   (define toplevel (find-ENTRY-path identity))
@@ -755,9 +762,23 @@
   (define route (string-append toplevel "/route.scm"))
   (when (file-exists? route) (delete-file route))
   (when (not (file-exists? route-cache))
-        (error dump-route-from-cache "Can't find route cache!"))
-  (call-with-output-file route
-    (lambda (port)
-      (for-each (lambda (r)
-                  (format port "(get ~s)" r))
-                (call-with-input-file route-cache read)))))
+        (cache-this-route! #f #f)
+        (dump-route-from-cache))
+  (let ((rl (call-with-input-file route-cache read)))
+    (cond
+     ((eof-object? rl)
+      (cache-this-route! #f #f)
+      (dump-route-from-cache))
+     (else
+      (call-with-output-file route
+        (lambda (port)
+          (display "(\n" port)
+          (for-each (lambda (r)
+                      (let* ((meta (cdr r))
+                             (rule (assq-ref meta 'rule))
+                             (method (assq-ref meta 'method)))
+                        (format port "~2t(~a ~s)~%"
+                                (if method method 'get)
+                                (if rule rule (car r)))))
+                    rl)
+          (format port "~2t)\n")))))))
