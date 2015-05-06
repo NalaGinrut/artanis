@@ -100,16 +100,16 @@
         (if (thunk? handler) 
             (handler) 
             (handler rc)))
-    (lambda* (body #:key (pre-headers (prepare-headers body '()))
+    (lambda* (body #:key (pre-headers (prepare-headers '()))
                    (status 200) 
-                   (mtime (let ((t (current-time))) 
-                            (cons (time-second t) (time-nanosecond t)))))
+                   (mtime (generate-modify-time (current-time))))
       (run-before-response-hooks rc body)
       (let ((type (assoc-ref pre-headers 'content-type)))
         (and type (log status (car type) (rc-req rc))))
       (values
        (build-response #:code status
                        #:headers `((server . ,(get-conf '(server info)))
+                                   (last-modified . ,mtime)
                                    ,@pre-headers 
                                    ,@(generate-cookies (rc-set-cookie rc))))
        ;; NOTE: For inner-server, sanitize-response will handle 'HEAD method
@@ -141,12 +141,13 @@
 (define (response-emit-error status)
   (response-emit "" #:status status))
 
+;; NOTE: last-modfied in #:headers will be ignored, it should be in #:mtime
 (define* (response-emit body #:key (status 200) 
                         (headers '())
                         (mtime (current-time)))
   ;;(format #t "headers: ~a~%" headers)
-  (values body #:pre-headers (prepare-headers body headers) #:status status 
-          #:mtime (cons (time-second mtime) (time-nanosecond mtime))))
+  (values body #:pre-headers (prepare-headers headers) #:status status
+          #:mtime (generate-modify-time mtime)))
 
 (define (throw-auth-needed)
   (response-emit "" #:status 401 #:headers '((WWW-Authenticate . "Basic realm=\"Secure Area\""))))

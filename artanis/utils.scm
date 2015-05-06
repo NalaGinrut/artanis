@@ -60,7 +60,7 @@
             generate-kv-from-post-qstr handle-proper-owner
             generate-data-url find-ENTRY-path verify-ENTRY current-appname
             draw-expander remove-ext scan-app-components cache-this-route!
-            dump-route-from-cache)
+            dump-route-from-cache generate-modify-time)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -452,22 +452,15 @@
 (define (bytevector-null? bv)
   ((@ (rnrs bytevectors) bytevector=?) bv #u8()))
 
-(define (prepare-headers body headers)
-  (define-syntax-rule (-> k) (assq-ref headers k))
-  (define *default-header*
-    (if (assq-ref headers 'content-type) '() `((content-type . (text/html (charset . ,(get-conf '(server charset))))))))
-  ;; FIXME: the latest Guile fixed content-length:0 bug, but 2.0.9 is not,
-  ;;        so remove it when next release.
-  (when (not body)
-    (error prepare-headers "Fatal: Something got wrong, the body shouldn't be #f!" body))
-  (let* ((check (cond ((bytevector? body) bytevector-null?)
-                      ((string? body) string-null?)))
-         (len (if (check body) '((content-length . 0)) '()))
-         (date (if (-> 'date) `((date . ,(get-global-date))) '()))
-         (mtime (if (-> 'last-modified)
-                    `((last-modified . ,(get-local-date (-> 'last-modified))))
-                    '())))
-    `(,@*default-header* ,@headers ,@date ,@mtime ,@len)))
+(define (generate-modify-time t)
+  (get-local-date (cons (time-second t) (time-nanosecond t))))
+
+(define (prepare-headers headers)
+  (define *default-headers*
+    `((content-type . (text/html (charset . ,(get-conf '(server charset)))))
+      (date . ,(get-global-date))))
+  (lset-union (lambda (x y) (eq? (car x) (car y)))
+              (assq-remove! headers 'last-modified) *default-headers*))
 
 (define new-stack make-q)
 (define new-queue make-q)
