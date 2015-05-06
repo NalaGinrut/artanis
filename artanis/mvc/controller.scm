@@ -24,7 +24,8 @@
   #:use-module (ice-9 format)
   #:export (do-controller-create
             define-artanis-controller
-            load-app-controllers))
+            load-app-controllers
+            register-controllers))
 
 (define-macro (define-artanis-controller name)
   `(begin
@@ -36,25 +37,27 @@
        #:use-module (artanis utils))
      ;; NOTE: it's important to use macro here, or it'll eval (option ...) later, which
      ;;       will throw error while calling another macro to expand expr.
-     (define-syntax-rule (__!@$$^d!@%_set-app-controller name handler)
-       (hash-set! *controllers-table* name handler))
+     (define-macro (__!$$^d!%_set-app-controller rule meta)
+       `(hash-set! (@ (artanis env) *controllers-table*) ,rule ,meta))
      (define-syntax-rule (current-toplevel) (find-ENTRY-path identity))
      (define-macro (view-render method)
-       `(tpl-render ,(format #f "~a/~a/~a.html.tpl" (current-toplevel) name method)
+       `(tpl-render ,(format #f "~a/~a/~a.html.tpl" (current-toplevel) 'name method)
                     (the-environment)))
      (define-syntax ,(symbol-append name '-define)
        (syntax-rules ()
          ((_ method rest rest* ...)
-          (__!@$$^d!@%_set-app-controller (format #f "/~a/~a" ,name method)
-                                          (draw-expander rest rest* ...)))))))
+          (__!$$^d!%_set-app-controller (format #f "/~a/~a" ',name 'method)
+                                        (draw-expander rest rest* ...)))))))
 
 (define-syntax-rule (scan-controllers) (scan-app-components 'controller))
 
 (define (load-app-controllers)
+  (define toplevel (find-ENTRY-path identity))
   (display "Loading controllers...\n")
+  (use-modules (artanis mvc controller))
   (let ((cs (scan-controllers)))
     (for-each (lambda (s)
-                (module-autoload! (resolve-module `(app controller ,s))))
+                (load (format #f "~a/app/controller/~a.scm" toplevel s)))
               cs)))
 
 (define (register-controllers)
@@ -73,6 +76,8 @@
   (for-each (lambda (method)
               (format port "(~a-define ~a~%" name method)
               (format port "~2t(lambda (rc)~%")
+              (format port "\"<h1>This is ~a#~a</h1><p>Find me in app/views/~a/~a.html.tpl</p>\"~%"
+                      name method name method)
               (format port "~2t;; TODO: add controller method `~a'~%" method)
               (format port "~2t))~%~%"))
             methods))
