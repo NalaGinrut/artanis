@@ -60,7 +60,7 @@
                          generate-kv-from-post-qstr handle-proper-owner
                          generate-data-url find-ENTRY-path verify-ENTRY current-appname
                          draw-expander remove-ext scan-app-components cache-this-route!
-                         dump-route-from-cache generate-modify-time)
+                         dump-route-from-cache generate-modify-time delete-directory)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -736,13 +736,12 @@
     (format port ";; Do not touch anything!!!~%")
     (format port ";; All things here should be automatically handled properly!!!~%"))
   (define route-cache (string-append (current-toplevel) "/tmp/cache/.route.cache"))
-  (cond
-   ((or (not (file-exists? route-cache))
-        (and (not url) (not meta))) ; for regenerating route cache
-    (format #t "Route cache is missing, regenerating...~%")
+  (when (or (not (file-exists? route-cache))
+            (and (not url) (not meta))) ; for regenerating route cache
+    (format (artanis-current-output) "Route cache is missing, regenerating...~%")
     (call-with-output-file route-cache
       (lambda (port) (write-header port) (write '() port))))
-   (else
+  (when (and url meta)
     (let ((rl (call-with-input-file route-cache read)))
       (delete-file route-cache)
       (call-with-output-file route-cache
@@ -752,8 +751,7 @@
           (if (eof-object? rl)
               (write '() port)
               (write (assoc-set! rl url (drop-right meta 1)) port))
-          (flock port LOCK_UN)
-          ))))))
+          (flock port LOCK_UN))))))
 
 (define (dump-route-from-cache)
   (define toplevel (current-toplevel))
@@ -781,3 +779,10 @@
                                 (if rule rule (car r)))))
                     rl)
           (format port "~2t)\n")))))))
+
+(define* (delete-directory dir #:optional (checkonly? #f))
+  (cond
+   ((file-exists? dir)
+    (system (format #f "rm -fr ~a" dir)))
+   (else
+    (and (not checkonly?) (error delete-directory "Not a directory" dir)))))
