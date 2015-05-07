@@ -78,5 +78,7 @@
               (format port "\"<h1>This is ~a#~a</h1><p>Find me in app/views/~a/~a.html.tpl</p>\"~%"
                       name method name method)
               (format port "~2t;; TODO: add controller method `~a'~%" method)
+              (format port "~2t;; uncomment this line if you want to render view from template~%")
+              (format port "~2t;; (view-render \"~a\")~%" method)
               (format port "~2t))~%~%"))
             methods))
