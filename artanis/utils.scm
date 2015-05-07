@@ -681,7 +681,7 @@
   (let ((b64 (base64-encode bv/str)))
     (string-concatenate (list "data:" (->mime) (->crypto) (->charset) "," b64))))
 
-(define* (find-ENTRY-path proc #:key (check-only? #f))
+(define* (find-ENTRY-path proc #:optional (check-only? #f))
   (define (-> p)
     (let ((ff (string-append p "/" *artanis-entry*)))
       (and (file-exists? ff) p)))
@@ -707,7 +707,7 @@
            (m (string-match "Artanis top-level: (.*)" line)))
       (and m (string=? (match:substring m 1) (dirname entry)))))))
 
-(define (current-appname) (basename (find-ENTRY-path identity)))
+(define (current-appname) (basename (current-toplevel)))
 
 (define-syntax draw-expander
   (syntax-rules (rule options method)
@@ -724,7 +724,7 @@
     (substring str 0 i)))
 
 (define (scan-app-components component)
-  (let ((toplevel (find-ENTRY-path identity)))
+  (let ((toplevel (current-toplevel)))
     (map (lambda (f) (string->symbol (remove-ext f)))
          (scandir (format #f "~a/app/~a/" toplevel component)
                   (lambda (f) 
@@ -735,8 +735,7 @@
   (define (write-header port)
     (format port ";; Do not touch anything!!!~%")
     (format port ";; All things here should be automatically handled properly!!!~%"))
-  (define route-cache
-    (find-ENTRY-path (lambda (p) (string-append p "/tmp/cache/.route.cache"))))
+  (define route-cache (string-append (current-toplevel) "/tmp/cache/.route.cache"))
   (cond
    ((or (not (file-exists? route-cache))
         (and (not url) (not meta))) ; for regenerating route cache
@@ -757,7 +756,7 @@
           ))))))
 
 (define (dump-route-from-cache)
-  (define toplevel (find-ENTRY-path identity))
+  (define toplevel (current-toplevel))
   (define route-cache (string-append toplevel "/tmp/cache/.route.cache"))
   (define route (string-append toplevel "/route.scm"))
   (when (file-exists? route) (delete-file route))

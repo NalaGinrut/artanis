@@ -50,8 +50,7 @@
     (server (single-char #\s) (value #t))))
 
 (define (try-load-entry)
-  (let ((entry (find-ENTRY-path
-                (lambda (p) (string-append p "/" *artanis-entry*)))))
+  (let ((entry (string-append (current-toplevel) "/" *artanis-entry*)))
     (load entry)))
 
 (define (try-load-app)
@@ -68,7 +67,7 @@
 (define *component-meta-table*
   `((controller . ,*controllers-table*)))
 (define (load-compent-rules component)
-  (define rf (find-ENTRY-path (lambda (p) (string-append p "/route.scm"))))
+  (define rf (string-append (current-toplevel) "/route.scm"))
   (define (-> k)
     (module-ref (resolve-module '(artanis artanis)) k))
   (when (not (file-exists? rf))
@@ -85,7 +84,7 @@
   (load-compent-rules 'controller))
 
 (define (clean-stuffs)
-  (define toplevel (find-ENTRY-path identity))
+  (define toplevel (current-toplevel))
   (define route-cache (format #f "~a/tmp/cache/.route.cache" toplevel))
   (define route (format #f "~a/route.scm" toplevel))
   (define-syntax-rule (clean-it f)
@@ -102,7 +101,7 @@
      ((->opt 'help) (show-help))
      (else
       (clean-stuffs)
-      (add-to-load-path (find-ENTRY-path identity))
+      (add-to-load-path (current-toplevel))
       (try-load-entry)
       (try-load-app)
       (register-rules)

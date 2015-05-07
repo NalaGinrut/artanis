@@ -97,7 +97,7 @@ Example:
     (exit 1))))
 
 (define (%draw-model name . methods)
-  (let* ((path (find-ENTRY-path identity))
+  (let* ((path (current-toplevel))
          (entry (string-append path "/ENTRY"))
          (cpath (string-append path "/app/model/" name ".scm")))
     (cond
@@ -110,7 +110,7 @@ Example:
       (%draw-test name)))))
 
 (define (%draw-view name . methods)
-  (let* ((path (find-ENTRY-path identity))
+  (let* ((path (current-toplevel))
          (entry (string-append path "/ENTRY"))
          (cpath (string-append path "/app/view/" name ".html.tpl")))
     (cond
@@ -122,7 +122,7 @@ Example:
       (%draw-test name)))))
 
 (define (%draw-controller name . methods)
-  (let* ((path (find-ENTRY-path identity))
+  (let* ((path (current-toplevel))
          (entry (string-append path "/ENTRY"))
          (cpath (string-append path "/app/controller/" name ".scm")))
     (cond
@@ -135,7 +135,7 @@ Example:
       (%draw-test name)))))
 
 (define (%draw-migration name)
-  (let* ((path (find-ENTRY-path identity))
+  (let* ((path (current-toplevel))
          (entry (string-append path "/ENTRY"))
          (cpath (string-append path "/db/migration/" name)))
     (cond

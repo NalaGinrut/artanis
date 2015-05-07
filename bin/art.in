@@ -23,6 +23,8 @@
 
 (setlocale LC_ALL "")
 (use-modules (ice-9 getopt-long)
+             (artanis utils)
+             (artanis env)
              (artanis commands)
              (artanis commands help))
 
@@ -31,9 +33,11 @@
     (cond
      ((find-command (if (no-command? args) "help" (cadr args)))
       => (lambda (mod)
-           (apply (module-ref mod 'main) (if (no-command-args? args)
-                                             '()
-                                             (cdr args)))))
+           (define check (string=? (cadr args) "create"))
+           (parameterize ((current-toplevel (find-ENTRY-path identity check)))
+             (apply (module-ref mod 'main) (if (no-command-args? args)
+                                               '()
+                                               (cdr args))))))
      ((string=? (cadr args) "list-all-cmds")
       (format #t "~{~a~^    ~}~%" ((@@ (artanis commands help) get-all-commands))))
      (else

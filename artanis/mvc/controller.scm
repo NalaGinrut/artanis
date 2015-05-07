@@ -39,7 +39,6 @@
      ;;       will throw error while calling another macro to expand expr.
      (define-macro (__!$$^d!%_set-app-controller rule meta)
        `(hash-set! (@ (artanis env) *controllers-table*) ,rule ,meta))
-     (define-syntax-rule (current-toplevel) (find-ENTRY-path identity))
      (define-macro (view-render method)
        `(tpl-render ,(format #f "~a/~a/~a.html.tpl" (current-toplevel) 'name method)
                     (the-environment)))
@@ -52,7 +51,7 @@
 (define-syntax-rule (scan-controllers) (scan-app-components 'controller))
 
 (define (load-app-controllers)
-  (define toplevel (find-ENTRY-path identity))
+  (define toplevel (current-toplevel))
   (display "Loading controllers...\n")
   (use-modules (artanis mvc controller))
   (let ((cs (scan-controllers)))

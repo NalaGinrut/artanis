@@ -195,9 +195,7 @@
 
 (define (create-project name)
   (define (within-another-app?)
-    (let ((entry (find-ENTRY-path
-                  (lambda (p) (string-append p "/" *artanis-entry*))
-                  #:check-only? #t)))
+    (let ((entry (current-toplevel)))
       (and entry (verify-ENTRY entry))))
   (cond
    ((file-exists? name)

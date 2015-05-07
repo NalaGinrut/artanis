@@ -32,6 +32,7 @@
             *after-request-hook*
             *sql-mapping-lookup-table*
             *artanis-entry*
+            current-toplevel
             draw:is-dry-run?
             draw:is-force?
             draw:is-skip?
@@ -63,6 +64,8 @@
 (define *sql-mapping-lookup-table* (make-hash-table))
 
 (define *artanis-entry* "ENTRY")
+
+(define current-toplevel (make-parameter #f))
 
 ;; parameters for command
 (define draw:is-dry-run? (make-parameter #f))
