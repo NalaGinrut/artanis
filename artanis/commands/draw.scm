@@ -66,35 +66,52 @@ Example:
   (display help-str)
   (display announce-foot))
 
-(define (draw:create maker cname filename methods)
+(define* (draw:create maker cname filename methods #:optional (dir? #f))
   (define name (basename filename))
   (define component (basename (dirname filename)))
   (format (artanis-current-output) "create ~10t app/~a/~a~%" component name)
   (cond
    ((draw:is-dry-run?)
-    (call-with-output-file *null-device*
-      (lambda (port) (maker cname methods port))))
+    (cond
+     (dir? (maker cname methods))
+     (else
+      (call-with-output-file *null-device*
+        (lambda (port) (maker cname methods port))))))
    ((draw:is-force?)
-    (delete-file filename)
-    (call-with-output-file filename
-      (lambda (port) (maker cname methods port))))
+    (cond
+     (dir?
+      (delete-directory filename)
+      (mkdir filename)
+      (maker cname methods))
+     (else
+      (delete-file filename)
+      (call-with-output-file filename
+        (lambda (port) (maker cname methods port))))))
    ((draw:is-skip?)
     (format (artanis-current-output) "skip ~10t app/~a/~a~%" component name))
    (else
     (when (file-exists? filename) (handle-existing-file filename))
-    (call-with-output-file filename
-      (lambda (port) (maker cname methods port))))))
+    (cond
+     (dir?
+      (mkdir filename)
+      (maker cname methods))
+     (else
+      (call-with-output-file filename
+        (lambda (port) (maker cname methods port))))))))
 
 ;; TODO: handle it more elegantly
 (define (handle-existing-file path)
-  (define component (basename (dirname path)))
-  (define name (car (string-split (basename path) #\.)))
   (cond
-   ((draw:is-force?) (delete-file path))
+   ((draw:is-force?)
+    (if (file-is-directory? path)
+        (delete-directory path)
+        (delete-file path)))
    (else
-    (format #t "~a `~a' exists! (Use --force/-f to overwrite or --skip/-s to ignore)~%"
-            (string-capitalize component) name)
-    (exit 1))))
+    (let* ((component (basename (dirname path)))
+           (name (car (string-split (basename path) #\.))))
+      (format #t "~a `~a' exists! (Use --force/-f to overwrite or --skip/-s to ignore)~%"
+              (string-capitalize component) name)
+      (exit 1)))))
 
 (define (%draw-model name . methods)
   (let* ((path (current-toplevel))
@@ -112,12 +129,12 @@ Example:
 (define (%draw-view name . methods)
   (let* ((path (current-toplevel))
          (entry (string-append path "/ENTRY"))
-         (cpath (string-append path "/app/view/" name ".html.tpl")))
+         (cpath (string-append path "/app/view/" name)))
     (cond
      ((not (verify-ENTRY entry))
       (error "You're not in a valid Artanis app directory! Or ENTRY is invalid!"))
      (else
-      (draw:create do-view-create name cpath methods)
+      (draw:create do-view-create name cpath methods #t)
       ;; TODO: maybe others
       (%draw-test name)))))
 
@@ -130,7 +147,7 @@ Example:
       (error "You're not in a valid Artanis app directory! Or ENTRY is invalid!"))
      (else
       (draw:create do-controller-create name cpath methods)
-      (%draw-view name)
+      (apply %draw-view name methods)
       ;; TODO: maybe others
       (%draw-test name)))))
 

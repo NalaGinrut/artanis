@@ -20,7 +20,37 @@
 (define-module (artanis mvc view)
   #:use-module (artanis utils)
   #:use-module (artanis env)
+  #:use-module (ice-9 format)
   #:export (do-view-create))
 
-(define (do-view-create name methods port)
-  #t)
+(define (generate-view-header vname mname)
+  (call-with-output-string
+   (lambda (port)
+     (format port "<!--- ~a#~a view template of ~a~%" vname mname (current-appname))
+     (display "Please add your license header here.\n" port)
+     (display "This file is generated automatically by GNU Artanis.--->\n\n" port))))
+
+(define (generate-view-template vname mname mpath)
+  (format #f
+          "<html><head><title><%= (current-appname) %></title></head>
+<body><h1>~a#~a</h1>
+<p>Rendered from ~a.</p>
+</body></html>" vname mname mpath))
+
+(define (generate-view m)
+  (define vname (basename (dirname m)))
+  (define mname (car (string-split (basename m) #\.)))
+  (define filename (format #f "~a/~a" (current-toplevel) m)) 
+  (when (file-exists? filename)
+    (error generate-view "BUG: File exists! Shouldn't be here!" m))
+  (format (artanis-current-output) "create ~10t ~a~%" m)
+  (let ((file (if (draw:is-dry-run?) *null-device* filename)))
+    (call-with-output-file file
+      (lambda (port)
+        (display (generate-view-header vname mname) port)
+        (display (generate-view-template vname mname m) port)))))
+
+(define (do-view-create path methods)
+  (for-each generate-view
+            (map (lambda (m) (format #f "app/view/~a/~a.html.tpl" path m))
+                 methods)))
