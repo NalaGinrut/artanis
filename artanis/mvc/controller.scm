@@ -40,7 +40,7 @@
      (define-macro (__!$$^d!%_set-app-controller rule meta)
        `(hash-set! (@ (artanis env) *controllers-table*) ,rule ,meta))
      (define-macro (view-render method)
-       `(tpl-render ,(format #f "~a/~a/~a.html.tpl" (current-toplevel) 'name method)
+       `(tpl-render ,(format #f "~a/~a/~a.html.tpl" ((@ (artanis env) current-toplevel)) 'name method)
                     (the-environment)))
      (define-syntax ,(symbol-append name '-define)
        (syntax-rules ()
