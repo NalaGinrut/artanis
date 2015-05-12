@@ -783,10 +783,11 @@
 
 (define* (delete-directory dir #:optional (checkonly? #f))
   (cond
-   ((file-exists? dir)
-    (system (format #f "rm -fr ~a" dir)))
+   ((and (file-is-directory? dir) (file-exists? dir))
+    (system (format #f "rm -f ~a" dir)))
    (else
-    (and (not checkonly?) (error delete-directory "Not a directory" dir)))))
+    (and (not checkonly?)
+         (error delete-directory "Not a directory or doesn't exist " dir)))))
 
 ;; TODO: handle it more elegantly
 (define* (handle-existing-file path #:optional (dir? #f))
