@@ -53,4 +53,4 @@
 (define (do-view-create path methods)
   (for-each generate-view
             (map (lambda (m) (format #f "app/view/~a/~a.html.tpl" path m))
-                 methods)))
+                 (check-drawing-method methods))))

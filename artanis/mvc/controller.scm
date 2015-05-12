@@ -82,4 +82,4 @@
               (format port "~2t;; uncomment this line if you want to render view from template~%")
               (format port "~2t;; (view-render \"~a\")~%" method)
               (format port "~2t))~%~%"))
-            methods))
+            (check-drawing-method methods)))
