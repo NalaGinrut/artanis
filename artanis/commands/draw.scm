@@ -66,52 +66,37 @@ Example:
   (display help-str)
   (display announce-foot))
 
-(define* (draw:create maker cname filename methods #:optional (dir? #f))
+;; NOTE: mode set to #f means create-file, so the maker needs a port
+(define* (draw:create maker cname filename methods #:optional (mode #f))
   (define name (basename filename))
   (define component (basename (dirname filename)))
-  (format (artanis-current-output) "create ~10t app/~a/~a~%" component name)
+  (format (artanis-current-output) "working ~10t ~a `~a'~%"
+          (string-capitalize component) name)
   (cond
    ((draw:is-dry-run?)
     (cond
-     (dir? (maker cname methods))
+     (mode (maker cname methods)) ; should be handled in actual maker
      (else
       (call-with-output-file *null-device*
         (lambda (port) (maker cname methods port))))))
-   ((draw:is-force?)
-    (cond
-     (dir?
-      (delete-directory filename)
-      (mkdir filename)
-      (maker cname methods))
-     (else
-      (delete-file filename)
-      (call-with-output-file filename
-        (lambda (port) (maker cname methods port))))))
-   ((draw:is-skip?)
-    (format (artanis-current-output) "skip ~10t app/~a/~a~%" component name))
    (else
-    (when (file-exists? filename) (handle-existing-file filename))
-    (cond
-     (dir?
-      (mkdir filename)
-      (maker cname methods))
-     (else
-      (call-with-output-file filename
-        (lambda (port) (maker cname methods port))))))))
-
-;; TODO: handle it more elegantly
-(define (handle-existing-file path)
-  (cond
-   ((draw:is-force?)
-    (if (file-is-directory? path)
-        (delete-directory path)
-        (delete-file path)))
-   (else
-    (let* ((component (basename (dirname path)))
-           (name (car (string-split (basename path) #\.))))
-      (format #t "~a `~a' exists! (Use --force/-f to overwrite or --skip/-s to ignore)~%"
-              (string-capitalize component) name)
-      (exit 1)))))
+    (case mode
+      ((create-dir)
+       (when (file-exists? filename) (handle-existing-file filename))
+       (mkdir filename)
+       (maker cname methods))
+      ((enter-dir)
+       (if (file-exists? filename)
+           ;; remove non-dir if exists
+           (when (not (file-is-directory? filename)) (handle-existing-file filename))
+           ;; create dir if doesn't exist
+           (mkdir filename))
+       (maker cname methods))
+      ((#f)
+       (when (file-exists? filename) (handle-existing-file filename))
+       (call-with-output-file filename
+         (lambda (port) (maker cname methods port))))
+      (else (error draw:create "BUG: wrong mode!" mode))))))
 
 (define (%draw-model name . methods)
   (let* ((path (current-toplevel))
@@ -134,7 +119,7 @@ Example:
      ((not (verify-ENTRY entry))
       (error "You're not in a valid Artanis app directory! Or ENTRY is invalid!"))
      (else
-      (draw:create do-view-create name cpath methods #t)
+      (draw:create do-view-create name cpath methods 'enter-dir)
       ;; TODO: maybe others
       (%draw-test name)))))
 
@@ -165,6 +150,7 @@ Example:
 
 (define *component-handlers*
   `(("model"      . ,%draw-model)
+    ("view"       . ,%draw-view)
     ("controller" . ,%draw-controller)
     ("migration"  . ,%draw-migration)
     ;; ("api"     . ,%draw-api)
