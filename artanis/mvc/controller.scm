@@ -49,27 +49,6 @@
                  (format #f "/~a/~a" 'name 'method)
                  (draw-expander rest rest* :::))))))))))
 
-;; (define-macro (define-artanis-controller name)
-;;   `(begin
-;;      ;; NOTE: we have to encapsulate them to a module for protecting namespaces
-;;      ;; NOTE: we're not going to imort (artanis env) directly to avoid revealing global
-;;      ;;       env vars to users.
-;;      (define-module (app controller ,name)
-;;        #:use-module (artanis artanis)
-;;        #:use-module (artanis utils))
-;;      ;; NOTE: it's important to use macro here, or it'll eval (option ...) later, which
-;;      ;;       will throw error while calling another macro to expand expr.
-;;      (define-macro (__!$$^d!%_set-app-controller rule meta)
-;;        `(hash-set! (@ (artanis env) *controllers-table*) ,rule ,meta))
-;;      (define-macro (view-render method)
-;;        `(tpl->response ,(format #f "~a/app/view/~a/~a.html.tpl" ((@ (artanis env) current-toplevel)) ',name method)
-;;                        (the-environment)))
-;;      (define-syntax ,(symbol-append name '-define)
-;;        (syntax-rules ()
-;;          ((_ method rest rest* ...)
-;;           (__!$$^d!%_set-app-controller (format #f "/~a/~a" ',name 'method)
-;;                                         (draw-expander rest rest* ...)))))))
-
 (define-syntax-rule (scan-controllers) (scan-app-components 'controller))
 
 (define (load-app-controllers)
