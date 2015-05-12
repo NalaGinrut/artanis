@@ -42,7 +42,7 @@
   (define mname (car (string-split (basename m) #\.)))
   (define filename (format #f "~a/~a" (current-toplevel) m)) 
   (when (file-exists? filename)
-    (error generate-view "BUG: File exists! Shouldn't be here!" m))
+    (handle-existing-file filename #t))
   (format (artanis-current-output) "create ~10t ~a~%" m)
   (let ((file (if (draw:is-dry-run?) *null-device* filename)))
     (call-with-output-file file
