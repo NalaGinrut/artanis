@@ -65,14 +65,15 @@ ALL_TARGETS :=	version \
 all: $(ALL_TARGETS)
 
 $(MOD_OBJ)/%.go: $(MOD)/%.scm
-	$(V)-rm -f build.err
-	$(V)echo + compiling $<
+	$(V)$(eval AELOG=build.err.$(shell basename $@))
+	$(V)-rm -f $(AELOG)
+	$(V)echo -ne "+ compiling $<\n\r"
 	$(V)mkdir -p $(@D)
-	$(V)script -e -c "$(GUILEC) -L $(SRC) $< -o $@" -f build.err > /dev/null || (cat build.err && exit 15)
-	$(V)if [ -e build.err ]; then cat build.err | grep warning; :; fi
+	$(V)script -e -c "$(GUILEC) -L $(SRC) $< -o $@" -f $(AELOG) > /dev/null || (cat $(AELOG) && exit 15)
+	$(V)if [ -e $(AELOG) ]; then cat $(AELOG) | grep warning; rm $(AELOG); :; fi
 
 $(MOD)/version.scm:
-	$(V)echo "Regenerating artanis/version.scm"
+	$(V)echo -ne "Regenerating artanis/version.scm\n\r"
 	$(V)-rm -f $@
 	$(V)cat $(HEADER) > $@
 	$(V)$(GUILE) -c '(let ((port (open-file "$@" "a")))(format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"GNU Artanis-~a\")~%" "$(VERSION)"))'
@@ -112,7 +113,7 @@ $(TARBALL_NAME).tar.gz:
 
 clean:
 	-rm -fr $(OBJ) autom4te.cache
-	-rm -f *.log *.err *.info
+	-rm -f *.log build.err.* *.info
 	-rm -f $(MOD)/version.scm
 	find . -name "*~" -exec rm {} \;
 
@@ -153,4 +154,5 @@ docs: $(TEXI_SRC)
 	-rm -f ./*.{cp,ky,tp,aux,fn,log,pg,toc,vr}
 
 scripts:
-	chmod +x $(BIN)/art
+	$(V)echo -ne "Generating bin/art\n\r"
+	$(V)chmod +x $(BIN)/art
