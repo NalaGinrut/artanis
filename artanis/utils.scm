@@ -40,27 +40,28 @@
   #:use-module (web http)
   #:use-module (web request)
   #:export (regexp-split hash-keys cat bv-cat get-global-time
-                         get-local-time string->md5 unsafe-random string-substitute
-                         get-file-ext get-global-date get-local-date uri-decode
-                         nfx static-filename remote-info seconds-now local-time-stamp
-                         parse-date write-date make-expires export-all-from-module!
-                         alist->hashtable expires->time-utc local-eval-string
-                         time-expired? valid-method? mmap munmap get-random-from-dev
-                         string->byteslist string->sha-1 list-slice bv-slice uni-basename
-                         checkout-the-path make-string-template guess-mime prepare-headers
-                         new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
-                         stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
-                         queue-empty? list->stack list->queue stack-remove! queue-remove!
-                         plist->alist make-db-string-template non-list?
-                         keyword->string range oah->handler oah->opts string->keyword
-                         alist->klist alist->kblist is-hash-table-empty?
-                         symbol-downcase symbol-upcase normalize-column
-                         sxml->xml-string run-after-request! run-before-response!
-                         make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
-                         generate-kv-from-post-qstr handle-proper-owner
-                         generate-data-url find-ENTRY-path verify-ENTRY current-appname
-                         draw-expander remove-ext scan-app-components cache-this-route!
-                         dump-route-from-cache generate-modify-time delete-directory)
+            get-local-time string->md5 unsafe-random string-substitute
+            get-file-ext get-global-date get-local-date uri-decode
+            nfx static-filename remote-info seconds-now local-time-stamp
+            parse-date write-date make-expires export-all-from-module!
+            alist->hashtable expires->time-utc local-eval-string
+            time-expired? valid-method? mmap munmap get-random-from-dev
+            string->byteslist string->sha-1 list-slice bv-slice uni-basename
+            checkout-the-path make-string-template guess-mime prepare-headers
+            new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
+            stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
+            queue-empty? list->stack list->queue stack-remove! queue-remove!
+            plist->alist make-db-string-template non-list?
+            keyword->string range oah->handler oah->opts string->keyword
+            alist->klist alist->kblist is-hash-table-empty?
+            symbol-downcase symbol-upcase normalize-column
+            sxml->xml-string run-after-request! run-before-response!
+            make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
+            generate-kv-from-post-qstr handle-proper-owner
+            generate-data-url find-ENTRY-path verify-ENTRY current-appname
+            draw-expander remove-ext scan-app-components cache-this-route!
+            dump-route-from-cache generate-modify-time delete-directory
+            handle-existing-file)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -786,3 +787,21 @@
     (system (format #f "rm -fr ~a" dir)))
    (else
     (and (not checkonly?) (error delete-directory "Not a directory" dir)))))
+
+;; TODO: handle it more elegantly
+(define* (handle-existing-file path #:optional (dir? #f))
+  (let* ((pp (if dir? (dirname path) path))
+         (component (basename (dirname pp)))
+         (name (car (string-split (basename pp) #\.))))
+    (cond
+     ((draw:is-force?)
+      (if (file-is-directory? path)
+          (delete-directory path)
+          (delete-file path)))
+     ((draw:is-skip?)
+      (format (artanis-current-output) "skip ~10t app/~a/~a~%" component name))
+   (else
+    (format (artanis-current-output)
+            "~a `~a' exists! (Use --force/-f to overwrite or --skip/-s to ignore)~%"
+            (string-capitalize component) name)
+    (exit 1)))))
