@@ -302,7 +302,7 @@
           ('(drop-primary-keys)
            (DB-query conn (->sql alter table tname drop primary key)))
           ;; TODO
-          (else (throw 'artanis-err 500 "make-table-builder: Invalid cmd!" cmd)))))))
+          (_ (throw 'artanis-err 500 "make-table-builder: Invalid cmd!" cmd)))))))
 
 ;; make-table-setter is actually a mapping from `update' in SQL
 ;; Grammar:
@@ -338,24 +338,42 @@
       ((? integer? n) (format #f "limit ~a " n))
       ('top "limit 1 ")
       ('all "")
-      (else #f)))
+      (_ #f)))
   (define (->group-by group-by)
     (match group-by
       ((? list columns)
        (format #f "~{~a~^,~} " columns))
-      (else #f)))
+      (_ #f)))
   (define (->order-by order-by)
     (match order-by
       ((columns ... (? (cut memq <> '(asc desc)) m))
        (format #f "~{~a~^,~} ~a " columns m))
-      (else #f)))
-  (define (->opts ret group-by order-by)
+      (_ #f)))
+  (define (->opts ret group-by order-by cnd foreach)
     (define-syntax-rule (-> x tox)
       (or (and=> x tox) ""))
+    (define-syntax-rule (cond-combine c lst)
+      (cond
+       ((not (string? c))
+        (throw 'artanis-err 500 "Invalid #:condition" c))
+       ((not (list? lst))
+        (throw 'artanis-err 500 "Invalid #:foreach" lst))
+       (else
+        (match lst
+          (() c)
+          ((column (? list? vals))
+           (format #f " ~a ~a in (~{'~a'~^,~}) "
+                   (if (string-null? c) " where " (string-append c " and "))
+                   column vals))
+          (_
+           (throw 'artanis-err 500
+                  "Invalid #:foreach, should be (column (val1 val2 val3 ...))"
+                  lst))))))
     (string-concatenate
      (list (-> ret ->ret)
            (-> group-by ->group-by)
-           (-> order-by ->order-by))))
+           (-> order-by ->order-by)
+           (cond-combine cnd foreach))))
   (define (->mix columns functions)
     `(,@columns ,@(map (lambda (f) (format #f "~a(~{~a~^,~})" (car f) (cdr f))) functions)))
   (lambda* (tname #:key (columns '(*)) ; get all (*) in default
@@ -382,9 +400,17 @@
                   ;; SELECT column_name(s)
                   ;;        FROM table_name
                   ;;        ORDER BY column_name [ASC|DESC]
+                  (condition "")
+                  ;; Conditions, for example: #:cond (where #:name "nala")
+                  (foreach #f)
+                  ;; #:foreach accepts an associative list according to this form:
+                  ;; (column-name (val1 val2 val3 ...))
+                  ;; for example:
+                  ;; #:foreach '(city ("sz" "bj" "sh"))
+                  ;; This is useful to avoid N+1 query problem.
                   )
     (let ((sql (format #f "select ~{~a~^,~} from ~a ~a;"
-                       (->mix columns functions) tname (->opts ret group-by order-by)))
+                       (->mix columns functions) tname (->opts ret group-by order-by condition foreach)))
           (conn (cond
                  ((route-context? rc/conn) (rc-conn rc/conn))
                  ((<connection>? rc/conn) rc/conn)
