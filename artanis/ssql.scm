@@ -24,6 +24,7 @@
   #:export (->sql
             where
             having
+            /in
             /or
             /and))
 
@@ -329,3 +330,10 @@
 (define (/and . conds)
   (parameterize ((get-and/or " and ") (get-prefix ""))
     (apply where conds)))
+
+(define (/in . lst)
+  (match lst
+    (() "")
+    ((column (? list? vals))
+     (format #f " ~a in (~{'~a'~^,~}) " column vals))
+    (else (throw 'artanis-err 500 "/in: Invalid args" lst))))
