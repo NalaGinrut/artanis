@@ -19,7 +19,9 @@
 
 (define-module (artanis ssql)
   #:use-module (artanis utils)
+  #:use-module (artanis irregex)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 receive)
   #:use-module (ice-9 format)
   #:export (->sql
             where
@@ -264,6 +266,16 @@
     (apply gen-cond conds)))
 
 (define (gen-cond . conds)
+  (define (->or/and kp)
+    (let* ((len (string-length kp))
+           (p (substring/shared kp (- len 2))))
+      (match p
+        ("<>" " and ")
+        (else " or "))))
+  (define (->key/pred k)
+    (let* ((str (keyword->string k))
+           (m (irregex-match "([^<>=]+)(<|>|<=|>=|<>)" str)))
+      (if m str (string-append str "="))))
   (define (->range lst)
     (match lst
       (((? integer? from) (? integer? to))
@@ -272,17 +284,17 @@
                    (format #f "[SQL]~a: invalid range" (get-prefix))
                    lst))))
   (define (get-the-conds-str key val)
-    (let ((k (symbol->string key))
-          (v (if (list? val) (->range val) (->string val))))
-      (case key
+    (let ((v (if (list? val) (->range val) (->string val))))
+      (match key
         ;; These are reversed key in SQL, we use string-concatenate for efficiency
-        ((limit)
+        ('limit
          ;; FIXME: maybe we need such a check
          ;; (artanis-check-if-current-DB-support key)
-         (if (list? v)
-             (format #f " ~a ~{~a~^, ~} " k v)
-             (string-concatenate (list " " k " " v " ")))) 
-        (else (string-concatenate (list " " k "=\"" v "\" "))))))
+         (let ((k (symbol->string key)))
+           (if (list? v)
+               (format #f " ~a ~{~a~^, ~} " k v)
+               (string-concatenate (list " " k " " v " "))))) 
+        (else (format #f "~a'~a'" key v)))))
   (match conds
     (() "")
     (((? string? c1) (? string? c2) . rest)
@@ -297,17 +309,17 @@
     ;; (where #:name 'John #:age 15 #:email "john@artanis.com") 
     ;; ==> name="John" and age="15" and email="john@artanis.com"
     (((? keyword? key) (? non-list? val) . rest)
-     (let* ((k (keyword->symbol key))
+     (let* ((k (->key/pred key))
             (str (get-the-conds-str k val)))
        (string-concatenate
         `(,(get-prefix) ,str
           ,(if (null? rest) "" (get-and/or))
           ,(parameterize ((get-prefix "")) (apply gen-cond rest))))))
-    ;; OR mode:
+    ;; group mode:
     ;; (where #:name '(John Tom Jim)) ==> name="John" or name="Tom" or name="Jim"
-
     (((? keyword? key) (vals ...) . rest)
-     (let ((fmt (string-concatenate `(,(get-prefix) "~{" ,(keyword->string key) "=\"~a\"~^ or ~}"))))
+     (let* ((kp (->key/pred key))
+            (fmt (string-concatenate `(,(get-prefix) "~{" ,kp "'~a'~^" ,(->or/and kp) "~}"))))
        (format #f fmt vals)))
     (else (throw 'artanis-err 500
                  (format #f "[SQL]~a: invalid condition pattern" (get-prefix))
