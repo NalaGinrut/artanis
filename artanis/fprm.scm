@@ -255,8 +255,11 @@
      ((route-context? rc/conn) (rc-conn rc/conn))
      ((<connection>? rc/conn) rc/conn)
      (else (throw 'artanis-err 500 "make-table-dropper: Invalid rc or conn!" rc/conn))))
-  (lambda (name)
-    (DB-query conn (->sql drop table if exists name))))
+  (lambda* (name #:key (dump #f))
+    (let ((sql (->sql drop table if exists name)))
+      (cond
+       ((not dump) (DB-query conn sql))
+       (else sql)))))
 
 ;; NOTE:
 ;; 1. Use primiary-keys for specifying primary keys, don't specify it in defs directly.
@@ -282,9 +285,9 @@
   ;; TODO: We need a mechanism to sync tables constrained by foreign-keys, since some DB doesn't
   ;;       support foreign keys directly, so we have to provide it outside.
   ;; TODO: who to deal with constrained tables without foreign-keys in stateless?
-  (lambda* (tname defs #:key (if-exists? #f) (primary-keys '()) (engine #f))
+  (lambda* (tname defs #:key (if-exists? #f) (primary-keys '()) (engine #f)
+                  (dump #f))                  
     (let* ((types (map (cut ->types <> primary-keys) defs))
-           (aaa (format #t "~a~%" types))
            (sql (case if-exists?
                   ((overwrite drop)
                    (table-drop! tname)
@@ -292,17 +295,20 @@
                   ((ignore)
                    (->sql create table if not exists tname (types) engine))
                   (else (->sql create table tname (types) engine)))))
-      (DB-query conn sql)
-      (lambda cmd
-        (match cmd
-          ('(valid?) (db-conn-success? conn))
-          ('(primary-keys) primary-keys)
-          (`(add-primary-keys ,keys)
-           (DB-query conn (->sql alter table tname add primary key keys)))
-          ('(drop-primary-keys)
-           (DB-query conn (->sql alter table tname drop primary key)))
-          ;; TODO
-          (_ (throw 'artanis-err 500 "make-table-builder: Invalid cmd!" cmd)))))))
+      (cond
+       ((not dump)
+        (DB-query conn sql)
+        (lambda cmd
+          (match cmd
+            ('(valid?) (db-conn-success? conn))
+            ('(primary-keys) primary-keys)
+            (`(add-primary-keys ,keys)
+             (DB-query conn (->sql alter table tname add primary key keys)))
+            ('(drop-primary-keys)
+             (DB-query conn (->sql alter table tname drop primary key)))
+            ;; TODO
+            (_ (throw 'artanis-err 500 "make-table-builder: Invalid cmd!" cmd)))))
+       (else sql)))))
 
 ;; make-table-setter is actually a mapping from `update' in SQL
 ;; Grammar:
@@ -313,12 +319,12 @@
   (define (->kvp kargs)
     (let lp((next kargs) (kvs '()) (w ""))
       (match next
-       (((? keyword? k) v rest ...)
-        (lp rest (cons (list (keyword->symbol k) v) kvs) w))
-       (((? string? wcond))
-        (lp (cdr next) kvs wcond))
-       (() (values kvs w))
-       (else (throw 'artanis-err 500 "->kvp: invalid kargs" next)))))
+        (((? keyword? k) v rest ...)
+         (lp rest (cons (list (keyword->symbol k) v) kvs) w))
+        (((? string? wcond))
+         (lp (cdr next) kvs wcond))
+        (() (values kvs w))
+        (else (throw 'artanis-err 500 "->kvp: invalid kargs" next)))))
   (define (->kv kvp) (srfi-1:unzip2 kvp))
   (lambda (tname . kargs)
     (let-values (((kvp wcond) (->kvp kargs)))
@@ -402,12 +408,14 @@
                   ;;        ORDER BY column_name [ASC|DESC]
                   (condition "")
                   ;; Conditions, for example: #:cond (where #:name "nala")
-                  (foreach #f)
+                  (foreach '())
                   ;; #:foreach accepts an associative list according to this form:
                   ;; (column-name (val1 val2 val3 ...))
                   ;; for example:
                   ;; #:foreach '(city ("sz" "bj" "sh"))
                   ;; This is useful to avoid N+1 query problem.
+                  (dump #f)
+                  ;; Dump SQL to a string as result, when #:dump set to #t, it won't do query operation. 
                   )
     (let ((sql (format #f "select ~{~a~^,~} from ~a ~a;"
                        (->mix columns functions) tname (->opts ret group-by order-by condition foreach)))
@@ -415,8 +423,11 @@
                  ((route-context? rc/conn) (rc-conn rc/conn))
                  ((<connection>? rc/conn) rc/conn)
                  (else (throw 'artanis-err 500 "make-table-getter: Invalid rc or conn!" rc/conn)))))
-      (DB-query conn sql)
-      (DB-get-all-rows conn))))
+      (cond
+       ((not dump)
+        (DB-query conn sql)
+        (DB-get-all-rows conn))
+       (else sql)))))
 
 ;; NOTE: the name of columns is charactar-caseless, at least in MySQL/MariaDB.
 (define (map-table-from-DB rc/conn)
