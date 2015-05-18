@@ -95,6 +95,8 @@
                ;; ssql module
                ->sql
                where
+               having
+               /in
                /or
                /and
 
