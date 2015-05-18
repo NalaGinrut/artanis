@@ -161,6 +161,11 @@
   #:export (static-page-emitter
             result-ref
             init-server
+            form-tag
+            label-tag
+            a-tag
+            p-tag
+            div-tag
             run))
 
 (define* (result-ref alst key #:key (decode? #t))
@@ -188,6 +193,49 @@
 (define (check-if-not-run-init-server)
   ;; Just check if the conf table is empty
   (is-hash-table-empty? *conf-hash-table*))
+
+(define* (form-tag #:key (controller #f) (action #f) (method #f)
+                   (class #f) (tag-class #f) (tag-id #f) (form-method "get"))
+  (lambda tags
+    (call-with-output-string
+     (lambda (port)
+       (format port "<form accept-charset='~a'" (get-conf '(server charset)))
+       (format port " action='~a'"
+               (call-with-output-string
+                (lambda (port2)
+                  (display "/" port2)
+                  (and controller (format port2 "~a/" controller))
+                  (and action (format port2 "~a?" action))
+                  (and method (format port2 "method=~a" method))
+                  (and class (format port2 "&class=~a" class)))))
+       (format port " method='~a'" method)
+       (and tag-class (format port " class='~a'" tag-class))
+       (and tag-id (format port " id='~a'" tag-id))
+       (display ">\n" port)
+       (for-each (lambda (tag) (format port "~a~%" tag)) tags)
+       (format port "</form>~%")))))
+
+(define (make-general-tag tag)
+  (lambda attrs
+    (lambda (contents)
+      (call-with-output-string
+       (lambda (port)
+         (format port "<~a" tag)
+         (let lp((next attrs))
+           (cond
+            ((null? next)
+             (display ">\n" port)
+             (display contents port)
+             (newline port)
+             (format port "</~a>" tag))
+            (else
+             (format port " ~a='~a'" (keyword->symbol (car next)) (cadr next))
+             (lp (cddr attrs))))))))))
+
+(define label-tag (make-general-tag 'label))
+(define a-tag (make-general-tag 'a))
+(define p-tag (make-general-tag 'p))
+(define div-tag (make-general-tag 'div))
 
 ;; Invalid use-db? must be (dbd username passwd) or #f
 (define* (run #:key (host #f) (port #f) (debug #f) (use-db? #f)
