@@ -1,7 +1,6 @@
 * theme (based on template)
 * make own favicon.ico (now use opensuse ico instead)
 * implement expand-conds for ssql
-* write test-cases for ssql
 * implement tpl cache, not read tpl file every time rendering
 * design a generic session framework with optional store method: memcached/file+RCU/Berkerley DB...
 * sql-mapping syntax should support multi-sql code, but should deal with SQL-injection
@@ -39,3 +38,6 @@ Some ideas:
 
 * Reconsider security tokens fetching
   Here's the discussion: http://wingolog.org/archives/2014/12/02/there-are-no-good-constant-time-data-structures
+
+* Rewrite redirect-to for supporing controllers, and don't take use of "Location" header anymore.
+  Just find out and call the rule handler directly.
