@@ -478,3 +478,16 @@
       ;; schema is always in downcase.
       ((schema) (get-table-schema tname))
       (else (throw 'artanis-err 500 "map-table-from-DB: Invalid cmd" cmd)))))
+
+(define* (fprm-find mt tname val #:key (id 'id))
+  (mt 'get tname #:condition (where (symbol->keyword id) val)))
+
+(define *table-mapper-handlers*
+  `((find . ,fprm-find)
+    ))
+
+(define (create-table-mapper tname rc/conn)
+  (let ((mt (map-table-from-DB rc/conn)))
+    (lambda (cmd . args)
+      (and=> (assoc-ref *table-mapper-handlers* cmd)
+             (lambda (h) (apply h mt tname args))))))
