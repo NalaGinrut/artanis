@@ -736,7 +736,7 @@
   (define (write-header port)
     (format port ";; Do not touch anything!!!~%")
     (format port ";; All things here should be automatically handled properly!!!~%"))
-  (define route-cache (string-append (current-toplevel) "/tmp/cache/.route.cache"))
+  (define route-cache (string-append (current-toplevel) "/tmp/cache/route.cache"))
   (when (or (not (file-exists? route-cache))
             (and (not url) (not meta))) ; for regenerating route cache
     (format (artanis-current-output) "Route cache is missing, regenerating...~%")
@@ -756,8 +756,15 @@
 
 (define (dump-route-from-cache)
   (define toplevel (current-toplevel))
-  (define route-cache (string-append toplevel "/tmp/cache/.route.cache"))
-  (define route (string-append toplevel "/route.scm"))
+  (define route-cache (string-append toplevel "/tmp/cache/route.cache"))
+  (define route (string-append toplevel "/.route"))
+  (define (load-customized-router)
+    (let ((croute (string-append toplevel "conf/route")))
+      (cond
+       ((not (file-exists? croute)) #t) ; No customized route
+       (else
+        (use-modules (artanis mvc route)) ; black magic to make Guile happy
+        (load croute)))))
   (when (file-exists? route) (delete-file route))
   (when (not (file-exists? route-cache))
         (cache-this-route! #f #f)
@@ -770,7 +777,6 @@
      (else
       (call-with-output-file route
         (lambda (port)
-          (display "(\n" port)
           (for-each (lambda (r)
                       (let* ((meta (cdr r))
                              (rule (assq-ref meta 'rule))
@@ -778,8 +784,9 @@
                         (format port "~2t(~a ~s)~%"
                                 (if method method 'get)
                                 (if rule rule (car r)))))
-                    rl)
-          (format port "~2t)\n")))))))
+                    rl)))
+      ;; load customized router
+      (load-customized-router)))))
 
 (define* (delete-directory dir #:optional (checkonly? #f))
   (cond
