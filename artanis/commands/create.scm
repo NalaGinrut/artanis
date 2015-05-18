@@ -61,29 +61,6 @@
 
 (define conf-footer "\n\n## End Of Artanis conf.\n")
 
-(define (create-local-config)
-  (define (->proper v)
-    (match v
-      ((or #t 'true 'on 'yes) 'enable)
-      ((or #f 'false 'off 'no) 'disable)
-      ((? list?) (format #f "~{~a~^,~}" v))
-      (else v)))
-  (define (->cstr ctb)
-    (call-with-output-string
-     (lambda (port)
-       (for-each (lambda (c)
-                   (match c
-                     ((ns val)
-                      (format port "~{~a~^.~} = ~a~%" ns (->proper val)))
-                     (else (error create-local-config "BUG: Invalid conf value!" c))))
-                 ctb))))
-  (let* ((ctb (@@ (artanis config) *default-conf-values*))
-         (cstr (->cstr ctb))
-         (fp (open-file "artanis.conf" "w")))
-    (display conf-header fp)
-    (display cstr fp)
-    (display conf-footer fp)
-    (close fp)))
 
 (define (touch f)
   (close (open-file f "w")))
@@ -103,29 +80,59 @@
         (format port ";; Do not touch anything!!!~%")
         (format port ";; All things here should be automatically handled properly!!!~%")))))
 
+(define (create-default-readme readme)
+  (print-create-info readme)
+  (touch readme))
+
 (define (benchmark-handler p)
   (define (-> f) (string-append p "/" f))
-  (let ((readme (-> "README")))
-    (print-create-info readme)
-    (touch readme)
-    ;; TODO: generate template
-    ))
+  (create-default-readme (-> "README"))
+  ;; TODO: generate template
+  )
+
+(define (conf-handler p)
+  (define (-> f) (string-append p "/" f))
+  (define (create-local-config)
+    (define (->proper v)
+      (match v
+        ((or #t 'true 'on 'yes) 'enable)
+        ((or #f 'false 'off 'no) 'disable)
+        ((? list?) (format #f "~{~a~^,~}" v))
+        (else v)))
+    (define (->cstr ctb)
+      (call-with-output-string
+       (lambda (port)
+         (for-each (lambda (c)
+                     (match c
+                       ((ns val)
+                        (format port "~{~a~^.~} = ~a~%" ns (->proper val)))
+                       (else (error create-local-config "BUG: Invalid conf value!" c))))
+                   ctb))))
+    (let* ((ctb (@@ (artanis config) *default-conf-values*))
+           (cstr (->cstr ctb))
+           (fp (open-file (-> "artanis.conf") "w")))
+      (display conf-header fp)
+      (display cstr fp)
+    (display conf-footer fp)
+    (close fp)))
+  (create-default-readme (-> "README"))
+  (create-local-config))
 
 (define (sm-handler p)
   (define (-> f) (string-append p "/" f))
-  (let ((readme (-> "README")))
-    (print-create-info readme)
-    (touch readme)
-    ;; TODO: generate template
-    ))
+  (create-default-readme (-> "README"))
+  ;; TODO: generate template
+  )
 
 (define *files-handler*
   `(((sm) . ,sm-handler)
+    ((conf) . ,conf-handler)
     ((tmp cache) . ,tmp-cache-handler)
     ((test benchmark) . ,benchmark-handler)))
 
 (define *dir-arch*
   '((app (model controller view)) ; MVC stuff
+    (conf) ; config files
     (sys (pages i18n)) ; system stuff
     (db (migration sm)) ; DB (include SQL Mappings)
     (log) ; log files
@@ -211,7 +218,6 @@
     (mkdir name)
     (chdir name)
     (working-for-toplevel)
-    (create-local-config)
     (create-framework)
     (create-entry name)
     (format #t "OK~%"))))
