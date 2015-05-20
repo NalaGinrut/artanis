@@ -34,8 +34,8 @@ script:
   - ./autogen.sh
   - mkdir -p build && cd build && ../configure
   - make V=""
-  - cat build.err
   - sudo make install
+  - make test
   - guile -c '(display (@ (artanis artanis) artanis-version))'
 
 branches:
