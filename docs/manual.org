@@ -126,7 +126,7 @@ git clone git://git.savannah.gnu.org/artanis.git
 git clone git@github.com:NalaGinrut/artanis.git
 #+end_src
 ** Configuration
-Before the first time to run, GNU Artanis needs a config file. The default path is =/etc/artanis/artanis.conf=.
+Before the first time to run, GNU Artanis needs a config file. The default file name is =/etc/artanis/artanis.conf=.
 
 There's a config skeleton named default.conf, you may copy it to =/etc/artanis/artanis.conf=.
 
@@ -352,7 +352,7 @@ It's better to use (init-server) to init GNU Artanis.
 #+begin_src scheme
 (init-server #:statics '(png jpg jpeg ico html js css) #:cache-statics? #f #:exclude '())
 #+end_src
-src_scheme[:exports code]{#:statics} specifies the static files with the extension file. GNU Artanis is based on URL remapping, so this keyword avoids you to handle each static file types. In default, it coveres the most static file types. So you may ignore it usually.
+src_scheme[:exports code]{#:statics} specifies the static files with the extension file. GNU Artanis is based on URL remapping, so this keyword let you avoid to handle each static file types. In default, it coveres the most static file types. So you may ignore it usually.
 
 src_scheme[:exports code]{#:cache-statics?} indicates if the static files should be cached.
 
@@ -680,10 +680,11 @@ And there're two differences:
 + FPRM doesn't maintain any states at all, say, it keeps stateless in the object (Not in database).
 
 These two points may decrease the power of FPRM, but our main philosophy in GNU Artanis is that
-+ /The best way to control DB is SQL itself, don't bother with other guile schemes./
++ /The best way to control DB is SQL, don't bother with other guile schemes./
 
-That means we're not going to design a complicated ORM in GNU Artanis, but a promising way to interact with SQL easily.
-This is what [[SQL Mapping (experimental)][SQL Mapping]] provided. FPRM and SQL-Mapping aims to reduce states & complexity to privide reliabality.
+That means we're not going to develop a complicated ORM in GNU Artanis, but a promising way to interact with SQL easily.
+This is what [[SQL Mapping (experimental)][SQL Mapping]] provided. FPRM aims to reduce states & complexity to privide reliabality, and SQL-Mapping will provide a convenient way
+to handle complex SQL for better performance and security (from SQL-Injection). 
 
 #+begin_src scheme
 (define my-table (map-table-from-DB rc/conn))
@@ -793,9 +794,26 @@ You may use #:mime method to handle JSON:
 #+begin_src scheme
 (get "/json" #:mime 'json
   (lambda (rc)
-    (let ((j (json (object ("name" "nala") ("age" "15")))))
+    (let ((j (json (object ("name" "nala") ("age" 15)))))
       (:mime rc j))))
 #+end_src
+
+For example:
+#+begin_src scheme
+(define my-json
+  (json (object ("name" "nala") ("age" 15)
+                ("read_list" (object ("book1" "The interpreter and structure of Artanis")
+                                     ("book2" "The art of Artanis programming"))))))
+(scm->json my-json) ; scm->json will print json
+;; ==> {"name" : "nala",
+;;      "age" : 15,
+;;      "read_list" : {"book2" : "The art of Artanis programming",
+;;                     "book1" : "The interpreter and structure of Artanis"}}
+#+end_src
+
+src_scheme[:exports code]{scm->json} will print the result directly.
+
+If you need to format json as a string to return to clients, please use src_scheme[:exports code]{scm->json-string}. 
 ** CSV
 GNU Artanis intergrated the third-party module [[https://github.com/NalaGinrut/guile-csv][guile-csv]]. You may use #:mime method to handle CSV:
 #+begin_src scheme
@@ -891,7 +909,7 @@ And the APIs of session is :session
 +  'spawn spawn a session with the name "sid".
 +  'spawn-and-keep spawn a session then keep with the name "sid".
 * Cookies
-You have to use src_scheme[:exports code]{#:session mode} while you defining URL rule handler.
+You have to use src_scheme[:exports code]{#:cookies mode} while you defining URL rule handler.
 #+begin_src scheme
 (get "/certain-rule" #:cookies mode
   (lambda (rc) ...))    
