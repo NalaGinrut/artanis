@@ -39,8 +39,19 @@
              #:use-module (artanis artanis)
              #:use-module (artanis utils))
            (define-syntax-rule (view-render method)
-             (tpl->response (format #f "~a/app/view/~a/~a.html.tpl" ((@ (artanis env) current-toplevel)) 'name method)
-                            (the-environment)))
+             (let* ((file (format #f "~a/app/view/~a/~a.html.tpl"
+                                  (current-toplevel) 'name method))
+                    (tpl (and (file-exists? file) (cat file #f))))
+               (cond
+                (tpl
+                 (let* ((expr ((@@ (artanis tpl) tpl->expr) tpl))
+                        (html (call-with-output-string
+                               (lambda (port)
+                                 (parameterize ((current-output-port port))
+                                               (local-eval-string
+                                                expr (the-environment)))))))
+                   (response-emit html)))
+                (else (response-emit "" #:status 404)))))
            (define-syntax #,(datum->syntax #'name (symbol-append (syntax->datum #'name) '-define))
              (syntax-rules ::: ()
                ((_ method rest rest* :::)
@@ -54,7 +65,7 @@
 (define (load-app-controllers)
   (define toplevel (current-toplevel))
   (display "Loading controllers...\n" (artanis-current-output))
-  (use-modules (artanis mvc controller))
+  (use-modules (artanis mvc controller)) ; black magic to make Guile happy
   (let ((cs (scan-controllers)))
     (for-each (lambda (s)
                 (load (format #f "~a/app/controller/~a.scm" toplevel s)))
