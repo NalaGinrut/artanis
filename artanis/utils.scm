@@ -61,7 +61,7 @@
             generate-data-url find-ENTRY-path verify-ENTRY current-appname
             draw-expander remove-ext scan-app-components cache-this-route!
             dump-route-from-cache generate-modify-time delete-directory
-            handle-existing-file check-drawing-method)
+            handle-existing-file check-drawing-method current-toplevel)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -822,3 +822,7 @@
                     (error check-drawing-method errstr name)))
             lst)
   lst)
+
+(define (current-toplevel)
+  (or (%current-toplevel)
+      (find-ENTRY-path identity #t)))
