@@ -32,7 +32,7 @@
             *after-request-hook*
             *sql-mapping-lookup-table*
             *artanis-entry*
-            current-toplevel
+            %current-toplevel
             draw:is-dry-run?
             draw:is-force?
             draw:is-skip?
@@ -54,7 +54,7 @@
 ;; TODO: Should be pool of pool.
 ;;       In principle, each worker need just one connection because of green-thread.
 ;;       But async needs non-block, so we need a pool for each worker since each conn
-;;       could be scheduled by EWOULDBREAK.
+;;       could be scheduled when it encounters EWOULDBREAK.
 (define *conn-pool* #f)
 
 (define *before-response-hook* (make-hook 2))
@@ -65,7 +65,7 @@
 
 (define *artanis-entry* "ENTRY")
 
-(define current-toplevel (make-parameter #f))
+(define %current-toplevel (make-parameter #f))
 
 ;; parameters for command
 (define draw:is-dry-run? (make-parameter #f))
