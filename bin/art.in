@@ -34,7 +34,7 @@
      ((find-command (if (no-command? args) "help" (cadr args)))
       => (lambda (mod)
            (define check (string=? (cadr args) "create"))
-           (parameterize ((current-toplevel (find-ENTRY-path identity check)))
+           (parameterize ((%current-toplevel (find-ENTRY-path identity check)))
              (apply (module-ref mod 'main) (if (no-command-args? args)
                                                '()
                                                (cdr args))))))
