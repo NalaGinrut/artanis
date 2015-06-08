@@ -107,6 +107,49 @@ aa.scm\r
                (content-length . ,(string-length test2-expect-body)))))
 ;; ==========================================================
 
+;; TEST3
+(define post-test-3-single-file-upload
+  "POST /test3 HTTP/1.1\r
+Host: localhost:8000\r
+Connection: keep-alive\r
+Content-Length: 320\r
+Cache-Control: max-age=0\r
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8\r
+Origin: http://localhost:3000\r
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36 SUSE/31.0.1650.63\r
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryimGSqF43tiXYkB0c\r
+DNT: 1\r
+Referer: http://localhost:3000/upload\r
+Accept-Encoding: gzip,deflate,sdch\r
+Accept-Language: en-US,en;q=0.8,zh-CN;q=0.6,zh;q=0.4,zh-TW;q=0.2,de;q=0.2\r
+\r
+------WebKitFormBoundaryimGSqF43tiXYkB0c\r
+Content-Disposition: form-data; name=\"upfile\"; filename=\"aa.scm\"\r
+Content-Type: text/x-scheme\r
+\r
+(let ((x (expt 2 10)))\r
+  (display x))\r
+\r
+------WebKitFormBoundaryimGSqF43tiXYkB0c\r
+Content-Disposition: form-data; name=\"note\"\r
+\r
+aa.scm\r
+------WebKitFormBoundaryimGSqF43tiXYkB0c--")
+
+(post "/test3" #:from-post '(store #:path "/tmp/upload")
+  (lambda (rc)
+    (:from-post rc 'store)))
+
+(define test3-expect-body "success")
+
+(define test3-expect-res
+  (build-response
+   #:version '(1 . 1)
+   #:code 200
+   #:headers `(,@*default-unified-headers*
+               (content-length . ,(string-length test3-expect-body)))))
+;; ===================
+   
 (with-test-prefix "<Methods> POST test"
 
   (pass-if "simple form post test"
@@ -116,4 +159,8 @@ aa.scm\r
   (pass-if "single file upload test"
     (receive (r b) (test-from-request post-test-2-single-file-upload)
              (responses-equal? r b test2-expect-res test2-expect-body)))
+
+  (pass-if "single file upload store test"
+    (receive (r b) (test-from-request post-test-3-single-file-upload)
+             (responses-equal? r b test2-expect-res test2-expect-body)))  
   )

@@ -29,8 +29,9 @@
   #:use-module (srfi srfi-1)
   #:use-module ((rnrs)
                 #:select (get-bytevector-all utf8->string put-bytevector
-                          call-with-bytevector-output-port
-                          bytevector-length define-record-type))
+                          call-with-bytevector-output-port string->utf8
+                          bytevector-length define-record-type
+                          bytevector-u8-ref))
   #:use-module (web request)
   #:use-module (web client)
   #:use-module (web uri)
@@ -39,15 +40,16 @@
             content-type-is-mfd?
             parse-mfd-body
             mfd
-            get-mfd-data
-            fine-mfd
+            call-with-mfd-data
+            find-mfd
             make-mfd
             is-mfd?
             mfds-count
             mfd-dispos
             mfd-name
             mfd-filename
-            mfd-data
+            mfd-begin
+            mfd-end
             mfd-type
             mfd-simple-dump-all
             store-uploaded-files
@@ -60,22 +62,16 @@
    dispos ; content disposition
    name ; mfd name
    filename ; mfd filename, #f for not-a-file
-   data ; the actual data
+   begin ; beginning of data
+   end ; end of data
    type)) ; MIME type
 
 (define (find-mfd name mfd-table)
   (any (lambda (mfd) (and (string=? (mfd-name mfd) name) mfd)) mfd-table))
 
-(define* (get-mfd-data name mfdl #:optional (proc identity))
-  (let* ((mfd (find-mfd name mfdl))
-         (data (mfd-data mfd)))
-    (proc data)))
-
-(define (read-body-line port)
-  (read-line port 'concat))
-
-(define (get-mfd-data-string name mfd)
-  (get-mfd-data name mfd utf8->string))
+(define (call-with-mfd-data rc name mfdl proc)
+  (let ((mfd (find-mfd name mfdl)))
+    (proc rc (mfd-begin mfd) (mfd-end mfd))))
 
 (define (%content-type-is-mfd? req)
   (let* ((ct (request-content-type req))
@@ -87,26 +83,17 @@
 (define (content-type-is-mfd? rc)
   (%content-type-is-mfd? (rc-req rc)))
 
-(define *valid-meta-header* (string->irregex "Content-Disposition:"))
+(define *valid-meta-header* (string->utf8 "Content-Disposition:"))
+
+(define (headline? body from)
+  (subbv=? body from (+ from (bytevector-length *valid-meta-header*) -1)))
 
 (define (header-trim s)
   ;; NOTE: We need to trim #\return.
   ;;       Since sometimes we encounter "\n\r" rather than "\n" as newline.
   (string-trim-both s (lambda (c) (member c '(#\sp #\" #\return)))))
 
-(define (headline? line)
-  (irregex-search *valid-meta-header* line))
-
-(define (get-data port)
-  (get-bytevector-all port)) ; all the rest is the data
-
-(define (blank-line? line)
-  (string-null? (string-trim-both line)))
-
-(define (end-line? line)
-  (string=? "--" (string-trim-both line)))
-
-(define (->mfd-headers line port)
+(define (->mfd-header line)
   (define (-> l)
     (define (-? x) (= 1 (length x)))
     (let lp((n l) (ret '()))
@@ -119,112 +106,98 @@
                       (string-trim-both p)
                       (map header-trim z))))
           (lp (cdr n) (cons y ret)))))))
-  (define (->p ll)
-    (match (string-split ll #\:)
-      ((k v)
-       (-> `(,k ,@(string-split v #\;))))
-      (else (throw 'artanis-err 400 "->mfd-headers: Invalid MFD header!" ll))))
-  (let lp((l (read-line port)) (ret (list (->p line))))
-    (cond
-     ((blank-line? l) ret)
-     (else
-      (lp (read-line port) (cons (->p l) ret))))))
+  (match (string-split line #\:)
+    ((k v)
+     (-> `(,k ,@(string-split v #\;))))
+    (else (throw 'artanis-err 400 "->mfd-headers: Invalid MFD header!" line))))
 
-(define (parse-mfd-data str)
+;; NOTE: convert boundary to bytevector before pass in.
+(define (parse-mfds boundary body)
   (define-syntax-rule (-> h k) (and=> (assoc-ref h k) car))
-  (define (->utf8 s)
-    (bytevector->string (string->bytevector s "iso8859-1") "utf-8"))
-  (call-with-input-string str
-   (lambda (port)
-     (let lp((line (read-line port)) (ret '()))
-       (cond
-        ((eof-object? line) ret)
-        ((or (end-line? line) (blank-line? line)) 
-         ;; jump first blank line, it shouldn't effect the blank line in data
-         (lp (read-line port) ret))
-        ((headline? line)
-         (let* ((headers (->mfd-headers line port))
-                (data (get-data port))
-                (dispos (assoc-ref headers "Content-Disposition"))
-                (filename (and=> (-> dispos "filename") ->utf8))
-                (name (-> dispos "name"))
-                (type (-> headers "Content-Type"))
-                (mfd (make-mfd (car dispos) name filename data type)))
-           (lp (read-line port) (cons mfd ret))))
-        (else (throw 'artanis-err 400 "Invalid Multi Form Data header!" line)))))))
+  (define len (bytevector-length body))
+  (define blen (bytevector-length boundary))
+  (define (is-boundary? from)
+    (subbv=? body boundary from (+ from blen -1)))
+  (define (is-end-line? from)
+    (and (is-boundary? from)
+         (subbv=? body #vu8(45 45) (+ from blen) (+ from blen 1))))
+  (define (get-headers from)
+    (cond
+     ((headline? body from)
+      (let lp((start from) (end (bv-read-line body from)) (ret '()))
+        (cond
+         ((subbv=? body #vu8(13) start end) (cons ret end)) ; end of headers
+         (else
+          (let ((line (subbv->string body "utf-8" start end)))
+            (lp end (bv-read-line body end) (cons (->mfd-header line) ret)))))))
+     (else (throw 'artanis-err 400 "Invalid Multi Form Data header!"))))
+  (define (get-content-end from)
+    (let lp((i from) (j 0))
+      (cond
+       ((is-boundary? i) i)
+       ((= (bytevector-u8-ref body i) (bytevector-u8-ref boundary j))
+        (lp (1+ i) (1+ j)))
+       (else (lp (1+ i) 0)))))
+  (let lp((i 0) (mfds '()))
+    (cond
+     ((is-end-line? i) mfds)
+     ((<= i len)
+      (let* ((hp (get-headers i))
+             (headers (car hp))
+             (h (cdr hp))
+             (end (get-content-end h))
+             (dispos (assoc-ref headers "Content-Disposition"))
+             (filename (-> dispos "filename"))
+             (name (-> dispos "name"))
+             (type (-> headers "Content-Type"))
+             (mfd (make-mfd (car dispos) name filename h end type)))
+        (lp (+ end blen) (cons mfd mfds))))
+     (else (throw 'artanis-err 422 "Wrong multipart form body!")))))
 
-;; result: (len . parsed-data)
-(define (mfd-parser ll)
-  (let lp((next ll) (ret '()))
-    (cond 
-     ((null? next) (cons (length ret) ret))
-     ((or (string-null? (car next)) ; boundary itself    
-          (string=? (car next) "--")) ; the end
-      (lp (cdr next) ret))
-     ((parse-mfd-data (car next))
-      => (lambda (mfd)
-           (lp (cdr next) `(,@mfd ,@ret))))
-     (else (throw 'artanis-err 422 "Wrong multipart form body!"))))) 
-
-;; bytevector->string will allocate a new string, which is inefficient for large upload
-;; file, maybe optimize later, but it's better to write a brand new uploader from
-;; scratch for a new project.
-;; NOTE: we use iso8859-1 or we can't handle general binary file
-(define (parse-mfd-body boundary body)
-  (let* ((str (bytevector->string body "iso8859-1"))
-         (ll (irregex-split (format #f "(\n|\r\n)?(--)?~a" boundary) str)))
-    (mfd-parser ll)))
-
-(define* (make-mfd-dumper #:key (path (current-upload-path))
-                          (uid #f) (gid #f)
-                          (mode #o664) (path-mode #o775) (sync #f))
+(define* (make-mfd-dumper body #:key (path (current-upload-path))
+                          (uid #f) (gid #f) (path-mode #o775)
+                          (mode #o664) (sync #f))
   (lambda* (mfd #:key (rename #f) (repath #f))
     (let ((filename (or rename (mfd-filename mfd)))
-          (target-path (or repath path))
-          (data (mfd-data mfd)))
+          (target-path (or repath path)))
       (when filename ; if the mfd is a file
-       (let* ((real-path (format #f "~a/~a" target-path (dirname filename)))
-              (des-file (format #f "~a/~a" real-path filename)))
-         (checkout-the-path real-path path-mode)
-         (when (file-exists? des-file)
-           (delete-file des-file))
-         (call-with-output-file des-file
-          (lambda (port)
-            (put-bytevector port data)
-            (and sync (force-output port))))
-         (handle-proper-owner des-file uid gid)
-         (chmod des-file mode))))))
-
-(define (mfds-count mfds)
-  (car mfds))
-
-(define (mfds-data mfds)
-  (cdr mfds))
+        (let* ((real-path (format #f "~a/~a" target-path (dirname filename)))
+               (des-file (format #f "~a/~a" real-path filename)))
+          (checkout-the-path real-path path-mode)
+          (when (file-exists? des-file) (delete-file des-file))
+          (call-with-output-file des-file
+            (lambda (port)
+              (put-bytevector port body (mfd-begin mfd) (mfd-end mfd))
+              (and sync (force-output port))))
+          (handle-proper-owner des-file uid gid)
+          (chmod des-file mode))))))
 
 ;; mfd-simple-dump will choose current-upload-path, 
 ;; with default filename and path
-(define (mfd-simple-dump mfd)
-  ((make-mfd-dumper) mfd))
+(define (mfd-simple-dump rc mfd)
+  ((make-mfd-dumper (rc-body rc)) mfd))
 
-(define (mfd-simple-dump-all mfds)
-  (for-each mfd-simple-dump (cdr mfds)))
+(define (mfd-simple-dump-all rc mfds)
+  (let ((md (make-mfd-dumper (rc-body rc))))
+    (for-each md mfds)))
+
+(define (mfd-count m) (- (mfd-end m) (mfd-begin m) -1))
 
 ;; NOTE: we won't limit file size here, since it should be done in server reader
 (define* (store-uploaded-files rc #:key (path (current-upload-path))
                                (uid #f) (gid #f) (simple-ret? #t)
                                (mode #o664) (path-mode #o775) (sync #f))
-
-  (define (get-slist mfds)
-    (map (lambda (m) (bytevector-length (mfd-data m))) mfds))
+  (define (get-slist mfds) (map mfd-count mfds))
   (define (get-flist mfds) (map mfd-name mfds))
   (cond
    ((content-type-is-mfd? rc)
     => (lambda (boundry)
-         (let ((mfds (parse-mfd-body boundry (rc-body rc)))
-               (dumper (make-mfd-dumper #:path path #:mode mode #:uid uid #:gid gid
-                                        #:path-mode path-mode #:sync sync)))
+         (let ((mfds (parse-mfds (string->utf8 boundry) (rc-body rc)))
+               (dumper (make-mfd-dumper (rc-body rc) #:path path #:mode mode
+                                        #:uid uid #:gid gid #:path-mode path-mode
+                                        #:sync sync)))
            (catch #t
-             (lambda () (for-each dumper (mfds-data mfds)))
+             (lambda () (for-each dumper mfds))
              (lambda e (throw 'artanis-err 500 "Failed to dump mfds!" e)))
            (if simple-ret?
                'success
@@ -239,7 +212,7 @@
         (when (not (is-mfd? mfd))
           (throw 'artanis-err 500 "mfds->body: Invalid <mfd> type!" mfd))
         (display (mfd-dispos mfd) port)
-        (put-bytevector port (mfd-data mfd)))
+        (put-bytevector port (mfd-begin mfd) (mfd-end mfd)))
       mfds)
      (display (string-append "\r\n--" boundary "--\r\n") port))))
 

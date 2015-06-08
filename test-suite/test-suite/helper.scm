@@ -61,10 +61,10 @@
 (define (body-equal? b1 b2)
   (define-syntax-rule (-> x)
     (cond
-     ((bytevector? x) (utf8->string x))
-     ((string? x) x)
+     ((bytevector? x) x)
+     ((string? x) (string->utf8 x))
      (else (error body-equal? "Wrong body type!" x))))
-  (string=? (-> b1) (-> b2)))
+  (bytevector=? (-> b1) (-> b2)))
   
 (define (responses-equal? r1 body1 r2 body2)
   (and (equal? (response-version r1) (response-version r2))

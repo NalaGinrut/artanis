@@ -39,6 +39,9 @@
   #:use-module (ice-9 q)
   #:use-module (web http)
   #:use-module (web request)
+  #:use-module ((rnrs)
+                #:select (get-bytevector-all utf8->string put-bytevector
+                          bytevector-u8-ref string->utf8 bytevector-length))
   #:export (regexp-split hash-keys cat bv-cat get-global-time
             get-local-time string->md5 unsafe-random string-substitute
             get-file-ext get-global-date get-local-date uri-decode
@@ -51,6 +54,7 @@
             new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
             stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
             queue-empty? list->stack list->queue stack-remove! queue-remove!
+            queue->list stack->list queue-length stack-length
             plist->alist make-db-string-template non-list?
             keyword->string range oah->handler oah->opts string->keyword
             alist->klist alist->kblist is-hash-table-empty?
@@ -61,7 +65,8 @@
             generate-data-url find-ENTRY-path verify-ENTRY current-appname
             draw-expander remove-ext scan-app-components cache-this-route!
             dump-route-from-cache generate-modify-time delete-directory
-            handle-existing-file check-drawing-method current-toplevel)
+            handle-existing-file check-drawing-method current-toplevel
+            subbv->string subbv=? bv-read-line bv-read-delimited)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -77,8 +82,6 @@
 (define uri-decode (@ (web uri) uri-decode))
 (define parse-date (@@ (web http) parse-date))
 (define write-date (@@ (web http) write-date))
-(define bytevector? (@ (rnrs) bytevector?))
-(define utf8->string (@ (rnrs) utf8->string))
 
 (define-syntax-rule (local-eval-string str e)
   (local-eval 
@@ -477,6 +480,8 @@
 (define stack-top q-front)
 (define stack-remove! %q-remove-with-key!)
 (define stack-empty? q-empty?) 
+(define stack-length q-length)
+(define (stack->list stk) (list-copy (stack-slots stk)))
 
 (define queue-out! q-pop!)
 (define queue-in! enq!)
@@ -484,6 +489,8 @@
 (define queue-tail q-rear)
 (define queue-remove! %q-remove-with-key!)
 (define queue-empty? q-empty?)
+(define queue-length q-length)
+(define (queue->list q) (list-copy (queue-slots q)))
 
 (define* (list->stack lst #:optional (stk (new-stack))) ; NOTE: make-stack exists in Guile
   (for-each (lambda (x) (stack-push! stk x)) lst)
@@ -826,3 +833,31 @@
 (define (current-toplevel)
   (or (%current-toplevel)
       (find-ENTRY-path identity #t)))
+
+(define (subbv->string bv encoding start end)
+  (call-with-output-string
+   (lambda (port)
+     (set-port-encoding! port encoding)
+     (put-bytevector port bv start (- end start)))))
+
+(define* (subbv=? bv bv2 #:optional (start 0) (end (1- (bytevector-length bv))))
+  (and (< (bytevector-length bv2) (bytevector-length bv))
+       (let lp((i start) (j 0))
+         (cond
+          ((> i end) #t)
+          ((= (bytevector-u8-ref bv i) (bytevector-u8-ref bv2 j))
+           (lp (1+ i) (1+ j)))
+          (else #f)))))
+
+;; return position after newline
+(define* (bv-read-line bv #:optional (start 0) (end (bytevector-length bv)))
+  (bv-read-delimited bv 10 start end))
+
+;; return position after delim
+(define* (bv-read-delimited bv delim #:optional (start 0) (end (bytevector-length bv)))
+  (define len (- end start -1))
+  (let lp((i start))
+    (cond
+     ((> i end) #f)
+     ((= (bytevector-u8-ref bv i) delim) i)
+     (else (lp (1+ i))))))
