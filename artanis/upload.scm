@@ -84,9 +84,13 @@
   (%content-type-is-mfd? (rc-req rc)))
 
 (define *valid-meta-header* (string->utf8 "Content-Disposition:"))
-
-(define (headline? body from)
-  (subbv=? body from (+ from (bytevector-length *valid-meta-header*) -1)))
+(define meta-header-length (bytevector-length *valid-meta-header*))
+(define (headline? body boundary from)
+  (define blen (bytevector-length boundary))
+  (let ((start (+ from blen 2)))
+    (and (subbv=? body boundary from (+ from blen -1)) ; first line is boundary
+         (subbv=? body *valid-meta-header* start
+                  (+ start meta-header-length -1)))))
 
 (define (header-trim s)
   ;; NOTE: We need to trim #\return.
@@ -121,37 +125,39 @@
   (define (is-end-line? from)
     (and (is-boundary? from)
          (subbv=? body #vu8(45 45) (+ from blen) (+ from blen 1))))
+  (define (blankline? from)
+    (subbv=? body #u8(13 10) from (+ from 1)))
   (define (get-headers from)
     (cond
-     ((headline? body from)
-      (let lp((start from) (end (bv-read-line body from)) (ret '()))
+     ((headline? body boundary from)
+      (let lp((start (+ from blen 2)) (end (bv-read-line body (+ from blen 2))) (ret '()))
         (cond
-         ((subbv=? body #vu8(13) start end) (cons ret end)) ; end of headers
+         ((blankline? start) (cons ret (1+ end))) ; end of headers
          (else
-          (let ((line (subbv->string body "utf-8" start end)))
-            (lp end (bv-read-line body end) (cons (->mfd-header line) ret)))))))
-     (else (throw 'artanis-err 400 "Invalid Multi Form Data header!"))))
+          (let ((line (subbv->string body "utf-8" start end))
+                (llen (- end start -1)))
+            (lp (+ start llen) (bv-read-line body (+ start llen))
+                (cons (->mfd-header line) ret)))))))
+     (else (throw 'artanis-err 400 "Invalid Multi Form Data header!" body))))
   (define (get-content-end from)
-    (let lp((i from) (j 0))
+    (let lp((i from))
       (cond
        ((is-boundary? i) i)
-       ((= (bytevector-u8-ref body i) (bytevector-u8-ref boundary j))
-        (lp (1+ i) (1+ j)))
-       (else (lp (1+ i) 0)))))
+       (else (lp (1+ (bv-read-line body i)))))))
   (let lp((i 0) (mfds '()))
     (cond
      ((is-end-line? i) mfds)
      ((<= i len)
       (let* ((hp (get-headers i))
              (headers (car hp))
-             (h (cdr hp))
-             (end (get-content-end h))
+             (start (cdr hp))
+             (end (get-content-end start))
              (dispos (assoc-ref headers "Content-Disposition"))
              (filename (-> dispos "filename"))
              (name (-> dispos "name"))
              (type (-> headers "Content-Type"))
-             (mfd (make-mfd (car dispos) name filename h end type)))
-        (lp (+ end blen) (cons mfd mfds))))
+             (mfd (make-mfd (car dispos) name filename start end type)))
+        (lp end (cons mfd mfds))))
      (else (throw 'artanis-err 422 "Wrong multipart form body!")))))
 
 (define* (make-mfd-dumper body #:key (path (current-upload-path))
@@ -167,7 +173,7 @@
           (when (file-exists? des-file) (delete-file des-file))
           (call-with-output-file des-file
             (lambda (port)
-              (put-bytevector port body (mfd-begin mfd) (mfd-end mfd))
+              (put-bv port body (mfd-begin mfd) (mfd-end mfd))
               (and sync (force-output port))))
           (handle-proper-owner des-file uid gid)
           (chmod des-file mode))))))
@@ -192,7 +198,8 @@
   (cond
    ((content-type-is-mfd? rc)
     => (lambda (boundry)
-         (let ((mfds (parse-mfds (string->utf8 boundry) (rc-body rc)))
+         (let ((mfds (parse-mfds (string->utf8 (string-append "--" boundry))
+                                 (rc-body rc)))
                (dumper (make-mfd-dumper (rc-body rc) #:path path #:mode mode
                                         #:uid uid #:gid gid #:path-mode path-mode
                                         #:sync sync)))
@@ -204,17 +211,19 @@
                `(success ,(get-slist mfds) ,(get-flist mfds))))))
    (else 'none)))
 
-(define (mfds->body mfds boundary)
+(define (mfds->body mfdsp boundary)
   (call-with-bytevector-output-port
    (lambda (port)
      (for-each
-      (lambda (mfd)
-        (when (not (is-mfd? mfd))
-          (throw 'artanis-err 500 "mfds->body: Invalid <mfd> type!" mfd))
-        (display (mfd-dispos mfd) port)
-        (put-bytevector port (mfd-begin mfd) (mfd-end mfd)))
-      mfds)
-     (display (string-append "\r\n--" boundary "--\r\n") port))))
+      (lambda (mfdp)
+        (let ((mfd (car mfdp))
+              (data (cdr mfdp))) 
+          (when (not (is-mfd? mfd))
+            (throw 'artanis-err 500 "mfds->body: Invalid <mfd> type!" mfd))
+          (display (mfd-dispos mfd) port)
+          (put-bv port data (mfd-begin mfd) (mfd-end mfd)))
+        mfdsp)
+      (display (string-append "\r\n--" boundary "--\r\n") port)))))
 
 (define (current-upload-path) (get-conf '(upload path)))
 
@@ -253,25 +262,29 @@
        (make-mfd (->dispos name #f #f)
                  name
                  #f
-                 value
+                 0
+                 0
                  #f))
       (else (throw 'artanis-err 500 "build-data-mfd: Invalid pattern"))))
   (define (build-file-mfd p)
     (match p
       ((name filename)
-       (let ((mime (mime-guess (get-file-ext filename))))
-         (make-mfd (->dispos name filename mime)
-                   name
-                   filename
-                   (->file filename)
-                   mime)))
+       (let ((mime (mime-guess (get-file-ext filename)))
+             (data (->file filename)))
+         (cons (make-mfd (->dispos name filename mime)
+                         name
+                         filename
+                         0
+                         (1- (bytevector-length data))
+                         mime)
+               data)))
       ((filename)
        ;; If name field is ingored, use "file" as its name in default.
        (build-file-mfd `("file" ,filename)))
       (else (throw 'artanis-err 500 "build-file-mfd: Invalid pattern"))))
-  (let* ((mfds (->mfds pattern))
+  (let* ((mfdsp (->mfds pattern))
          (ct (format #f "multipart/form-data; boundary=~a" boundary))
-         (body (mfds->body mfds boundary)))
+         (body (mfds->body mfdsp boundary)))
     ;; NOTE:
     ;; Content-Length contains body length only
     ;; Guile web module will count Content-Length for you.

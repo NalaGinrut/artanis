@@ -66,7 +66,7 @@
             draw-expander remove-ext scan-app-components cache-this-route!
             dump-route-from-cache generate-modify-time delete-directory
             handle-existing-file check-drawing-method current-toplevel
-            subbv->string subbv=? bv-read-line bv-read-delimited)
+            subbv->string subbv=? bv-read-line bv-read-delimited put-bv)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -841,17 +841,13 @@
      (put-bytevector port bv start (- end start)))))
 
 (define* (subbv=? bv bv2 #:optional (start 0) (end (1- (bytevector-length bv))))
-  (and (< (bytevector-length bv2) (bytevector-length bv))
+  (and (<= (bytevector-length bv2) (bytevector-length bv))
        (let lp((i start) (j 0))
          (cond
           ((> i end) #t)
           ((= (bytevector-u8-ref bv i) (bytevector-u8-ref bv2 j))
            (lp (1+ i) (1+ j)))
           (else #f)))))
-
-;; return position after newline
-(define* (bv-read-line bv #:optional (start 0) (end (bytevector-length bv)))
-  (bv-read-delimited bv 10 start end))
 
 ;; return position after delim
 (define* (bv-read-delimited bv delim #:optional (start 0) (end (bytevector-length bv)))
@@ -861,3 +857,10 @@
      ((> i end) #f)
      ((= (bytevector-u8-ref bv i) delim) i)
      (else (lp (1+ i))))))
+
+;; return position after newline
+(define* (bv-read-line bv #:optional (start 0) (end (bytevector-length bv)))
+  (bv-read-delimited bv 10 start end))
+
+(define (put-bv port bv from to)
+  (put-bytevector port bv from (- to from 2)))
