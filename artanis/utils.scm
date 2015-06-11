@@ -346,7 +346,12 @@
 ;; FIXME: checkout-the-path only support POSIX file path
 ;; FIXME: what's the proper default mode for the dir?
 (define* (checkout-the-path path #:optional (mode #o775))
-  (let ((paths (string-split path #\/)))
+  (define (->path p)
+    (let ((pp (irregex-split "/" p)))
+      (if (char=? (string-ref p 0) #\/)
+          (cons (string-append "/" (car pp)) (cdr pp))
+          pp)))
+  (let ((paths (->path path)))
     (let lp((next paths) (last ""))
       (cond
        ((null? next) #t)
