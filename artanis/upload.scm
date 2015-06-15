@@ -143,7 +143,9 @@
     (let lp((i from))
       (cond
        ((is-boundary? i) i)
-       (else (lp (1+ (bv-read-line body i)))))))
+       (else
+        ;; ENHANCEMENT: use Fast String Matching to move forward quicker
+        (lp (1+ (bv-read-line body i)))))))
   (let lp((i 0) (mfds '()))
     (cond
      ((is-end-line? i) mfds)

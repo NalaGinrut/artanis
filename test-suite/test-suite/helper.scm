@@ -23,13 +23,15 @@
   #:use-module (web response)
   #:use-module (ice-9 receive)
   #:use-module (srfi srfi-1)
-  #:use-module (rnrs bytevectors)
+  #:use-module ((rnrs) #:select (bytevector? bytevector=? get-string-all
+                                 string->utf8))
   #:export (*unified-modify-time*
             *unified-modify-time-header*
             *unified-global-date*
             *default-unified-headers*
             test-from-request
-            responses-equal?))
+            responses-equal?
+            upload-file-verify))
 
 (define *unified-modify-time* ((@ (srfi srfi-19) current-time)))
 (define *unified-modify-time-header*
@@ -44,12 +46,14 @@
     (last-modified . ,*unified-modify-time-header*)
     (content-type . (text/html (charset . "utf-8")))))
 
-(define (test-from-request rq-str)
+(define* (test-from-request rq-str #:optional (debug #f))
   (let* ((rq (read-request (open-input-string rq-str)))
          (body (read-request-body rq))
-         (null (open-output-file "/dev/null")))
-    (parameterize ((current-output-port null)
-                   (current-error-port null))
+         (null (open-output-file "/dev/null"))
+         (out (if debug (current-output-port) null))
+         (err (if debug (current-error-port) null)))
+    (parameterize ((current-output-port out)
+                   (current-error-port err))
       (receive (res b) (server-handler rq body)
                ((@@ (web server) sanitize-response) rq res b)))))
 
@@ -72,3 +76,7 @@
        (equal? (response-reason-phrase r1) (response-reason-phrase r2))
        (headers-equal? (response-headers r1) (response-headers r2))
        (body-equal? body1 body2)))
+
+(define (upload-file-verify filepath expect-content)
+  (and (file-exists? filepath)
+       (string=? (call-with-input-file filepath get-string-all) expect-content)))

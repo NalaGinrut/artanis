@@ -138,7 +138,11 @@ aa.scm\r
 
 (post "/test3" #:from-post '(store #:path "/tmp/upload")
   (lambda (rc)
-    (:from-post rc 'store)))
+    (let ((ret (:from-post rc 'store)))
+      (format #t "~a~%" ret)
+      (case ret
+        ((success) "success")
+        (else (throw 'artanis-err 500 "upload failed!" ret))))))
 
 (define test3-expect-body "success")
 
@@ -148,8 +152,12 @@ aa.scm\r
    #:code 200
    #:headers `(,@*default-unified-headers*
                (content-length . ,(string-length test3-expect-body)))))
+
+(define test3-file "/tmp/upload/aa.scm")
+(define test3-expect-file-content
+  "(let ((x (expt 2 10)))\r\n  (display x))\r\n")
 ;; ===================
-   
+
 (with-test-prefix "<Methods> POST test"
 
   (pass-if "simple form post test"
@@ -162,5 +170,6 @@ aa.scm\r
 
   (pass-if "single file upload store test"
     (receive (r b) (test-from-request post-test-3-single-file-upload)
-             (responses-equal? r b test2-expect-res test2-expect-body)))  
+             (responses-equal? r b test3-expect-res test3-expect-body)
+             (upload-file-verify test3-file test3-expect-file-content)))
   )

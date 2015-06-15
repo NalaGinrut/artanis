@@ -34,12 +34,11 @@
 
 (get "/upload" (lambda () (tpl->response upload-form)))
 
-(post "/upload"
-      (lambda (rc)
-        (case (store-uploaded-files rc)
-          ((success) (response-emit "upload succeeded!"))
-          ((none) (response-emit "No uploaded files!"))
-          (else (response-emit "Impossible! please report bug!")))))
+(post "/upload" #:from-post '(store #:path "upload")
+  (lambda (rc)
+    (case (:from-post rc 'store)
+      ((success) (response-emit "upload succeeded!"))
+      ((none) (response-emit "No uploaded files!"))
+      (else (response-emit "Impossible! please report bug!")))))
 
 (run)
-

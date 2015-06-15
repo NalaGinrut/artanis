@@ -616,8 +616,8 @@
 
 ;;; The complete list of possible test results.
 (define result-tags
-  '((pass        "PASS"        "passes:                 ")
-    (fail        "FAIL"        "failures:               ")
+  '((pass        "\x1b[32mPASS\x1b[0m"        "\x1b[32mpasses:\x1b[0m                 ")
+    (fail        "\x1b[31mFAIL\x1b[0m"        "\x1b[31mfailures:\x1b[0m               ")
     (upass       "UPASS"       "unexpected passes:      ")
     (xfail       "XFAIL"       "expected failures:      ")
     (unresolved  "UNRESOLVED"  "unresolved test cases:  ")
