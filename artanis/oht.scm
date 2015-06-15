@@ -276,13 +276,14 @@
                  size-list filename-list))))
   (define (default-no-file-ret) "<p>No uploaded files!</p>")
   (define* (store-the-bv rc #:key (uid 33) (gid 33) (path (get-conf '(upload path)))
-                         (mod #o664) (path-mode #o775) (sync #f)
+                         (mod #o664) (path-mode #o775) (sync #f) (simple-ret? #t)
                          ;; NOTE: One may use these two things for returning
                          ;;       customized result, like JSON or XML.
                          (success-ret default-success-ret)
                          (no-file-ret "No uploaded files!"))
-    (match (store-uploaded-files rc #:path path #:sync sync #:simple-ret? #f
+    (match (store-uploaded-files rc #:path path #:sync sync #:simple-ret? simple-ret?
                                  #:uid uid #:gid gid #:path-mode path-mode)
+      ('success 'success)
       (`(success ,slist ,flist) (success-ret slist flist))
       ('none (no-file-ret))
       (else
@@ -295,9 +296,7 @@
       ('qstr-safe (post->qstr-table rc 'safe))
       ((or 'bv 'bytevector) (rc-body rc))
       ;; upload operation, indeed
-      (`(store ,path) (store-the-bv rc #:path path))
-      (`(store ,path ,mod)
-       (store-the-bv rc #:path path #:mod mod))
+      (('store rest ...) (apply store-the-bv rc rest))
       (else (throw 'artanis-err 500 "post-handler: Invalid mode!" mode))))
   (lambda (rc . cmd)
     (match cmd
