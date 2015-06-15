@@ -34,7 +34,8 @@
 (define command-path '(artanis commands))
 
 (define (find-command name)
-  (resolve-module `(,@command-path ,(string->symbol name)) #:ensure #f))
+  (and=> (resolve-module `(,@command-path ,(string->symbol name)) #:ensure #f)
+         (lambda (m) (values name m))))
 
 (define announce-head
   "
