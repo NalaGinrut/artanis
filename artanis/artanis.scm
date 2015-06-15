@@ -142,15 +142,16 @@
                content-type-is-mfd?
                parse-mfd-body
                mfd
-               get-mfd-data
-               fine-mfd
+               call-with-mfd-data
+               find-mfd
                make-mfd
                is-mfd?
                mfds-count
                mfd-dispos
                mfd-name
                mfd-filename
-               mfd-data
+               mfd-begin
+               mfd-end
                mfd-type
                mfd-simple-dump-all
                store-uploaded-files
