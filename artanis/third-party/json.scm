@@ -27,6 +27,8 @@
   #:use-module (artanis third-party json upstream builder)
   #:use-module (artanis third-party json upstream parser)
   #:use-module (artanis third-party json upstream syntax)
+  #:use-module (artanis irregex)
+  #:use-module (srfi srfi-1)
   #:export (->json-string)
   #:re-export (scm->json
                scm->json-string
@@ -36,7 +38,37 @@
                json-parser-port
                json))
 
-(define* (->json-string sxml #:key (jsonp #f))
-  (if jsonp
-      (format #f "~a(~a)" jsonp (scm->json-string sxml))
-      (scm->json-string sxml)))
+(define *word-re* (string->sre "^[a-zA-Z0-9_]+$"))
+
+(define (make-json-checker fix re err)
+  (lambda (jstr)
+    (let ((r (fix (irregex-match re jstr))))
+      (unless r (format (current-error-port) err))
+      r)))
+
+;; check whether JSON object is an array, it is considered to be harmful to
+;; return an array directly.
+(define *array-re* (string->sre "^\\[[^\\]]*\\]$"))
+(define not-an-array
+  (make-json-checker not *array-re* "[ERROR] return JSON as an array is dangerous!~%"))
+
+(define *checker-list*
+  (list not-an-array))
+
+(define (validate-json jstr)
+  (if (every (lambda (checker) (checker jstr)) *checker-list*)
+      jstr
+      (throw 'artanis-err 500 "JSON safe check didn't pass!" jstr)))
+
+;; NOTE: I'll let you specify the regexp for validating your own JSONP in case
+;;       the default regexp is not enough for you, but AT YOUR OWN RISK!!!
+;; NOTE: #:security-check? is recommended to enable when it's in debug/test.
+(define* (->json-string sxml #:key (jsonp #f) (jsonp-regexp *word-re*)
+                        (securty-check? #f))
+  (cond
+   (jsonp
+    (if (irregex-match jsonp-regexp jsonp)
+        (format #f "~a(~a)" jsonp (validate-json (scm->json-string sxml)))
+        ;; if jsonp contains a non-word character, this could be an XSS attack.
+        (throw 'artanis-err 400 "Invalid JSONP, possibly be an XSS attack!" jsonp)))
+   (else ((if securty-check? validate-json identity) (scm->json-string sxml)))))
