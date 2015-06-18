@@ -1,0 +1,66 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  === MIME tests ===
+;;  Copyright (C) 2015
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License as published by
+;;  the Free Software Foundation, either version 3 of the License, or
+;;  (at your option) any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (test mime)
+  #:use-module (artanis artanis)
+  #:use-module (artanis utils)
+  #:use-module (ice-9 receive)
+  #:use-module (web response)
+  #:use-module (test-suite lib)
+  #:use-module (test-suite helper))
+
+;; TEST 1
+(define mime-test-1-simple-JSONP
+  "GET /jsonp/func HTTP/1.1\r
+Host: localhost:8080\r
+User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML, like Gecko) Safari/531.2+ Epiphany/2.30.2\r
+\r
+")
+
+(get "/jsonp/:jsonp" #:mime 'jsonp
+  (lambda (rc)
+    (:mime rc (json (object ("name" "nala") ("age" "15"))) #:jsonp (params rc "jsonp"))))
+
+(define test1-expect-body "func({\"age\" : \"15\",\"name\" : \"nala\"})")
+(define test1-expect-res
+  (build-response
+   #:version '(1 . 1)
+   #:code 200
+   #:headers `(,@(make-unified-header '(application/javascript (charset . "utf-8")))
+               (content-length . ,(string-length test1-expect-body)))))
+;; =================================================================================
+
+;; TEST 2
+(define mime-test-2-safe-JSONP
+  "GET /jsonp/alert('you're fucked');%20func HTTP/1.1\r
+Host: localhost:8080\r
+User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML, like Gecko) Safari/531.2+ Epiphany/2.30.2\r
+\r
+")
+(define test2-expect-status 400)
+;; =================================================================================
+ 
+(with-test-prefix "MIME test"
+
+  (pass-if "JSONP simple test"
+    (receive (r b) (test-from-request mime-test-1-simple-JSONP)
+             (responses-equal? r b test1-expect-res test1-expect-body)))
+
+  (pass-if "JSONP safe test"
+    (receive (r b) (test-from-request mime-test-2-safe-JSONP)
+             (= (response-code r) test2-expect-status)))
+  )
