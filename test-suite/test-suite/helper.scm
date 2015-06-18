@@ -29,6 +29,7 @@
             *unified-modify-time-header*
             *unified-global-date*
             *default-unified-headers*
+            make-unified-header
             test-from-request
             responses-equal?
             upload-file-verify))
@@ -40,11 +41,14 @@
          ((@ (srfi srfi-19) time-nanosecond) *unified-modify-time*))))
 (define *unified-global-date* (get-global-date))
 
-(define *default-unified-headers*
+(define (make-unified-header type)
   `((server . ,artanis-version)
     (date . ,*unified-global-date*)
     (last-modified . ,*unified-modify-time-header*)
-    (content-type . (text/html (charset . "utf-8")))))
+    (content-type . ,type)))
+
+(define *default-unified-headers*
+  (make-unified-header '(text/html (charset . "utf-8"))))
 
 (define* (test-from-request rq-str #:optional (debug #f))
   (let* ((rq (read-request (open-input-string rq-str)))
