@@ -67,12 +67,14 @@
   (define-syntax-rule (status->page s)
     (format #f "~a.html" s))
   (log status 'text/html request)
-  (values
-   (build-response #:code status
-                   #:headers `((server . ,(get-conf '(server info)))
-                               (content-type . (text/html))
-                               (charset . ,(get-conf '(server charset)))))
-   (page-show (status->page status) #f)))
+  (let ((charset (get-conf '(server charset)))
+        (mtime (generate-modify-time (current-time))))
+    (values
+     (build-response #:code status
+                     #:headers `((server . ,(get-conf '(server info)))
+                                 (last-modified . ,mtime)
+                                 (content-type . (text/html (charset . ,charset)))))
+     (page-show (status->page status) #f))))
 
 (define (rc-conn-recycle rc body)
   (and=> (rc-conn rc) DB-close))
