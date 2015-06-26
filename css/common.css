@@ -9,8 +9,16 @@ body {
     font-family: 'Spirax', Helvetica, Arial;
     display: flex;
 }
+
+@media all and (max-width: 700px) {
+  body {
+      display: block;
+  }
+}
+
 #side{
     text-align: center;
+    min-width: 330px;
 }
 #side ul {
     list-style-type:none;
