@@ -18,6 +18,18 @@ body {
     font-size: 17px;
     color: #AEC5AD;
     background: rgba(20,88,121,1);
+    line-height: 1.4em;
+}
+
+#content {
+    margin: 0 auto;
+
+    max-width: 700px;
+
+}
+
+#content > h1.title {
+    line-height: 1.6em;
 }
 
 a:link {
@@ -43,18 +55,9 @@ h3 {
     color: inherit;
 }
 
-#content {
-    width: 1170px;
-    margin-right: auto;
-    margin-left: auto;
-    margin-top: -23px;
-    padding-bottom: 10px;
-    padding-left: 15px;
-    padding-right: 15px;
-    -webkit-border-radius: 5px;
-    -moz-border-radius: 5px;
+pre.src {
+    overflow-x: auto;
 }
-
 p {
     margin: 0 0 10.5px;
 }

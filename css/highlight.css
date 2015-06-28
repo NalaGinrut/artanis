@@ -1,4 +1,20 @@
-.highlight {line-height:20px;  padding:10px 10px 10px 10px; margin: 20px; margin-bottom: 10px; display: block;  font-size:14px;  font-family: Monaco, Consolas, Courier, monospace;  letter-spacing:0.4px;  -webkit-border-radius: 10px;  -moz-border-radius: 10px;background-color: black; font-style: normal }
+pre {
+    background-color: black;
+    padding: 15px 0px;
+    margin: 15px;
+}
+.highlight {
+    line-height:20px;
+    padding:10px 10px 10px 10px;
+    margin: 20px;
+    margin-bottom: 10px;
+    font-size:14px;
+    font-family: Monaco, Consolas, Courier, monospace;
+    letter-spacing:0.4px;
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
+    font-style: normal
+}
 .highlight .symbol { color: #4522B5; font-weight: bold } 
 .highlight .keyword { color: #F600F7; font-weight: bold }
 .highlight .paren1:hover { background-color: #FFFF8A; color: green }
@@ -9,4 +25,6 @@
 .highlight .paren6:hover { background-color: #64A422 }
 .highlight .string { color: #FF5464 }
 .highlight .comment { font-style: italic; color: #C2F68B }
-pre tt { background-color: #777; color: #B6B6B6 }
+pre tt {
+    color: #B6B6B6;
+}
