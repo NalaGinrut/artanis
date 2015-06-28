@@ -21,6 +21,17 @@ body {
     line-height: 1.4em;
 }
 
+#content {
+    margin: 0 auto;
+
+    max-width: 700px;
+
+}
+
+#content > h1.title {
+    line-height: 1.6em;
+}
+
 a:link {
     color: #b6a754;
     text-decoration: none;
