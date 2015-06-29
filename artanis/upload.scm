@@ -189,14 +189,18 @@
   (let ((md (make-mfd-dumper (rc-body rc))))
     (for-each md mfds)))
 
-(define (mfd-count m) (- (mfd-end m) (mfd-begin m) -1))
+(define (mfd-size m)
+  (and (mfd-filename m)
+       ;; NOTE: There'd be 3 chars need to be dropped, \r\n(head) and \r(tail)
+       ;; (- (- (mfd-end m) (mfd-begin m) -1) 3)
+       (- (mfd-end m) (mfd-begin m) 2)))
 
 ;; NOTE: we won't limit file size here, since it should be done in server reader
 (define* (store-uploaded-files rc #:key (path (current-upload-path))
                                (uid #f) (gid #f) (simple-ret? #t)
                                (mode #o664) (path-mode #o775) (sync #f))
-  (define (get-slist mfds) (map mfd-count mfds))
-  (define (get-flist mfds) (map mfd-name mfds))
+  (define (get-slist mfds) (filter-map mfd-size mfds))
+  (define (get-flist mfds) (filter-map mfd-filename mfds))
   (cond
    ((content-type-is-mfd? rc)
     => (lambda (boundry)
