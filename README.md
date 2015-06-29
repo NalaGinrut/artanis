@@ -3,6 +3,8 @@
 GNU Artanis
 =========
 
+[![Join the chat at https://gitter.im/NalaGinrut/artanis](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/NalaGinrut/artanis?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 GNU Artanis aims to be a web application framework for Scheme.
 The philosophy of Artanis would be very radical to try cutting-edge things.
 So you are under your own risk to use it. However, it may bring cool experiences
