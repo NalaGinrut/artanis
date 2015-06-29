@@ -276,13 +276,13 @@
                  size-list filename-list))))
   (define (default-no-file-ret) "<p>No uploaded files!</p>")
   (define* (store-the-bv rc #:key (uid 33) (gid 33) (path (get-conf '(upload path)))
-                         (mod #o664) (path-mode #o775) (sync #f) (simple-ret? #t)
+                         (mode #o664) (path-mode #o775) (sync #f) (simple-ret? #t)
                          ;; NOTE: One may use these two things for returning
                          ;;       customized result, like JSON or XML.
                          (success-ret default-success-ret)
                          (no-file-ret "No uploaded files!"))
     (match (store-uploaded-files rc #:path path #:sync sync #:simple-ret? simple-ret?
-                                 #:uid uid #:gid gid #:path-mode path-mode)
+                                 #:mode mode #:uid uid #:gid gid #:path-mode path-mode)
       ('success 'success)
       (`(success ,slist ,flist) (success-ret slist flist))
       ('none (no-file-ret))
