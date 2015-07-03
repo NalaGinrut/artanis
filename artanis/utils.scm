@@ -221,10 +221,14 @@
 (define-syntax-rule (static-filename path)
   (substring/shared path 1))
 
+(define-syntax-rule (request-ip req)
+  ;; TODO: support AF_INET6 in the future
+  (inet-ntop AF_INET (sockaddr:addr (getpeername (request-port req)))))
+
 (define-syntax-rule (remote-info req)
   (if (get-conf '(server nginx))
       (assoc-ref (request-headers req) 'x-real-ip)
-      (request-host req)))
+      (request-ip req)))
 
 (define *methods-list* '(HEAD GET POST PUT PATCH DELETE))
 (define (allowed-method? method)
