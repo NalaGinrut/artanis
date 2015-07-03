@@ -145,7 +145,8 @@
                call-with-mfd-data
                find-mfd
                make-mfd
-               is-mfd?
+               mfd?
+               is-mfds?
                mfds-count
                mfd-dispos
                mfd-name
