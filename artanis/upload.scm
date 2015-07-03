@@ -43,7 +43,8 @@
             call-with-mfd-data
             find-mfd
             make-mfd
-            is-mfd?
+            mfd?
+            is-mfds?
             mfds-count
             mfd-dispos
             mfd-name
@@ -66,11 +67,18 @@
    end ; end of data
    type)) ; MIME type
 
-(define (find-mfd name mfd-table)
-  (any (lambda (mfd) (and (string=? (mfd-name mfd) name) mfd)) mfd-table))
+(define (mfd->utf8 rc mfd)
+  (subbv->string (rc-body rc) "utf-8" (mfd-begin mfd) (- (mfd-end mfd) 2)))
+(define (find-mfd rc name mfds)
+  (any (lambda (mfd)
+         (cond
+          ((string=? (mfd-name mfd) name)
+           (mfd->utf8 rc mfd))
+          (else #f)))
+       mfds))
 
-(define (call-with-mfd-data rc name mfdl proc)
-  (let ((mfd (find-mfd name mfdl)))
+(define (call-with-mfd-data rc name mfds proc)
+  (let ((mfd (find-mfd rc name mfds)))
     (proc rc (mfd-begin mfd) (mfd-end mfd))))
 
 (define (%content-type-is-mfd? req)
@@ -168,15 +176,14 @@
   (lambda* (mfd #:key (rename #f) (repath #f))
     (let ((filename (or rename (mfd-filename mfd)))
           (target-path (or repath path)))
-      (when filename ; if the mfd is a file
+      ;; iif the mfd is a valid file
+      (when (and filename (string? filename) (not (string-null? filename)))
         (let* ((real-path (format #f "~a/~a" target-path (dirname filename)))
                (des-file (format #f "~a/~a" real-path filename)))
           (checkout-the-path real-path path-mode)
-          (when (file-exists? des-file) (delete-file des-file))
-          (call-with-output-file des-file
-            (lambda (port)
-              (put-bv port body (mfd-begin mfd) (mfd-end mfd))
-              (and sync (force-output port))))
+          (let ((fp (open-file des-file "wb")))
+            (put-bv fp body (mfd-begin mfd) (mfd-end mfd))
+            (and sync (force-output fp)))
           (handle-proper-owner des-file uid gid)
           (chmod des-file mode))))))
 
@@ -197,7 +204,7 @@
 
 ;; NOTE: we won't limit file size here, since it should be done in server reader
 (define* (store-uploaded-files rc #:key (path (current-upload-path))
-                               (uid #f) (gid #f) (simple-ret? #t)
+                               (uid #f) (gid #f) (simple-ret? #t) (need-mfd? #f)
                                (mode #o664) (path-mode #o775) (sync #f))
   (define (get-slist mfds) (filter-map mfd-size mfds))
   (define (get-flist mfds) (filter-map mfd-filename mfds))
@@ -213,8 +220,10 @@
              (lambda () (for-each dumper mfds))
              (lambda e (throw 'artanis-err 500 "Failed to dump mfds!" e)))
            (if simple-ret?
-               'success
-               `(success ,(get-slist mfds) ,(get-flist mfds))))))
+               (if need-mfd? mfds 'success)
+               (if need-mfd?
+                   `(success ,mfds ,(get-slist mfds) ,(get-flist mfds))
+                   `(success ,(get-slist mfds) ,(get-flist mfds)))))))
    (else 'none)))
 
 (define (mfds->body mfdsp boundary)
@@ -224,7 +233,7 @@
       (lambda (mfdp)
         (let ((mfd (car mfdp))
               (data (cdr mfdp))) 
-          (when (not (is-mfd? mfd))
+          (when (not (mfd? mfd))
             (throw 'artanis-err 500 "mfds->body: Invalid <mfd> type!" mfd))
           (display (mfd-dispos mfd) port)
           (put-bv port data (mfd-begin mfd) (mfd-end mfd)))
@@ -297,3 +306,6 @@
     (http-post uri
                #:body body
                #:headers `((Content-Type . ,ct)))))
+
+(define (is-mfds? x)
+  (and (list? x) (every mfd? x)))
