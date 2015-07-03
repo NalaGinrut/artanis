@@ -277,14 +277,18 @@
   (define (default-no-file-ret) "<p>No uploaded files!</p>")
   (define* (store-the-bv rc #:key (uid 33) (gid 33) (path (get-conf '(upload path)))
                          (mode #o664) (path-mode #o775) (sync #f) (simple-ret? #t)
+                         (need-mfd? #f)
                          ;; NOTE: One may use these two things for returning
                          ;;       customized result, like JSON or XML.
                          (success-ret default-success-ret)
                          (no-file-ret "No uploaded files!"))
     (match (store-uploaded-files rc #:path path #:sync sync #:simple-ret? simple-ret?
-                                 #:mode mode #:uid uid #:gid gid #:path-mode path-mode)
+                                 #:mode mode #:uid uid #:gid gid #:path-mode path-mode
+                                 #:need-mfd? need-mfd?)
       ('success 'success)
+      ((? is-mfds? mfds) mfds)
       (`(success ,slist ,flist) (success-ret slist flist))
+      (`(success ,mfds ,slist ,flist) (success-ret mfds slist flist))
       ('none (no-file-ret))
       (else
        (throw 'artanis-err 500
