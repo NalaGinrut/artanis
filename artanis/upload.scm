@@ -218,7 +218,7 @@
                                         #:sync sync)))
            (catch #t
              (lambda () (for-each dumper mfds))
-             (lambda e (throw 'artanis-err 500 "Failed to dump mfds!" e)))
+             (lambda e (format (current-error-port) "[WARNING] Failed to dump mfds! ~a~%" e)))
            (if simple-ret?
                (if need-mfd? mfds 'success)
                (if need-mfd?
