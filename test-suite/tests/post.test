@@ -114,7 +114,7 @@ aa.scm\r
 ;; TEST3
 (define post-test-3-single-file-upload (gen-req "test3"))
 
-(post "/test3" #:from-post '(store #:path "/tmp/upload")
+(post "/test3" #:from-post '(store #:path "/tmp/upload" #:sync #t)
   (lambda (rc)
     (let ((ret (:from-post rc 'store)))
       (case ret
@@ -140,7 +140,7 @@ aa.scm\r
 
 (define (upload-stat sl fl) (list (car fl) (car sl)))
 (post "/test4"
-  #:from-post `(store #:path "/tmp/upload" #:success-ret ,upload-stat #:simple-ret? #f)
+  #:from-post `(store #:path "/tmp/upload2" #:success-ret ,upload-stat #:simple-ret? #f #:sync #t)
   #:mime 'json
   (lambda (rc)
     (let ((ret (:from-post rc 'store)))
