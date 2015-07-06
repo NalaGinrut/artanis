@@ -250,7 +250,7 @@
 ;; * You may ignore `data' part if you just want to upload files.
 ;; * The name field, say, "file1" is optional.
 (define (upload-files-to uri pattern)
-  (define boundary "----------Artanis0xDEADBEEF")
+  (define boundary (format #f "----------Artanis-~a" (get-random-from-dev #:uppercase #t)))
   (define-syntax-rule (->dispos name filename mime)
     (call-with-output-string
      (lambda (port)
