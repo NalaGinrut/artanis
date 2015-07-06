@@ -873,11 +873,11 @@
 
 (define* (subbv=? bv bv2 #:optional (start 0) (end (1- (bytevector-length bv))))
   (and (<= (bytevector-length bv2) (bytevector-length bv))
-       (let lp((i start) (j 0))
+       (let lp((i end) (j (1- (bytevector-length bv2))))
          (cond
-          ((> i end) #t)
+          ((< i start) #t)
           ((= (bytevector-u8-ref bv i) (bytevector-u8-ref bv2 j))
-           (lp (1+ i) (1+ j)))
+           (lp (1- i) (1- j)))
           (else #f)))))
 
 ;; return position after delim
