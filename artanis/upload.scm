@@ -148,12 +148,16 @@
                 (cons (->mfd-header line) ret)))))))
      (else (throw 'artanis-err 400 "Invalid Multi Form Data header!" body))))
   (define (get-content-end from)
+    (define btable (build-bv-lookup-table boundary))
     (let lp((i from))
       (cond
+       ((and (< (+ i blen) len)
+             (not (hash-ref btable (bytevector-u8-ref body (+ i blen -1)))))
+        (lp (+ i blen)))
        ((is-boundary? i) i)
-       (else
+       (else (lp (1+ i))))))
         ;; ENHANCEMENT: use Fast String Matching to move forward quicker
-        (lp (1+ (bv-read-line body i)))))))
+        ;;(lp (1+ (bv-read-line body i)))))))
   (let lp((i 0) (mfds '()))
     (cond
      ((is-end-line? i) mfds)
