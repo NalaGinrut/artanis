@@ -66,7 +66,8 @@
             draw-expander remove-ext scan-app-components cache-this-route!
             dump-route-from-cache generate-modify-time delete-directory
             handle-existing-file check-drawing-method current-toplevel
-            subbv->string subbv=? bv-read-line bv-read-delimited put-bv)
+            subbv->string subbv=? bv-read-line bv-read-delimited put-bv
+            bv-u8-index bv-u8-index-right build-bv-lookup-table)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -223,7 +224,10 @@
 
 (define-syntax-rule (request-ip req)
   ;; TODO: support AF_INET6 in the future
-  (inet-ntop AF_INET (sockaddr:addr (getpeername (request-port req)))))
+  (if (port-filename (request-port req))
+      ;; Valid socket port
+      (inet-ntop AF_INET (sockaddr:addr (getpeername (request-port req))))
+      "localtest")) ; fake hostname for testing
 
 (define-syntax-rule (remote-info req)
   (if (get-conf '(server nginx))
@@ -849,6 +853,24 @@
      (set-port-encoding! port encoding)
      (put-bytevector port bv start (- end start)))))
 
+(define* (bv-u8-index bv u8 #:optional (time 1))
+  (let ((len (bytevector-length bv)))
+    (let lp((i 0) (t 1))
+      (cond
+       ((>= i len) #f)
+       ((= (bytevector-u8-ref bv i) u8)
+        (if (= t time) i (lp (1+ i) (1+ t))))
+       (else (lp (1+ i) t))))))
+
+(define* (bv-u8-index-right bv u8 #:optional (time 1))
+  (let ((len (bytevector-length bv)))
+    (let lp((i (1- len)) (t 1))
+    (cond
+     ((< i 0) #f)
+     ((= (bytevector-u8-ref bv i) u8)
+      (if (= t time) i (lp (1- i) (1+ t))))
+     (else (lp (1- i) t))))))
+
 (define* (subbv=? bv bv2 #:optional (start 0) (end (1- (bytevector-length bv))))
   (and (<= (bytevector-length bv2) (bytevector-length bv))
        (let lp((i start) (j 0))
@@ -873,3 +895,10 @@
 
 (define (put-bv port bv from to)
   (put-bytevector port bv from (- to from 2)))
+
+(define (build-bv-lookup-table bv)
+  (let ((ht (make-hash-table)))
+    (for-each (lambda (i)
+                (hash-set! ht (bytevector-u8-ref bv i) #t))
+              (iota (bytevector-length bv)))
+    ht))
