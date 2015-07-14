@@ -67,7 +67,7 @@
             dump-route-from-cache generate-modify-time delete-directory
             handle-existing-file check-drawing-method current-toplevel
             subbv->string subbv=? bv-read-line bv-read-delimited put-bv
-            bv-u8-index bv-u8-index-right build-bv-lookup-table)
+            bv-u8-index bv-u8-index-right build-bv-lookup-table filesize)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -896,9 +896,25 @@
 (define (put-bv port bv from to)
   (put-bytevector port bv from (- to from 2)))
 
+;; TODO: build a char occurence indexing table
 (define (build-bv-lookup-table bv)
   (let ((ht (make-hash-table)))
     (for-each (lambda (i)
                 (hash-set! ht (bytevector-u8-ref bv i) #t))
               (iota (bytevector-length bv)))
-    ht))
+    (lambda* (i t #:key (from-right #f))
+      (let ((il (hash-ref ht i)))
+        (list-ref il t)))))
+
+(define Gbytes (ash 1 30))
+(define Mbytes (ash 1 20))
+(define Kbytes (ash 1 10))
+(define (filesize size) 
+  (cond
+   ((>= size Gbytes)
+    (format #f "~,1fGiB" (/ size Gbytes)))
+   ((>= size Mbytes)
+    (format #f "~,1fMiB" (/ size Mbytes)))
+   ((>= size Kbytes)
+    (format #f "~,1fKiB" (/ size Kbytes)))
+   (else (format #f "~a Bytes" size))))
