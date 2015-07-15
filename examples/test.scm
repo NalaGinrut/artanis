@@ -174,9 +174,15 @@
   (lambda (rc)
     (cond
      ((:session rc 'check) "auth ok (session)")
-     ((:auth rc)
-      (:session rc 'spawn)
-      "auth ok")
+     ((:auth rc) (:session rc 'spawn))
+     (else (redirect-to rc "/login?login_failed=true")))))
+
+;; 16.1
+;; test for login successful
+(get "/enter" #:session #t
+  (lambda (rc)
+    (cond
+     ((:session rc 'check) "yes login!")
      (else (redirect-to rc "/login?login_failed=true")))))
 
 ;; 17
