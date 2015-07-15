@@ -50,9 +50,8 @@
     (cond
      ((or (:session rc 'check)
           (and (:auth rc)
-               (:session rc (if (:from-post rc 'get "remember_me")
-                                'spawn-and-keep
-                                'spawn))))
+               (if (:from-post rc 'get "remember_me")
+                   (:session rc 'spawn))))
       (tpl->response "admin.tpl" (the-environment)))
      (else (redirect-to rc "/login?login_failed=true")))))
 
