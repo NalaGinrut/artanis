@@ -28,6 +28,7 @@
             cookie-set!
             cookie-ref
             generate-cookies
+            header-string->cookie
             cookie->header-string
             new-cookie
             request-cookies
@@ -83,7 +84,7 @@
   (let ((val (assoc-ref al key)))
     (and val (car val))))
 
-(define (head-string->cookie str)
+(define (header-string->cookie str)
   (let* ((ll (map (lambda (e) 
                     (if (string-contains e "=") 
                         (map string-trim-both (string-split e #\=)) 
@@ -160,7 +161,7 @@
 (define (request-cookies req)
   (let ((cookies-str (header->cookies (request-headers req))))
     ;;(format #t "cookies-str: ~a~%" cookies-str)
-    (map head-string->cookie cookies-str)))
+    (map header-string->cookie cookies-str)))
 
 (define (cookie-has-key? ck key)
   (if (null? ck)
