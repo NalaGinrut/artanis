@@ -902,9 +902,7 @@
     (for-each (lambda (i)
                 (hash-set! ht (bytevector-u8-ref bv i) #t))
               (iota (bytevector-length bv)))
-    (lambda* (i t #:key (from-right #f))
-      (let ((il (hash-ref ht i)))
-        (list-ref il t)))))
+    ht))
 
 (define Gbytes (ash 1 30))
 (define Mbytes (ash 1 20))
