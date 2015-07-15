@@ -230,21 +230,22 @@
 
 ;; for #:session
 (define (session-maker mode rule keys)
-  (define* (%spawn rc #:key (keep? #f) (idname "sid") (proc session-spawn))
+  (define* (%spawn rc #:key (idname "sid") (proc session-spawn))
     (call-with-values
         (lambda () (proc rc))
       (lambda (sid session)
-        (when keep?
-          (let ((cookie (new-cookie #:npv `((,idname ,sid)))))
-            (and cookie (rc-set-cookie! rc (list cookie))))))))
+        (let ((cookie (new-cookie #:npv `((,idname . ,sid)))))
+          (and cookie (rc-set-cookie! rc (list cookie)))
+          sid))))
   (define* (spawn-handler rc #:key (keep? #f))
     (match mode
-      ((or #t 'spawn) (%spawn rc #:keep? keep?))
-      (`(spawn ,sid) (%spawn rc #:idname sid #:keep? keep?))
-      (`(spawn ,sid ,proc) (%spawn rc #:idname sid #:proc proc #:keep? keep?))
+      ((or #t 'spawn) (%spawn rc))
+      (`(spawn ,sid) (%spawn rc #:idname sid))
+      (`(spawn ,sid ,proc) (%spawn rc #:idname sid #:proc proc))
       (else (throw 'artanis-err 500 "session-maker: Invalid config mode" mode))))
   (define (check-it rc idname)
-    (get-session (cookie-ref (rc-cookie rc) idname)))
+    (and=> (session-restore (cookie-ref (rc-cookie rc) idname))
+           (lambda (s) (session-from-correct-client? s rc))))
   (lambda (rc cmd)
     (match cmd
       ('check (check-it rc "sid"))
@@ -253,10 +254,7 @@
        (or (check-it rc "sid") (spawn-handler rc)))
       (`(check-and-spawn ,sid)
        (or (check-it rc sid) (spawn-handler rc)))
-      (`(check-and-spawn-and-keep ,sid)
-       (or (check-it rc sid) (spawn-handler rc #:keep? #t)))
       ('spawn (spawn-handler rc))
-      ('spawn-and-keep (spawn-handler rc #:keep? #t))
       (else (throw 'artanis-err 500 "session-maker: Invalid call cmd" cmd)))))
 
 (define (from-post-maker mode rule keys)
