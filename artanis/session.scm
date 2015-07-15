@@ -28,7 +28,8 @@
             session-spawn
             session-destory 
             session-restore
-            get-session))
+            get-session
+            session-from-correct-client?))
 
 ;; TODO: Support session-engine:
 ;; 1. add item session.engine into config.
@@ -63,7 +64,7 @@
 (define (session-ref session key)
   (hash-ref session key))
 
-(define (make-session . args)
+(define (make-session args)
   (let ((ht (make-hash-table)))
     (for-each (lambda (e)
                 (hash-set! ht (car e) (cdr e)))
@@ -95,14 +96,21 @@
                      (begin (session-destory sid) #f)
                      session)))) ; non-expired, return session
 ;; no session will return #f
-    
-(define* (new-session rc #:key (expires 3600) (domain (current-myhost)) (secure #f))
+
+(define (session-from-correct-client? session rc)
+  (let* ((ip (remote-info (rc-req rc)))
+         (client (hash-ref session "client"))
+         (ret (equal? client ip)))
+    (when (not ret)
+      (format (current-error-port)
+              "[Session Hijack!] Valid sid from different client: ~a!~%" client))
+    ret))
+
+(define* (new-session rc #:key (expires 3600))
   (let ((expires-str (make-expires expires))
-        (path (rc-path rc)))
+        (ip (remote-info (rc-req rc))))
     (make-session `(("expires" . ,expires-str)
-                    ("domain"  . ,domain)
-                    ("secure"  . ,secure)
-                    ("path"    . ,path)))))
+                    ("client"  . ,ip)))))
 
 (define (store-session sid session)
   (mem:store-session! sid session)
