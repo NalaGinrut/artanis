@@ -1,3 +1,5 @@
+* Add local conf for each APP
+* Add local lib for each APP
 * theme (based on template)
 * make own favicon.ico (now use opensuse ico instead)
 * implement expand-conds for ssql
@@ -39,5 +41,5 @@ Some ideas:
 * Reconsider security tokens fetching
   Here's the discussion: http://wingolog.org/archives/2014/12/02/there-are-no-good-constant-time-data-structures
 
-* Rewrite redirect-to for supporing controllers, and don't take use of "Location" header anymore.
+* Rewrite local-redirect-to for supporing controllers, and don't take use of "Location" header for it.
   Just find out and call the rule handler directly.
