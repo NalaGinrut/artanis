@@ -23,7 +23,7 @@
   #:use-module (artanis server)
   #:use-module (artanis route) 
   #:use-module (artanis env)
-  #:use-module (dbi dbi)
+  #:autoload (dbi dbi) (dbi-open dbi-query dbi-get_status dbi-close dbi-get_row)
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
   #:use-module ((rnrs) #:select (define-record-type))
@@ -35,6 +35,7 @@
             DB-get-top-row
             DB-get-n-rows
             db-conn-success?
+            get-conn-from-pool
             init-DB
             connect-db
             make-<connection>
