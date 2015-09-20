@@ -124,6 +124,7 @@ clean-config:
 	-rm -f config.{h,log}
 
 install: $(ALL_TARGETS)
+	mkdir -p $(MOD_PATH)
 	$(CP) $(MOD) $(MOD_PATH)/
 	mkdir -p $(MOD_TARGET_PATH)/
 	$(CP) $(MOD_OBJ) $(MOD_TARGET_PATH)/
