@@ -44,9 +44,6 @@ GUILE_PROGS
 GUILE_FLAGS
 GUILE_SITE_DIR
 
-# Check guile-dbi
-AC_CHECK_LIB([guile-dbi], [init_db_handle_type], ,[AC_MSG_ERROR(No guile-dbi was found. Maybe you haven't installed it? http://home.gna.org/guile-dbi/)])
-
 LT_INIT([dlopen disable-fast-install disable-static win32-dll])
 
 AC_CONFIG_FILES([Makefile bin/art])
