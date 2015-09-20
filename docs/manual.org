@@ -87,7 +87,7 @@ I would NOT recommend you trying to compile/install Guile from Git repo, since i
 
 *Install dependencies:*
 
-+ guile-dbi-2.1.5 *[Required]*
++ guile-dbi-2.1.5 *[Optional]*
 #+begin_src null
 wget -c http://download.gna.org/guile-dbi/guile-dbi-2.1.5.tar.gz
 tar xvzf guile-dbi-2.1.5.tar.gz
@@ -104,7 +104,8 @@ sudo make install
 #+end_src
 You may find other dbd [[http://download.gna.org/guile-dbi][here]]. And the installation is similar.
 
-+ The latest GNU Artanis:
+*Install the latest GNU Artanis:*
+
 #+begin_src null
 wget -c http://alpha.gnu.org/gnu/artanis/artanis-latest.tar.bz2
 tar xvjf artanis-latest.tar.bz2
@@ -126,13 +127,9 @@ git clone git://git.savannah.gnu.org/artanis.git
 git clone git@github.com:NalaGinrut/artanis.git
 #+end_src
 ** Configuration
-Before the first time to run, GNU Artanis needs a config file. The default file name is =/etc/artanis/artanis.conf=.
+Before the first time to run, GNU Artanis needs a config file whose name is =/etc/artanis/artanis.conf=.
 
-There's a config skeleton named default.conf, you may copy it to =/etc/artanis/artanis.conf=.
-
-#+begin_src nil
-sudo cp /etc/artanis/default.conf /etc/artanis/artanis.conf
-#+end_src
+The config items are listed below:
 
 (To be continued ...) 
 * Hello World
@@ -320,7 +317,7 @@ These are good articles for Pythoners:
 Still, please don't spend too much time on them, the purose is to let newbies get a little familiar with the grammar of Scheme.
 
 ** For Rubyist
-Here's a geat article for Rubyist to learn Scheme:
+Here's a great article for Rubyist to learn Scheme:
 1. [[http://wiki.call-cc.org/chicken-for-ruby-programmers][Scheme for ruby programmers]]
 ** For deep learners
 
@@ -687,15 +684,15 @@ This is what [[SQL Mapping (experimental)][SQL Mapping]] provided. FPRM aims to 
 to handle complex SQL for better performance and security (from SQL-Injection). 
 
 #+begin_src scheme
-(define my-table (map-table-from-DB rc/conn))
+(define m (map-table-from-DB rc/conn))
 #+end_src
 
 *rc/conn* can be route-context or connection of DB.
 
-map-table-from-DB returns a function, we named it *my-table* here for explaining.
+map-table-from-DB returns a function, we named it *m* here for explaining.
 *** Create table
 #+begin_src scheme
-(my-table 'create table-name defs #:if-exists? #f #:primary-keys '() #:engine #f)
+(m 'create table-name defs #:if-exists? #f #:primary-keys '() #:engine #f)
 #+end_src
 
 + *table-name* specifies the name of the table in DB.
@@ -718,7 +715,7 @@ map-table-from-DB returns a function, we named it *my-table* here for explaining
 + src_scheme[:exports code]{#:engine} specifies the engine, depends on the dbd you chosen.
 *** Get columns from table
 #+begin_src scheme
-(my-table 'get table-name #:columns '(*) #:functions '() #:ret 'all #:group-by #f #:order-by #f)
+(m 'get table-name #:columns '(*) #:functions '() #:ret 'all #:group-by #f #:order-by #f)
 #+end_src
 
 + src_scheme[:exports code]{#:column} is the columns list you wanted.
@@ -744,39 +741,39 @@ map-table-from-DB returns a function, we named it *my-table* here for explaining
 
 For example, to get Lastname and City column, and return the first result.
 #+begin_src scheme
-(my-table 'get 'Persons #:columns '(Lastname City) #:ret 'top)
+(m 'get 'Persons #:columns '(Lastname City) #:ret 'top)
 #+end_src
 *** Set values to table
 #+begin_src scheme
-(my-table 'set table-name . kargs)
+(m 'set table-name . kargs)
 #+end_src
 
 *kargs* is a var-list to accept the key-value arguments.
 
 For example:
 #+begin_src scheme
-(mtable 'set 'Persons #:name "nala" #:age 99 #:email "nala@artanis.com")
+(m 'set 'Persons #:name "nala" #:age 99 #:email "nala@artanis.com")
 #+end_src
 
 *** Drop a table
 #+begin_src scheme
-(mtable 'drop table-name)
+(m 'drop table-name)
 #+end_src
 *** Check existance of table
 #+begin_src scheme
 ;; case sensitive
-(mtable 'exists? table-name . columns)
+(m 'exists? table-name . columns)
 ;; or for case-insensitive
-(mtable 'ci-exists? table-name . columns)
+(m 'ci-exists? table-name . columns)
 #+end_src
 
 For example:
 #+begin_src scheme
-(mtable 'exists? 'Persons 'city 'lastname)
+(m 'exists? 'Persons 'city 'lastname)
 #+end_src
 *** Get schema of a table
 #+begin_src scheme
-(mtable 'schema table-name)
+(m 'schema table-name)
 #+end_src
 
 /NOTE: all the returned name of schema will be downcased./
