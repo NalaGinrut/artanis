@@ -141,7 +141,7 @@
        `(public ,(cons 'max-age (get-conf '(cache maxage)))))
       (('public . maxage)
        (let ((m (if (null? maxage) (get-conf '(cache maxage)) (car maxage))))
-         `(public ,(cons 'max-age maxage))))
+         `(public ,(cons 'max-age m))))
       (('private . maxage)
        (let ((m (if (null? maxage) (get-conf '(cache maxage)) (car maxage))))
            `(private ,(cons 'max-age m))))
