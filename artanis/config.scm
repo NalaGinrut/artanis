@@ -40,7 +40,7 @@
 (define *default-conf-values*
   `(;; for DB namespace
     ((db dbd) "mysql")
-    ((db port) 3000)
+    ((db port) 3306)
     ((db addr) "localhost")
     ((db socket) #f)
     ((db username) "root")
@@ -50,12 +50,18 @@
     ((server info) ,artanis-version)
     ((server nginx) #f)
     ((server charset) "utf-8")
+    ;; FIXME: use local pages
     ((server syspage path) "/etc/artanis/pages")
+    ((server backlog) 128)
     ((server workers) 1)
+    ((server workqueue maxlen) 64)
+    ((server trigger) edge)
 
     ;; for host namespace
-    ((host addr) "0.0.0.0")
+    ((host name) #f)
+    ((host addr) "127.0.0.1")
     ((host port) 3000)
+    ((host family) ipv4)
 
     ;; for session namespace
     ((session path) "session")
