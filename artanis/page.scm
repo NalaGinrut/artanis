@@ -172,6 +172,8 @@
 
 ;; emit static file with no cache(ETag)
 (define* (emit-response-with-file filename #:optional (headers '()))
+  (define (gen-sfile-cache)
+    (list 'public (cons 'max-age (get-conf '(cache maxage)))))
   (call-with-values
       (lambda ()
         (generate-response-with-file filename (lambda (p) (bv-cat p #f))))
@@ -180,6 +182,7 @@
        ((= status 200) 
         (response-emit bv #:status status 
                        #:headers `((content-type . ,(list mime))
+                                   (cache-control . ,(gen-sfile-cache))
                                    ,@headers)
                        #:mtime mtime))
        (else (response-emit bv #:status status))))))
