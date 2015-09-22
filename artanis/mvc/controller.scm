@@ -35,11 +35,11 @@
            ;; NOTE: we have to encapsulate them to a module for protecting namespaces
            ;; NOTE: we're not going to imort (artanis env) directly to avoid revealing global
            ;;       env vars to users.
-           (define-module (app controller name)
+           (define-module (app controllers name)
              #:use-module (artanis artanis)
              #:use-module (artanis utils))
            (define-syntax-rule (view-render method)
-             (let* ((file (format #f "~a/app/view/~a/~a.html.tpl"
+             (let* ((file (format #f "~a/app/views/~a/~a.html.tpl"
                                   (current-toplevel) 'name method))
                     (tpl (and (file-exists? file) (cat file #f))))
                (cond
@@ -68,7 +68,7 @@
   (use-modules (artanis mvc controller)) ; black magic to make Guile happy
   (let ((cs (scan-controllers)))
     (for-each (lambda (s)
-                (load (format #f "~a/app/controller/~a.scm" toplevel s)))
+                (load (format #f "~a/app/controllers/~a.scm" toplevel s)))
               cs)))
 
 (define (register-controllers)
