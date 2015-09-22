@@ -275,19 +275,34 @@
      (else (throw 'artanis-err 500 "make-table-builder: Invalid rc or conn!" rc/conn))))
   (define (table-drop! tname)
     (DB-query conn (->sql drop table if exists tname)))
-  (define (->types x pks)
-    (format #f "~{~a~^ ~}"
-            (list (car x)
-                  (->sql-type
-                   (if (memq (car x) pks)
-                       `(,@(cdr x) primary key)
-                       (cdr x))))))
+  (define (->opts opts)
+    (string-join
+     (fold-right
+      (lambda (x p)
+        (let ((o (case x
+                   ((#:not-null) "NOT NULL")
+                   ((#:primary-key) "PRIMARY KEY")
+                   ;; TODO: add more opts
+                   (else (throw 'artanis-err 500 "Invalid opts of the table definition!" opts)))))
+          (cons o p)))
+      '() opts)
+     " "))
+  (define (->type/opts x)
+    (match x
+      ((types ... (opts ...)) (values types (->opts opts)))
+      ((types ...) (values types '()))
+      (else (throw 'artanis-err 500 "->type/opts: invalid definition of the table!" x))))
+  (define (->types x)
+    (call-with-values
+        (lambda () (->type/opts x))
+      (lambda (types opts)
+        (format #f "~{~a~^ ~}" (list (car types) (->sql-type (cdr types)) opts)))))
   ;; TODO: We need a mechanism to sync tables constrained by foreign-keys, since some DB doesn't
   ;;       support foreign keys directly, so we have to provide it outside.
   ;; TODO: who to deal with constrained tables without foreign-keys in stateless?
-  (lambda* (tname defs #:key (if-exists? #f) (primary-keys '()) (engine #f)
+  (lambda* (tname defs #:key (if-exists? #f) (engine (get-conf '(db engine)))
                   (dump #f))                  
-    (let* ((types (map (cut ->types <> primary-keys) defs))
+    (let* ((types (map ->types defs))
            (sql (case if-exists?
                   ((overwrite drop)
                    (table-drop! tname)
@@ -413,7 +428,7 @@
                   ;; (column-name (val1 val2 val3 ...))
                   ;; for example:
                   ;; #:foreach '(city ("sz" "bj" "sh"))
-                  ;; This is useful to avoid N+1 query problem.
+                  ;; NOTE: This is useful to avoid N+1 query problem.
                   (dump #f)
                   ;; Dump SQL to a string as result, when #:dump set to #t, it won't do query operation. 
                   )
