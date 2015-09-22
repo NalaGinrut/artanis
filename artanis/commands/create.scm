@@ -131,7 +131,7 @@
     ((test benchmark) . ,benchmark-handler)))
 
 (define *dir-arch*
-  '((app (model controller view)) ; MVC stuff
+  '((app (models controllers views)) ; MVC stuff
     (conf) ; config files
     (sys (pages i18n)) ; system stuff
     (db (migration sm)) ; DB (include SQL Mappings)
