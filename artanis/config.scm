@@ -45,6 +45,7 @@
     ((db socket) #f)
     ((db username) "root")
     ((db passwd) "")
+    ((db engine) #f)
 
     ;; for server namespace
     ((server info) ,artanis-version)
