@@ -261,6 +261,32 @@
        ((not dump) (DB-query conn sql))
        (else sql)))))
 
+(define *table-builder-opts-handler*
+  `((mysql . ,->mysql-opts)
+    (postgresql . ,->postgresql-opts)
+    (sqlite3 . ,->sqlite3-opts)))
+
+(define (get-table-builder-opts-handler)
+  (assoc-ref *table-builder-opts-handler* (get-conf '(db dbd))))
+
+(define (->mysql-opts x opts)
+  (define-syntax-rule (->value x)
+    (format #f "~:@(~a~) ~a" x (kw-arg-ref opts x)))
+  (case x
+    ((#:not-null) "NOT NULL")
+    ((#:null) "NULL")
+    ((#:default) (->value x))
+    ((#:unique) "UNIQUE")
+    ((#:unique-key) "UNIQUE KEY")
+    ((#:primary-key) "PRIMARY KEY")
+    ((#:key) "KEY")
+    ((#:auto-increment) "AUTO_INCREMENT")
+    ((#:comment) (->value x))
+    ((#:column-format) "COLUMN_FORMAT")
+    ((#:storage) (->value x))
+    ((#:reference-definition) "reference_definition")
+    (else (throw 'artanis-err 500 "Invalid opts for MySQL table definition!" x))))
+
 ;; NOTE:
 ;; 1. Use primiary-keys for specifying primary keys, don't specify it in defs directly.
 ;;    Because we're not going to support foreign keys, so we need to record keys in closures for sync.
@@ -279,11 +305,7 @@
     (string-join
      (fold-right
       (lambda (x p)
-        (let ((o (case x
-                   ((#:not-null) "NOT NULL")
-                   ((#:primary-key) "PRIMARY KEY")
-                   ;; TODO: add more opts
-                   (else (throw 'artanis-err 500 "Invalid opts of the table definition!" opts)))))
+        (let ((o ((get-table-builder-opts-handler) x opts)))
           (cons o p)))
       '() opts)
      " "))
