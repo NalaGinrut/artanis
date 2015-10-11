@@ -67,7 +67,8 @@
             dump-route-from-cache generate-modify-time delete-directory
             handle-existing-file check-drawing-method current-toplevel
             subbv->string subbv=? bv-read-line bv-read-delimited put-bv
-            bv-u8-index bv-u8-index-right build-bv-lookup-table filesize)
+            bv-u8-index bv-u8-index-right build-bv-lookup-table filesize
+            plist-remove)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -916,3 +917,13 @@
    ((>= size Kbytes)
     (format #f "~,1fKiB" (/ size Kbytes)))
    (else (format #f "~a Bytes" size))))
+
+(define* (plist-remove lst k #:optional (no-value? #f))
+  (let lp((next lst) (kk '__) (ret '()))
+    (cond
+     ((null? next) (values (reverse ret) kk))
+     ((eq? (car next) k)
+      (if no-value?
+          (lp (cdr next) (car next) ret)
+          (lp (cddr next) (list (car next) (cadr next)) ret)))
+     (else (lp (cdr next) kk (cons (car next) ret))))))
