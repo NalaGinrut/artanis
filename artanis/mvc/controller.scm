@@ -80,7 +80,7 @@
      (format port ";; Controller ~a definition of ~a~%" cname (current-appname))
      (display ";; Please add your license header here.\n" port)
      (display ";; This file is generated automatically by GNU Artanis.\n" port)
-     (format port "(define-artanis-controller ~a)~%~%" cname))))
+     (format port "(define-artanis-controller ~a) ; DO NOT REMOVE THIS LINE!!!~%~%" cname))))
 
 (define (do-controller-create name methods port)
   (display (gen-controller-header name) port)
