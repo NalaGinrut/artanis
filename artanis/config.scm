@@ -39,7 +39,7 @@
 
 (define *default-conf-values*
   `(;; for DB namespace
-    ((db dbd) 'mysql)
+    ((db dbd) mysql)
     ((db port) 3306)
     ((db addr) "localhost")
     ((db socket) #f)
