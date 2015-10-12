@@ -101,7 +101,7 @@ Example:
 (define (%draw-model name . methods)
   (let* ((path (current-toplevel))
          (entry (string-append path "/ENTRY"))
-         (cpath (string-append path "/app/model/" name ".scm")))
+         (cpath (string-append path "/app/models/" name ".scm")))
     (cond
      ((not (verify-ENTRY entry))
       (error "You're not in a valid Artanis app directory! Or ENTRY is invalid!"))
@@ -114,7 +114,7 @@ Example:
 (define (%draw-view name . methods)
   (let* ((path (current-toplevel))
          (entry (string-append path "/ENTRY"))
-         (cpath (string-append path "/app/view/" name)))
+         (cpath (string-append path "/app/views/" name)))
     (cond
      ((not (verify-ENTRY entry))
       (error "You're not in a valid Artanis app directory! Or ENTRY is invalid!"))
@@ -126,7 +126,7 @@ Example:
 (define (%draw-controller name . methods)
   (let* ((path (current-toplevel))
          (entry (string-append path "/ENTRY"))
-         (cpath (string-append path "/app/controller/" name ".scm")))
+         (cpath (string-append path "/app/controllers/" name ".scm")))
     (cond
      ((not (verify-ENTRY entry))
       (error "You're not in a valid Artanis app directory! Or ENTRY is invalid!"))
