@@ -241,12 +241,18 @@
     ((xml) (->0 name args)) ; XML Stores XML data
     (else #f)))
 
+(define-syntax-rule (->symbol x)
+  (cond
+   ((string? x) (string->symbol x))
+   ((symbol? x) x)
+   (else (throw 'artanis-err 500 "->symbol: Invalid type!" x))))
+
 ;; (map (lambda (x) (->sql-type (cdr x)))
 ;;      '((name varchar 10) (age int 5) (email varchar 255)))
 ;; ==> ("varchar(10)" "int(5)" "varchar(255)")
 (define-macro (->sql-type name-and-args)
   `(or (apply ->sql-general-type ,name-and-args)
-       (apply ,(symbol-append '-> (string->symbol (get-conf '(db dbd))) '-type)
+       (apply ,(symbol-append '-> (->symbol (get-conf '(db dbd))) '-type)
         ,name-and-args)))
 
 (define (make-table-dropper rc/conn)
@@ -260,6 +266,10 @@
       (cond
        ((not dump) (DB-query conn sql))
        (else sql)))))
+
+(define (->mysql-opts dbd) #t)
+(define (->postgresql-opts dbd) #t)
+(define (->sqlite3-opts dbd) #t)
 
 (define *table-builder-opts-handler*
   `((mysql . ,->mysql-opts)
@@ -303,7 +313,7 @@
     (DB-query conn (->sql drop table if exists tname)))
   (define (->opts opts)
     (string-join
-     (fold-right
+     (srfi-1:fold-right
       (lambda (x p)
         (let ((o ((get-table-builder-opts-handler) x opts)))
           (cons o p)))
@@ -323,7 +333,7 @@
   ;;       support foreign keys directly, so we have to provide it outside.
   ;; TODO: who to deal with constrained tables without foreign-keys in stateless?
   (lambda* (tname defs #:key (if-exists? #f) (engine (get-conf '(db engine)))
-                  (dump #f))                  
+                  (dump #f) (primary-keys '()))                  
     (let* ((types (map ->types defs))
            (sql (case if-exists?
                   ((overwrite drop)
