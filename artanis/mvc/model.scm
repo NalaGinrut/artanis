@@ -86,19 +86,20 @@
 (define (field:date-field . args) (make-date-field 'date-field args))
 
 (define (return-fixed-val info val)
+  (define (gen-local-date-str)
+    (call-with-output-string
+     (lambda (port)
+       (write-date (get-local-time) port))))
   (case (car info)
-    ((auto bit-integer boolean char-field) val)
     ((date-field)
      (cond
       ((assq-ref (cddr info) #:auto-now)
-       (call-with-output-string
-        (lambda (port)
-          (write-date (get-local-time) port))))
+       (gen-local-date-str))
       ((assq-ref (cddr info) #:auto-now-add)
        #t
        ;; TODO: finish it
        )))
-    (else (throw 'artanis-err 500 "return-fixed-val: Invalid field type!" (car info)))))
+    (else val)))
 
 (define (fix-fields cmd args meta)
   (define (fix-fields-to-set)
@@ -116,9 +117,8 @@
       (cond
        ((null? next) (reverse ret))
        ((keyword? (car next))
-        (check-settable (car next))
-        (let ((k (car next))
-              (v (fix-val k (cadr next))))
+        (let* ((k (car next))
+               (v (fix-val k (cadr next))))
           (lp (cddr next) (cons v (cons k ret)))))
        (else (lp (cdr next) (cons (car next) ret))))))
   (case cmd
