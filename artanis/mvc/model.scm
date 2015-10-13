@@ -24,6 +24,7 @@
   #:use-module (artanis db)
   #:use-module ((rnrs) #:select (define-record-type))
   #:use-module (ice-9 match)
+  #:use-module (ice-9 format)
   #:use-module (srfi srfi-1)
   #:export (do-model-create
             model-field-add!))
@@ -31,13 +32,25 @@
 (define (opts-add new old)
   (apply lset-adjoin eq? new old))
 
+(define opts-del plist-remove)
+
+(define* (opts-ref opts o #:optional (value? #f))
+  (let lp((next opts))
+    (cond
+     ((null? next) #f)
+     ((eq? o (car next))
+      (if value?
+          (cadr next)
+          o))
+     (else (lp (cdr next))))))
+
+(define (meta-update! o meta k)
+  (hashq-set! meta k (opts-del (hashq-ref meta k) o)))
+
 (define (create-model-meta fields)
   (let ((ht (make-hash-table)))
     (for-each (lambda (f) (hash-set! ht (car f) (cdr f))) fields)
     ht))
-
-(define-record-type model-field (fields name args))
-(define-record-type date-field (parent model-field) (fields now))
 
 (define (general-field-handler name . opts)
   (define (get-maxlen lst)
@@ -63,7 +76,7 @@
          (list #:no-edit
                (case now
                  ((auto) #:auto-now)
-                 ((auto-add) #:auto-now-add)
+                 ((auto-once) #:auto-now-once)
                  (else #:default-date-now)))))
     (list 'date (opts-add new-opts opts))))
 
@@ -79,26 +92,28 @@
   (set! *model-field-handlers*
         (assoc-set! *model-field-handlers* name handler)))
 
-(define (field:auto . args) (make-model-field 'auto args))
-(define (field:bit-integer . args) (make-model-field 'big-integer args))
-(define (field:boolean . args) (make-model-field 'boolean args))
-(define (field:char-field . args) (make-model-field 'char-field args))
-(define (field:date-field . args) (make-date-field 'date-field args))
-
-(define (return-fixed-val info val)
+(define (fixed-date-field-val val meta k)
   (define (gen-local-date-str)
     (call-with-output-string
      (lambda (port)
        (write-date (get-local-time) port))))
-  (case (car info)
-    ((date-field)
-     (cond
-      ((assq-ref (cddr info) #:auto-now)
-       (gen-local-date-str))
-      ((assq-ref (cddr info) #:auto-now-add)
-       #t
-       ;; TODO: finish it
-       )))
+  (let ((info (hashq-ref meta k)))
+    (cond
+     ((opts-ref (cddr info) #:auto-now #t)
+      ;; Automatically set the field to now each time.
+      (gen-local-date-str))
+     ((opts-ref (cddr info) #:auto-now-once #t)
+      ;; Set the field to now only once when the object is first created.
+      (meta-update! #:auto-now-once meta k)
+      (gen-local-date-str))
+     ((opts-ref (cddr info) #:default-date-now #t)
+      => (lambda (thunk) (thunk)))
+     (else val))))
+
+;; Don't use it directly, since there's no existance check in meta here. 
+(define (return-fixed-val meta k val)
+  (case (car (hashq-ref meta k))
+    ((date-field date-time-field) (fixed-date-field-val val meta k))
     (else val)))
 
 (define (fix-fields cmd args meta)
@@ -110,7 +125,7 @@
              (cond
               ((assoc-ref opts #:no-edit)
                (throw 'artanis-err 500 "fix-val: Field can't be edited!" k))
-              ((hash-ref meta k) => (lambda (info) (return-fixed-val info v)))
+              ((hashq-ref meta k) => (lambda (info) (return-fixed-val meta k v)))
               (else (throw 'artanis-err 500 "fix-val: Field doesn't exist!" k)))))
        (else (throw 'artanis-err 500 "fix-val: No such field!" k))))
     (let lp((next args) (ret '()))
@@ -176,5 +191,18 @@
      (display ";; This file is generated automatically by GNU Artanis.\n" port)
      (format port "(create-artanis-model ~a) ; DO NOT REMOVE THIS LINE!!!~%~%" name))))
 
-(define (do-model-create name methods port)
-  #t)
+(define (parse-field-str str)
+  `(,@(map string-trim-both (string-split str #\:)) (#:not-null)))
+
+;; NOTE: id will be generated automatically, as primary-key.
+;;       You may remove it to add your own primary-key.
+;; NOTE: Each field will be set as #:not-null, modify it as you wish.
+(define (do-model-create name fields port)
+  (display (gen-model-header name) port)
+  (when (not (null? fields))
+        (format port "(define-~a~%" name)
+        (format port "~2t(id serial (#:not-null #:primary-key))~%")
+        (for-each (lambda (field)
+                    (format port "~2t~a~%" (parse-field-str field)))
+                  fields)
+        (format port "~2t)~%")))
