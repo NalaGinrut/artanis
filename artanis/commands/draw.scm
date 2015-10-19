@@ -106,7 +106,6 @@ Example:
      ((not (verify-ENTRY entry))
       (error "You're not in a valid Artanis app directory! Or ENTRY is invalid!"))
      (else
-      (%draw-migration name)
       (draw:create do-model-create name cpath methods)
       ;; TODO: maybe others
       (%draw-test name)))))
@@ -139,7 +138,9 @@ Example:
 (define (%draw-migration name)
   (let* ((path (current-toplevel))
          (entry (string-append path "/ENTRY"))
-         (cpath (string-append path "/db/migration/" name)))
+         (t (strftime "%Y%m%d%H%M%S" (localtime (current-time))))
+         (f (format #f "~a_~a.scm" t name))
+         (cpath (string-append path "/db/migration/" f)))
     (cond
      ((not (verify-ENTRY entry))
       (error "You're not in a valid Artanis app directory! Or ENTRY is invalid!"))
