@@ -357,11 +357,16 @@
             (_ (throw 'artanis-err 500 "make-table-builder: Invalid cmd!" cmd)))))
        (else sql)))))
 
-;; make-table-setter is actually a mapping from `update' in SQL
+;; make-table-setter could be mapped to UPDATE or INSERT, depends on condition.
 ;; Grammar:
 ;; UPDATE table_name
 ;;        SET column1=value1,column2=value2,...
 ;;        WHERE some_column=some_value;
+;;
+;; === When there's no conditions ===
+;;
+;; INSERT INTO table_name
+;;        (column1, column1 ...) values (value1, value2 ...)
 (define (make-table-setter rc/conn)
   (define (->kvp kargs)
     (let lp((next kargs) (kvs '()) (w ""))
@@ -378,6 +383,9 @@
       (let ((sql (if (string-null? wcond)
                      (let-values (((k v) (->kv kvp)))
                        (->sql insert into tname k values v))
+                     ;; NOTE: If there's no cond string (say, `where' clauses), you MUSTN'T
+                     ;;       use UPDATE because it'll effect all the records!!! In such case,
+                     ;;       you should use INSERT.
                      (->sql update tname set kvp wcond)))
             (conn (cond 
                    ((route-context? rc/conn) (rc-conn rc/conn))
