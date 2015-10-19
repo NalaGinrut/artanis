@@ -22,6 +22,7 @@
   #:use-module (artanis env)
   #:use-module (artanis fprm)
   #:use-module (artanis db)
+  #:use-module (artanis irregex)
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
   #:use-module (srfi srfi-1)
@@ -127,7 +128,7 @@
 (define (big-integer-validator v)
   (check-field-value
    'big-integer
-   (and (integer? v) (>= v -BIGINT_MAX) (<= v BIGINT_MAX))))
+   (and (integer? v) (>= v (- BIGINT_MAX)) (<= v BIGINT_MAX))))
 
 ;; NOTE: Boolean should be string since all the values should be upcased.
 (define (boolean-validator v)
@@ -135,6 +136,18 @@
    'boolean
    (let ((vv (string-upcase v)))
      (or (string=? vv "FALSE") (string=? vv "TRUE")))))
+
+(define *date-re*
+  (string->sre "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}"))
+(define (date-validator v)
+  (check-field-value
+   'date
+   (irregex-search *date-re* v)))
+
+(define (datetime-validator v)
+  (check-field-value
+   'datetime
+   (irregex-search *date-re* v)))
 
 ;; FIXME: Shoud we check type validation in Scheme level? Or leave it as DB work.
 (define *field-validators*
@@ -160,7 +173,7 @@
 
 ;; Don't use it directly, since there's no existance-check in meta here. 
 (define (return-default-val cmd meta k)
-  (let ((info hashq-ref meta k))
+  (let ((info (hashq-ref meta k)))
     (cond
      ((kw-arg-ref (cadr info) #:default)
       => (lambda (thunk) (list (thunk) k)))
@@ -179,7 +192,7 @@
              (cond
               ((assoc-ref opts #:no-edit)
                (throw 'artanis-err 500 "fix-val: Field can't be edited!" k))
-              ((hashq-ref meta k) => (lambda (info) (return-default-val cmd meta k v)))
+              ((hashq-ref meta k) => (lambda (info) (return-default-val cmd meta k)))
               (else (throw 'artanis-err 500 "fix-val: Field doesn't exist!" k)))))
        (else (throw 'artanis-err 500 "fix-val: No such field!" k))))
     (let lp((kl (hash-map->list cons meta)) (al args) (ret '()))
