@@ -22,12 +22,12 @@
   #:use-module (artanis env)
   #:use-module (artanis fprm)
   #:use-module (artanis db)
-  #:use-module ((rnrs) #:select (define-record-type))
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
   #:use-module (srfi srfi-1)
   #:export (do-model-create
-            model-field-add!))
+            model-field-add!
+            field-validator-add!))
 
 (define (opts-add new old)
   (apply lset-adjoin eq? new old))
@@ -68,21 +68,20 @@
     ;; Raw binary data
     ;; ((binary) (list 'longblob opts)) ; longblob for mysql
     ((boolean) (list 'boolean opts))
-    ((char-field) `(varchar ,@(get-maxlen opts)))
-    ))
+    ((char-field) `(varchar ,@(get-maxlen opts)))))
 
 (define (date-field-handler now . opts)
   (let ((new-opts
-         (list #:no-edit
+         (cons #:no-edit
                (case now
-                 ((auto) #:auto-now)
-                 ((auto-once) #:auto-now-once)
-                 (else #:default-date-now)))))
+                 ((auto) '(#:auto-now))
+                 ((auto-once) '(#:auto-now-once))
+                 (else '())))))
     (list 'date (opts-add new-opts opts))))
 
 (define *model-field-handlers*
   `((auto . ,general-field-handler)
-    (bit-integer . ,general-field-handler)
+    (big-integer . ,general-field-handler)
     (boolean . ,general-field-handler)
     (char-field . ,general-field-handler)
     (date-field . ,date-field-handler)))
@@ -92,7 +91,11 @@
   (set! *model-field-handlers*
         (assoc-set! *model-field-handlers* name handler)))
 
-(define (fixed-date-field-val val meta k)
+;; NOTE: Different from auto_now* in Django, we allow users pass new value
+;;       even auto_now* was specified.
+;; NOTE: #:default will overwrite #:auto-now or #:auto-now-once. So don't use
+;;       them together.
+(define (fixed-date-field-val cmd meta k)
   (define (gen-local-date-str)
     (call-with-output-string
      (lambda (port)
@@ -104,38 +107,90 @@
       (gen-local-date-str))
      ((opts-ref (cddr info) #:auto-now-once #t)
       ;; Set the field to now only once when the object is first created.
-      (meta-update! #:auto-now-once meta k)
+      (if (eq? cmd 'create)
+          (meta-update! #:auto-now-once meta k)
+          (throw 'artanis-err 500
+                 "fixed-date-field-val: #:auto-now-once should be used with `create' cmd"))
       (gen-local-date-str))
-     ((opts-ref (cddr info) #:default-date-now #t)
-      => (lambda (thunk) (thunk)))
-     (else val))))
+     (else (throw 'artanis-err 500
+                  "fixed-date-field-val: Shouldn't be here, why no default setting?")))))
 
-;; Don't use it directly, since there's no existance check in meta here. 
-(define (return-fixed-val meta k val)
-  (case (car (hashq-ref meta k))
-    ((date-field date-time-field) (fixed-date-field-val val meta k))
-    (else val)))
+(define-syntax-rule (check-field-value type r)
+  (unless r
+          (throw 'artanis-err 500
+                 (format #f "~a check failed: ~a" type r))))
+
+(define (auto-field-validator v)
+  (throw 'artanis-err 500 "AUTO field: you shouldn't set it manually!"))
+
+(define BIGINT_MAX 9223372036854775808)
+(define (big-integer-validator v)
+  (check-field-value
+   'big-integer
+   (and (integer? v) (>= v -BIGINT_MAX) (<= v BIGINT_MAX))))
+
+;; NOTE: Boolean should be string since all the values should be upcased.
+(define (boolean-validator v)
+  (check-field-value
+   'boolean
+   (let ((vv (string-upcase v)))
+     (or (string=? vv "FALSE") (string=? vv "TRUE")))))
+
+;; FIXME: Shoud we check type validation in Scheme level? Or leave it as DB work.
+(define *field-validators*
+  `((auto . ,auto-field-validator)
+    (big-integer . ,big-integer-validator)
+    (boolean . ,boolean-validator)
+    (date . ,date-validator)
+    (datetime . ,datetime-validator)))
+
+(define (field-validator-add! type validator)
+  (set! *field-validators*
+        (assoc-set! *field-validators* type validator)))
+
+(define (general-field-validator v)
+  ;; TODO: maybe do some security check?
+  v)
+
+(define (validate-field-value v info)
+  (cond
+   ((or (kw-arg-ref info #:validator) (assoc-ref *field-validators* (car info)))
+    => (lambda (h) (h v)))
+   (else (general-field-validator v))))
+
+;; Don't use it directly, since there's no existance-check in meta here. 
+(define (return-default-val cmd meta k)
+  (let ((info hashq-ref meta k))
+    (cond
+     ((kw-arg-ref (cadr info) #:default)
+      => (lambda (thunk) (list (thunk) k)))
+     (else
+      (case (car info)
+        ((date-field date-time-field)
+         (list (fixed-date-field-val cmd meta k) k))
+        (else '())))))) ; no default value
 
 (define (fix-fields cmd args meta)
   (define (fix-fields-to-set)
-    (define (fix-val k v)
+    (define (gen-default-val k)
       (cond
        ((hash-ref meta k)
         => (lambda (opts)
              (cond
               ((assoc-ref opts #:no-edit)
                (throw 'artanis-err 500 "fix-val: Field can't be edited!" k))
-              ((hashq-ref meta k) => (lambda (info) (return-fixed-val meta k v)))
+              ((hashq-ref meta k) => (lambda (info) (return-default-val cmd meta k v)))
               (else (throw 'artanis-err 500 "fix-val: Field doesn't exist!" k)))))
        (else (throw 'artanis-err 500 "fix-val: No such field!" k))))
-    (let lp((next args) (ret '()))
+    (let lp((kl (hash-map->list cons meta)) (al args) (ret '()))
       (cond
-       ((null? next) (reverse ret))
-       ((keyword? (car next))
-        (let* ((k (car next))
-               (v (fix-val k (cadr next))))
-          (lp (cddr next) (cons v (cons k ret)))))
-       (else (lp (cdr next) (cons (car next) ret))))))
+       ((null? kl) `(,(reverse ret) ,@al)) ; append condition string if possible
+       ((kw-arg-ref args (caar kl))
+        => (lambda (v)
+             (lp (cdr kl)
+                 (cddr args) ; a trick to get condition string
+                 (list (validate-field-value v (cdar kl)) (caar kl) ret))))
+       (else (lp (cdr kl) al `(,@(return-default-val cmd meta (caar kl)) ,@ret))))))
   (case cmd
     ((set) (fix-fields-to-set))
     ((get) args)
@@ -199,10 +254,4 @@
 ;; NOTE: Each field will be set as #:not-null, modify it as you wish.
 (define (do-model-create name fields port)
   (display (gen-model-header name) port)
-  (when (not (null? fields))
-        (format port "(define-~a~%" name)
-        (format port "~2t(id serial (#:not-null #:primary-key))~%")
-        (for-each (lambda (field)
-                    (format port "~2t~a~%" (parse-field-str field)))
-                  fields)
-        (format port "~2t)~%")))
+  )
