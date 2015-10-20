@@ -49,7 +49,7 @@
                (cons (cons 'version (irregex-match-substring m 1)) ret))))
      (else (lp (cdr next) ret)))))
 
-(define (%migrate name opts)
+(define (%migrate op name opts)
   (define *mfile-re*
     (string->sre (format #f "^(\\d{14})_~a\\.scm$" name)))
   (define (compare-mfile x y)
@@ -66,20 +66,32 @@
       (let ((fl (scandir path is-mfile)))
         (match (sort fl compare-mfile)
           (() (format #t "Migration: No migrations of `~a' were found!~%" name) #f)
-          ((f . rest) f)
+          ((f . rest) (format #f "~a/~a" path f))
           (else (throw 'artanis-err 500 "Migration: Unknown error!")))))))
   (let ((f (gen-migrate-file)))
     (when (string? f)
-      (format #t "We got ~a~%" f)
-      ;; TODO: do migration
-      )))
+      (format #t "Migrating ~a~%" f)
+      (use-modules (artanis mvc migration))
+      (load f)
+      (let ((m (resolve-module
+                `(db migration ,(string->symbol (gen-migrate-module-name f))))))
+        ((module-ref m 'migrator) op)
+        ;; TODO: do migration
+        ))))
+
+(define (valid-operator? op)
+  (case (string->symbol op)
+    ((up down) #t)
+    (else #f)))
 
 (define (do-migrate . args)
   (define (validname? x)
     (irregex-search "^-.*" x))
   (match args
     (("migrate" (or () (? validname?) "help" "--help" "-help" "-h")) (show-help))
-    (("migrate" name . opts) (%migrate name (opts-parser opts)))
+    (("migrate" (? valid-operator? op) name . opts)
+     (add-to-load-path (current-toplevel))
+     (%migrate (string->symbol op) (string->symbol name) (opts-parser opts)))
     (else (show-help))))
 
 (define %summary "DB migration tools.")
