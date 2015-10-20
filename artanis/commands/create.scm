@@ -143,8 +143,8 @@
     (test (unit functional benchmark)))) ; tests stuffs
 
 ;; Simple recursive depth-first order traverser for generic tree (in list).
-;; We use this function for making *dir-arch* directory tree, it's little data,
-;; so we don't care about the performance very much.
+;; We use this function for making *dir-arch* directory tree, the performance here
+;; is trivial.
 (define (dfs t p l)
   (match t
     (() #t)
