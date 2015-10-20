@@ -39,7 +39,7 @@
 
 (define announce-head
   "
-GNU Artanis is a lightweight web framework written in Guile Scheme.
+GNU Artanis is monolithic framework written in Guile Scheme.
 NalaGinrut <mulei@gnu.org>
 ")
 
