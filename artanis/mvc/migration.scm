@@ -20,15 +20,12 @@
 (define-module (artanis mvc migration)
   #:use-module (artanis utils)
   #:use-module (artanis env)
+  #:use-module (artanis irregex)
   #:use-module (ice-9 format)
-  #:export (do-migration-create
+  #:export (create-artanis-migration
+            do-migration-create
             migration-field-add!))
 
-;; For example:
-;; (define-person
-;;   (id auto (#:not-null #:primary-key))
-;;   (first_name char-field (#:maxlen 30 #:not-null))
-;;   (last_name char-field (#:maxlen 30 #:not-null)))
 (define-syntax create-artanis-migration
   (lambda (x)
     (syntax-case x ()
@@ -46,15 +43,19 @@
            (define (migrate-add! cmd handler)
              (set! *migrate-handlers*
                    (assoc-set! *migrate-handlers* cmd handler)))
-           (define-syntax-rule (migrate-up body :::)
-             (migrate-add! 'up (lambda () body :::)))
-           (define-syntax-rule (migrate-down body :::)
-             (migrate-add! 'down (lambda () body :::)))
-           (define-public #,(datum->syntax #'name (symbol-append 'migrate- (syntax->datum #'name)))
+           (define-syntax migrate-up
+             (syntax-rules ::: ()
+               ((_ body :::)
+                (migrate-add! 'up (lambda () body :::)))))
+           (define-syntax migrate-down
+             (syntax-rules ::: ()
+               ((_ body :::)
+                (migrate-add! 'down (lambda () body :::)))))
+           (define-public migrator
              (lambda (cmd . args)
                (cond
                 ((assoc-ref *migrate-handlers* cmd)
-                 => (lambda (h) (apply h args)))
+                 => (lambda (h) (h)))
                 (else (throw 'artanis-err 500 "Migrate: Invalid cmd!"))))))))))
 
 (define (mg:create-table)
@@ -84,13 +85,6 @@
 (define (mg:remove-index)
   #t)
 
-(define (with-migration-file name proc)
-  (let* ((t (strftime "%Y%m%d%H%M%S" (localtime (current-time))))
-         (f (format #f "~a_create_" t)))
-    (when (file-exists? f)
-          (throw 'artanis-err 500 "Migrate: File exists?!" f))
-    (call-with-output-file f proc)))
-
 (define (gen-migration-header name)
   (call-with-output-string
    (lambda (port)
@@ -100,7 +94,6 @@
      (format port "(create-artanis-migration ~a) ; DO NOT REMOVE THIS LINE!!!~%~%" name))))
 
 (define (do-migration-create name fields port)
-  (display (gen-migration-header name) port)
-  (format port "(migrate-up~%~2t\"Add your up code\")~%")
-  (format port "(migrate-down~%~2t\"Add your down code\")~%")
-  )
+  (display (gen-migration-header (gen-migrate-module-name (port-filename port))) port)
+  (format port "(migrate-up~%~2t(display \"Add your up code\\n\"))~%")
+  (format port "(migrate-down~%~2t(display \"Add your down code\\n\"))~%"))
