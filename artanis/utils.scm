@@ -68,7 +68,7 @@
             handle-existing-file check-drawing-method current-toplevel
             subbv->string subbv=? bv-read-line bv-read-delimited put-bv
             bv-u8-index bv-u8-index-right build-bv-lookup-table filesize
-            plist-remove)
+            plist-remove gen-migrate-module-name)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -749,8 +749,8 @@
   (let ((toplevel (current-toplevel)))
     (map (lambda (f) (string->symbol (remove-ext f)))
          (scandir (format #f "~a/app/~a/" toplevel component)
-                  (lambda (f) 
-                    (not (or (string=? f ".") 
+                  (lambda (f)
+                    (not (or (string=? f ".")
                              (string=? f ".."))))))))
 
 (define (cache-this-route! url meta)
@@ -927,3 +927,11 @@
           (lp (cdr next) (car next) ret)
           (lp (cddr next) (list (car next) (cadr next)) ret)))
      (else (lp (cdr next) kk (cons (car next) ret))))))
+
+(define *name-re* (string->sre "([^.]+)\\.scm"))
+(define (gen-migrate-module-name f)
+  (cond
+   ((irregex-search *name-re* (basename f))
+    => (lambda (m) (irregex-match-substring m 1)))
+   (else (throw 'artanis-err 500
+                "Migrate: wrong parsing of module name, shouldn't be here!" f))))
