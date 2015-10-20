@@ -60,7 +60,7 @@
                  (format #f "/~a/~a" 'name 'method)
                  (draw-expander rest rest* :::))))))))))
 
-(define-syntax-rule (scan-controllers) (scan-app-components 'controller))
+(define-syntax-rule (scan-controllers) (scan-app-components 'controllers))
 
 (define (load-app-controllers)
   (define toplevel (current-toplevel))
