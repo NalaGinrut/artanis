@@ -27,12 +27,18 @@
 
 (define (print-options)
   (display "\nOPTIONS:\n")
-  (format #t "~2tVERSION=version~%")
-  #t)
+  (format #t "~2tVERSION=version~%"))
+
+(define *operators* '(up down))
+
+(define (print-operators)
+  (display "\nOperators:\n")
+  (for-each (lambda (op) (format #t "~2t~a~%" op)) *operators*))
 
 (define (show-help)
   (display announce-head)
-  (display "\nUsage:\n  art migrate name [OPTIONS]\n")
+  (display "\nUsage:\n  art migrate operator name [OPTIONS]\n")
+  (print-operators)
   (print-options)
   (display announce-foot))
 
@@ -70,8 +76,8 @@
           (else (throw 'artanis-err 500 "Migration: Unknown error!")))))))
   (let ((f (gen-migrate-file)))
     (when (string? f)
-      (format #t "Migrating ~a~%" f)
-      (use-modules (artanis mvc migration))
+      (format #t "[Migrating ~a]~%" f)
+      (use-modules (artanis mvc migration)) ; trick to make migrator happy
       (load f)
       (let ((m (resolve-module
                 `(db migration ,(string->symbol (gen-migrate-module-name f))))))
