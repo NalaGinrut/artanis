@@ -247,7 +247,6 @@
                   (let* ((raw (parse-raw-fields (list `rest `rest* :::)))
                          (mt (map-table-from-DB (get-conn-from-pool 0)))
                          (meta (create-model-meta (list `rest `rest* :::))))
-                    (mt 'create 'name raw)
                     (lambda (cmd . args)
                       (apply mt cmd 'name (fix-fields cmd args meta)))))))))))))
 
@@ -259,6 +258,19 @@
      (display ";; This file is generated automatically by GNU Artanis.\n" port)
      (format port "(create-artanis-model ~a) ; DO NOT REMOVE THIS LINE!!!~%~%" name))))
 
+;; NOTE: Whole list of types:
+;;       integer
+;;       primary_key
+;;       decimal
+;;       float
+;;       boolean
+;;       binary
+;;       string
+;;       text
+;;       date
+;;       time
+;;       datetime
+;;       timestamp
 (define (parse-field-str str)
   `(,@(map string-trim-both (string-split str #\:)) (#:not-null)))
 
