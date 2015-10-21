@@ -33,7 +33,8 @@
             make-table-getter
             make-table-setter
             make-table-builder
-            make-table-dropper)
+            make-table-dropper
+            make-table-modifier)
   ;; NOTE:
   ;; We re-export these symbols so that users may use FPRM to handle DB
   ;; independently, without using the web-framework.
@@ -484,6 +485,26 @@
         (DB-get-all-rows conn))
        (else sql)))))
 
+(define (make-table-modifier rc/conn)
+  (define (table-add tname col t)
+    (->sql alter table tname add col t))
+  (define (table-drop tname col)
+    (->sql alter table tname drop column col))
+  (define (table-alter tname col t)
+    (->sql alter table tname modify column col t))
+  (define (gen-sql tname op args)
+    (case op
+      ((add) (apply table-add tname args))
+      ((drop) (apply table-drop tname args))
+      ((alter) (apply table-alter tname args))
+      (else (throw 'artanis-err 500 "make-table-modifier: Invalid op!" op))))
+  (lambda (tname op . args)
+    (let ((sql (gen-sql tname op args))
+          (conn (cond 
+                 ((route-context? rc/conn) (rc-conn rc/conn))
+                 ((<connection>? rc/conn) rc/conn)
+                 (else (throw 'artanis-err 500 "make-table-modifier: Invalid rc or conn!" rc/conn)))))
+      (DB-query conn sql))))
 ;; NOTE: the name of columns is charactar-caseless, at least in MySQL/MariaDB.
 (define (map-table-from-DB rc/conn)
   (define conn
@@ -495,6 +516,7 @@
   (define setter (make-table-setter conn))
   (define builder (make-table-builder conn))
   (define dropper (make-table-dropper conn))
+  (define modfier (make-table-modifier conn))
   ;; NOTE:
   ;; It maybe inefficient to fetch table-schema without any cache, because the request session may generate
   ;; table-schema each time. Although we may build a cache or delayed mechanism here, there's one reason
