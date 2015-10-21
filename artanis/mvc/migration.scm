@@ -21,6 +21,8 @@
   #:use-module (artanis utils)
   #:use-module (artanis env)
   #:use-module (artanis irregex)
+  #:use-module (artanis fprm)
+  #:use-module (artanis db)
   #:use-module (ice-9 format)
   #:export (create-artanis-migration
             do-migration-create
@@ -58,10 +60,15 @@
                  => (lambda (h) (h)))
                 (else (throw 'artanis-err 500 "Migrate: Invalid cmd!"))))))))))
 
-(define (mg:create-table)
-  #t)
+(define (create-table name . fl)
+  (let ((raw ((@@ (artanis mvc model) parse-raw-fields) fl))
+        (mt (map-table-from-DB (get-conn-from-pool 0))))
+    (format #t "Creating table `~a'............." name)
+    (mt 'create name raw)
+    (display "done.\n")))
 
-(define (mg:change-table)
+;; TODO: how to change multi columns elegantly?
+(define (change-table name . cl)
   #t)
 
 (define (mg:drop-table)
