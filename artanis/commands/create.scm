@@ -139,7 +139,7 @@
     (lib) ; libs
     (pub ((img (upload)) css js)) ; public assets
     (prv) ; private stuff, say, something dedicated config or tokens
-    (tmp (cache)) ; temporary files
+    (tmp (cache (migration))) ; temporary files
     (test (unit functional benchmark)))) ; tests stuffs
 
 ;; Simple recursive depth-first order traverser for generic tree (in list).
