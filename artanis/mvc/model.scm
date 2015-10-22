@@ -240,10 +240,11 @@
              #:use-module (artanis utils)
              #:use-module (artanis db)
              #:use-module (artanis fprm))
+           (try-to-load-migrate-cache name)
            (define-syntax #,(datum->syntax #'name (symbol-append 'define- (syntax->datum #'name)))
              (syntax-rules ::: ()
                ((_ rest rest* :::)
-                (define name
+                (define-public name
                   (let* ((raw (parse-raw-fields (list `rest `rest* :::)))
                          (mt (map-table-from-DB (get-conn-from-pool 0)))
                          (meta (create-model-meta (list `rest `rest* :::))))
