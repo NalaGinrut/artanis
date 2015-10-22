@@ -26,7 +26,16 @@
   #:use-module (ice-9 format)
   #:export (create-artanis-migration
             do-migration-create
-            migration-field-add!))
+            migration-field-add!
+            create-table
+            change-table
+            drop-table
+            add-column
+            change-column
+            rename-column
+            remove-column
+            add-index
+            remove-index))
 
 (define-syntax create-artanis-migration
   (lambda (x)
@@ -37,6 +46,7 @@
            ;; NOTE: we're not going to imort (artanis env) directly to avoid revealing global
            ;;       env vars to users.
            (define-module (db migration name)
+             #:use-module (artanis mvc migration)
              #:use-module (artanis artanis)
              #:use-module (artanis utils)
              #:use-module (artanis db)
@@ -65,31 +75,32 @@
         (mt (map-table-from-DB (get-conn-from-pool 0))))
     (format #t "Creating table `~a'............." name)
     (mt 'create name raw)
+    (flush-to-migration-cache name fl)
     (display "done.\n")))
 
 ;; TODO: how to change multi columns elegantly?
-(define (change-table name . cl)
+(define (change-table name . cl)     
   #t)
 
-(define (mg:drop-table)
+(define (drop-table)
   #t)
 
-(define (mg:add-column)
+(define (add-column)
   #t)
 
-(define (mg:change-column)
+(define (change-column)
   #t)
 
-(define (mg:rename-column)
+(define (rename-column)
   #t)
 
-(define (mg:remove-column)
+(define (remove-column)
   #t)
 
-(define (mg:add-index)
+(define (add-index)
   #t)
 
-(define (mg:remove-index)
+(define (remove-index)
   #t)
 
 (define (gen-migration-header name)
