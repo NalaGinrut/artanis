@@ -100,7 +100,7 @@
   (let ((options (if (null? args) '() (getopt-long args option-spec))))
     (define-syntax-rule (->opt k) (option-ref options k #f))
     (define-syntax-rule (get-conf-file)
-      (or (->opt 'config) "./artanis.conf"))
+      (or (->opt 'config) (gen-local-conf-file)))
     (cond
      ((->opt 'help) (show-help))
      (else
