@@ -68,7 +68,8 @@
             handle-existing-file check-drawing-method current-toplevel
             subbv->string subbv=? bv-read-line bv-read-delimited put-bv
             bv-u8-index bv-u8-index-right build-bv-lookup-table filesize
-            plist-remove gen-migrate-module-name)
+            plist-remove gen-migrate-module-name try-to-load-migrate-cache
+            flush-to-migration-cache gen-local-conf-file)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -935,3 +936,23 @@
     => (lambda (m) (irregex-match-substring m 1)))
    (else (throw 'artanis-err 500
                 "Migrate: wrong parsing of module name, shouldn't be here!" f))))
+
+(define (try-to-load-migrate-cache name)
+  (let ((file (format #f "~a/tmp/cache/migration/~a.scm" (current-toplevel) name)))
+    (cond
+     ((file-exists? file) (load file))
+     (else (format #f "[WARN] No cache for migration of `~a'" name)))))
+
+(define (flush-to-migration-cache name fl)
+  (let ((file (format #f "~a/tmp/cache/migration/~a.scm" (current-toplevel) name)))
+    (when (file-exists? file) (delete-file file))
+    (call-with-output-file file
+      (lambda (port)
+        (format port "(define-~a~%" name)
+        (for-each
+         (lambda (ft) (format port "~2t~a~%" ft))
+         fl)
+        (display "~2t)~%" port)))))
+
+(define (gen-local-conf-file)
+  (format #f "~a/conf/artanis.conf" (current-toplevel)))
