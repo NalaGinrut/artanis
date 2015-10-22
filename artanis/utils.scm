@@ -952,7 +952,7 @@
         (for-each
          (lambda (ft) (format port "~2t~a~%" ft))
          fl)
-        (display "~2t)~%" port)))))
+        (format port "~2t)~%")))))
 
 (define (gen-local-conf-file)
   (format #f "~a/conf/artanis.conf" (current-toplevel)))
