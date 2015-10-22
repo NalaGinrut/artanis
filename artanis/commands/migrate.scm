@@ -21,6 +21,8 @@
   #:use-module (artanis utils)
   #:use-module (artanis commands)
   #:use-module (artanis irregex)
+  #:use-module (artanis config)
+  #:use-module (artanis db)
   #:use-module (ice-9 match)
   #:use-module (ice-9 ftw)
   #:use-module (ice-9 format))
@@ -76,7 +78,7 @@
           (else (throw 'artanis-err 500 "Migration: Unknown error!")))))))
   (let ((f (gen-migrate-file)))
     (when (string? f)
-      (format #t "[Migrating ~a]~%" f)
+      (format #t "[Migrating ~a]~%" (basename f))
       (use-modules (artanis mvc migration)) ; trick to make migrator happy
       (load f)
       (let ((m (resolve-module
@@ -97,6 +99,10 @@
     (("migrate" (or () (? validname?) "help" "--help" "-help" "-h")) (show-help))
     (("migrate" (? valid-operator? op) name . opts)
      (add-to-load-path (current-toplevel))
+     (parameterize ((current-conf-file (gen-local-conf-file)))
+                   (init-config)) ; needs to load config
+     ((@@ (artanis config) init-inner-database-item))
+     (init-DB) ; needs to use DB
      (%migrate (string->symbol op) (string->symbol name) (opts-parser opts)))
     (else (show-help))))
 
