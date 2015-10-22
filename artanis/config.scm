@@ -45,7 +45,8 @@
     ((db socket) #f)
     ((db username) "root")
     ((db passwd) "")
-    ((db engine) #f)
+    ((db name) "artanis")
+    ((db engine) InnoDB)
 
     ;; for server namespace
     ((server info) ,artanis-version)
@@ -55,7 +56,7 @@
     ((server syspage path) "/etc/artanis/pages")
     ((server backlog) 128)
     ((server workers) 1)
-    ((server workqueue maxlen) 64)
+    ((server wqlen) 64) ; work queue maxlen
     ((server trigger) edge)
 
     ;; for host namespace
@@ -115,9 +116,10 @@
     (('port port) (conf-set! '(db port) (->integer port)))
     (('addr addr) (conf-set! '(db addr) addr))
     (('name name) (conf-set! '(db name) name))
-    (('socket sock) (conf-set! '(db sock) sock))
+    (('socket sock) (conf-set! '(db sock) (string->symbol sock)))
     (('username username) (conf-set! '(db username) username))
     (('passwd passwd) (conf-set! '(db passwd) passwd))
+    (('engine engine) (conf-set! '(db engine) engine))
     (else (error parse-namespace-db "Config: Invalid item" item))))
 
 (define (parse-namespace-server item)
@@ -127,10 +129,15 @@
     (('charset charset) (conf-set! '(server charset) charset))
     (`(syspage path ,path) (conf-set! '(server syspage path) path))
     (('workers workers) (conf-set! '(server workers) (->integer workers)))
+    (('backlog backlog) (conf-set! '(server backlog) (->integer backlog)))
+    (('wqlen wqlen) (conf-set! '(server wqlen) (->integer wqlen)))
+    (('trigger trigger) (conf-set! '(server trigger) trigger))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 
 (define (parse-namespace-host item)
   (match item
+    (('name name) (conf-set! '(host name) name))
+    (('family family) (conf-set! '(host family) family))
     (('addr addr) (conf-set! '(host addr) addr))
     (('port port) (conf-set! '(host port) (->integer port)))
     (else (error parse-namespace-host "Config: Invalid item" item))))
@@ -198,7 +205,7 @@
   (define dbd (get-conf '(db dbd)))
   (define port (get-conf '(db port)))
   (define addr (get-conf '(db addr)))
-  (define sock (get-conf '(db sock)))
+  (define sock (and=> (get-conf '(db sock)) (lambda (x) (not (eq? x 'disable)))))
   (define name (get-conf '(db name)))
   (define username (get-conf '(db username)))
   (define passwd (get-conf '(db passwd)))
@@ -207,7 +214,9 @@
    ((or (and port addr sock)
         (and port sock)
         (and addr sock))
-    (error init-inner-database-item "Conf: either addr:port or sock mode!"))
+    (error init-inner-database-item
+           (format #f "Conf: either addr:port or sock mode! port=~a, addr=~a, sock=~a"
+                   port addr sock)))
    ((eq? dbd 'sqlite3) ; sqlite3 needs only dbname
     (conf-set! 'database `(sqlite3 ,username ,passwd ,name)))
    ((and addr port) ; addr:port mode
@@ -240,7 +249,7 @@
   (format #f "http://~a:~a" (get-conf '(host addr)) (get-conf '(host port))))
 
 (define (init-config)
-  (define conf-file (current-conf-file))
+  (define conf-file (current-conf-file)) ; user specified config
   (define fp (open-input-file
               (cond
                ((and conf-file (file-exists? conf-file)) conf-file)
