@@ -136,7 +136,6 @@
 (define (->postgresql-type name . args)
   (case name
     ;; Numeric Types
-    ((serial) (->0 name args)) ; serial 4 bytes autoincrementing integer 1 to 2147483647
     ((bigserial) (->0 name args)) ;  bigserial 8 bytes large autoincrementing integer 1 to 9223372036854775807
     ((int) (->0 name args))
 
@@ -240,6 +239,7 @@
     ((array) (->0 name args)) ; ARRAY A set-length and ordered collection of elements
     ((multiset) (->0 name args)) ; MULTISET A variable-length and unordered collection of elements
     ((xml) (->0 name args)) ; XML Stores XML data
+    ((serial) (->0 name args)) ; serial 4 bytes autoincrementing integer 1 to 2147483647
     (else #f)))
 
 (define-syntax-rule (->symbol x)
@@ -268,17 +268,10 @@
        ((not dump) (DB-query conn sql))
        (else sql)))))
 
-(define (->mysql-opts dbd) #t)
-(define (->postgresql-opts dbd) #t)
-(define (->sqlite3-opts dbd) #t)
-
-(define *table-builder-opts-handler*
-  `((mysql . ,->mysql-opts)
-    (postgresql . ,->postgresql-opts)
-    (sqlite3 . ,->sqlite3-opts)))
-
-(define (get-table-builder-opts-handler)
-  (assoc-ref *table-builder-opts-handler* (get-conf '(db dbd))))
+(define *exception-opts*
+  '(#:no-edit))
+(define (is-exception-opt? x)
+  (memq x *exception-opts*))
 
 (define (->mysql-opts x opts)
   (define-syntax-rule (->value x)
@@ -296,7 +289,21 @@
     ((#:column-format) "COLUMN_FORMAT")
     ((#:storage) (->value x))
     ((#:reference-definition) "reference_definition")
-    (else (throw 'artanis-err 500 "Invalid opts for MySQL table definition!" x))))
+    (else
+     (if (is-exception-opt? x)
+         ""
+         (throw 'artanis-err 500 "Invalid opts for MySQL table definition!" x)))))
+
+(define (->postgresql-opts dbd opts) #t)
+(define (->sqlite3-opts dbd opts) #t)
+
+(define *table-builder-opts-handler*
+  `((mysql . ,->mysql-opts)
+    (postgresql . ,->postgresql-opts)
+    (sqlite3 . ,->sqlite3-opts)))
+
+(define (get-table-builder-opts-handler)
+  (assoc-ref *table-builder-opts-handler* (get-conf '(db dbd))))
 
 ;; NOTE:
 ;; 1. Use primiary-keys for specifying primary keys, don't specify it in defs directly.
@@ -313,13 +320,14 @@
   (define (table-drop! tname)
     (DB-query conn (->sql drop table if exists tname)))
   (define (->opts opts)
-    (string-join
-     (srfi-1:fold-right
-      (lambda (x p)
-        (let ((o ((get-table-builder-opts-handler) x opts)))
-          (cons o p)))
-      '() opts)
-     " "))
+    (let ((h (get-table-builder-opts-handler)))
+      (string-join
+       (srfi-1:fold-right
+        (lambda (x p)
+          (let ((o (h x opts)))
+            (cons o p)))
+        '() opts)
+       " ")))
   (define (->type/opts x)
     (match x
       ((types ... (opts ...)) (values types (->opts opts)))
