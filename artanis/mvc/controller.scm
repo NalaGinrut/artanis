@@ -36,6 +36,7 @@
            ;; NOTE: we're not going to imort (artanis env) directly to avoid revealing global
            ;;       env vars to users.
            (define-module (app controllers name)
+             #:autoload (app models name) (#,(datum->syntax #'name (symbol-append '$ (syntax->datum #'name))))
              #:use-module (artanis artanis)
              #:use-module (artanis utils))
            (define-syntax-rule (view-render method)
