@@ -37,15 +37,16 @@
 (define (get-conf k)
   (hash-ref *conf-hash-table* k))
 
-(define *default-conf-values*
+(define (default-conf-values)
   `(;; for DB namespace
+    ((db enable) true)
     ((db dbd) mysql)
     ((db port) 3306)
     ((db addr) "localhost")
     ((db socket) #f)
     ((db username) "root")
     ((db passwd) "")
-    ((db name) "artanis")
+    ((db name) ,(or (current-appname) "artanis"))
     ((db engine) InnoDB)
 
     ;; for server namespace
@@ -80,7 +81,7 @@
     ((cache maxage) 3600)))
 
 ;; Init all fields with default values
-(for-each (lambda (x) (conf-set! (car x) (cadr x))) *default-conf-values*)
+(for-each (lambda (x) (conf-set! (car x) (cadr x))) (default-conf-values))
 
 (define-syntax-rule (->bool x)
   (case (string->symbol (string-downcase x))
@@ -112,6 +113,7 @@
 
 (define (parse-namespace-db item)
   (match item
+    (('usedb usedb) (conf-set! 'use-db? (->bool usedb))) 
     (('dbd dbd) (conf-set! '(db dbd) (->symbol dbd)))
     (('port port) (conf-set! '(db port) (->integer port)))
     (('addr addr) (conf-set! '(db addr) addr))
@@ -230,13 +232,13 @@
 
 (define (init-database-config dbd user passwd dbname)
   ;; if dbd is not specified, it's mysql in default.
-  (conf-set! '(db dbd) (or dbd 'mysql))
+  (conf-set! '(db dbd) (or dbd (get-conf '(db dbd)) 'mysql))
   ;; if username is not specified, it's root in default.
-  (conf-set! '(db username) (or user "root"))
+  (conf-set! '(db username) (or user (get-conf '(db username))"root"))
   ;; if passwd is not specified, it's null in default.
-  (conf-set! '(db passwd) (or passwd ""))
+  (conf-set! '(db passwd) (or passwd (get-conf '(db passwd)) ""))
   ;; if dbname is not specified. it's artanis in default.
-  (conf-set! '(db name) (or dbname "artanis"))
+  (conf-set! '(db name) (or dbname (get-conf '(db name)) "artanis"))
   ;; start to init database
   (init-inner-database-item))
 
@@ -252,8 +254,12 @@
   (define conf-file (current-conf-file)) ; user specified config
   (define fp (open-input-file
               (cond
-               ((and conf-file (file-exists? conf-file)) conf-file)
-               ((file-exists? *default-conf-file*) *default-conf-file*)
+               ((and conf-file (file-exists? conf-file))
+                (format (artanis-current-output) "Loading conf/artanis.conf...")
+                conf-file)
+               ((file-exists? *default-conf-file*)
+                (format (artanis-current-output) "Loading ~a..." *default-conf-file*)
+                *default-conf-file*)
                (else 
                 (error init-config
                        "Fatal error! Do you have /etc/artanis/artanis.conf?")))))
@@ -265,4 +271,5 @@
            (parse-config-item item)
            (lp (read-line fp))))
      (else (error init-config "Invalid line" line))))
-  (init-inner-config-items))
+  (init-inner-config-items)
+  (display "done.\n" (artanis-current-output)))
