@@ -26,7 +26,9 @@
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
   #:use-module (srfi srfi-1)
-  #:export (do-model-create
+  #:export (create-artanis-model
+            load-app-models
+            do-model-create
             model-field-add!
             field-validator-add!))
 
@@ -206,8 +208,7 @@
        (else (lp (cdr kl) al `(,@(return-default-val cmd meta (caar kl)) ,@ret))))))
   (case cmd
     ((set) (fix-fields-to-set))
-    ((get) args)
-    (else (throw 'artanis-err 500 "fix-fields: Invalid cmd!" cmd))))
+    (else args)))
 
 (define (parse-raw-fields lst)
   (define (->type type opts)
@@ -240,16 +241,16 @@
              #:use-module (artanis utils)
              #:use-module (artanis db)
              #:use-module (artanis fprm))
-           (try-to-load-migrate-cache name)
            (define-syntax #,(datum->syntax #'name (symbol-append 'define- (syntax->datum #'name)))
              (syntax-rules ::: ()
                ((_ rest rest* :::)
-                (define-public name
+                (define-public #,(datum->syntax #'name (symbol-append '$ (syntax->datum #'name)))
                   (let* ((raw (parse-raw-fields (list `rest `rest* :::)))
                          (mt (map-table-from-DB (get-conn-from-pool 0)))
                          (meta (create-model-meta (list `rest `rest* :::))))
                     (lambda (cmd . args)
-                      (apply mt cmd 'name (fix-fields cmd args meta)))))))))))))
+                      (apply mt cmd 'name (fix-fields cmd args meta))))))))
+           (try-to-load-migrate-cache 'name))))))
 
 (define (gen-model-header name)
   (call-with-output-string
@@ -274,6 +275,17 @@
 ;;       timestamp
 (define (parse-field-str str)
   `(,@(map string-trim-both (string-split str #\:)) (#:not-null)))
+
+(define-syntax-rule (scan-models) (scan-app-components 'models))
+
+(define (load-app-models)
+  (define toplevel (current-toplevel))
+  (display "Loading models...\n" (artanis-current-output))
+  (use-modules (artanis mvc model)) ; black magic to make Guile happy
+  (let ((cs (scan-models)))
+    (for-each (lambda (s)
+                (load (format #f "~a/app/models/~a.scm" toplevel s)))
+              cs)))
 
 ;; NOTE: id will be generated automatically, as primary-key.
 ;;       You may remove it to add your own primary-key.
