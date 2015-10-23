@@ -108,7 +108,7 @@
                         (format port "~{~a~^.~} = ~a~%" ns (->proper val)))
                        (else (error create-local-config "BUG: Invalid conf value!" c))))
                    ctb))))
-    (let* ((ctb (@@ (artanis config) *default-conf-values*))
+    (let* ((ctb ((@@ (artanis config) default-conf-values)))
            (cstr (->cstr ctb))
            (fp (open-file (-> "artanis.conf") "w")))
       (display conf-header fp)
@@ -218,8 +218,8 @@
     (mkdir name)
     (chdir name)
     (working-for-toplevel)
-    (create-framework)
     (create-entry name)
+    (create-framework)
     (format #t "OK~%"))))
 
 (define (create . args)
