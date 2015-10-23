@@ -58,14 +58,14 @@
             plist->alist make-db-string-template non-list?
             keyword->string range oah->handler oah->opts string->keyword
             alist->klist alist->kblist is-hash-table-empty?
-            symbol-downcase symbol-upcase normalize-column
+            symbol-downcase symbol-upcase normalize-column run-before-run!
             sxml->xml-string run-after-request! run-before-response!
             make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
             generate-kv-from-post-qstr handle-proper-owner
-            generate-data-url find-ENTRY-path verify-ENTRY current-appname
+            generate-data-url verify-ENTRY
             draw-expander remove-ext scan-app-components cache-this-route!
             dump-route-from-cache generate-modify-time delete-directory
-            handle-existing-file check-drawing-method current-toplevel
+            handle-existing-file check-drawing-method
             subbv->string subbv=? bv-read-line bv-read-delimited put-bv
             bv-u8-index bv-u8-index-right build-bv-lookup-table filesize
             plist-remove gen-migrate-module-name try-to-load-migrate-cache
@@ -602,6 +602,9 @@
 (define (run-before-response! proc)
   (add-hook! *before-response-hook* proc))
 
+(define (run-before-run! proc)
+  (add-hook! *before-run-hook* proc))
+
 ;; NOTE: For `pipeline' methodology, please read my post:
 ;; http://nalaginrut.com/archives/2014/04/25/oba-pipeline-style%21
 (define (make-pipeline . procs)
@@ -704,24 +707,6 @@
   (let ((b64 (base64-encode bv/str)))
     (string-concatenate (list "data:" (->mime) (->crypto) (->charset) "," b64))))
 
-(define* (find-ENTRY-path proc #:optional (check-only? #f))
-  (define (-> p)
-    (let ((ff (string-append p "/" *artanis-entry*)))
-      (and (file-exists? ff) p)))
-  (define (last-path pwd)
-    (and=> (string-match "(.*)/.*$" pwd) (lambda (m) (match:substring m 1))))
-  ;; FIXME: Maybe we should generate relative path?
-  (let lp((pwd (getcwd)))
-    (cond
-     ((not (string? pwd)) (error find-ENTRY-path "BUG: please report it!" pwd))
-     ((string-null? pwd)
-      (if check-only?
-          #f
-          (error find-ENTRY-path
-                 "No ENTRY! Are you in a legal Artanis app dir? Or maybe you need to create a new app?")))
-     ((-> pwd) => proc)
-     (else (lp (last-path pwd))))))
-
 (define (verify-ENTRY entry)
   (cond
    ((not (file-exists? entry)) #f)
@@ -729,8 +714,6 @@
     (let* ((line (call-with-input-file entry read-line))
            (m (string-match "Artanis top-level: (.*)" line)))
       (and m (string=? (match:substring m 1) (dirname entry)))))))
-
-(define (current-appname) (basename (current-toplevel)))
 
 (define-syntax draw-expander
   (syntax-rules (rule options method)
@@ -845,10 +828,6 @@
             lst)
   lst)
 
-(define (current-toplevel)
-  (or (%current-toplevel)
-      (find-ENTRY-path identity #t)))
-
 (define (subbv->string bv encoding start end)
   (call-with-output-string
    (lambda (port)
@@ -941,7 +920,11 @@
   (let ((file (format #f "~a/tmp/cache/migration/~a.scm" (current-toplevel) name)))
     (cond
      ((file-exists? file) (load file))
-     (else (format #f "[WARN] No cache for migration of `~a'" name)))))
+     (else
+      (format (artanis-current-output)
+              "[WARN] No cache for migration of `~a'~%" name)
+      (format (artanis-current-output)
+              "Run `art migrate up ~a', then try again!~%" name)))))
 
 (define (flush-to-migration-cache name fl)
   (let ((file (format #f "~a/tmp/cache/migration/~a.scm" (current-toplevel) name)))

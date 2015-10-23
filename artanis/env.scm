@@ -24,21 +24,27 @@
 
 (define-module (artanis env)
   #:use-module (artanis version)
+  #:use-module (ice-9 regex)
   #:re-export (artanis-version)
   #:export (*handlers-table*
             *conf-hash-table*
             *conn-pool*
             *before-response-hook*
             *after-request-hook*
+            *before-run-hook*
             *sql-mapping-lookup-table*
             *artanis-entry*
             %current-toplevel
+            current-toplevel
+            find-ENTRY-path
             draw:is-dry-run?
             draw:is-force?
             draw:is-skip?
             draw:is-quiet?
             artanis-current-output
-            *controllers-table*))
+            *controllers-table*
+            current-dbconn
+            current-appname))
 
 ;; WARNING: For concurrency in green-thread, all these stuffs should be immutable
 ;;          IN THE RUN TIME!!!
@@ -59,6 +65,7 @@
 
 (define *before-response-hook* (make-hook 2))
 (define *after-request-hook* (make-hook 2))
+(define *before-run-hook* (make-hook))
 
 ;; TODO: I don't have much time for it but it should be RB-Tree in the future
 (define *sql-mapping-lookup-table* (make-hash-table))
@@ -66,6 +73,26 @@
 (define *artanis-entry* "ENTRY")
 
 (define %current-toplevel (make-parameter #f))
+(define* (find-ENTRY-path proc #:optional (check-only? #f))
+  (define (-> p)
+    (let ((ff (string-append p "/" *artanis-entry*)))
+      (and (file-exists? ff) p)))
+  (define (last-path pwd)
+    (and=> (string-match "(.*)/.*$" pwd) (lambda (m) (match:substring m 1))))
+  ;; FIXME: Maybe we should generate relative path?
+  (let lp((pwd (getcwd)))
+    (cond
+     ((not (string? pwd)) (error find-ENTRY-path "BUG: please report it!" pwd))
+     ((string-null? pwd)
+      (if check-only?
+          #f
+          (error find-ENTRY-path
+                 "No ENTRY! Are you in a legal Artanis app dir? Or maybe you need to create a new app?")))
+     ((-> pwd) => proc)
+     (else (lp (last-path pwd))))))
+(define (current-toplevel)
+  (or (%current-toplevel)
+      (find-ENTRY-path identity #t)))
 
 ;; parameters for command
 (define draw:is-dry-run? (make-parameter #f))
@@ -79,3 +106,7 @@
       (current-output-port)))
 
 (define *controllers-table* (make-hash-table))
+
+(define current-dbconn (make-parameter #f))
+
+(define (current-appname) (and=> (current-toplevel) basename))
