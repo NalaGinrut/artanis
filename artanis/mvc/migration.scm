@@ -73,17 +73,24 @@
 (define (create-table name . fl)
   (let ((raw ((@@ (artanis mvc model) parse-raw-fields) fl))
         (mt (map-table-from-DB (get-conn-from-pool 0))))
-    (format #t "Creating table `~a'............." name)
-    (mt 'create name raw)
+    (format #t "Creating table `~a'......" name)
+    (mt 'try-create name raw)
+    (format (artanis-current-output) "Regenerating migration cache......")
     (flush-to-migration-cache name fl)
     (display "done.\n")))
 
 ;; TODO: how to change multi columns elegantly?
-(define (change-table name . cl)     
-  #t)
+(define (change-table name . cl)
+  (let ((mt (map-table-from-DB (get-conn-from-pool 0))))
+    (format #t "Changing table `~a'......" name)
+    ;; TODO
+    (display "done.\n")))
 
-(define (drop-table)
-  #t)
+(define (drop-table name)
+  (let ((mt (map-table-from-DB (get-conn-from-pool 0))))
+    (format #t "Dropping table `~a'.........." name)
+    (mt 'drop name)
+    (display "done.\n")))
 
 (define (add-column)
   #t)
