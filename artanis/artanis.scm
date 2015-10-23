@@ -255,20 +255,20 @@
      (else (throw 'artanis-err 500 "->proper-body-display: Invalid body type!" body))))
   (when (check-if-not-run-init-server)
     (error "Sorry, but you have to run (init-server) in the begining of you main program!"))
-  (format #t "Anytime you want to Quit just try Ctrl+C, thanks!~%")
-  ;; Since config file was handled in (init-server), users' config can override it.
   (and host (conf-set! '(host addr) host))
   (and port (conf-set! '(host port) port))
   (when debug
     (display "DEBUG: ON\n")
     (conf-set! 'debug-mode #t))
-  (when use-db?
+  (when (or use-db? (get-conf 'use-db?))
     (conf-set! 'use-db? #t)
-    (display "Users want to use Database, initializing...\n")
+    (display "User wants to use Database, initializing...\n")
     (init-database-config dbd db-username db-passwd db-name)
     (init-DB)
     (display "DB init done!\n"))
+  (run-hook *before-run-hook*)
   (format #t "~a~%" (current-myhost))
+  (format #t "Anytime you want to Quit just try Ctrl+C, thanks!~%")
   (run-server
    (if debug
        (lambda (r b)
