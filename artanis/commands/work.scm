@@ -24,6 +24,7 @@
   #:use-module (artanis artanis)
   #:use-module (artanis config)
   #:use-module (artanis mvc controller)
+  #:use-module (artanis mvc model)
   #:use-module (ice-9 getopt-long)
   #:use-module (ice-9 regex)
   #:use-module (ice-9 format)
@@ -54,7 +55,7 @@
     (load entry)))
 
 (define (try-load-app)
-  ;;(load-app-models)
+  (load-app-models)
   (load-app-controllers)
   ;;(load-app-views)
   ;;(load-app-apis)
@@ -96,6 +97,13 @@
   (clean-it route-cache)
   (clean-it route))
 
+(define (init-work)
+  (clean-stuffs)
+  (add-to-load-path (current-toplevel))
+  (try-load-app)
+  (register-rules)
+  (load-rules))
+
 (define (work . args)
   (let ((options (if (null? args) '() (getopt-long args option-spec))))
     (define-syntax-rule (->opt k) (option-ref options k #f))
@@ -104,13 +112,9 @@
     (cond
      ((->opt 'help) (show-help))
      (else
-      (clean-stuffs)
-      (add-to-load-path (current-toplevel))
-      (try-load-entry)
-      (try-load-app)
-      (register-rules)
-      (load-rules)
       (parameterize ((current-conf-file (get-conf-file)))
+        (try-load-entry)
+        (run-before-run! init-work)
         (run #:host (->opt 'host)
              #:port (and=> (->opt 'port) string->number)
              #:debug (->opt 'debug)
