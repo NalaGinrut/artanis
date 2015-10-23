@@ -19,6 +19,7 @@
 
 (define-module (artanis commands migrate)
   #:use-module (artanis utils)
+  #:use-module (artanis env)
   #:use-module (artanis commands)
   #:use-module (artanis irregex)
   #:use-module (artanis config)
