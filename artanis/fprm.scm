@@ -295,8 +295,12 @@
          ""
          (throw 'artanis-err 500 "Invalid opts for MySQL table definition!" x)))))
 
-(define (->postgresql-opts dbd opts) #t)
-(define (->sqlite3-opts dbd opts) #t)
+(define (->postgresql-opts dbd opts)
+  (format #t "PostgreSQL migration hasn't been supported yet!~%")
+  #t)
+(define (->sqlite3-opts dbd opts)
+  (format #t "SQLite3 migration hasn't been supported yet!~%")
+  #t)
 
 (define *table-builder-opts-handler*
   `((mysql . ,->mysql-opts)
@@ -309,7 +313,7 @@
 ;; NOTE:
 ;; 1. Use primiary-keys for specifying primary keys, don't specify it in defs directly.
 ;;    Because we're not going to support foreign keys, so we need to record keys in closures for sync.
-;; 2. But, in FPRM, it'd be STATELESS, so closures shouldn't be stated.
+;; 2. But, in FPRM, any state should be IMMUTABLE.
 ;; 3. SOLUTION: use a access-hook for specified table mapping, but there'd be a fine way to avoid
 ;;              write sql directly each time.
 (define* (make-table-builder rc/conn)
@@ -487,7 +491,8 @@
           (conn (cond
                  ((route-context? rc/conn) (rc-conn rc/conn))
                  ((<connection>? rc/conn) rc/conn)
-                 (else (throw 'artanis-err 500 "make-table-getter: Invalid rc or conn!" rc/conn)))))
+                 (else (throw 'artanis-err 500
+                              "make-table-getter: Invalid rc or conn!" rc/conn)))))
       (cond
        ((not dump)
         (DB-query conn sql)
@@ -500,20 +505,45 @@
   (define (table-drop tname col)
     (->sql alter table tname drop column col))
   (define (table-alter tname col t)
-    (->sql alter table tname modify column col t))
+    (case (get-conf '(db dbd))
+      ((mysql) (->sql alter table tname modify column col t))
+      ((postgresql) (->sql alter table tname alter column col t))
+      ((sqlite3) (throw 'artanis-err 500 "SQLite3 doesn't support table modification!"))
+      (else (throw 'artanis-err 500 "table-alter: Unsupported DBD!" (get-conf '(db dbd))))))
+  (define (table-rename tname newn)
+    (case (get-conf '(db dbd))
+      ((mysql) (->sql alter table tname rename new))
+      ((postgresql sqlite3) (->sql alter table tname rename to new))
+      (else (throw 'artanis-err 500 "table-alter: Unsupported DBD!" (get-conf '(db dbd))))))
+  (define (column-rename tname old new . type)
+    (case (get-conf '(db dbd))
+      ((mysql) (->sql alter tname change column old new (car type)))
+      ((postgresql) (->sql alter table tname rename column old new))
+      ((sqlite3) (throw 'artanis-err 500 "SQLite3 doesn't support table column modification!"))
+      (else (throw 'artanis-err 500 "table-alter: Unsupported DBD!" (get-conf '(db dbd))))))
+  (define (index-rename tname old new)
+    (case (get-conf '(db dbd))
+      ((mysql) (->sql alter table tname index old rename to new))
+      ((postgresql) (->sql alter table tname index old rename to new))
+      ((sqlite3) (throw 'artanis-err 500 "SQLite3 doesn't support table column modification!"))
+      (else (throw 'artanis-err 500 "table-alter: Unsupported DBD!" (get-conf '(db dbd))))))
   (define (gen-sql tname op args)
     (case op
       ((add) (apply table-add tname args))
       ((drop) (apply table-drop tname args))
       ((alter) (apply table-alter tname args))
+      ((rename) (apply column-rename tname args))
+      ((index-rename) (apply index-rename args))
       (else (throw 'artanis-err 500 "make-table-modifier: Invalid op!" op))))
   (lambda (tname op . args)
     (let ((sql (gen-sql tname op args))
           (conn (cond 
                  ((route-context? rc/conn) (rc-conn rc/conn))
                  ((<connection>? rc/conn) rc/conn)
-                 (else (throw 'artanis-err 500 "make-table-modifier: Invalid rc or conn!" rc/conn)))))
+                 (else (throw 'artanis-err 500
+                              "make-table-modifier: Invalid rc or conn!" rc/conn)))))
       (DB-query conn sql))))
+
 ;; NOTE: the name of columns is charactar-caseless, at least in MySQL/MariaDB.
 (define (map-table-from-DB rc/conn)
   (define conn
@@ -525,7 +555,7 @@
   (define setter (make-table-setter conn))
   (define builder (make-table-builder conn))
   (define dropper (make-table-dropper conn))
-  (define modfier (make-table-modifier conn))
+  (define modifier (make-table-modifier conn))
   ;; NOTE:
   ;; It maybe inefficient to fetch table-schema without any cache, because the request session may generate
   ;; table-schema each time. Although we may build a cache or delayed mechanism here, there's one reason
@@ -571,6 +601,7 @@
       ((ci-check ci-exists?) (apply checker #t tname args))
       ;; schema is always in downcase.
       ((schema) (get-table-schema tname))
+      ((mod) (->call modifier))
       (else (throw 'artanis-err 500 "map-table-from-DB: Invalid cmd" cmd)))))
 
 (define* (fprm-find mt tname val #:key (id 'id))
