@@ -208,22 +208,57 @@
 
 (define-syntax sql-alter
   (syntax-rules (table rename to add modify drop column as select
-                 primary key)
+                 primary key change index)
     ((_ table old-name rename to new-name)
      (-> "table ~a rename to ~a" old-name new-name))
     ((_ table name add cname ctype) 
      ;; e.g: (->sql alter table 'mmr add 'cname 'varchar(50))
      (-> "table ~a add ~a ~a" name cname ctype))
-    ((_ table name mofify column cname ctype)
-     (-> "table ~a modify ~a ~a" name cname ctype))
+    ((_ table name modify column cname ctype)
+     (with-dbd
+      'postgresql
+      (-> "table ~a modify column ~a ~a" name cname ctype)))
+    ((_ table name alter column cname ctype)
+     (with-dbd
+      'mysql
+      (-> "table ~a alter column ~a ~a" name cname ctype)))
+    ((_ table name modify (cl ...))
+     (with-dbd
+      'mysql
+      (-> "table ~a modify column (~{~a~^,~})"
+          name (map (lambda (c) (format #f "~{~a~^ ~}" c)) cl))))
     ((_ table name drop column cname)
      (-> "table ~a drop column ~a" name cname))
     ((_ table name add primary key keys)
      (-> "table ~a add primary key (~{~a~^,~})" name keys))
     ((_ table name drop primary key)
      (-> "table ~a drop primary key" name))
-    ((_ table name rename column old-name to new-name)
-     (-> "table ~a rename column ~a to ~a" name old-name new-name))))
+    ((_ table name change column old new type)
+     (with-dbd
+      'mysql
+      (-> "table ~a change column ~a ~a ~a" name old new type)))
+    ((_ table name rename column old new)
+     (with-dbd
+      'postgresql
+      (-> "table ~a rename column ~a to ~a" name old new)))
+    ((_ table old-name rename new-name)
+     (with-dbd
+      'mysql
+      (-> "table ~a rename ~a" old-name new-name)))
+    ((_ table old-name rename to new-name)
+     (with-dbd
+      '(postgresql sqlite3)
+      (-> "table ~a rename to ~a" old-name new-name)))
+    ((_ table rename old-name to new-name)
+     (-> "table rename ~a to ~a" old-name new-name))
+    ((_ table tname index old rename to new)
+     (with-dbd
+      'postgresql
+      (-> "table tname index ~a rename to ~a" tname old new)))
+    ((_ table tname rename index old to new)
+     (with-dbd
+      'mysql
+      (-> "table ~a rename index ~a to ~a" tname old new)))))
 
 (define-syntax sql-drop
   (syntax-rules (table if exists not)
