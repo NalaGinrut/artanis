@@ -226,7 +226,7 @@
      (with-dbd
       'mysql
       (-> "table ~a modify column (~{~a~^,~})"
-          name (map (lambda (c) (format #f "~{~a~^ ~}" c)) cl))))
+          name (map (lambda (c) (format #f "~{~a~^ ~}" c)) cl ...))))
     ((_ table name drop column cname)
      (-> "table ~a drop column ~a" name cname))
     ((_ table name add primary key keys)
