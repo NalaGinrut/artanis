@@ -69,7 +69,7 @@
             subbv->string subbv=? bv-read-line bv-read-delimited put-bv
             bv-u8-index bv-u8-index-right build-bv-lookup-table filesize
             plist-remove gen-migrate-module-name try-to-load-migrate-cache
-            flush-to-migration-cache gen-local-conf-file)
+            flush-to-migration-cache gen-local-conf-file with-dbd)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -939,3 +939,13 @@
 
 (define (gen-local-conf-file)
   (format #f "~a/conf/artanis.conf" (current-toplevel)))
+
+(define-syntax-rule (with-dbd dbd0 body ...)
+  (let ((dbd1 (get-conf '(db dbd))))
+    (cond
+     ((or (and (list? dbd0) (memq dbd1 dbd0)) (eq? dbd1 dbd0)) body ...)
+     (else
+      (throw 'artanis-err 500
+             (format #f "This is only supported by `~a', but the current dbd is `~a'"
+                     dbd0 dbd1)
+             'body ...)))))
