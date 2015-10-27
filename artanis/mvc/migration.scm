@@ -63,6 +63,10 @@
              (syntax-rules ::: ()
                ((_ body :::)
                 (migrate-add! 'down (lambda () body :::)))))
+           (define-syntax migrate-change
+             (syntax-rules ::: ()
+               ((_ body :::)
+                (migrate-add! 'change (lambda () body :::)))))
            (define-public migrator
              (lambda (cmd . args)
                (cond
@@ -77,29 +81,46 @@
     (mt 'try-create name raw)
     (format (artanis-current-output) "Regenerating migration cache......")
     (flush-to-migration-cache name fl)
-    (display "done.\n")))
+    (display "DONE.\n")))
 
-;; TODO: how to change multi columns elegantly?
-(define (change-table name . cl)
+(define (change-table name cl)
   (let ((mt (map-table-from-DB (get-conn-from-pool 0))))
     (format #t "Changing table `~a'......" name)
-    ;; TODO
-    (display "done.\n")))
+    (mt 'mod 'alter name cl)
+    (display "DONE.\n")))
 
 (define (drop-table name)
   (let ((mt (map-table-from-DB (get-conn-from-pool 0))))
     (format #t "Dropping table `~a'.........." name)
     (mt 'drop name)
-    (display "done.\n")))
+    (display "DONE.\n")))
 
-(define (add-column)
-  #t)
+(define (rename-table old new)
+  (let ((mt (map-table-from-DB (get-conn-from-pool 0))))
+    (format #t "Renaming table `~a' to `~a'.........." old new)
+    (mt 'mod 'rename old new)
+    (display "DONE.\n")))
+  
+(define (add-column tname . cl)
+  (let ((mt (map-table-from-DB (get-conn-from-pool 0))))
+    (format #t "Adding columns `(~{~a~^,~})' to table `~a'.........." 
+            (map car cl) tname)
+    (apply mt 'mod 'add tname cl)
+    (display "DONE.\n")))
 
-(define (change-column)
-  #t)
+(define (change-column tname col type)
+  (let ((mt (map-table-from-DB (get-conn-from-pool 0))))
+    (format #t "Changing column `~a' of table `~a'.........."
+            (list col type) tname)
+    (mt 'mod 'alter tname col type)
+    (display "DONE.\n")))
 
-(define (rename-column)
-  #t)
+(define (rename-column tname oldcol newcol . type)
+  (let ((mt (map-table-from-DB (get-conn-from-pool 0))))
+    (format #t "Renaming column `~a' to `~a' from `~a'.........."
+            oldcol newcol tname)
+    (apply mt 'mod 'alter tname oldcol newcol type)
+    (display "DONE.\n")))
 
 (define (remove-column)
   #t)
