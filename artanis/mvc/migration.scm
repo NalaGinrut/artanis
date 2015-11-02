@@ -122,13 +122,19 @@
     (apply mt 'mod 'alter tname oldcol newcol type)
     (display "DONE.\n")))
 
-(define (remove-column)
-  #t)
+(define (remove-column tname cname)
+  (let ((mt (map-table-from-DB (get-conn-from-pool 0))))
+    (format #t "Removing column `~a' in table `~a'.........."
+            cname tname)
+    (apply mt 'mod 'column-drop tname cname)
+    (display "DONE.\n")))
 
 (define (add-index)
+  ;; TODO
   #t)
 
 (define (remove-index)
+  ;; TODO
   #t)
 
 (define (gen-migration-header name)
