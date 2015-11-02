@@ -24,10 +24,11 @@
   #:use-module (ice-9 ftw)
   #:use-module (ice-9 format))
 
+
 ;; NOTE: put your command in the head of %load-path as possible
 (define (get-all-commands)
   (map remove-ext
-       (scandir (string-append (%site-dir) "/artanis/commands") 
+       (scandir (dirname (current-filename))
                 (lambda (f) 
                   (not (or (string=? f ".") 
                            (string=? f "..")))))))
