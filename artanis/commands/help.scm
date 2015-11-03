@@ -24,8 +24,6 @@
   #:use-module (ice-9 ftw)
   #:use-module (ice-9 format))
 
-
-;; NOTE: put your command in the head of %load-path as possible
 (define (get-all-commands)
   (map remove-ext
        (scandir (dirname (current-filename))
