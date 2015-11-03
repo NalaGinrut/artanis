@@ -86,7 +86,7 @@
 (define-syntax-rule (->bool x)
   (case (string->symbol (string-downcase x))
     ((true on yes enable) #t)
-    ((fasle off no disable) #f)
+    ((false off no disable) #f)
     (else (error "Invalid boolean item!" x))))
 
 (define-syntax-rule (->list x)
@@ -113,7 +113,7 @@
 
 (define (parse-namespace-db item)
   (match item
-    (('usedb usedb) (conf-set! 'use-db? (->bool usedb))) 
+    (('enable usedb) (conf-set! 'use-db? (->bool usedb))) 
     (('dbd dbd) (conf-set! '(db dbd) (->symbol dbd)))
     (('port port) (conf-set! '(db port) (->integer port)))
     (('addr addr) (conf-set! '(db addr) addr))
