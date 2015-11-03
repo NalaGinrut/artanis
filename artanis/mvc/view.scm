@@ -20,8 +20,10 @@
 (define-module (artanis mvc view)
   #:use-module (artanis utils)
   #:use-module (artanis env)
+  #:use-module (artanis artanis)
   #:use-module (ice-9 format)
-  #:export (do-view-create))
+  #:export (do-view-create
+            load-app-views))
 
 (define (generate-view-header vname mname)
   (call-with-output-string
@@ -54,3 +56,14 @@
   (for-each generate-view
             (map (lambda (m) (format #f "app/views/~a/~a.html.tpl" path m))
                  (check-drawing-method methods))))
+
+;; NOTE: files put in "pub" directory will be public for any visitor!
+(define (load-app-views)
+  (get "/pub/:type/:static"
+   (lambda (rc)
+     (emit-response-with-file
+      (format #f "pub/~a/~a" (params rc "type") (params rc "static")))))
+  (get "/pub/:static"
+   (lambda (rc)
+     (emit-response-with-file
+      (format #f "pub/~a" (params rc "static"))))))
