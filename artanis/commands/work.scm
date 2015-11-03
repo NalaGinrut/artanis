@@ -25,6 +25,7 @@
   #:use-module (artanis config)
   #:use-module (artanis mvc controller)
   #:use-module (artanis mvc model)
+  #:use-module (artanis mvc view)
   #:use-module (ice-9 getopt-long)
   #:use-module (ice-9 regex)
   #:use-module (ice-9 format)
@@ -57,7 +58,7 @@
 (define (try-load-app)
   (load-app-models)
   (load-app-controllers)
-  ;;(load-app-views)
+  (load-app-views)
   ;;(load-app-apis)
   )
 
@@ -131,7 +132,7 @@ Usage:
 
 Options:
   -c, [--config=CONFIG]          # Specify config file
-                                   Default: ./artanis.conf
+                                   Default: conf/artanis.conf
                                             if no, /etc/artanis/artanis.conf
   -h, [--host=HOST]              # Specify the network host
                                    Default: 0.0.0.0
