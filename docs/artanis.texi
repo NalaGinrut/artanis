@@ -231,7 +231,7 @@ sudo zypper install guile guile-devel
 RedHat/Fedora
 @end itemize
 @example
-sudo yum install guile guile-devel
+sudo dnf install guile guile-devel
 @end example
 
 @itemize
