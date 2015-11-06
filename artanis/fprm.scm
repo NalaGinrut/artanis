@@ -52,6 +52,8 @@
   (format #f "~a ~{~a~^ ~}" n m))
 (define (->1 n m)
   (format #f "~a(~a) ~{~a~^ ~}" n (car m) (cdr m)))
+(define (->0/1 n m)
+  (if (pair? m) (->1 n m) (->0 n m)))
 (define (->2 n m)
   (format #f "~a(~a,~a) ~{~a~^ ~}" n (car m) (cadr m) (cddr m)))
 (define (->n n m)
@@ -83,10 +85,10 @@
 
     ;; TINYINT(size) -128 to 127 normal. 0 to 255 UNSIGNED*.
     ;; The maximum number of digits may be specified in parenthesis
-    ((tinyint) (->1 name args))
+    ((tinyint) (->0/1 name args))
     ;; SMALLINT(size) -32768 to 32767 normal. 0 to 65535 UNSIGNED*.
     ;; The maximum number of digits may be specified in parenthesis
-    ((smallint) (->1 name args))
+    ((smallint) (->0/1 name args))
     ;; MEDIUMINT(size) -8388608 to 8388607 normal. 0 to 16777215 UNSIGNED*.
     ;; The maximum number of digits may be specified in parenthesis
     ((mediumint) (->1 name args))
@@ -335,8 +337,8 @@
        " ")))
   (define (->type/opts x)
     (match x
-      ((types ... (opts ...)) (values types (->opts opts)))
-      ((types ...) (values types '()))
+      ((types ... (opts ...)) (values types (if (null? opts) "" (->opts opts))))
+      ((types ...) (values types ""))
       (else (throw 'artanis-err 500 "->type/opts: invalid definition of the table!" x))))
   (define (->types x)
     (call-with-values
