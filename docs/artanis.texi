@@ -27,10 +27,13 @@
 * Hello World::
 * Basic in Scheme::
 * Basic in GNU Artanis::
+* The Art command line::
+* MVC::
 * URL remapping::
 * Layouts and Rendering in GNU Artanis::
 * Database::
 * MIME::
+* Upload files::
 * Sessions::
 * Cookies::
 * Authentication::
@@ -77,6 +80,18 @@ Basic in GNU Artanis
 * Running server::
 * Working with Nginx::
 
+The Art command line
+
+* art create::
+* art draw::
+* art migrate::
+* art work::
+
+MVC
+
+* Controllers/Views::
+* Models::
+
 URL remapping
 
 * Introduction to URL remapping::
@@ -95,9 +110,11 @@ Layouts and Rendering in GNU Artanis
 
 Database
 
+* Migration::
 * ORM problem::
 * SSQL (experimental)::
 * FPRM (experimental)::
+* SQL Mapping (experimental)::
 
 FPRM (experimental)
 
@@ -109,13 +126,17 @@ FPRM (experimental)
 * Drop a table::
 * Check existance of table::
 * Get schema of a table::
-* SQL Mapping (experimental)::
 MIME
 
 * JSON::
 * CSV::
 * XML::
 * SXML::
+
+Upload files
+
+* Receive upload from client::
+* Send upload to Server::
 
 Authentication
 
@@ -231,7 +252,7 @@ sudo zypper install guile guile-devel
 RedHat/Fedora
 @end itemize
 @example
-sudo yum install guile guile-devel
+sudo dnf install guile guile-devel
 @end example
 
 @itemize
@@ -251,7 +272,7 @@ I would NOT recommend you trying to compile/install Guile from Git repo, since i
 
 @itemize
 @item
-guile-dbi-2.1.5 @strong{[Required]}
+guile-dbi-2.1.5 @strong{[Optional]}
 @end itemize
 @example
 wget -c http://download.gna.org/guile-dbi/guile-dbi-2.1.5.tar.gz
@@ -270,12 +291,10 @@ tar xvzf guile-dbd-mysql-2.1.4.tar.gz
 cd guile-dbd-mysql-2.1.4 && ./configure && make
 sudo make install
 @end example
-You may find other dbd @uref{http://download.gna.org/guile-dbi,here}. And the installation is similar.
+You may find other dbd @indicateurl{ttp://download.gna.org/guile-dbi}. And the installation is similar.
 
-@itemize
-@item
-The latest GNU Artanis:
-@end itemize
+@strong{Install the latest GNU Artanis:}
+
 @example
 wget -c http://alpha.gnu.org/gnu/artanis/artanis-latest.tar.bz2
 tar xvjf artanis-latest.tar.bz2
@@ -302,13 +321,9 @@ git clone git@@github.com:NalaGinrut/artanis.git
 @node Configuration
 @section Configuration
 
-Before the first time to run, GNU Artanis needs a config file. The default path is @verb{~/etc/artanis/artanis.conf~}.
+Before the first time to run, GNU Artanis needs a config file whose name is @verb{~/etc/artanis/artanis.conf~}.
 
-There's a config skeleton named default.conf, you may copy it to @verb{~/etc/artanis/artanis.conf~}.
-
-@example
-sudo cp /etc/artanis/default.conf /etc/artanis/artanis.conf
-@end example
+The config items are listed below:
 
 (To be continued @dots{}) 
 
@@ -575,7 +590,7 @@ Still, please don't spend too much time on them, the purose is to let newbies ge
 @node For Rubyist
 @section For Rubyist
 
-Here's a geat article for Rubyist to learn Scheme:
+Here's a great article for Rubyist to learn Scheme:
 @enumerate
 @item
 @uref{http://wiki.call-cc.org/chicken-for-ruby-programmers,Scheme for ruby programmers}
@@ -633,7 +648,7 @@ It's better to use (init-server) to init GNU Artanis.
 @example
 (init-server #:statics '(png jpg jpeg ico html js css) #:cache-statics? #f #:exclude '())
 @end example
-@verb{~#:statics~} specifies the static files with the extension file. GNU Artanis is based on URL remapping, so this keyword avoids you to handle each static file types. In default, it coveres the most static file types. So you may ignore it usually.
+@verb{~#:statics~} specifies the static files with the extension file. GNU Artanis is based on URL remapping, so this keyword let you avoid to handle each static file types. In default, it coveres the most static file types. So you may ignore it usually.
 
 @verb{~#:cache-statics?~} indicates if the static files should be cached.
 
@@ -723,6 +738,173 @@ And run GNU Artanis:
 (run #:port 1234)
 @end example
 
+@node The Art command line
+@chapter The Art command line
+
+GNU Artanis provides @strong{art} command line tool to save users' time.
+@menu
+* art create::
+* art draw::
+* art migrate::
+* art work::
+@end menu
+
+@node art create
+@section art create
+
+If you want to set up your site/app within an application folder, and take
+advatage of MVC, you have to use this command to create the application
+folder first.
+
+@example
+art create proj_path
+@end example
+
+@node art draw
+@section art draw
+
+This command will generate the specified component:
+@example
+Usage:
+  art draw <component> NAME [options]
+
+component list:
+  model
+  controller
+  migration
+
+Options:
+  -h, [--help]     # Print this screen
+  -d, [--dry]      # Dry run but do not make any changes
+  -f, [--force]    # Overwrite files that already exist
+  -s, [--skip]     # Skip files that already exist
+                   # If -s and -f are both provided, -f will be enabled
+  -q, [--quiet]    # Suppress status output                   
+
+Example:
+  art draw model myblog
+@end example
+
+Please see @ref{MVC,MVC} to learn more about how to use these components.
+
+@node art migrate
+@section art migrate
+
+Migrate is used for Database migration.
+@example
+Usage:
+  art migrate operator name [OPTIONS]
+
+Operators:
+  up
+  down
+
+OPTIONS:
+  VERSION=version
+@end example
+Please see @ref{Migration,Migration} for more detail.
+
+@node art work
+@section art work
+
+This command is used to start the server to run your site in the application folder:
+@example
+Usage:
+  art work [options]
+
+Options:
+  -c, [--config=CONFIG]          # Specify config file
+                                   Default: conf/artanis.conf
+                                            if no, /etc/artanis/artanis.conf
+  -h, [--host=HOST]              # Specify the network host
+                                   Default: 0.0.0.0
+  -d, [--usedb]                  # Whether to use Database
+                                   Default: false
+  -b, [--dbd=DBD]                # Specify DBD, mysql/postgresql/sqlit3
+                                   Default: mysql
+  -n, [--name=DATABASE_NAME]     # Database name
+                                   Default: artanis
+  -w, [--passwd=PASSWD]          # Database password
+                                   Default: none
+  -u, [--user=USER]              # Database user name
+                                   Default: root
+  -p, [--port=PORT]              # Specify listenning port
+                                   Default: 3000
+  -g, [--debug]                  # Debug mode
+                                   Default: disable
+  -s, [--server=SERVER]          # Specify server core
+                                   Default: inner (Guile built-in server)
+  --help                         # Show this screen
+@end example
+
+@node MVC
+@chapter MVC
+
+MVC is Model-Views-Controller, the most classic architectural pattern for implementing
+user interfaces.
+It divides a given software application into three interconnected parts, so as to
+separate internal representations of information from the ways that information is
+presented to or accepted from the user.
+@menu
+* Controllers/Views::
+* Models::
+@end menu
+
+@node Controllers/Views
+@section Controllers/Views
+
+When you run it to generate a controller named @emph{article}:
+@example
+art draw controller article show edit
+@end example
+
+@emph{show} and @emph{edit} are the name of methods for the controller named @emph{article}.
+
+And it'll generate both @strong{controller} and @strong{view} for @emph{article}:
+@example
+drawing    controller article
+working    Controllers `article.scm'
+create     app/controllers/article.scm
+working    Views `article'
+create     app/views/article/show.html.tpl
+create     app/views/article/edit.html.tpl
+@end example
+
+As you may see, there're three files were generated:
+@example
+app/controllers/article.scm
+app/views/article/show.html.tpl
+app/views/article/edit.html.tpl
+@end example
+
+This means the controller @emph{article} has two methods mapped to URL rule named @emph{show} and @emph{edit}.
+And @emph{view} component will generate HTML template for each method, say, @strong{show.html.tpl}.
+For example, the controller @emph{article} generate @emph{show} method handler automatically:
+@example
+(article-define show
+  (lambda (rc)
+  "<h1>This is article#show</h1><p>Find me in app/views/article/show.html.tpl</p>"
+  ;; TODO: add controller method `show'
+  ;; uncomment this line if you want to render view from template
+  ;; (view-render "show")
+  ))
+@end example
+Of course, it depends on you whether to use these template. If you want to use @emph{view template}, just
+uncomment the last line @verb{~(view-render "show")~}.
+
+For more detail about template in Views, please see @ref{Layouts and Rendering in GNU Artanis,Layouts and Rendering in GNU Artanis}.
+
+@node Models
+@section Models
+
+Models contains operations of database.
+
+For modifying tables, you should read @ref{Migration,Migration}.
+
+For other DB operation, please read @ref{FPRM (experimental),FPRM}.
+
+(To be continue@dots{})
+
 @node URL remapping
 @chapter URL remapping
 
@@ -794,7 +976,8 @@ For POST method:
 @section Redirect link
 
 @example
-(redirect-to rc path [status <- 301])
+(redirect-to rc path #:status 301
+                     #:scheme 'http)
 ;; e.g
 (get "/aaa" (lambda (rc) (redirect-to rc "/bbb")))
 (get "/bbb" (lambda () "ok bbb"))
@@ -891,7 +1074,7 @@ Of course, the ext filename ".tpl" is trivial, you may name it whatever you like
 
 In this case, make sure to put my.tpl to the same path with your GNU Artanis code.
 
-Because @strong{exteral-var} is defined outside the file "my.tpl", and it's bound in @emph{let} with 123, you have to pass (the-environment). Or the template render will blame that it can't find variable named @strong{external-var}.
+Because @strong{external-var} is defined outside the file "my.tpl", and it's bound in @emph{let} with 123, you have to pass (the-environment). Or the template render will blame that it can't find variable named @strong{external-var}.
 
 If you don't have any external var needs to be referenced, just use @verb{~(tpl->response "file.tpl")~} is fine.
 
@@ -923,10 +1106,63 @@ Let's see an example of quasiquote:
 @chapter Database
 
 @menu
+* Migration::
 * ORM problem::
 * SSQL (experimental)::
 * FPRM (experimental)::
+* SQL Mapping (experimental)::
 @end menu
+
+@node Migration
+@section Migration
+
+Migration provides a way do complicated modification of tables in database automatically.
+Here's an example.
+
+First, draw a migration:
+@example
+# art draw migration person
+drawing    migration person
+working    Migration `20151107040209_person.scm'
+@end example
+You'll see something similar like above.
+
+In this case, you may edit file db/migration/20151107040209_person.scm:
+@example
+(migrate-up
+  (create-table
+   'person
+   '(id auto (#:primary-key))
+   '(name char-field (#:not-null #:maxlen 10))
+   '(age tiny-integer (#:not-null))
+   '(email char-field (#:maxlen 20))))
+
+(migrate-down
+  (drop-table 'person))
+@end example
+
+Now you may run @strong{up} command of migration:
+@example
+art migrate up person
+@end example
+
+Then migrate-up function will be called, and this will create a table named @emph{person}:
+@example
++-------+---------------------+------+-----+---------+----------------+
+| Field | Type                | Null | Key | Default | Extra          |
++-------+---------------------+------+-----+---------+----------------+
+| id    | bigint(20) unsigned | NO   | PRI | NULL    | auto_increment |
+| name  | varchar(10)         | NO   |     | NULL    |                |
+| age   | tinyint(4)          | NO   |     | NULL    |                |
+| email | varchar(20)         | YES  |     | NULL    |                |
++-------+---------------------+------+-----+---------+----------------+
+@end example
+
+If you run @strong{down} command of migration:
+@example
+art migrate down person
+@end example
+Obviously, the table @emph{person} will be dropped.
 
 @node ORM problem
 @section ORM problem
@@ -1042,7 +1278,6 @@ FPRM stands for Functional Programming Relational Mapping. It's a new word I inv
 * Drop a table::
 * Check existance of table::
 * Get schema of a table::
-* SQL Mapping (experimental)::
 @end menu
 
 @node Connect to DB server
@@ -1102,19 +1337,40 @@ FPRM stands for Functional Programming Relational Mapping. It's a new word I inv
 @node Map DB table
 @subsection Map DB table
 
+This step will generate an new instance (as a closure) mapped to database table or view.
+In ORM, it is often called @uref{http://www.martinfowler.com/eaaCatalog/activeRecord.html,Active Record} which maps the database view to an class object.
+
+And there're two differences:
+@itemize
+@item
+FPRM doesn't create object for each table. It maps a whole database in concept, and generates SQL for each table as you choose. So it maybe lightweight compared to an ORM object.
+@item
+FPRM doesn't maintain any states at all, say, it keeps stateless in the object (Not in database).
+@end itemize
+
+These two points may decrease the power of FPRM, but our main philosophy in GNU Artanis is that
+@itemize
+@item
+@emph{The best way to control DB is SQL, don't bother with other guile schemes.}
+@end itemize
+
+That means we're not going to develop a complicated ORM in GNU Artanis, but a promising way to interact with SQL easily.
+This is what @ref{SQL Mapping (experimental),SQL Mapping} provided. FPRM aims to reduce states & complexity to privide reliabality, and SQL-Mapping will provide a convenient way
+to handle complex SQL for better performance and security (from SQL-Injection). 
+
 @example
-(define my-table (map-table-from-DB rc/conn))
+(define m (map-table-from-DB rc/conn))
 @end example
 
 @strong{rc/conn} can be route-context or connection of DB.
 
-map-table-from-DB returns a function, we named it @strong{my-table} here for explaining.
+map-table-from-DB returns a function, we named it @strong{m} here for explaining.
 
 @node Create table
 @subsection Create table
 
 @example
-(my-table 'create table-name defs #:if-exists? #f #:primary-keys '() #:engine #f)
+(m 'create table-name defs #:if-exists? #f #:primary-keys '() #:engine #f)
 @end example
 
 @itemize
@@ -1159,7 +1415,7 @@ map-table-from-DB returns a function, we named it @strong{my-table} here for exp
 @subsection Get columns from table
 
 @example
-(my-table 'get table-name #:columns '(*) #:functions '() #:ret 'all #:group-by #f #:order-by #f)
+(m 'get table-name #:columns '(*) #:functions '() #:ret 'all #:group-by #f #:order-by #f)
 @end example
 
 @itemize
@@ -1205,28 +1461,28 @@ integer (larger than 0), you specify the number.
 
 For example, to get Lastname and City column, and return the first result.
 @example
-(my-table 'get 'Persons #:columns '(Lastname City) #:ret 'top)
+(m 'get 'Persons #:columns '(Lastname City) #:ret 'top)
 @end example
 
 @node Set values to table
 @subsection Set values to table
 
 @example
-(my-table 'set table-name . kargs)
+(m 'set table-name . kargs)
 @end example
 
 @strong{kargs} is a var-list to accept the key-value arguments.
 
 For example:
 @example
-(mtable 'set 'Persons #:name "nala" #:age 99 #:email "nala@@artanis.com")
+(m 'set 'Persons #:name "nala" #:age 99 #:email "nala@@artanis.com")
 @end example
 
 @node Drop a table
 @subsection Drop a table
 
 @example
-(mtable 'drop table-name)
+(m 'drop table-name)
 @end example
 
 @node Check existance of table
@@ -1234,27 +1490,27 @@ For example:
 
 @example
 ;; case sensitive
-(mtable 'exists? table-name . columns)
+(m 'exists? table-name . columns)
 ;; or for case-insensitive
-(mtable 'ci-exists? table-name . columns)
+(m 'ci-exists? table-name . columns)
 @end example
 
 For example:
 @example
-(mtable 'exists? 'Persons 'city 'lastname)
+(m 'exists? 'Persons 'city 'lastname)
 @end example
 
 @node Get schema of a table
 @subsection Get schema of a table
 
 @example
-(mtable 'schema table-name)
+(m 'schema table-name)
 @end example
 
 @emph{NOTE: all the returned name of schema will be downcased.}
 
 @node SQL Mapping (experimental)
-@subsection SQL Mapping (experimental)
+@section SQL Mapping (experimental)
 
 To be continued @dots{}
 
@@ -1281,9 +1537,26 @@ You may use #:mime method to handle JSON:
 @example
 (get "/json" #:mime 'json
   (lambda (rc)
-    (let ((j (json (object ("name" "nala") ("age" "15")))))
+    (let ((j (json (object ("name" "nala") ("age" 15)))))
       (:mime rc j))))
 @end example
+
+For example:
+@example
+(define my-json
+  (json (object ("name" "nala") ("age" 15)
+                ("read_list" (object ("book1" "The interpreter and structure of Artanis")
+                                     ("book2" "The art of Artanis programming"))))))
+(scm->json my-json) ; scm->json will print json
+;; ==> @{"name" : "nala",
+;;      "age" : 15,
+;;      "read_list" : @{"book2" : "The art of Artanis programming",
+;;                     "book1" : "The interpreter and structure of Artanis"@}@}
+@end example
+
+@verb{~scm->json~} will print the result directly.
+
+If you need to format json as a string to return to clients, please use @verb{~scm->json-string~}. 
 
 @node CSV
 @section CSV
@@ -1313,6 +1586,70 @@ You can use SXML to replace XML for exchanging data format. This way saves some 
 (get "/sxml" #:mime 'sxml
   (lambda (rc)
     (:mime rc '((a 1) (b 2)))))
+@end example
+
+@node Upload files
+@chapter Upload files
+
+If you want to deal with uploading files, store-uploaded-files would be you friend.
+@menu
+* Receive upload from client::
+* Send upload to Server::
+@end menu
+
+@node Receive upload from client
+@section Receive upload from client
+
+@example
+(store-uploaded-files rc #:path (current-upload-path)
+                         #:uid #f
+                         #:gid #f
+                         #:simple-ret? #t
+                         #:mode #o664
+                         #:path-mode #o775
+                         #:sync #f)
+@end example
+
+@strong{rc} is the route-context.
+
+@verb{~#:path~} is specified path to put uploaded files.
+
+@verb{~#:uid~} is new uid for uploaded files, #f means don't change the default uid.
+
+@verb{~#:gid~} specifies new gid.
+
+@verb{~#:simple-ret?~} specifies the mode of return:
+@itemize
+@item
+if #t, there're only two possible return value, 'sucess for sucess, 'none for nothing has been done.
+@item
+if #f, and while it's successful, it returns a list to show more detais: (success size-list filename-list).
+@end itemize
+
+@verb{~#:mode~} chmod files to mode.
+
+@verb{~#:path-mode~} chmod upload path to mode.
+
+@verb{~#:sync~} sync while storing files.
+
+@node Send upload to Server
+@section Send upload to Server
+
+Although GNU Artanis is often used in server-side, we provide this function for users to upload files from client.
+@example
+(upload-files-to uri pattern)
+@end example
+
+@strong{uri} is standard HTTP URL:
+@example
+scheme://[user:password@@]domain:port/path?query_string#fragment_id
+@end example
+
+@strong{pattern} should be:  ((file filelist @dots{}) (data datalist @dots{})), for example:
+@example
+(upload-files-to "ftp://nala:123@@myupload.com/"
+ '((data ("data1" "hello world"))
+   (file ("file1" "filename") ("file2" "filename2"))))
 @end example
 
 @node Sessions
@@ -1360,7 +1697,7 @@ And the APIs of session is :session
 @node Cookies
 @chapter Cookies
 
-You have to use @verb{~#:session mode~} while you defining URL rule handler.
+You have to use @verb{~#:cookies mode~} while you defining URL rule handler.
 @example
 (get "/certain-rule" #:cookies mode
   (lambda (rc) ...))
@@ -1513,7 +1850,9 @@ Here is a simple example:
 @node On web caching
 @section On web caching
 
-Web caching is very important nowadays. This section raises a discussion on proper web caching. It's couldn't be guide for product. But may help you to understand how to use cache in GNU Artanis.
+Web caching is very important nowadays. This section raises a discussion on proper web
+caching. It couldn't be guide for product. But may help you to understand how to use
+cache in GNU Artanis.
 
 (to be continued@dots{})
 
