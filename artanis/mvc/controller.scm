@@ -84,6 +84,7 @@
      (format port "(define-artanis-controller ~a) ; DO NOT REMOVE THIS LINE!!!~%~%" cname))))
 
 (define (do-controller-create name methods port)
+  (format (artanis-current-output) "create ~10t app/controllers/~a.scm~%" name)
   (display (gen-controller-header name) port)
   (for-each (lambda (method)
               (format port "(~a-define ~a~%" name method)
