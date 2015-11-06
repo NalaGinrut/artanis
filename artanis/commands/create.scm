@@ -113,8 +113,9 @@
            (fp (open-file (-> "artanis.conf") "w")))
       (display conf-header fp)
       (display cstr fp)
-    (display conf-footer fp)
-    (close fp)))
+      (display conf-footer fp)
+      (close fp)
+      (print-create-info (-> "artanis.conf"))))
   (create-default-readme (-> "README"))
   (create-local-config))
 
