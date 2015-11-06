@@ -55,15 +55,23 @@
     (for-each (lambda (f) (hash-set! ht (car f) (cdr f))) fields)
     ht))
 
-(define (general-field-handler name . opts)
-  (define (get-maxlen lst)
+(define (get-kw-val kw lst)
+  (cond
+   ((or (null? lst) (not (kw-arg-ref lst kw))) (list lst))
+   (else
     (call-with-values
-        (lambda () (plist-remove lst #:maxlen))
+        (lambda () (plist-remove lst kw))
       (lambda (opts kv)
-        (append (cdr kv) opts))))
+        (list (cadr kv) opts))))))
+
+(define (general-field-handler name . opts)
+  (define (get-maxlen lst) (get-kw-val #:maxlen lst))
+  (define (get-diswidth lst) (get-kw-val #:diswidth lst))    
   (case name
     ;; Auto index field
     ((auto) (list 'serial (opts-add '(#:no-edit #:not-null #:primary-key) opts)))
+    ((tiny-integer) `(tinyint ,@(get-diswidth opts)))
+    ((small-integer) `(smallint ,@(get-diswidth opts)))
     ;; 64 long integer
     ((big-integer) (list 'integer 64 opts))
     ;; NOTE: No, we may not going to provide binary field, in Django, binary field could be
@@ -84,6 +92,8 @@
 
 (define *model-field-handlers*
   `((auto . ,general-field-handler)
+    (tiny-integer . ,general-field-handler)
+    (small-integer . ,general-field-handler)
     (big-integer . ,general-field-handler)
     (boolean . ,general-field-handler)
     (char-field . ,general-field-handler)
@@ -151,9 +161,14 @@
    'datetime
    (irregex-search *date-re* v)))
 
+(define (tinyint-validator v) v)
+(define (smallint-validator v) v)
+
 ;; FIXME: Shoud we check type validation in Scheme level? Or leave it as DB work.
 (define *field-validators*
   `((auto . ,auto-field-validator)
+    (tiny-integer . ,tinyint-validator)
+    (small-integer . ,smallint-validator)
     (big-integer . ,big-integer-validator)
     (boolean . ,boolean-validator)
     (date . ,date-validator)
