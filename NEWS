@@ -13,3 +13,12 @@ Changes in 0.0.3
 * Notable changes
   Fixed several bugs.
   Support JSONP.
+
+Changes in 0.1.0
+* Notable changes
+  MVC support.
+  Migration support.
+  Optimized uploading for speed.
+  Command line tools.
+  Fixed many bugs.
+  Add several test cases.

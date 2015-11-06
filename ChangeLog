@@ -1,3 +1,619 @@
+2015-11-07  Nala Ginrut  <nalaginrut@gmail.com>
+
+	last step for v0.1.0
+
+	prepare for releasing v0.1.0
+
+	updated docs
+
+	fixed MVC/model for migration
+
+	print message when drawing controllers
+
+	fixed FPRM, added ->0/1
+
+2015-11-06  Nala Ginrut  <nalaginrut@gmail.com>
+
+	print proper info when creating artanis.conf
+
+2015-11-05  Nala Ginrut  <nalaginrut@gmail.com>
+
+	print out messages to (artanis-current-output)
+
+2015-11-04  Nala Ginrut  <nalaginrut@gmail.com>
+
+	init views in work cmd
+
+	added load-app-views
+
+	fixed typo in config.scm
+
+	update comments in help cmd
+
+2015-11-03  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added remove-column in MVC/migration
+
+	added column drop in FPRM
+
+2015-11-02  Mu Lei  <NalaGinrut@gmail.com>
+
+	Merge pull request #48 from amirouche/master
+	cf. #45 - fix `art` command finding when artanis is not installed.
+
+2015-11-01  Amirouche BOUBEKKI  <amirouche@hypermove.net>
+
+	cf. #45 - fix GNU Artanis is a monolithic framework written in Guile Scheme. NalaGinrut <mulei@gnu.org>
+	commands:
+	create              Create a new Artanis project.
+	draw                Generate component automatically, say, MVC.
+	help                Show this screen
+	migrate             DB migration tools.
+	version             Show the version info
+	work                Run the server and make the site/app work.
+
+	GPLv3+ & LGPLv3+
+	Version: GNU Artanis-0.0.3.222-81f3-dirty.
+	God bless hacking. command to work without installing it
+
+2015-10-28  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed make-table-modifier to work
+
+	fixed ssql
+
+	added more migrators into MVC/migration
+
+	added more cmds into make-table-modifier
+
+	added more rules into ssql.scm
+
+	added with-dbd
+
+2015-10-23  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated configure
+
+	fixed to let work-cmd load local config properly
+
+	imported env.scm in migrate-cmd
+
+	auto load the model with same name in controllers
+
+	MVC/migration works
+
+	MVC/model works
+
+	added table-exists? cmd to FPRM
+
+	fixed to load local config properly
+
+	tweaked create-cmd to generate proper code
+
+	run hooks before server start to make sure work-cmd work properly
+
+	added new hook which runs before server start
+	* modified:   artanis/env.scm: added new hook which runs before server start
+	* modified:   artanis/utils.scm: move current-appname and current-toplevel to env.scm
+
+	fixed wrong footer generation of migration cache
+
+	fixed table builder to create new table
+
+	fixed wrong generation of tmp/cache/migration
+
+2015-10-22  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated migrate cmd
+
+	updated MVC/migration
+
+	work cmd will load local config file in default
+
+	create cmd will generate migration cache tmp
+
+	load migration cache when loading models
+
+	added some tools to utils.scm
+
+	fixed config.scm to support local conf
+
+	updated MVC/migration
+
+	fixed migrate cmd to show help properly
+
+	don't create table in model, it's the duty of migration
+
+	fixed some bugs in sql-alter
+
+	added make-table-modifier
+
+2015-10-21  Nala Ginrut  <nalaginrut@gmail.com>
+
+	MVC/migration works
+
+	added gen-migrate-module-name to utils.scm
+
+	make controller work
+
+	migrate cmd works
+
+	fixed typo
+
+2015-10-20  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added migrate cmd
+
+	fixed some comments
+
+	Changed framework description in help
+
+	added MVC/migration
+
+	added more model fields validators
+
+2015-10-19  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added validators in MVC/model
+
+	added more comments in fprm.scm
+
+2015-10-14  Nala Ginrut  <nalaginrut@gmail.com>
+
+	mvc/model almost done
+
+2015-10-13  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update mvc/model
+
+	better indent of default view html string
+	* modified:   artanis/mvc/controller.scm
+
+	fixed FPRM to work
+
+	fixed wrong dbd value in config.scm
+
+	fixed draw cmd to generate correct components path
+
+2015-10-12  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated mvc/controller
+
+	updated mvc/model
+
+	added plist-remove to utils.scm
+
+2015-10-08  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed wrong 'unless' usage in db.scm
+
+2015-09-23  Nala Ginrut  <nalaginrut@gmail.com>
+
+	the value of '(db dbd) should be symbol
+
+	rename MVC dir name
+
+	add more table builder stuff
+
+	rename controller to controllers
+
+	rename view to views
+
+	updated table builder to support easy migration
+
+	add (db engine)
+
+2015-09-22  Nala Ginrut  <nalaginrut@gmail.com>
+
+	add proper cache set for static files
+
+	fixed typo in cache.scm
+
+2015-09-21  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update config.scm
+
+2015-09-20  Nala Ginrut  <nalaginrut@gmail.com>
+
+	rename default.conf to artanis.conf so users may run Artanis after installation immediately
+
+	create MOD_PATH: command not found if it doesn't exist
+
+	autoload (dbi dbi) then we don't have to install guile-dbi as prerequisite
+
+	update TODO
+
+	don't check guile-dbi anymore
+
+2015-07-16  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added Anti-session-hijack mechanism
+	* artanis/session.scm: Check client IP to prevent different IP use
+	                       valid SID to restore session. One IP can restore
+	                       one session at one time.
+
+	updated examples/blog.scm
+
+	updated examples/test.scm
+
+	fixed sql-mapping work correctl when passwd check failed
+
+	fixed build-bv-lookup-table
+
+	update :session oht
+
+	rename head-string->cookie to header-string->cookie
+
+2015-07-14  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added filesize helper function
+
+2015-07-07  Nala Ginrut  <nalaginrut@gmail.com>
+
+	optimized subbv=? for more efficient MFDS parsing, now it's very fast for big file (1G)
+
+	fixed post.test to work fine
+
+	optimized upload module, extreamely fast now
+
+	added build-bv-lookup-table
+
+2015-07-06  Nala Ginrut  <nalaginrut@gmail.com>
+
+	use random boundary when uploading
+
+2015-07-04  Nala Ginrut  <nalaginrut@gmail.com>
+
+	avoid 500 error while dump mfds, use warning instead
+
+	export mfd? and is-mfds?
+
+	added mfd value referencing
+
+	added new feature to :from-post
+
+	fixed to get IP of client correctly
+
+2015-06-30  Nala Ginrut  <nalaginrut@gmail.com>
+
+	refactor post.test
+
+	update README
+
+	added test case for advanced single file upload
+
+	fixed upload for success-ret
+
+	fixed typo in oht :from-post
+
+2015-06-24  Mu Lei  <NalaGinrut@gmail.com>
+
+	Merge pull request #40 from gitter-badger/gitter-badge
+	Add a Gitter chat badge to README.md
+
+2015-06-23  The Gitter Badger  <badger@gitter.im>
+
+	Added Gitter badge
+
+2015-06-18  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added JSON/JSONP test cases
+
+	fixed JSONP to make it safer, and added validators
+
+	fixed sys page render to generate proper headers
+
+	added unified header maker for test-suite
+
+	fixed pages/
+
+2015-06-16  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed bin/art when there's no command
+
+2015-06-15  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update configure
+
+	update oht for new upload module
+
+	export new upload functions
+
+	upload tests passed
+
+2015-06-11  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed checkout-the-path to mkdir in root dir
+
+2015-06-10  Nala Ginrut  <nalaginrut@gmail.com>
+
+	new upload engine works very fast now
+
+2015-06-09  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added brand new uploader engine
+
+2015-05-22  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed view-render in controller generation bug
+
+	updated BUGS
+
+	update configure{,.ac}
+
+	added new version current-toplevel to utils.scm to avoid #f in certain situations
+
+	use %current-toplevel in bin/art.in
+
+	rename current-toplevel to %current-toplevel
+
+	added missing build-aux/config.rpath
+
+2015-05-20  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed .travis.yml to avoid fake error when all thing done correctly
+
+2015-05-19  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated TODO
+
+	added tags helper functions
+
+2015-05-18  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added (artanis mvc route) for MVC customized routing
+
+	when run work cmd, load correct renamed route related files
+
+	added new helper functions to fprm.scm
+
+	rename route.scm to .route, .route.cache to route.cache
+
+	tweaked app framework, put config files to conf directory
+
+	export new symbols from ssql.scm
+
+2015-05-14  Nala Ginrut  <nalaginrut@gmail.com>
+
+	now FPRM could dump SQL for testing
+
+	updated where: command not found method in ssql, and added test
+
+2015-05-13  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added /in to ssql.scm
+
+	added #:foreach to FPRM to avoid N+1 query problem
+
+	print SQL while query failed
+
+	MVC: check method name before generating
+
+	added check-drawing-method to utils.scm
+
+	fixed parallel compiling bug
+
+2015-05-12  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed delete-directory
+
+	fixed View drawing
+
+	fixed View drawing when file exists
+
+	added handle-existing-file to utils.scm
+
+	updated BUGS
+
+	remove old define-artanis-controller
+
+2015-05-11  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed controller init, now works correctly
+
+2015-05-08  Nala Ginrut  <nalaginrut@gmail.com>
+
+	view works
+
+	fixed controller init handler to call view-render correctly
+
+	fixed route-cache generating
+
+2015-05-07  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed wrong reference to current-toplevel
+
+	added more useful info when generating controller
+
+	added current-toplevel
+
+	'art work' works for controller generator
+
+	controller works
+
+	fixed auto route and cache
+
+2015-05-06  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added single file upload test
+
+	added *default-unified-headers* in (test-suite helper)
+
+	added (test-suite helper)
+
+	remove helper function out of test case
+
+	optimized prepare-header for guile-2.0.11+
+
+2015-05-05  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added POST tests
+
+	change draw test name
+
+	updated prepare-headers to avoid generate default header twice
+
+	fixed Makefile.in to avoid recompile modules when testing
+
+	updated configure for correct version number
+
+	added draw.test
+
+	updated mvc/controller
+
+	fixed draw cmd
+
+	updated work cmd to load auto-router
+
+	fixed help cmd
+
+	added tmp/cache hook
+
+	fixed websocket.scm to print '~' correctly
+
+	misc addition to utils
+
+	use (ice-9 format)
+
+	tweaked Makefile.in for better error & warning display
+
+2015-04-29  Nala Ginrut  <nalaginrut@gmail.com>
+
+	handle draw cmd for existing file
+
+	update controller.scm to generate template
+
+	added draw-expander
+
+	MVC inner interface changed
+
+	draw controller preliminary done
+
+	do-controller-create works
+
+2015-04-28  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update configure for proper version number
+
+	update draw cmd to generate MVC template
+
+	changed sm dir to db dir
+
+	fixed whitespace
+
+	added draw options to env.scm
+
+	update MVC
+
+2015-04-16  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed work cmd to load entry
+
+	fixed completion install bug
+
+2015-04-13  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added current-appname in utils
+
+	move parameters in 'draw' command to env.scm
+
+	rename show-cmds.scm to show-cmds.sh
+
+2015-04-11  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added cmd complete
+
+2015-04-10  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed to support guile-2.1
+
+2015-04-09  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed init-server for default / rule
+
+	added commands/version.scm
+
+	added controller creation
+
+	fixed work command
+
+	prevent create new app within another
+
+	added *artanis-entry*
+
+	added ENTRY finder and verification
+
+	'art work' could work in deeper path
+
+2015-04-03  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed sql select bug to make blog example run
+
+2015-03-19  Nala Ginrut  <nalaginrut@gmail.com>
+
+	all objs must be compiled before 'make test'
+
+	update irregex to 0.9.3
+
+2015-03-17  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added draw command
+
+	fixed typo in building scripts
+
+	upated some comments
+
+	art work support local config
+
+2015-03-11  Nala Ginrut  <nalaginrut@gmail.com>
+
+	print useful info while creating project
+
+2015-03-06  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added help msg for work cmd
+
+	print more friendly help msg
+	* modified:   artanis/commands.scm
+	* modified:   artanis/commands/create.scm
+	* modified:   artanis/commands/help.scm
+
+	fixed: create cmd should avoid the name started with "-", and handle "help" option properly
+	* modified:   artanis/commands/create.scm
+
+	fixed: convert dbd to symbol anyway, or the db conf parsing will be failed
+	* modified:   artanis/config.scm
+
+	fixed: pass the sub command in to take advantage of getopt-long
+	* modified:   bin/art.in
+
+	remove bin/art in 'make distclean'
+
+	Added `URL scheme' incase users need to redirect to HTTPS or others.
+	* modified:   artanis/page.scm
+
+	Merge branch 'master' of git.sv.gnu.org:/srv/git/artanis
+
+	REFIX: $(BIN) should be in current build directory
+
+	REFIX: BIN: command not found should be current build directory
+
+	Fixed Makefile.in for building problem
+	 * show error log while compiling is failed.
+	 * $(BIN) directory should be current building directory.
+
+2015-03-05  Nala Ginrut  <nalaginrut@gmail.com>
+
+	merge wip-cli
+
+	work cmd works
+
+	create cmd works
+
+	bin/art works
+
+	fixed Makefile.in for scripts
+
 2015-03-02  Nala Ginrut  <nalaginrut@gmail.com>
 
 	prepare for v0.0.3 release
@@ -11,13 +627,34 @@
 	use upload.path in config instead of hardcoded path
 	*  artanis/upload.scm
 
+	fixed Makefile.in to load newly compiled object files for testing
+
+	fixed typo
+
+	Fixed DFS traverser
+	*  artanis/commands/create.scm
+
+2015-02-28  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Fixed DFS traverser
+	*  artanis/commands/create.scm
+
 2015-02-27  Nala Ginrut  <nalaginrut@gmail.com>
 
 	fixed list type in config.scm
 
+	update create command, added DFS traverer
+
 2015-02-26  Nala Ginrut  <nalaginrut@gmail.com>
 
+	Added `create' command
+	*  artanis/commands/create.scm
+
+	added cli tools stuff
+
 	generate correct server-info from version.scm
+
+2015-02-26  Nala Ginrut  <nalaginrut@gmail.com>
 
 	generate proper MIME for JSON and JSONP
 	* artanis/oht.scm
@@ -32,6 +669,12 @@
 	added generate-data-url
 
 	added mime-check which will be triggerred in debug-mode
+
+	added 'test' to Makefile.in
+
+	fixed test cases
+
+	tweaked test lib printer
 
 	added jsonp test
 
@@ -652,6 +1295,8 @@
 	   Removed: error fields
 	   Modified: upload types
 
+2014-08-07  Nala Ginrut  <nalaginrut@gmail.com>
+
 	update config.scm and db.scm
 	* modified:   config.scm
 
@@ -662,6 +1307,8 @@
 	* modified:   db.scm
 	   Exported: <connection>?
 	   Added: connect-db
+
+2014-08-07  Nala Ginrut  <nalaginrut@gmail.com>
 
 	export <connection>?
 
@@ -907,6 +1554,8 @@
 
 	fix default uid and gid
 
+2014-05-09  Nala Ginrut  <nalaginrut@gmail.com>
+
 	Fixed upload bug
 	* modified:   artanis/upload.scm:
 	  Fixed: The attatched file will be cut the first line of code, the
@@ -1131,6 +1780,8 @@
 	re-commit for upload fix
 	* artanis/upload.scm: fix some bugs, now upload works for text & binary
 	* artanis/utils.scm(checkout-the-path): fix checkout-the-path
+
+2013-08-22  Nala Ginrut  <nalaginrut@gmail.com>
 
 	upload is done and added example of upload
 	* artanis/upload.scm: fix some bugs, now upload works for text & binary
@@ -1500,6 +2151,8 @@
 	modified:   artanis/utils.scm
 	new file:   favicon.ico
 
+2013-02-05  Nala Ginrut  <nalaginrut@gmail.com>
+
 	Add last-modified time, and fixed 'favicon.ico' fetch.
 	* Add: last-modified time
 	* Fixed: 'favicon.ico' fetch
@@ -1511,6 +2164,8 @@
 	modified:   test.scm
 
 	new file:   BUGS
+
+2013-02-05  Nala Ginrut  <nalaginrut@gmail.com>
 
 	ADD: site enable/disabe
 
