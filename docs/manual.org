@@ -72,7 +72,7 @@ sudo zypper install guile guile-devel
 
 + RedHat/Fedora
 #+begin_src null
-sudo yum install guile guile-devel
+sudo dnf install guile guile-devel
 #+end_src
 
 + For LFS Guru
@@ -102,7 +102,7 @@ tar xvzf guile-dbd-mysql-2.1.4.tar.gz
 cd guile-dbd-mysql-2.1.4 && ./configure && make
 sudo make install
 #+end_src
-You may find other dbd [[http://download.gna.org/guile-dbi][here]]. And the installation is similar.
+You may find other dbd [[ttp://download.gna.org/guile-dbi][here]]. And the installation is similar.
 
 *Install the latest GNU Artanis:*
 
@@ -427,6 +427,139 @@ And run GNU Artanis:
 #+begin_src scheme
 (run #:port 1234)
 #+end_src
+* The Art command line
+GNU Artanis provides *art* command line tool to save users' time.
+** art create
+If you want to set up your site/app within an application folder, and take
+advatage of MVC, you have to use this command to create the application
+folder first.
+
+#+begin_src nil
+art create proj_path
+#+end_src
+** art draw
+This command will generate the specified component:
+#+begin_src nil
+Usage:
+  art draw <component> NAME [options]
+
+component list:
+  model
+  controller
+  migration
+
+Options:
+  -h, [--help]     # Print this screen
+  -d, [--dry]      # Dry run but do not make any changes
+  -f, [--force]    # Overwrite files that already exist
+  -s, [--skip]     # Skip files that already exist
+                   # If -s and -f are both provided, -f will be enabled
+  -q, [--quiet]    # Suppress status output                   
+
+Example:
+  art draw model myblog
+#+end_src
+
+Please see [[MVC][MVC]] to learn more about how to use these components.
+** art migrate
+Migrate is used for Database migration.
+#+begin_src nil
+Usage:
+  art migrate operator name [OPTIONS]
+
+Operators:
+  up
+  down
+
+OPTIONS:
+  VERSION=version
+#+end_src
+Please see [[Migration][Migration]] for more detail.
+** art work
+This command is used to start the server to run your site in the application folder:
+#+begin_src nil
+Usage:
+  art work [options]
+
+Options:
+  -c, [--config=CONFIG]          # Specify config file
+                                   Default: conf/artanis.conf
+                                            if no, /etc/artanis/artanis.conf
+  -h, [--host=HOST]              # Specify the network host
+                                   Default: 0.0.0.0
+  -d, [--usedb]                  # Whether to use Database
+                                   Default: false
+  -b, [--dbd=DBD]                # Specify DBD, mysql/postgresql/sqlit3
+                                   Default: mysql
+  -n, [--name=DATABASE_NAME]     # Database name
+                                   Default: artanis
+  -w, [--passwd=PASSWD]          # Database password
+                                   Default: none
+  -u, [--user=USER]              # Database user name
+                                   Default: root
+  -p, [--port=PORT]              # Specify listenning port
+                                   Default: 3000
+  -g, [--debug]                  # Debug mode
+                                   Default: disable
+  -s, [--server=SERVER]          # Specify server core
+                                   Default: inner (Guile built-in server)
+  --help                         # Show this screen
+#+end_src
+* MVC
+MVC is Model-Views-Controller, the most classic architectural pattern for implementing
+user interfaces.
+It divides a given software application into three interconnected parts, so as to
+separate internal representations of information from the ways that information is
+presented to or accepted from the user.
+** Controllers/Views
+When you run it to generate a controller named /article/:
+#+begin_src nil
+art draw controller article show edit
+#+end_src
+
+/show/ and /edit/ are the name of methods for the controller named /article/.
+
+And it'll generate both *controller* and *view* for /article/:
+#+begin_src nil
+drawing    controller article
+working    Controllers `article.scm'
+create     app/controllers/article.scm
+working    Views `article'
+create     app/views/article/show.html.tpl
+create     app/views/article/edit.html.tpl
+#+end_src
+
+As you may see, there're three files were generated:
+#+begin_src nil
+app/controllers/article.scm
+app/views/article/show.html.tpl
+app/views/article/edit.html.tpl
+#+end_src
+
+This means the controller /article/ has two methods mapped to URL rule named /show/ and /edit/.
+And /view/ component will generate HTML template for each method, say, *show.html.tpl*.
+For example, the controller /article/ generate /show/ method handler automatically:
+#+begin_src scheme
+(article-define show
+  (lambda (rc)
+  "<h1>This is article#show</h1><p>Find me in app/views/article/show.html.tpl</p>"
+  ;; TODO: add controller method `show'
+  ;; uncomment this line if you want to render view from template
+  ;; (view-render "show")
+  ))
+#+end_src
+Of course, it depends on you whether to use these template. If you want to use /view template/, just
+uncomment the last line src_scheme[:exports code]{(view-render "show")}.
+
+For more detail about template in Views, please see [[Layouts and Rendering in GNU Artanis][Layouts and Rendering in GNU Artanis]].
+** Models
+Models contains operations of database.
+
+For modifying tables, you should read [[Migration][Migration]].
+
+For other DB operation, please read [[FPRM (experimental)][FPRM]].
+
+(To be continue...)
 * URL remapping
 ** Introduction to URL remapping
 URL remapping is used to modify a web URL's appearance to provide short, pretty or fancy, search engine friendly URLs. 
@@ -572,6 +705,54 @@ Let's see an example of quasiquote:
 #+end_src
 
 * Database
+** Migration
+Migration provides a way do complicated modification of tables in database automatically.
+Here's an example.
+
+First, draw a migration:
+#+begin_src nil
+# art draw migration person
+drawing    migration person
+working    Migration `20151107040209_person.scm'
+#+end_src
+You'll see something similar like above.
+
+In this case, you may edit file db/migration/20151107040209_person.scm:
+#+begin_src scheme
+(migrate-up
+  (create-table
+   'person
+   '(id auto (#:primary-key))
+   '(name char-field (#:not-null #:maxlen 10))
+   '(age tiny-integer (#:not-null))
+   '(email char-field (#:maxlen 20))))
+
+(migrate-down
+  (drop-table 'person))
+#+end_src
+
+Now you may run *up* command of migration:
+#+begin_src nil
+art migrate up person
+#+end_src
+
+Then migrate-up function will be called, and this will create a table named /person/:
+#+begin_src nil
++-------+---------------------+------+-----+---------+----------------+
+| Field | Type                | Null | Key | Default | Extra          |
++-------+---------------------+------+-----+---------+----------------+
+| id    | bigint(20) unsigned | NO   | PRI | NULL    | auto_increment |
+| name  | varchar(10)         | NO   |     | NULL    |                |
+| age   | tinyint(4)          | NO   |     | NULL    |                |
+| email | varchar(20)         | YES  |     | NULL    |                |
++-------+---------------------+------+-----+---------+----------------+
+#+end_src
+
+If you run *down* command of migration:
+#+begin_src nil
+art migrate down person
+#+end_src
+Obviously, the table /person/ will be dropped.
 ** ORM problem
 ORM stands for Object Relational Mapping, which is a popular approach to handle relational DB nowadays, in OOP.
 
@@ -1013,7 +1194,9 @@ Here is a simple example:
 *NOTE: The passwd will be encrypted by default algorithm.*
 * Cache
 ** On web caching
-Web caching is very important nowadays. This section raises a discussion on proper web caching. It's couldn't be guide for product. But may help you to understand how to use cache in GNU Artanis.
+Web caching is very important nowadays. This section raises a discussion on proper web
+caching. It couldn't be guide for product. But may help you to understand how to use
+cache in GNU Artanis.
 
 (to be continued...)
 ** Cache APIs
