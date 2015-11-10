@@ -24,8 +24,8 @@ This file is about the security issues of Artanis, include some advices or conve
    it's fucked! list_my_info is expected to list the info of user specified
    in `username', but now, it'll show all the users' info include passwd.
 
-* DO NOT use ur-decode when the result will be fed to DB.
-  You are allowed to use uri-decode when the result will be send to client.
+* DO NOT use uri-decode when the result will be fed to DB.
+  You are allowed to use uri-decode when the result will be sent to client.
 
 * The response may return redundant http headers if users didn't make it
   properly. Artanis is not going to check the redundant headers, it's the users'
