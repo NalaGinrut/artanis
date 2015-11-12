@@ -124,17 +124,19 @@ clean-config:
 	-rm -f config.{h,log}
 
 install: $(ALL_TARGETS)
-	mkdir -p $(MOD_PATH)
-	$(CP) $(MOD) $(MOD_PATH)/
-	mkdir -p $(MOD_TARGET_PATH)/
-	$(CP) $(MOD_OBJ) $(MOD_TARGET_PATH)/
-	$(CP) $(ARTANIS_ETC) /etc/
-	$(CP) $(ARTANIS_PAGES) /etc/artanis/
-	$(CP) $(BIN)/art $(PREFIX)/bin/
-	mkdir -p /etc/bash_completion.d/
-	$(CP) $(CMDCOMP) /etc/bash_completion.d/
-	source /etc/bash.bashrc
-	if [ -e artanis.info ]; then $(CP) artanis.info $(INFO_DIR)/; fi
+	mkdir -p $(DESTDIR)$(MOD_PATH)/
+	$(CP) $(MOD) $(DESTDIR)$(MOD_PATH)/
+	mkdir -p $(DESTDIR)$(MOD_TARGET_PATH)/
+	$(CP) $(MOD_OBJ) $(DESTDIR)$(MOD_TARGET_PATH)/
+	mkdir -p $(DESTDIR)/etc/
+	$(CP) $(ARTANIS_ETC) $(DESTDIR)/etc/
+	$(CP) $(ARTANIS_PAGES) $(DESTDIR)/etc/artanis/
+	mkdir -p $(DESTDIR)$(PREFIX)/bin/
+	$(CP) $(BIN)/art $(DESTDIR)$(PREFIX)/bin/
+	mkdir -p $(DESTDIR)/etc/bash_completion.d/
+	$(CP) $(CMDCOMP) $(DESTDIR)/etc/bash_completion.d/
+	mkdir -p $(DESTDIR)$(INFO_DIR)/
+	if [ -e artanis.info ]; then $(CP) artanis.info $(DESTDIR)$(INFO_DIR)/; fi
 
 distclean: distclean-mk clean clean-config clean-tarball
 	-rm -f $(BIN)/art
