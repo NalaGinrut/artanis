@@ -136,7 +136,7 @@ install: $(ALL_TARGETS)
 	mkdir -p $(DESTDIR)/etc/bash_completion.d/
 	$(CP) $(CMDCOMP) $(DESTDIR)/etc/bash_completion.d/
 	source /etc/bash.bashrc
-	if [ -e artanis.info ]; then $(CP) artanis.info $(INFO_DIR)/; fi
+	if [ -e artanis.info ]; then $(CP) artanis.info $(DESTDIR/)$(INFO_DIR)/; fi
 
 distclean: distclean-mk clean clean-config clean-tarball
 	-rm -f $(BIN)/art
