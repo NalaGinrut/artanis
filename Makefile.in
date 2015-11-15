@@ -1,6 +1,5 @@
 TOP := $(shell pwd)
 PREFIX := @prefix@
-DESTDIR := @DESTDIR@
 SRC := @srcdir@
 CC := @CC@
 GUILE := @GUILE@
