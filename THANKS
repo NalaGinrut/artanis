@@ -5,3 +5,5 @@ Thanks these guys who gave me help:
   help for README typo.
 * Mark H Weaver <mhw@netris.org>
   Contribute an efficiency make-string-template
+* Stefan Husmann <stefan-husmann@t-online.de>
+  Helped to add DESTDIR to Makefile and packaging for Arch.
