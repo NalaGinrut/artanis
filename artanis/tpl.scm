@@ -19,7 +19,7 @@
 
 ;;  Django style embedded-template, it's different from tpl->html which 
 ;;  is based on SXML.
-;;  If you want to embedded the template into HTML code, say:
+;;  If you want to embed the template into HTML code, say:
 ;;  <html>
 ;;    <% (define var 123) %>
 ;;    <p> <%= (let ((x (expt 2 100))) (+ 1 x)) %> </p>
