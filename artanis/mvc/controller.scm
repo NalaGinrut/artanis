@@ -38,8 +38,9 @@
            (define-module (app controllers name)
              #:autoload (app models name) (#,(datum->syntax #'name (symbol-append '$ (syntax->datum #'name))))
              #:use-module (artanis artanis)
+             #:use-module (artanis env)
              #:use-module (artanis utils))
-           (define-syntax-rule (view-render method)
+           (define-syntax-rule (view-render method e)
              (let* ((file (format #f "~a/app/views/~a/~a.html.tpl"
                                   (current-toplevel) 'name method))
                     (tpl (and (file-exists? file) (cat file #f))))
@@ -49,8 +50,7 @@
                         (html (call-with-output-string
                                (lambda (port)
                                  (parameterize ((current-output-port port))
-                                               (local-eval-string
-                                                expr (the-environment)))))))
+                                   (local-eval-string expr e))))))
                    (response-emit html)))
                 (else (response-emit "" #:status 404)))))
            (define-syntax #,(datum->syntax #'name (symbol-append (syntax->datum #'name) '-define))
@@ -93,6 +93,6 @@
                       name method name method)
               (format port "~2t;; TODO: add controller method `~a'~%" method)
               (format port "~2t;; uncomment this line if you want to render view from template~%")
-              (format port "~2t;; (view-render \"~a\")~%" method)
+              (format port "~2t;; (view-render \"~a\" (the-environment))~%" method)
               (format port "~2t))~%~%"))
             (check-drawing-method methods)))
