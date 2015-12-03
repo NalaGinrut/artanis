@@ -78,7 +78,7 @@ $(MOD)/version.scm:
 	$(V)cat $(HEADER) > $@
 	$(V)$(GUILE) -c '(let ((port (open-file "$@" "a")))(format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"GNU Artanis-~a\")~%" "$(VERSION)"))'
 
-.PHONY: upload upload.gz upload.bz2 announce release.gz release.bz2 prepare clean modules install distclean distclean-mk bin version test docs scripts
+.PHONY: upload upload.gz upload.bz2 announce release.gz release.bz2 prepare clean modules install distclean distclean-mk bin version test docs scripts clean-obj
 
 announce: release.gz release.bz2
 	$(V) $(ANN_GEN) --release-type=$(RELEASE_TYPE) --package-name=artanis --previous-version=$(PREV_VER) --current-version=$(VERSION) --gpg-key-id=$(GPG_KEY) --url-directory=$(URL_DIR) --news=NEWS --bootstrap-tools=$(BOOT_TOOLS)
@@ -139,6 +139,9 @@ install: $(ALL_TARGETS)
 
 distclean: distclean-mk clean clean-config clean-tarball
 	-rm -f $(BIN)/art
+
+clean-obj:
+	-rm -fr $(MOD_TARGET_PATH)/{artanis,art.go}
 
 distclean-mk:
 	-rm -f Makefile
