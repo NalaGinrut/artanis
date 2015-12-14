@@ -1,0 +1,109 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  Copyright (C) 2015
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License and GNU
+;;  Lesser General Public License published by the Free Software
+;;  Foundation, either version 3 of the License, or (at your option)
+;;  any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License and GNU Lesser General Public License
+;;  for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  and GNU Lesser General Public License along with this program.
+;;  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (artanis inotify)
+  #:use-module (artanis utils)
+  #:use-module ((rnrs)
+                #:select (bytevector-s32-native-ref
+                          bytevector-s32-native-set!
+                          bytevector-u32-native-ref
+                          bytevector-u32-native-set!
+                          make-bytevector))
+  #:use-module (system foreign))
+
+(define-public IN_CLOEXEC #o2000000)
+(define-public IN_NONBLOCK #o4000)
+
+(define-public IN_ACCESS        #x00000001) ; File was accessed.
+(define-public IN_MODIFY        #x00000002) ; File was modified.
+(define-public IN_ATTRIB        #x00000004) ; Metadata changed.
+(define-public IN_CLOSE_WRITE   #x00000008) ; Writtable file was closed.
+(define-public IN_CLOSE_NOWRITE #x00000010) ; Unwrittable file closed.
+(define-public IN_CLOSE (logior IN_CLOSE_WRITE IN_CLOSE_NOWRITE)) ; Close
+(define-public IN_OPEN          #x00000020) ; File was opened.
+(define-public IN_MOVED_FROM    #x00000040) ; File was moved from X.
+(define-public IN_MOVED_TO      #x00000080) ; File was moved to Y.
+(define-public IN_MOVE  (logior IN_MOVED_FROM IN_MOVED_TO)) ; Moves.
+(define-public IN_CREATE        #x00000100) ; Subfile was created.
+(define-public IN_DELETE        #x00000200) ; Subfile was deleted.
+(define-public IN_DELETE_SELF   #x00000400) ; Self was deleted.
+(define-public IN_MOVE_SELF     #x00000800) ; Self was moved.
+ 
+;; Events sent by the kernel.
+(define-public IN_UNMOUNT       #x00002000) ; Backing fs was unmounted.
+(define-public IN_Q_OVERFLOW    #x00004000) ; Event queued overflowed.
+(define-public IN_IGNORED       #x00008000) ; File was ignored.
+ 
+;; Helper events.
+(define-public IN_CLOSE (logior IN_CLOSE_WRITE IN_CLOSE_NOWRITE)) ; Close.
+(define-public IN_MOVE  (logior IN_MOVED_FROM IN_MOVED_TO))       ; Moves.
+
+;; Special flags.
+(define-public IN_ONLYDIR       #x01000000) ; Only watch the path if it is a directory.
+(define-public IN_DONT_FOLLOW   #x02000000) ; Do not follow a sym link.
+(define-public IN_EXCL_UNLINK   #x04000000) ; Exclude events on unlinked objects.
+(define-public IN_MASK_ADD      #x20000000) ; Add to the mask of an already
+
+(define-public IN_ISDIR         #x40000000) ; Event occurred against dir.
+(define-public IN_ONESHOT       #x80000000) ; Only send event once.
+
+;; All events which a program can wait on.
+(define-public IN_ALL_EVENTS (logior
+                       IN_ACCESS IN_MODIFY IN_ATTRIB IN_CLOSE_WRITE
+                       IN_CLOSE_NOWRITE IN_OPEN IN_MOVED_FROM
+                       IN_MOVED_TO IN_CREATE IN_DELETE
+                       IN_DELETE_SELF IN_MOVE_SELF))
+
+;;;; Structure describing an inotify event.
+;; struct inotify_event
+;; {
+;;  int wd;               /* Watch descriptor.  */
+;;  uint32_t mask;        /* Watch mask.  */
+;;  uint32_t cookie;      /* Cookie to synchronize two events.  */
+;;  uint32_t len;         /* Length (including NULs) of name.  */
+;;  char name __flexarr;  /* Name.  */
+;; };
+(define inotify-event-meta (list int uint32 uint32 uint32 '*))
+
+
+
+(define %inotify-init
+  (pointer->procedure int
+                      (dynamic-func "inotify_init" (dynamic-link))
+                      '()))
+
+(define %inotify-add-watch
+  (pointer->procedure int
+                      (dynamic-func "inotify_add_watch" (dynamic-link))
+                     (list int '* uint32)))
+
+(define %inotify-rm-watch
+  (pointer->procedure int
+                      (dynamic-func "inotify_rm_watch" (dynamic-link))
+                      (list int int)))
+
+(define-public (inotify-init)
+  (let* ((ifd (%inotify-init))
+         (err (errno)))
+    (cond
+    ((>= ifd 0) ifd)
+    (else
+     (throw 'system-error "inotify-init" "~S: ~A"
+            (list size (strerror err))
+            (list err))))))
