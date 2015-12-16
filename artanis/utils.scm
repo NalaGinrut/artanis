@@ -41,7 +41,8 @@
   #:use-module (web request)
   #:use-module ((rnrs)
                 #:select (get-bytevector-all utf8->string put-bytevector
-                          bytevector-u8-ref string->utf8 bytevector-length))
+                          bytevector-u8-ref string->utf8 bytevector-length
+                          make-bytevector bytevector-s32-native-ref))
   #:export (regexp-split hash-keys cat bv-cat get-global-time
             get-local-time string->md5 unsafe-random string-substitute
             get-file-ext get-global-date get-local-date uri-decode
@@ -69,7 +70,8 @@
             subbv->string subbv=? bv-read-line bv-read-delimited put-bv
             bv-u8-index bv-u8-index-right build-bv-lookup-table filesize
             plist-remove gen-migrate-module-name try-to-load-migrate-cache
-            flush-to-migration-cache gen-local-conf-file with-dbd errno)
+            flush-to-migration-cache gen-local-conf-file with-dbd errno
+            c/struct-sizeof)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -981,3 +983,8 @@
                                            (sizeof int)))))))))
             (ref bv))))
       (lambda () 0)))
+
+(define (c/struct-sizeof meta)
+  (apply +
+         (map (lambda (m) (if (list? m) (c/struct-sizeof m) (sizeof m)))
+              meta)))
