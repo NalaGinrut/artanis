@@ -24,8 +24,21 @@
                           bytevector-s32-native-set!
                           bytevector-u32-native-ref
                           bytevector-u32-native-set!
-                          make-bytevector))
-  #:use-module (system foreign))
+                          make-bytevector
+                          define-record-type))
+  #:use-module (ice-9 match)
+  #:use-module (system foreign)
+  #:export (new-inotify-watcher
+            inotify-watch
+            inotify-clean-all-watch
+            make-inotify-watching-loop
+
+            make-inotify-event-iterator
+            watch-event-wd
+            watch-event-mask
+            watch-event-cookie
+            watch-event-len
+            watch-event-name))
 
 (define-public IN_CLOEXEC #o2000000)
 (define-public IN_NONBLOCK #o4000)
@@ -64,11 +77,19 @@
 (define-public IN_ONESHOT       #x80000000) ; Only send event once.
 
 ;; All events which a program can wait on.
-(define-public IN_ALL_EVENTS (logior
-                       IN_ACCESS IN_MODIFY IN_ATTRIB IN_CLOSE_WRITE
-                       IN_CLOSE_NOWRITE IN_OPEN IN_MOVED_FROM
-                       IN_MOVED_TO IN_CREATE IN_DELETE
-                       IN_DELETE_SELF IN_MOVE_SELF))
+(define-public IN_ALL_EVENTS
+  (logior
+   IN_ACCESS IN_MODIFY IN_ATTRIB IN_CLOSE_WRITE
+   IN_CLOSE_NOWRITE IN_OPEN IN_MOVED_FROM
+   IN_MOVED_TO IN_CREATE IN_DELETE
+   IN_DELETE_SELF IN_MOVE_SELF))
+
+(define-record-type inotify-watcher
+  (fields
+   (mutable fd)
+   (mutable wd)
+   (mutable paths)
+   buf))
 
 ;;;; Structure describing an inotify event.
 ;; struct inotify_event
@@ -79,9 +100,42 @@
 ;;  uint32_t len;         /* Length (including NULs) of name.  */
 ;;  char name __flexarr;  /* Name.  */
 ;; };
-(define inotify-event-meta (list int uint32 uint32 uint32 '*))
+(define inotify-event-meta (list int uint32 uint32 uint32))
+(define inotify-event-size (c/struct-sizeof inotify-event-meta))
 
+(define *max-buf* (* 1024 (+ inotify-event-size 16)))
 
+(define-record-type watch-event (fields wd mask cookie len name))
+
+(define (make-inotify-event-iterator buf size)
+  (let ((es buf) (cursor 0))
+    (lambda ()
+      (cond
+       ((>= cursor size) #f)
+       (else
+        (match (parse-c-struct es inotify-event-meta)
+          ((wd mask cookie len)
+           (let ((offset (+ len inotify-event-size)))
+             (let ((we (make-watch-event
+                        wd mask cookie len
+                        (pointer->string
+                         (bytevector->pointer
+                          (pointer->bytevector es len inotify-event-size))))))
+               (set! es (make-pointer (+ (pointer-address es) offset)))
+               (set! cursor (+ cursor offset))
+               we)))
+          (else (throw 'artanis-err 500
+                       "inotify - make-event-iterator: invalid struct!"
+                       (parse-c-struct es inotify-event-meta)))))))))
+
+(define inotify-guardian (make-guardian))
+(define (pump-inotify-guardian)
+  (let ((ies (inotify-guardian)))
+    (when ies
+          (format (current-error-port)
+                  "[WARN] inotify-watcher-buf was pumped, which I dislike!~%")
+          (pump-inotify-guardian))))
+(add-hook! after-gc-hook pump-inotify-guardian)
 
 (define %inotify-init
   (pointer->procedure int
@@ -98,12 +152,76 @@
                       (dynamic-func "inotify_rm_watch" (dynamic-link))
                       (list int int)))
 
-(define-public (inotify-init)
+(define (inotify-init)
   (let* ((ifd (%inotify-init))
          (err (errno)))
     (cond
-    ((>= ifd 0) ifd)
-    (else
-     (throw 'system-error "inotify-init" "~S: ~A"
-            (list size (strerror err))
-            (list err))))))
+     ((>= ifd 0) ifd)
+     (else
+      (throw 'system-error "inotify-init" "~S: ~A"
+             (list (strerror err))
+             (list err))))))
+
+(define (inotify-add-watch fd pathname mask)
+  (let* ((ret (%inotify-add-watch fd (string->pointer pathname) mask))
+         (err (errno)))
+    (cond
+     ((>= ret 0) ret)
+     (else
+      (throw 'system-error "inotify-add-watch" "~S: ~A"
+             (list (strerror err))
+             (list err))))))
+
+(define (inotify-rm-watch fd wd)
+  (let* ((ret (%inotify-rm-watch fd wd))
+         (err (errno)))
+    (cond
+     ((>= ret 0) ret)
+     (else
+      (throw 'system-error "inotify-rm-watch" "~S: ~A"
+             (list (strerror err))
+             (list err))))))
+
+(define (new-inotify-watcher)
+  (let ((buf (make-bytevector *max-buf*)))
+    (inotify-guardian buf)
+    (make-inotify-watcher (inotify-init) #f '() (bytevector->pointer buf))))
+
+(define* (inotify-watch paths #:optional (mask (logior IN_MODIFY IN_CREATE IN_DELETE)))
+  (let* ((w (new-inotify-watcher))
+         (fd (inotify-watcher-fd w)))
+    (inotify-watcher-wd-set!
+     w
+     (map (lambda (p)
+            (cons p (inotify-add-watch fd p mask)))
+          paths)) 
+    (inotify-watcher-paths-set! w paths)
+    w))
+
+(define (inotify-clean-all-watch w)
+  (for-each
+   (lambda (pp)
+     (inotify-rm-watch (inotify-watcher-fd w) (car pp)))
+   (inotify-watcher-paths-set! w '())))
+
+(define (inotify-clean-watch w p)
+  (let ((wd (assoc-ref (inotify-watcher-paths w) p)))
+    (cond
+     ((not wd) #f)
+     (else
+      (assoc-remove! (inotify-watcher-paths w) p)
+      (inotify-rm-watch (inotify-watcher-fd w) wd)))))
+
+(define posix-read
+  (pointer->procedure int
+                      (dynamic-func "read" (dynamic-link))
+                      (list int '* size_t)))
+
+(define-syntax-rule (make-inotify-watching-loop paths ...)
+  (let* ((w (inotify-watch (list paths ...)))
+         (fd (inotify-watcher-fd w))
+         (buf (inotify-watcher-buf w)))
+    (lambda ()
+      (select (list fd) '() '())
+      (let ((size (posix-read fd buf *max-buf*))) 
+        (make-inotify-event-iterator buf size)))))
