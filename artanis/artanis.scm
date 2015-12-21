@@ -29,6 +29,7 @@
   #:use-module (artanis route)
   #:use-module (artanis page)
   #:use-module (artanis upload)
+  #:use-module (artanis debug)
   #:use-module (artanis third-party csv)
   #:use-module (artanis third-party json)
   #:use-module (artanis version)
