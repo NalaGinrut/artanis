@@ -52,7 +52,7 @@ else
 V :=
 endif
 
-mod-sfile := $(shell find $(MOD) -name *.scm)
+mod-sfile := $(shell find $(MOD) -name *.scm | LC_COLLATE=C sort)
 mod-ofile := $(mod-sfile:.scm=.go)
 mod-ofile := $(subst $(MOD)/,$(MOD_OBJ)/,$(mod-ofile))
 
