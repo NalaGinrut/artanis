@@ -239,6 +239,14 @@
 (define p-tag (make-general-tag 'p))
 (define div-tag (make-general-tag 'div))
 
+(define (debug-mode:before-request-handler rc body)
+  (reload-monitored-files))
+
+(define (init-debug-mode)
+  (conf-set! 'debug-mode #t)
+  (init-debug-monitor)
+  (run-after-request! debug-mode:before-request-handler))
+
 ;; Invalid use-db? must be (dbd username passwd) or #f
 (define* (run #:key (host #f) (port #f) (debug #f) (use-db? #f)
               (dbd #f) (db-username #f) (db-passwd #f) (db-name #f))
@@ -259,7 +267,7 @@
   (and port (conf-set! '(host port) port))
   (when debug
     (display "DEBUG: ON\n")
-    (conf-set! 'debug-mode #t))
+    (init-debug-mode))
   (when (or use-db? (get-conf 'use-db?))
     (conf-set! 'use-db? #t)
     (display "User wants to use Database, initializing...\n")
