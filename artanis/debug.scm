@@ -21,15 +21,16 @@
   #:use-module (artanis utils)
   #:use-module (artanis config)
   #:use-module (artanis inotify)
+  #:use-module (ice-9 match)
   #:export (init-debug-monitor
             reload-monitored-files))
 
 ;; FIXME: Here we just add MVC modules to monitored list, feel free
 ;;        to add more if it's necessary.
 (define *monitored-files*
-  '("app/models" "app/views" "app/controllers"))
+  '("app/models" "app/controllers"))
 
-(define debug-file-watcher "[ERR] You're not in debug mode!")
+(define debug-file-watcher-loop "[ERR] You're not in debug mode!")
 
 ;; FIXME: do we need to monitor deleted files? how?
 (define (init-debug-monitor)
