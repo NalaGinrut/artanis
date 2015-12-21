@@ -111,7 +111,7 @@
   (let ((es buf) (cursor 0))
     (lambda ()
       (cond
-       ((>= cursor size) #f)
+       ((>= cursor size) 'inotify-event-itorator-end)
        (else
         (match (parse-c-struct es inotify-event-meta)
           ((wd mask cookie len)
