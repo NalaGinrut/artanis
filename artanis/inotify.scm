@@ -34,6 +34,8 @@
             make-inotify-watching-loop
 
             make-inotify-event-iterator
+            watch-event
+            watch-event?
             watch-event-wd
             watch-event-mask
             watch-event-cookie
