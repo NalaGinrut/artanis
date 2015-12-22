@@ -28,6 +28,9 @@
            "certificated awesome project"))
     (h3 (@ (id "the-author")) "Authored by " 
        (a (@ (id "the-author") (href "http://nalaginrut.com")) "NalaGinrut"))
+    (a (@ (href "http://gnu.org/s/artanis"))
+       (img (@ (src "http://www.gnu.org/graphics/heckert_gnu.small.png")
+            (height "80") (width "80"))))
     (a (@ (href "http://szdiy.org"))
        (img (@ (src "http://wiki.szdiy.org/skins/common/images/szdiy.png")
                (height "100") (width "100"))))
