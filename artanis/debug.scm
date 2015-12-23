@@ -19,44 +19,80 @@
 
 (define-module (artanis debug)
   #:use-module (artanis utils)
+  #:use-module (artanis env)
   #:use-module (artanis config)
   #:use-module (artanis inotify)
+  #:use-module (artanis irregex)
+  #:use-module (artanis mvc controller)
+  #:use-module (artanis mvc model)
   #:use-module (ice-9 match)
   #:export (init-debug-monitor
             reload-monitored-files))
+
+;; === NOTE!!! ===
+;; DEBUG mode provides module-files monitoring for convinient, but it'll
+;; be very slow when you enable it (slower than 500ms per request).
+;; So please make sure you disable it when you done debug.
 
 ;; FIXME: Here we just add MVC modules to monitored list, feel free
 ;;        to add more if it's necessary.
 (define *monitored-files*
   '("app/models" "app/controllers"))
 
-(define debug-file-watcher-loop "[ERR] You're not in debug mode!")
+(define debug-file-watcher-loops "[ERR] You're not in debug mode!")
 
 ;; FIXME: do we need to monitor deleted files? how?
 (define (init-debug-monitor)
-  (set! debug-file-watcher-loop
-        (make-inotify-watching-loop *monitored-files*)))
+  (set! debug-file-watcher-loops
+        (map (lambda (p)
+               (cons p (make-inotify-watching-loop p)))
+             (append *monitored-files* (get-conf '(debug monitor))))))
 
-(define (get-all-changed-files)
-  (let ((itorator (debug-file-watcher-loop)))
+;; TODO: Here we should get rid of various temp files, include Emacs'.
+;;       Feel free to add more if any necessary.
+(define *valid-mod-re* (string->sre "^[^.#$~]+[.]scm$"))
+(define (get-all-changed-files p)
+  (define (is-valid-module-file? f)
+    (irregex-match *valid-mod-re* f))
+  (let ((itorator ((assoc-ref debug-file-watcher-loops p))))
     (let lp((event (itorator)) (ret '()))
       (match event
         ('inotify-event-itorator-end
-         (when (get-conf 'debug-mode)
-               (format (current-error-port)
-                       "[DEBUG] Files monitoring traverse to end!")))
-       (($ watch-event _ wd mask cookie len name)
-        (if (logand mask IN_CREATE IN_MODIFY IN_DELETE) 
-            (lp (itorator) (cons name ret))
-            (lp (itorator) ret)))
-       (else (throw 'artanis-err 500
-                    "[DEBUG] get-all-changed-files: Invalid event returned!"
-                    event))))))
+         (format (current-error-port) "[DEBUG] ~a monitor traverse end!~%" p)
+         ret)
+        (($ watch-event _ wd mask cookie len name)
+         (cond
+          ((and (is-valid-module-file? name) ; ignore non-module file
+                (logand mask IN_CREATE IN_MODIFY IN_DELETE))
+           (format (current-error-port)
+                   "File `~a/~a' changed, need to reload!~%" p name)
+           (lp (itorator) (cons name ret)))
+          (else (lp (itorator) ret))))
+        (else (throw 'artanis-err 500
+                     "[DEBUG] get-all-changed-files: Invalid event returned!"
+                     event))))))
+
+(define (reload-rules)
+  ((@@ (artanis commands work) register-rules))
+  ((@@ (artanis commands work) load-rules)))
 
 (define (reload-monitored-files)
-  (define (file->module filename)
-    (let ((ll (map string-trim-both (string-split filename #\/))))
-      (resolve-module ll 'autoload))) ; enable autoload
-  (for-each
-   (lambda (f) (reload-module (file->module f)))
-   get-all-changed-files))
+  (define (reload-module-with-path path)
+    (define (re-init-work)
+      ((@@ (artanis commands work) clean-stuffs))
+      (when (string=? path "app/controllers")
+            (hash-clear! *controllers-table*))) ; clean all rules
+    (define (do-some-magic)
+      (match path
+        ("app/models" (use-modules (artanis mvc model)))
+        ("app/controllers" (use-modules (artanis mvc controller)))
+        (else #t)))
+    (re-init-work)
+    (for-each
+     (lambda (f)
+       (do-some-magic)
+       (load (format #f "~a/~a/~a" (current-toplevel) path f)))
+     (get-all-changed-files path))
+    (reload-rules))
+  (for-each reload-module-with-path
+            (append *monitored-files* (get-conf '(debug monitor)))))
