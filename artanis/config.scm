@@ -78,7 +78,10 @@
     ;; ((mail sender) "/usr/sbin/sendmail")
 
     ;; for cache namespace
-    ((cache maxage) 3600)))
+    ((cache maxage) 3600)
+
+    ;; for debug mode
+    ((debug monitor) ""))) ; user specified monitoring paths
 
 ;; Init all fields with default values
 (for-each (lambda (x) (conf-set! (car x) (cadr x))) (default-conf-values))
@@ -92,7 +95,7 @@
 (define-syntax-rule (->list x)
   (map (lambda (e)
          (string->symbol (string-trim-both e)))
-       (string-split x #\,)))
+       (filter (lambda (s) (not (string-null? s))) (string-split x #\,))))
 
 (define-syntax-rule (->none/str x)
   (case (string->symbol (string-downcase x))
@@ -166,6 +169,11 @@
     (('maxage maxage) (conf-set! '(cache maxage) (->integer maxage)))
     (else (error parse-namespace-mail "Config: Invalid item" item))))
 
+(define (parse-namespace-debug item)
+  (match item
+    (('monitor monitor) (conf-set! '(debug monitor) (->list monitor)))
+    (else (error parse-namespace-cache "Config: Invalid item" item))))
+
 (define (parse-config-item item)
   (match item
     (('db rest ...) (parse-namespace-db rest))
@@ -175,6 +183,7 @@
     (('upload rest ...) (parse-namespace-upload rest))
     (('mail rest ...) (parse-namespace-mail rest))
     (('cache rest ...) (parse-namespace-cache rest))
+    (('debug rest ...) (parse-namespace-debug rest))
     (((? string-null?)) #t) ; skip
     (else (error parse-config-item "Unsupported config namespace!" item))))
 
