@@ -25,34 +25,31 @@ Texts.  A copy of the license is included in the section entitled ``GNU
 Free Documentation License''.
 #+end_src
 
-
-GNU Artanis is a web application framework(WAF) written in [[http://www.gnu.org/software/guile/][Guile Scheme]].
+This manual describes the use of GNU Artanis and its API.
 
 A [[http://en.wikipedia.org/wiki/Web_application_framework][web application framework (WAF)]] is a software framework that is designed to support the development of dynamic websites,
 web applications, web services and web resources.
 The framework aims to alleviate the overhead associated with common activities performed in web development.
 GNU Artanis provides several tools for web development: database access, templating frameworks, session management, [[http://en.wikipedia.org/wiki/Rewrite_engine][URL-remapping]] for [[http://en.wikipedia.org/wiki/Representational_state_transfer][RESTful]], page caching, and so on.
 
-This manual describes how to use GNU Artanis, and usage of APIs.
-
 Guile is the GNU Ubiquitous Intelligent Language for Extensions, the official extension language for the [[http://www.gnu.org/][GNU operating system]].
 Guile is also an interpreter and compiler for other dynamic programming languages except Scheme programming language.
 
 [[http://en.wikipedia.org/wiki/Scheme_%28programming_language%29][Scheme]] is a functional programming language and one of the two main dialects of the programming language [[http://en.wikipedia.org/wiki/Lisp_(programming_language)][Lisp]].
 Scheme follows a minimalist design philosophy specifying a small standard core with powerful tools for language extension.
-** Conventions
-In this manual, we'll use this kind of syntax to indicate the usage of API:
+** Conventions used in this manual
+In this manual the following syntax is used to demonstrate the use of the API:
 #+begin_src scheme
 (api-name arg1 arg2 #:key0 val0 ... [optional-arg1 <- default-value1] ...) 
 #+end_src
-If you're not comfortable with this syntax, maybe you're a newbie of Scheme, and I would recommend you read [[Basic in Scheme][Basic in Scheme]] chapter first.
+If you are new to Scheme, it is recommended that you read the [[Basic in Scheme][Basic in Scheme]] chapter first.
 ** No warranty
 We distribute software in the hope that it will be useful, but without any warranty. No author or distributor of this software accepts responsibility to anyone for the consequences of using it or for whether it serves any particular purpose or works at all, unless they say so in writing. This is exactly the same warranty that proprietary software companies offer: none.
 * License
 GNU Artanis is [[http://www.gnu.org/philosophy/free-sw.html][Free Software]]. GNU Artanis is under the terms of the GNU Lesser General Public License version 3 or later.
 See the files COPYING.LESSER and COPYING in toplevel of source code.
 
-The manual you’re now reading is published under the terms of the [[http://www.gnu.org/copyleft/fdl.html][GNU Free Documentation License]] 1.3 or later.
+This manual is published under the terms of the [[http://www.gnu.org/copyleft/fdl.html][GNU Free Documentation License]] 1.3 or later.
 
 */You must be aware there is no warranty whatsoever for GNU Artanis. This is described in full in the licenses./*
 * Installation
@@ -75,7 +72,7 @@ sudo zypper install guile guile-devel
 sudo dnf install guile guile-devel
 #+end_src
 
-+ For LFS Guru
++ For LFS(Linux From Scratch) Guru
 #+begin_src null
 wget -c ftp://ftp.gnu.org/gnu/guile/guile-2.0.11.tar.gz
 tar xvzf guile-2.0.11.tar.gz
@@ -95,14 +92,14 @@ cd guile-dbi-2.1.5 && ./configure && make
 sudo make install
 #+end_src
 
-+ guile-dbd *[Optional]*, there're three dbd, mysql/postgresql/sqlite3
++ guile-dbd *[Optional]*. The dbd plugins connect to an actual database server.
 #+begin_src null
 wget -c http://download.gna.org/guile-dbi/guile-dbd-mysql-2.1.4.tar.gz
 tar xvzf guile-dbd-mysql-2.1.4.tar.gz
 cd guile-dbd-mysql-2.1.4 && ./configure && make
 sudo make install
 #+end_src
-You may find other dbd [[ttp://download.gna.org/guile-dbi][here]]. And the installation is similar.
+MySQL is used for the examples in this manual. You may find dbd plugins for other databases at [[ttp://download.gna.org/guile-dbi][here]]. The installation process is identical.
 
 *Install the latest GNU Artanis:*
 
@@ -114,11 +111,7 @@ sudo make install
 #+end_src
 
 ** For contributors
-First, thanks for you contributions!
-
-If you're comfortable with [[https://github.com/NalaGinrut/artanis][GitHub]], then just follow the steps which you've already known.
-
-Anyway, here's the git repo:
+First of all, thank you for contributing! You may clone the main git repository, or the mirror on GitHub: 
 
 #+begin_src null
 git clone git://git.savannah.gnu.org/artanis.git
@@ -127,17 +120,16 @@ git clone git://git.savannah.gnu.org/artanis.git
 git clone git@github.com:NalaGinrut/artanis.git
 #+end_src
 ** Configuration
-Before the first time to run, GNU Artanis needs a config file whose name is =/etc/artanis/artanis.conf=.
+A configuration file is required when Artanis is run for the first time. This file must be named =/etc/artanis/artanis.conf=.
 
 The config items are listed below:
 
 (To be continued ...) 
 * Hello World
 ** Use Guile REPL and verify GNU Artanis installation
+If you are already familiar with Guile, you may skip this section.
 
-If you're NOT freshman of Guile, please skip this section.
-
-Just type `guile' in your console to enter Guile REPL, and you will see this screen:
+Type `guile' in your console to enter the Guile REPL. You should see the following text displayed on your screen:
 #+begin_src null
 GNU Guile 2.0.11
 Copyright (C) 1995-2014 Free Software Foundation, Inc.
@@ -150,9 +142,7 @@ Enter `,help' for help.
 scheme@(guile-user)>
 #+end_src
 
-Welcome to Guile world!
-
-Now, we're going to play GNU Artanis. Before we start, please follow these instructions in the REPL to ensure that you installed GNU Artanis correctly:
+Welcome to Guile world! We are now going to play with GNU Artanis. Before we start, we need to check that GNU Artanis is installed correctly:
 
 *(Just type them, you don't have to understand them at present)*
 
@@ -196,7 +186,7 @@ Let me explain these code.
 + /line 2:/ The first argument /get/ is GNU Artanis API corresponding to GET method in HTTP protocol. The second argument "/hello" is the URL rule to register. The Third argument is the handler which will be triggered if the registered URL rule is hit.
 
 
-+ /line 3:/ Run GNU Artanis server, and listenning socket port 8080.
++ /line 3:/ Run GNU Artanis server, and listening socket port 8080.
 
 You may type Ctrl+C to quit the server according to the hint from your screen.
 ** More complex URL remapping
@@ -249,7 +239,7 @@ You can use DB without running a server.
 + And we can use /mtable/ to handle tables, you can get values from table with 'get command. 
 
 
-+ /mtable/ is a functon which accepts the first argument as a command, say 'create is a command to create a new table; 'set command is used to insert/update the table; 'get command for fetch the values of specified columns.
++ /mtable/ is a function which accepts the first argument as a command, say 'create is a command to create a new table; 'set command is used to insert/update the table; 'get command for fetch the values of specified columns.
 
 
 + The second argument of /mtable/ is the name of the table as you guess. Please note that it's case sensitive. But the columns name could be case insensitive.
@@ -284,7 +274,7 @@ Here're some explains:
 This chapter introduces some useful documents to help you understand Scheme language well.
 Feel free to come back here if you have any problem with Scheme syntax.
 
-If any possbile, read them again and again. 
+If any possibile, read them again and again. 
 
 Scheme was introduced in 1975 by Gerald J. Sussman and Guy L. Steele Jr. and was the first dialect of Lisp to fully support lexical scoping,
 first-class procedures, and continuations. In its earliest form it was a small language intended primarily for research and teaching,
@@ -305,9 +295,9 @@ I would recommend newbies to type/paste the code in Guile REPL following the gui
 And here's a nice section in Guile manual for basics in Scheme:
 [[https://www.gnu.org/software/guile/manual/guile.html#Hello-Scheme_0021][Hello Scheme]]
 
-Please don't spend too much time on these tutorials, the purose is to let newbies get a little familiar with the grammar of Scheme.
+Please don't spend too much time on these tutorials, the purpose is to let newbies get a little familiar with the grammar of Scheme.
 
-** For Pythoners
+** For Pythonistas
 
 These are good articles for Pythoners:
 
@@ -326,7 +316,7 @@ These two books are very good for learning Scheme seriously:
 1. [[http://www.scheme.com/tspl4/][The Scheme Programming Language]]
 2. [[http://mitpress.mit.edu/sicp/][Structure and Interpretation of Computer Programs(SICP)]]
 
-Please don't read them if you just want to use GNU Artanis to build your webapp/site in few minutes.
+Please don't read them if you just want to use GNU Artanis to build your web application/site in few minutes.
 
 If you really want to try these books seriously, please ignore GNU Artanis before you done them.
 
@@ -349,11 +339,11 @@ It's better to use (init-server) to init GNU Artanis.
 #+begin_src scheme
 (init-server #:statics '(png jpg jpeg ico html js css) #:cache-statics? #f #:exclude '())
 #+end_src
-src_scheme[:exports code]{#:statics} specifies the static files with the extension file. GNU Artanis is based on URL remapping, so this keyword let you avoid to handle each static file types. In default, it coveres the most static file types. So you may ignore it usually.
+src_scheme[:exports code]{#:statics} specifies the static files with the extension file. GNU Artanis is based on URL remapping, so this keyword let you avoid to handle each static file types. In default, it covers the most static file types. So you may ignore it usually.
 
 src_scheme[:exports code]{#:cache-statics?} indicates if the static files should be cached.
 
-src_scheme[:exports code]{#:exclude} specifies the types should be excluded. This is useful when you want to generate image files dynamically. Even js/css could be generated dynamically, depends your design.
+src_scheme[:exports code]{#:exclude} specifies the types should be excluded. This is useful when you want to generate image files dynamically. Even JavaScript/CSS could be generated dynamically, depends your design.
 ** Registering handler of HTTP methods
 Please read [[URL handling][URL handling]].
 ** Emit Response
@@ -431,7 +421,7 @@ And run GNU Artanis:
 GNU Artanis provides *art* command line tool to save users' time.
 ** art create
 If you want to set up your site/app within an application folder, and take
-advatage of MVC, you have to use this command to create the application
+advantage of MVC, you have to use this command to create the application
 folder first.
 
 #+begin_src nil
@@ -563,11 +553,11 @@ For other DB operation, please read [[FPRM (experimental)][FPRM]].
 * URL remapping
 ** Introduction to URL remapping
 URL remapping is used to modify a web URL's appearance to provide short, pretty or fancy, search engine friendly URLs. 
-It's largly used in modern WAF(web application framework) to provide RESTful web APIs.
+It's largely used in modern WAF(web application framework) to provide RESTful web APIs.
 ** URL handling
 According to RFC2616, there're GET, POST, PUT, PATCH and DELETE methods. You may register handler for specified URL rule to these methods.
 
-/There'd be HEAD method, but in GNU Artanis, HEAD method is handled by the server, users can't use it./
+/There would be HEAD method, but in GNU Artanis, HEAD method is handled by the server, users can't use it./
 
 The usage:
 #+begin_src scheme
@@ -599,7 +589,7 @@ For POST method:
 #+begin_src scheme
 (post "/auth" (lambda (rc) ...))
 #+end_src
-** Get params from URL
+** Get parameters from URL
 #+begin_src scheme
 (params rc name)
 ;; e.g 
@@ -687,9 +677,9 @@ Then see http://localhost:3000/test in your browser.
 ** SXML Templating
 [[http://en.wikipedia.org/wiki/SXML][SXML]] is an alternative syntax for writing XML data, using the form of S-expressions.
 
-SXML is to Scheme as JSON is to ECMAScript(the so-called javascript). Maybe this explains clearer.
+SXML is to Scheme as JSON is to ECMAScript(the so-called Javascript). Maybe this explains clearer.
 
-The benifit of SXML is to take advantage of quasiquote in Scheme. If you no little about it, then you may google "scheme quasiquote" for more details.
+The benefit of SXML is to take advantage of quasiquote in Scheme. If you no little about it, then you may google "scheme quasiquote" for more details.
 
 #+begin_src scheme
 (tpl->response '(html (body (p (@ (id "content")) "hello world"))))
@@ -839,10 +829,10 @@ FPRM stands for Functional Programming Relational Mapping. It's a new word I inv
 + src_scheme[:exports code]{#:db-name} specifies the DB name.
 
 
-+ src_scheme[:exports code]{#:db-username} specifis the DB username.
++ src_scheme[:exports code]{#:db-username} specifies the DB username.
 
 
-+ src_scheme[:exports code]{#:proto} specifies the socket protocol, which is related to DB server you choosen.
++ src_scheme[:exports code]{#:proto} specifies the socket protocol, which is related to DB server you chosen.
 
 
 + src_scheme[:exports code]{#:host} specifies the host name.
@@ -861,7 +851,7 @@ These two points may decrease the power of FPRM, but our main philosophy in GNU 
 + /The best way to control DB is SQL, don't bother with other guile schemes./
 
 That means we're not going to develop a complicated ORM in GNU Artanis, but a promising way to interact with SQL easily.
-This is what [[SQL Mapping (experimental)][SQL Mapping]] provided. FPRM aims to reduce states & complexity to privide reliabality, and SQL-Mapping will provide a convenient way
+This is what [[SQL Mapping (experimental)][SQL Mapping]] provided. FPRM aims to reduce states & complexity to provide reliability, and SQL-Mapping will provide a convenient way
 to handle complex SQL for better performance and security (from SQL-Injection). 
 
 #+begin_src scheme
@@ -940,7 +930,7 @@ For example:
 #+begin_src scheme
 (m 'drop table-name)
 #+end_src
-*** Check existance of table
+*** Check existence of table
 #+begin_src scheme
 ;; case sensitive
 (m 'exists? table-name . columns)
@@ -957,7 +947,7 @@ For example:
 (m 'schema table-name)
 #+end_src
 
-/NOTE: all the returned name of schema will be downcased./
+/NOTE: all the returned name of schema will be down-cased./
 ** SQL Mapping (experimental)
 To be continued ...
 * MIME
@@ -967,7 +957,7 @@ src_scheme[:exports code]{#:mime} method is used to return the proper MIME type 
 (:mime rc body) ; for emit the reponse with the proper MIME 
 #+end_src
 ** JSON
-GNU Artanis intergrated the third-party module [[https://github.com/aconchillo/guile-json][guile-json]]. 
+GNU Artanis integrated the third-party module [[https://github.com/aconchillo/guile-json][guile-json]]. 
 You may use #:mime method to handle JSON:
 #+begin_src scheme
 (get "/json" #:mime 'json
@@ -991,9 +981,9 @@ For example:
 
 src_scheme[:exports code]{scm->json} will print the result directly.
 
-If you need to format json as a string to return to clients, please use src_scheme[:exports code]{scm->json-string}. 
+If you need to format JSON as a string to return to clients, please use src_scheme[:exports code]{scm->json-string}. 
 ** CSV
-GNU Artanis intergrated the third-party module [[https://github.com/NalaGinrut/guile-csv][guile-csv]]. You may use #:mime method to handle CSV:
+GNU Artanis integrated the third-party module [[https://github.com/NalaGinrut/guile-csv][guile-csv]]. You may use #:mime method to handle CSV:
 #+begin_src scheme
 (get "/csv" #:mime 'csv
   (lambda (rc)
@@ -1031,12 +1021,12 @@ If you want to deal with uploading files, store-uploaded-files would be you frie
 
 src_scheme[:exports code]{#:path} is specified path to put uploaded files.
 
-src_scheme[:exports code]{#:uid} is new uid for uploaded files, #f means don't change the default uid.
+src_scheme[:exports code]{#:uid} is new UID for uploaded files, #f means don't change the default UID.
 
-src_scheme[:exports code]{#:gid} specifies new gid.
+src_scheme[:exports code]{#:gid} specifies new GID.
 
 src_scheme[:exports code]{#:simple-ret?} specifies the mode of return:
-+ if #t, there're only two possible return value, 'sucess for sucess, 'none for nothing has been done.
++ if #t, there're only two possible return value, 'success for sucess, 'none for nothing has been done.
 + if #f, and while it's successful, it returns a list to show more detais: (success size-list filename-list).
 
 src_scheme[:exports code]{#:mode} chmod files to mode.
@@ -1069,7 +1059,7 @@ You have to use src_scheme[:exports code]{#:session mode} while you defining URL
 #+end_src
 
 *mode* could be:
-+ #t or 'spawn, to spawn a new session, the name of sid is "sid" in default.
++ #t or 'spawn, to spawn a new session, the name of SID is "sid" in default.
 + `(spawn ,sid) specify a name of sid to spawn.
 + `(spawn ,sid ,proc) specify a name of sid and a proc to *define your own session spawner*.
 
@@ -1082,7 +1072,7 @@ And the APIs of session is :session
 +  'check to check session with name "sid".
 +  `(check ,sid) to check session with a specified sid name.
 +  'check-and-spawn check "sid" first, if no, then spawn it.
-+  `(check-and-spawn ,sid) the same with above, but specifed name of sid.
++  `(check-and-spawn ,sid) the same with above, but specified name of sid.
 +  `(check-and-spawn-and-keep ,sid) check then spawn then keep it, with the name of sid.
 +  'spawn spawn a session with the name "sid".
 +  'spawn-and-keep spawn a session then keep with the name "sid".
@@ -1095,7 +1085,7 @@ You have to use src_scheme[:exports code]{#:cookies mode} while you defining URL
 
 *mode* could be:
 + ('names names ...) specifies the name list of the cookies.
-+ ('custom (names ...) maker setter getter modifier) specify a more complicated customized cookie handers.
++ ('custom (names ...) maker setter getter modifier) specify a more complicated customized cookie handlers.
 
 And the APIs:
 #+begin_src scheme
@@ -1143,7 +1133,7 @@ You have to use src_scheme[:exports code]{#:auth mode} while you defining URL ru
 #+end_src
 
 *mode* could be:
-+ SQL as [[String Template][string template]]. You may write your own customized SQL for fetching & checking username and passwd.
++ SQL as [[String Template][string template]]. You may write your own customized SQL for fetching & checking username and password.
 + ('basic (lambda (rc user passwd) ...)) init a Basic Authentication mode. /user/ is submitted username, /passwd/ is submitted password value.
 + ('table table-name username-field passwd-field) init a common Authentication mode. *The passwd will be encrypted by default algorithm*.
 + ('table table-name username-field passwd-field crypto-proc) similar to the above item, but encrypt passwd with crypto-proc.
@@ -1216,7 +1206,7 @@ You have to use src_scheme[:exports code]{#:cache mode} while you defining URL r
 + src_scheme[:exports code]{('public filename [maxage <- 3600])} Allow proxies cache the content of specified static file. If HTTP authentication is required, responses are automatically private.
 + src_scheme[:exports code]{('private filename [maxage <- 3600])} Not-Allow proxies cache the content of specified static file.
 
-Let's see the simplest cache test (for dynamica content):
+Let's see the simplest cache test (for dynamic content):
 #+begin_src scheme
 (get "/new" #:cache #t
   (lambda (rc)
@@ -1293,6 +1283,35 @@ GNU Artanis provides simple interfaces for stack & queue:
 (queue-remove! q key)
 (queue-empty? q)
 #+end_src
+* Debug mode
+GNU Artanis provides debug-mode for more convenient debug. You may enable it easy.
+
+For the simplest way, pass src_scheme[:exports code]{#:debug #t} when calling src_scheme[:exports code]{run} function:
+#+BEGIN_SRC scheme
+(run #:debug #t)
+#+END_SRC
+
+If you use MVC or created an app folder, just pass --debug or -g:
+#+BEGIN_SRC scheme
+# In app folder
+art work --debug
+# Or
+art work -g
+#+END_SRC
+
+When you enabled debug-mode, the Model and Controller modules written by you will be reloaded automatically
+on the fly.
+
+If */not/*, you have to Ctrl+C to quit GNU Artanis server and start it again. This saves your time.
+
+And you may add paths to monitor certain files (for an instance, JSON as config file to be reloaded on the fly)
+if you want to be notified when they're changed. Just put
+the paths here:
+#+BEGIN_SRC conf
+debug.monitor = my/lib/json, my/lib/modules
+#+END_SRC
+
+
 * Appendix A GNU Free Documentation License
 Version 1.3, 3 November 2008
 Copyright © 2000, 2001, 2002, 2007, 2008 Free Software Foundation, Inc.
