@@ -239,7 +239,7 @@ host.family = ipv4 | ipv6
 + Specify the connection family, it's useless before Artanis-0.2.
 + Please just ignore it now.
 ** Session config
-/Session config may not work fine, since the session module hasn't done well yet. You have to use `simple' engine at present. And do not modify anything below.*/
+/*Session config may not work fine, since the session module hasn't done well yet. You have to use `simple' engine at present. And do not modify anything below.*/
 #+BEGIN_SRC conf
 session.path = <PATH>
 #+END_SRC
