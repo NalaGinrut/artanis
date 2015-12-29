@@ -22,3 +22,10 @@ Changes in 0.1.0
   Command line tools.
   Fixed many bugs.
   Add several test cases.
+
+Changes in 0.1.1
+* Notable changes
+  Added debug-mode, which can reload modules/specified files on the fly.
+  Added inotify support.
+  Fixed several bugs.
+  Updated manual.
