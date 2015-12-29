@@ -119,12 +119,160 @@ git clone git://git.savannah.gnu.org/artanis.git
 # mirror on Github
 git clone git@github.com:NalaGinrut/artanis.git
 #+end_src
-** Configuration
-A configuration file is required when Artanis is run for the first time. This file must be named =/etc/artanis/artanis.conf=.
+* Configuration
+A configuration file is required when Artanis is run for the first time.
 
-The config items are listed below:
++ If you're using minimum mode, say, no application folder. The configure file must be named src_conf[:exports code]{/etc/artanis/artanis.conf}.
 
-(To be continued ...) 
++ If you're using application folder, the configure file src_conf[:exports code]{conf/artanis.conf} will be generated automatically for you.
+** Database config 
+#+BEGIN_SRC conf
+db.enable = enable | disable
+#+END_SRC
++ Whether to use database, if disabled, the database won't be initialized in the beginning, which saves memeories and boot time.
+
+#+BEGIN_SRC conf
+db.dbd = mysql | postgresql | sqlite3
+#+END_SRC
++ What database server should be used, depends on the database installed on your machine.
+
+#+BEGIN_SRC conf
+db.port = <integer>
+#+END_SRC
++ Port number specified by the database server, depends on the specific database. Please read the manual of the database server you chosen.
+
+#+BEGIN_SRC conf
+db.addr = <string>
+#+END_SRC
++ The address of the database server, */localhost/* in default. 
+
+#+BEGIN_SRC conf
+db.socket = enable | disable
+#+END_SRC
++ If you configured the database server to listen on a socket rather than to load a database file (say, sqlite3), then please enable it. You may need to read the database manual.
+
+#+BEGIN_SRC conf
+db.username = <string>
+#+END_SRC
++ User name of the database server.
+
+#+BEGIN_SRC conf
+db.passwd = <string>
+#+END_SRC
++ Password of the database server.
+
+#+BEGIN_SRC conf
+db.name = <string>
+#+END_SRC
++ The database name of the database server.
+
+#+BEGIN_SRC conf
+db.engine = <string>
+#+END_SRC
++ The engine of the database server.
++ */NOTE:/* for sqlite3, you have to set it to nothing, say src_conf[:exports code]{db.engine = }. If you remove this item at all, it'll be */InnoDB/* in default!
+** Server config
+#+BEGIN_SRC conf
+server.info = <string>
+#+END_SRC
++ Specify your own server info, it'll be /*Artanis-x.x.x/* in default, depends on the version.
+
+#+BEGIN_SRC conf
+server.nginx = enable | disable
+#+END_SRC
++ If you used Nginx as the reversed-proxy, please enable it.
+
+#+BEGIN_SRC conf
+server.charset = <string>
+#+END_SRC
++ Charset in server side. /*utf-8*/ in default.
++ /*Note:*/ Don't change it unless you know what you're doing!
+
+#+BEGIN_SRC conf
+server.syspage.path = /etc/artanis/pages
+#+END_SRC
++ The path of status page. You may customize your own status pages.
+
+#+BEGIN_SRC conf
+server.backlog = <integer>
+#+END_SRC
++ Backlog of the socket.
++ /*Note:*/ Don't change it unless you really know what you're doing!
+
+#+BEGIN_SRC conf
+server.workers = <integer>
+#+END_SRC
++ The number of works in Artanis server core.
++ /*Note:*/ This item won't work before Artanis-0.2. So just ingore it.
+
+#+BEGIN_SRC conf
+server.wqlen = <integer>
+#+END_SRC
++ The length of the work queue in Artanis server.
++ /*Note:*/ This item won't work before Artanis-0.2. So just ingore it.
+
+#+BEGIN_SRC conf
+server.trigger = <string>
+#+END_SRC
++ The trigger mode of Epoll.
++ /*Note:*/ This item won't work before Artanis-0.2. So just ingore it.
+
+** Host config
+#+BEGIN_SRC conf
+host.name = enable | disable
+#+END_SRC
++ If disabled, you have to set the address to IP, say, src_conf[:exports code]{host.addr = 127.0.0.1}.
+
+#+BEGIN_SRC conf
+host.addr = <URL> | <IP>
+#+END_SRC
++ The host address of the site.
+
+#+BEGIN_SRC conf
+host.port = <integer>
+#+END_SRC
++ The listen port of your hosting site.
+
+#+BEGIN_SRC conf
+host.family = ipv4 | ipv6
+#+END_SRC
++ Specify the connection family, it's useless before Artanis-0.2.
++ Please just ignore it now.
+** Session config
+/Session config may not work fine, since the session module hasn't done well yet. You have to use `simple' engine at present. And do not modify anything below.*/
+#+BEGIN_SRC conf
+session.path = <PATH>
+#+END_SRC
++ Specify the session files path. It depends on the session engine.
+
+#+BEGIN_SRC conf
+session.engine = simple | db | redis | <certain-third-party>
+#+END_SRC
++ Specify session engine.
++ /*Note:*/ Keep it `simple' unless this note removed away someday!
+** Upload config
+#+BEGIN_SRC conf
+upload.types = <string>
+#+END_SRC
++ Specify allowed upload file type, say, src_conf[:exports code]{upload.types = jpg,png,gif}.
++ /*Note:*/ This item is useless before Artanis-0.2.
+
+#+BEGIN_SRC conf
+upload.path = <PATH>
+#+END_SRC
++ The path to put the uploaded files.
+** Cache config 
+#+BEGIN_SRC conf
+cache.maxage = <integer>
+#+END_SRC
++ The maximum age of cached page in seconds.
++ This is the global maxage of any cache. If you want to specify maxage for certain page, please read [[Cache][Cache]].
+** Debug config
+#+BEGIN_SRC conf
+debug.monitor = <PATHs>
+#+END_SRC
++ The paths need to be monitored in debug-mode. This will take advantage of `inotify' in GNU/Linux kernel.
++ /*Note:*/ We may support GNU/Hurd as well, by its file monitor mechanism, in the future.
 * Hello World
 ** Use Guile REPL and verify GNU Artanis installation
 If you are already familiar with Guile, you may skip this section.
