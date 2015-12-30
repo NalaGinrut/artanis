@@ -91,7 +91,7 @@ a.github span {color:#999;padding:0px 3px}
 }
 #main strong {color:black;font-weight:bold;}
 #main a {color:#e00707;text-decoration:none;}
-#main a:hover {color:#fff;text-decoration:underline;}
+#main a:hover {background: #e00707;color:#fff;text-decoration:underline;}
 #main.home .wrap{padding-top:10px;}
 #main .wrap {
   height:100%;
