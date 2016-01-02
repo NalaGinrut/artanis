@@ -103,7 +103,7 @@
 ;;  char name __flexarr;  /* Name.  */
 ;; };
 (define inotify-event-meta (list int uint32 uint32 uint32))
-(define inotify-event-size (c/struct-sizeof inotify-event-meta))
+(define inotify-event-size (sizeof inotify-event-meta))
 
 (define *max-buf* (* 1024 (+ inotify-event-size 16)))
 
