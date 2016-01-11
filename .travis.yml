@@ -7,8 +7,8 @@ before_install:
   - uname -a
   - lsb_release -a
   - sudo apt-get -qq update
-  - time sudo apt-get build-dep guile-2.0
-  - time sudo apt-get -qq install automake autoconf libtool libmysqlclient-dev libmysqld-dev
+  - time sudo apt-get -qq -y build-dep guile-2.0
+  - time sudo apt-get -qq -y install automake autoconf libtool libmysqlclient-dev libmysqld-dev
 
 before_script:
   - wget ftp://ftp.gnu.org/gnu/guile/guile-2.0.11.tar.gz
