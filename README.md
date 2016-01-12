@@ -6,17 +6,18 @@ GNU Artanis
 [![Join the chat at https://gitter.im/NalaGinrut/artanis](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/NalaGinrut/artanis?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 GNU Artanis aims to be a web application framework for Scheme.
-The philosophy of Artanis is be very radical, and to try cutting-edge things.
-So use it at your own risk...however, playing with it may result in some
-cool experiences!
+The philosophy of Artanis is to be very radical, and to try
+cutting-edge things.
+So use it at your own risk...however, playing with it may result in
+some cool experiences!
 
 ## Features:
 
 * GPLv3+ & LGPLv3+
-* Very lightweight: easy to hack and learn for newbies.
+* Very lightweight - easy to hack and learn for newbies.
 * Support JSON/CSV/XML/SXML.
 * A complete web-server implementation, including an error page handler.
-* Aims to be high concurrency performance of the server in the future.
+* Aims to be a highly concurrent and performant server in the future.
 * Has a Sinatra-like style route, hence the name "Artanis" ;-)
 * Supported databases (through guile-dbi): MySQL/SQLite/PostgreSQL.
 * Nice and easy web cache control.
@@ -47,7 +48,7 @@ http://gnu.org/software/artanis/manual
 
   Thank you very much for contributing! However, Artanis is still in Beta, which means the architecture design is prone to major changes.
 
-  So at the moment we accept tiny or obvious fixes, please **do not** make big changes, they won't be accepted!
+  So at the moment we accept only tiny or obvious fixes - please **do not** make big changes, they won't be accepted!
 
 ## Thanks for testing!
 * Fedora release 20 (Heisenbug)
