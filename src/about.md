@@ -6,35 +6,36 @@
 About GNU Artanis
 =============
 
-* What is GNU Artanis?
+* What is it?
 
-GNU Artanis is a framework for web authoring, say, generating HTML pages dynamically, which is also called a WAF(web application framework).
+GNU Artanis is a framework for web authoring - for instance, generating HTML pages dynamically. In other words, a WAF (Web Application Framework).
 
-* Who write it?
+* Who wrote it?
 
-Mu Lei known as NalaGinrut who is a Scheme-web-mad, which means the guy who choose to die if he can't use Scheme programming language to build a website.
+Mu Lei AKA NalaGinrut, a Certified Scheme Nut - someone who would rather face death than not use the Scheme programming language to build a website.
 
 * Why write it?
 
-Seriously, Artanis is written with [GNU Guile](http://www.gnu.org/software/guile/), one of the best implementations of Scheme language.
-Someday GNU guys talked about "what language to write GNU website", many guys choose Python. But I think it's strange because GNU Guile
-**IS** the official extension language of GNU. And I asked why not start a brand new project to provide web framework written with GNU Guile, and RMS said "it's cool, I like this idea". But at that time, it's just an idea without any plan.
+More seriously, Artanis is written using [GNU Guile](http://www.gnu.org/software/guile/), one of the best implementations of Scheme language.
 
-Fortunately, few months later, Guile community held the [potluck party](http://lists.gnu.org/archive/html/guile-user/2013-01/msg00007.html) 
-to celibrate 2 years birthday of Guile2. It's actually a contest to write cool program in several weeks. So, Artanis was born.
+One day, the folks at GNU were discussing what language they would write the GNU website in - and many chose Python. But I found that strange, because the official extension language of GNU is GNU Guile. And I wondered aloud - why not start a brand new project to provide a web framework written with GNU Guile? To which RMS said, "It's cool, I like this idea."
+
+But at that time, it was just an idea without a plan.
+
+Fortunately, a few months later, the Guile community held a [hack-potluck](http://lists.gnu.org/archive/html/guile-user/2013-01/msg00007.html) to celebrate Guile2 turning two - which is a contest to write a cool program in a few weeks. And so, Artanis was born.
 
 * History
 
-In 2013 Feb, GNU Guile potluck party, Artanis was born.
+February 2013 - Artanis born at the GNU Guile hack-potluck.
 
-In 2013, Artanis was submitted to "Lisp In Summer Projects" contest. And it received "Certificated awesome project award" in 2014.
+2013 - Artanis submitted to "Lisp In Summer Projects" contest. Received "Certificated awesome project award" in 2014.
 
-In 2014 Aug, Artanis became [SZDIY community](http://szdiy.org) official project to build web services on its own server.
+August 2014 - Artanis became the official project of the [SZDIY community](http://szdiy.org) for building web services on their server.
 
-In 2015 Jan 1st, the first stable version Artanis-0.0.1 was [released](http://nalaginrut.com/archives/2015/01/01/%5Bann%5Dartanis-0-0-1-released%21).
+1st January, 2015 - the first stable version Artanis-0.0.1 was [released](http://nalaginrut.com/archives/2015/01/01/%5Bann%5Dartanis-0-0-1-released%21).
 
-In 2015 Jan 19th, SZDIY community offered Artanis to FSF/GNU, and RMS has dubbed it as GNU offcial project. So it's GNU Artanis now.
+19th January, 2015 - SZDIY community offers Artanis to FSF/GNU, and RMS inducts it as an official GNU project. Artanis becomes GNU Artanis.
 
-* Who use it?
+* Who uses it?
 
-GNU Artanis is used to build web services of SZDIY community. And some open hardware projects in SZDIY are developping their web services with GNU Artanis.
+GNU Artanis is used to build web services of the SZDIY community. Additionally, some open hardware projects in SZDIY are developing their own web services using GNU Artanis.
