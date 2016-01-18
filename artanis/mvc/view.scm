@@ -28,9 +28,9 @@
 (define (generate-view-header vname mname)
   (call-with-output-string
    (lambda (port)
-     (format port "<!--- ~a#~a view template of ~a~%" vname mname (current-appname))
+     (format port "<!-- ~a#~a view template of ~a~%" vname mname (current-appname))
      (display "Please add your license header here.\n" port)
-     (display "This file is generated automatically by GNU Artanis.--->\n\n" port))))
+     (display "This file is generated automatically by GNU Artanis. -->\n\n" port))))
 
 (define (generate-view-template vname mname mpath)
   (format #f
