@@ -129,7 +129,7 @@ A configuration file is required when Artanis is run for the first time.
 #+BEGIN_SRC conf
 db.enable = enable | disable
 #+END_SRC
-+ Whether to use database, if disabled, the database won't be initialized in the beginning, which saves memeories and boot time.
++ Whether to use database, if disabled, the database won't be initialized in the beginning, which saves memory and boot time.
 
 #+BEGIN_SRC conf
 db.dbd = mysql | postgresql | sqlite3
@@ -203,19 +203,19 @@ server.backlog = <integer>
 server.workers = <integer>
 #+END_SRC
 + The number of works in Artanis server core.
-+ /*Note:*/ This item won't work before Artanis-0.2. So just ingore it.
++ /*Note:*/ This item won't work before Artanis-0.2. So just ignore it.
 
 #+BEGIN_SRC conf
 server.wqlen = <integer>
 #+END_SRC
 + The length of the work queue in Artanis server.
-+ /*Note:*/ This item won't work before Artanis-0.2. So just ingore it.
++ /*Note:*/ This item won't work before Artanis-0.2. So just ignore it.
 
 #+BEGIN_SRC conf
 server.trigger = <string>
 #+END_SRC
 + The trigger mode of Epoll.
-+ /*Note:*/ This item won't work before Artanis-0.2. So just ingore it.
++ /*Note:*/ This item won't work before Artanis-0.2. So just ignore it.
 
 ** Host config
 #+BEGIN_SRC conf
@@ -422,7 +422,7 @@ Here're some explains:
 This chapter introduces some useful documents to help you understand Scheme language well.
 Feel free to come back here if you have any problem with Scheme syntax.
 
-If any possibile, read them again and again. 
+If any possible, read them again and again.
 
 Scheme was introduced in 1975 by Gerald J. Sussman and Guy L. Steele Jr. and was the first dialect of Lisp to fully support lexical scoping,
 first-class procedures, and continuations. In its earliest form it was a small language intended primarily for research and teaching,
@@ -452,7 +452,7 @@ These are good articles for Pythoners:
 1. [[http://draketo.de/proj/guile-basics/][Guile basics from the perspective of a Pythonista]]
 2. [[http://draketo.de/proj/py2guile][Going from Python to Guile Scheme]]
 
-Still, please don't spend too much time on them, the purose is to let newbies get a little familiar with the grammar of Scheme.
+Still, please don't spend too much time on them, the purpose is to let newbies get a little familiar with the grammar of Scheme.
 
 ** For Rubyist
 Here's a great article for Rubyist to learn Scheme:
@@ -635,7 +635,7 @@ Options:
                                    Default: none
   -u, [--user=USER]              # Database user name
                                    Default: root
-  -p, [--port=PORT]              # Specify listenning port
+  -p, [--port=PORT]              # Specify listening port
                                    Default: 3000
   -g, [--debug]                  # Debug mode
                                    Default: disable
@@ -1174,8 +1174,8 @@ src_scheme[:exports code]{#:uid} is new UID for uploaded files, #f means don't c
 src_scheme[:exports code]{#:gid} specifies new GID.
 
 src_scheme[:exports code]{#:simple-ret?} specifies the mode of return:
-+ if #t, there're only two possible return value, 'success for sucess, 'none for nothing has been done.
-+ if #f, and while it's successful, it returns a list to show more detais: (success size-list filename-list).
++ if #t, there're only two possible return value, 'success for success, 'none for nothing has been done.
++ if #f, and while it's successful, it returns a list to show more details: (success size-list filename-list).
 
 src_scheme[:exports code]{#:mode} chmod files to mode.
 
