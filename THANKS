@@ -8,6 +8,8 @@ Thanks these guys who gave me help:
 * Stefan Husmann <stefan-husmann@t-online.de>
   Helped to add DESTDIR to Makefile and packaging for Arch.
 * vince-refiti <https://github.com/vince-refiti>
-  Fixed many typos and grammar erros in the manual.
+  Fixed many typos and grammar errors in the manual.
 * Kashish Sharma <music.kashish@gmail.com>
   Fixed misc grammar issues.
+* Mohammed Sadik <sadiq@sadiqpk.org>
+  Fixed many typos and grammar errors in the manual.
