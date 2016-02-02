@@ -44,7 +44,9 @@
             artanis-current-output
             *controllers-table*
             current-dbconn
-            current-appname))
+            current-appname
+            session-backend-set!
+            current-session-backend))
 
 ;; WARNING: For concurrency in green-thread, all these stuffs should be immutable
 ;;          IN THE RUN TIME!!!
@@ -110,3 +112,7 @@
 (define current-dbconn (make-parameter #f))
 
 (define (current-appname) (and=> (current-toplevel) basename))
+
+(define *session-backend* #f)
+(define (session-backend-set! x) (set! *session-backend* x))
+(define (current-session-backend) *session-backend*)
