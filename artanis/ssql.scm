@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015
+;;  Copyright (C) 2013,2014,2015,2016
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -183,7 +183,7 @@
      (->where end (sql-delete from table) (sql-where rest ...)))))
 
 (define-syntax sql-create
-  (syntax-rules (table as select index unique on if exists not)
+  (syntax-rules (table as select index unique on if exists not database)
     ;; NOTE: don't use it directly, please take advantage of fprm.
     ;; (->sql create table 'mmr '("name varchar(10)" "age int(5)"))
     ((_ table name (columns columns* ...) engine ...)
@@ -199,6 +199,12 @@
     ((_ view name as select rest ...)
      (-> end "create view ~a as select ~a" (sql-select rest ...)))
     ;; (->sql create index 'PersonID on 'Persons '(PersonID))
+    ((_ database db)
+     (-> end "create database ~a" db))
+    ((_ database if not exists db)
+     (with-dbd
+      'mysql
+      (-> end "create database if not exists ~a" db)))
     ((_ index iname on tname (columns columns* ...) engine ...)
        (-> end "create index ~a on ~a(~{~a~^,~}) ~a"
            iname tname (->combine columns columns* ...) (->engine engine ...)))
