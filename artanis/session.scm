@@ -19,6 +19,7 @@
 
 (define-module (artanis session)
   #:use-module (artanis utils)
+  #:use-module (artanis env)
   #:use-module (artanis route)
   #:use-module (artanis db)
   #:use-module (artanis fprm)
@@ -26,6 +27,7 @@
   #:use-module (srfi srfi-9)
   #:use-module ((rnrs) #:select (define-record-type))
   #:use-module (web request)
+  #:use-module (ice-9 format)
   #:export (session-set!
             session-ref
             session-expired?
@@ -59,14 +61,19 @@
 (define (session->alist session)
   (hash-map->list list session))
 
+;; FIXME: maybe optional according to conf?
 (define (session-from-correct-client? session rc)
   (let* ((ip (remote-info (rc-req rc)))
          (client (hash-ref session "client"))
-         (ret (equal? client ip)))
+         (ret (string=? client ip)))
     (when (not ret)
       (format (current-error-port)
-              "[Session Hijack!] Valid sid from different client: ~a!~%" client))
+              "[Session Hijack!] Valid sid from two different client: ~a - ~a!~%"
+              ip client))
     ret))
+
+(define (get-session-file sid)
+  (format #f "~a/~a.session" (get-conf '(session path)) sid))
 
 (define (new-session rc data expires)
   (let ((expires-str (make-expires expires))
@@ -99,7 +106,11 @@
   (let* ((mt (map-table-from-DB (session-backend-meta sb)))
          (defs '((sid varchar 40)
                  (data text)
-                 (expires datetime)
+                 ;; NOTE: expires should be string, NOT datetime!
+                 ;;       Because datetime is not compatible with
+                 ;;       expires format, so we just store it as
+                 ;;       string, that's enough.
+                 (expires varchar 29)
                  (client varchar 39) ; 39 for IPv6
                  (valid boolean)))) ; FALSE if expired
     (mt 'create 'Sessions defs #:if-exists? 'ignore #:primary-keys '(sid))
@@ -110,27 +121,30 @@
         (expires (hash-ref ss "expires"))
         (client (hash-ref ss "client"))
         (data (object->string (hash-ref ss "data")))
-        (valid (hash-ref ss "valid")))
-    (mt 'set 'Session #:sid sid #:expires expires #:client client
+        (valid "true"))
+    (mt 'set 'Sessions #:sid sid #:expires expires #:client client
         #:data data #:valid valid)))
 
 (define (backend:session-destory/db sb sid)
   (let ((mt (map-table-from-DB (session-backend-meta sb))))
-    (mt 'set 'Session #:valid 'false)))
+    (mt 'set 'Sessions #:valid 'false)))
 
 (define (backend:session-restore/db sb sid)
   (let* ((mt (map-table-from-DB (session-backend-meta sb)))
          (cnd (where #:sid sid #:valid "true"))
-         (valid (mt 'get 'Session #:condition cnd #:ret 'top)))
-    (and valid (make-session valid))))
+         (valid (mt 'get 'Sessions #:condition cnd #:ret 'top)))
+    (when (get-conf 'debug-mode)
+          (format (artanis-current-output)
+                  "[backend:session-restore/db] ~a~%" valid))
+    (and (not (null? valid)) (apply make-session valid))))
 
 (define (backend:session-set/db sb sid k v)
   (define-syntax-rule (-> x) (and x (call-with-input-string x read)))
   (let* ((mt (map-table-from-DB (session-backend-meta sb)))
          (cnd (where #:sid sid #:valid "true"))
-         (data (-> (mt 'ref 'Session #:columns '(data) #:condition cnd))))
+         (data (-> (mt 'ref 'Sessions #:columns '(data) #:condition cnd))))
     (and data
-         (mt 'set 'Session
+         (mt 'set 'Sessions
              #:data (object->string (assoc-set! data k v))
              #:condition cnd))))
 
@@ -138,14 +152,14 @@
   (define-syntax-rule (-> x) (and x (call-with-input-string x read)))
   (let* ((mt (map-table-from-DB (session-backend-meta sb)))
          (cnd (where #:sid sid #:valid "true"))
-         (data (-> (mt 'ref 'Session #:columns '(data) #:condition cnd))))
+         (data (-> (mt 'ref 'Sessions #:columns '(data) #:condition cnd))))
     (and data (assoc-ref data k))))
 
 (define (new-session-backend/db)
   (make-session-backend 'db
                         (get-conn-from-pool 0)
                         backend:session-init/db
-                        backend:session-spawn/db
+                        backend:session-store/db
                         backend:session-destory/db
                         backend:session-restore/db
                         backend:session-set/db
@@ -189,7 +203,7 @@
   (make-session-backend 'simple
                         (make-hash-table) ; here, meta is session table
                         backend:session-init/simple
-                        backend:session-spawn/simple
+                        backend:session-store/simple
                         backend:session-destory/simple
                         backend:session-restore/simple
                         backend:session-set/simple
@@ -231,15 +245,15 @@
                      path))))))
 
 (define (backend:session-store/file sb sid ss)
-  (let ((s (session->alist session)))
+  (let ((s (session->alist ss)))
     (save-session-to-file sid s)))
 
-(define (backend:session-destory/file sb)
+(define (backend:session-destory/file sb sid)
   (let ((f (get-session-file sid)))
     (and f (delete-file f))))
 
 (define (backend:session-restore/file sb sid)
-  (let ((f (format #f "~a/~a.session" (get-conf '(session path)) sid)))
+  (let ((f (get-session-file sid)))
     (and (file-exists? f)
          (make-session (load-session-from-file sid)))))
 
@@ -258,7 +272,7 @@
   (make-session-backend 'file
                         #f ; here, no meta is needed.
                         backend:session-init/file
-                        backend:session-spawn/file
+                        backend:session-store/file
                         backend:session-destory/file
                         backend:session-restore/file
                         backend:session-set/file
@@ -275,7 +289,7 @@
    k))
 
 (define (session-destory! sid)
-  ((session-backend-destroy (current-session-backend))
+  ((session-backend-destory! (current-session-backend))
    (current-session-backend)
    sid))
 
@@ -286,12 +300,23 @@
 (define (session-restore sid)
   (let ((session ((session-backend-restore (current-session-backend))
                   (current-session-backend) sid)))
-    (and session (if (session-expired? session) ; expired then return #f
-                     (begin (session-destory! sid) #f)
-                     session)))) ; non-expired, return session
+    (and session
+         (cond
+          ((session-expired? session)
+           (when (get-conf 'debug-mode)
+                 (format (artanis-current-output)
+                         "[Session] sid: ~a is expired, destory!~%" sid))
+           (session-destory! sid)
+           #f) ; expired then return #f
+          (else
+           (when (get-conf 'debug-mode)
+                 (format (artanis-current-output)
+                         "[Session] Restored session: ~a~%"
+                         (hash-map->list cons session)))
+           session))))) ; non-expired, return session
 ;; if no session then return #f
 
-(define (store-session sid session)
+(define (session-store! sid session)
   ((session-backend-store! (current-session-backend))
    (current-session-backend)
    sid session)
@@ -300,23 +325,26 @@
 (define* (session-spawn rc #:key (data '()) (expires 3600))
   (let* ((sid (get-new-sid))
          (session (or (session-restore sid)
-                      (store-session sid (new-session rc data expires)))))
-    (format (artanis-current-output) "Session spawned: sid - ~a, data - ~a~%" sid data)
+                      (session-store! sid (new-session rc data expires)))))
+    (format (artanis-current-output)
+            "Session spawned: sid - ~a, data - ~a~%" sid data)
     (values sid session)))
 
 (define *session-backend-table*
-  `((simple . new-session-backend/simple)
-    (db     . new-session-backend/db)
-    (file   . new-session-backend/file)))
+  `((simple . ,new-session-backend/simple)
+    (db     . ,new-session-backend/db)
+    (file   . ,new-session-backend/file)))
 
 (define (add-new-session-backend name maker)
   (set! *session-backend-table*
         (assoc-set! *session-backend-table* name maker)))
 
 (define (session-init)
-  (let ((maker))
-    (cond
-     ((assoc-ref *session-backend-table* (get-conf '(session backend)))
-      => (lambda (maker) (maker)))
-     (else (error (format #f "Invalid session backdend: ~:@(~a~)"
-                          (get-conf '(session backend))))))))
+  (cond
+   ((assoc-ref *session-backend-table* (get-conf '(session backend)))
+    => (lambda (maker)
+         (let ((sb (maker)))
+           ((session-backend-init sb) sb)
+           (change-session-backend! sb))))
+   (else (error (format #f "Invalid session backdend: ~:@(~a~)"
+                        (get-conf '(session backend)))))))
