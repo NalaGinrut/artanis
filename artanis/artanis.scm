@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015
+;;  Copyright (C) 2013,2014,2015,2016
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -25,6 +25,7 @@
   #:use-module (artanis db)
   #:use-module (artanis fprm)
   #:use-module (artanis ssql)
+  #:use-module (artanis session)
   #:use-module (artanis oht)
   #:use-module (artanis route)
   #:use-module (artanis page)
@@ -248,6 +249,26 @@
   (init-debug-monitor)
   (run-after-request! debug-mode:before-request-handler))
 
+(define (try-to-use-db)
+  (let ((db (get-conf '(db name)))
+        (conn (get-conn-from-pool 0)))
+    (case (get-conf '(db dbd))
+      ((mysql)
+       (let ((sql (->sql create database if not exists db)))
+         (DB-query conn sql)
+         (DB-query conn (format #f "use ~a;" db))))
+      ((postgresql)
+       (let ((check-sql (->sql select 'schema_name from
+                               'information_schema.schemata
+                               (where #:schema_name db)))
+             (create-sql (->sql create database db)))
+         (DB-query conn check-sql)
+         (when (not (db-conn-success? conn))
+               (DB-query conn create-sql))
+         (DB-query conn (format #f "use ~a;" db))))
+      ((sqlite3) #t) ; sqlite3, do nothing.
+      (else (error "Unsupported DBD" (get-conf '(db dbd)))))))
+
 ;; Invalid use-db? must be (dbd username passwd) or #f
 (define* (run #:key (host #f) (port #f) (debug #f) (use-db? #f)
               (dbd #f) (db-username #f) (db-passwd #f) (db-name #f))
@@ -274,14 +295,17 @@
     (display "User wants to use Database, initializing...\n")
     (init-database-config dbd db-username db-passwd db-name)
     (init-DB)
+    (try-to-use-db)
     (display "DB init done!\n")
     (when (eq? 'db (get-conf '(session backend)))
-          (init-session)
+          (session-init)
           (display "Session with DB backend init done!\n")))
   (case (get-conf '(session backend))
-    ((db) (error "Session with DB backend init failed because you didn't enable DB!"))
+    ((db)
+     (when (not (get-conf 'use-db?))
+           (error "Session with DB backend init failed because you didn't enable DB!")))
     (else
-     (init-session)
+     (session-init)
      (format #t "Session with ~:@(~a~) backend init done!~%" (get-conf '(session backend)))))
   (run-hook *before-run-hook*)
   (format #t "~a~%" (current-myhost))
