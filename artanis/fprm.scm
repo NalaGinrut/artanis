@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015
+;;  Copyright (C) 2013,2014,2015,2016
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -412,19 +412,19 @@
 (define (make-table-getter rc/conn)
   (define (->ret ret)
     (match ret
-      ((? integer? n) (format #f "limit ~a " n))
-      ('top "limit 1 ")
+      ((? integer? n) (format #f " limit ~a " n))
+      ('top " limit 1 ")
       ('all "")
       (_ #f)))
   (define (->group-by group-by)
     (match group-by
       ((? list columns)
-       (format #f "~{~a~^,~} " columns))
+       (format #f " ~{~a~^,~} " columns))
       (_ #f)))
   (define (->order-by order-by)
     (match order-by
       ((columns ... (? (cut memq <> '(asc desc)) m))
-       (format #f "~{~a~^,~} ~a " columns m))
+       (format #f " ~{~a~^,~} ~a " columns m))
       (_ #f)))
   (define (->opts ret group-by order-by cnd foreach)
     (define-syntax-rule (-> x tox)
@@ -447,10 +447,10 @@
                   "Invalid #:foreach, should be (column (val1 val2 val3 ...))"
                   lst))))))
     (string-concatenate
-     (list (-> ret ->ret)
-           (-> group-by ->group-by)
+     (list (-> group-by ->group-by)
            (-> order-by ->order-by)
-           (cond-combine cnd foreach))))
+           (cond-combine cnd foreach)
+           (-> ret ->ret))))
   (define (->mix columns functions)
     `(,@columns ,@(map (lambda (f) (format #f "~a(~{~a~^,~})" (car f) (cdr f))) functions)))
   (lambda* (tname #:key (columns '(*)) ; get all (*) in default
