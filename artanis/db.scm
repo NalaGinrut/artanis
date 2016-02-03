@@ -58,9 +58,9 @@
 (define (->mysql mysql)
   (match mysql
     (($ <mysql> ($ <db> _ username passwd) dbname port addr #f)
-     (format #f "~a:~a:~a:tcp:~a:~a" username passwd dbname addr port))
+     (format #f "~a:~a::tcp:~a:~a" username passwd addr port))
     (($ <mysql> ($ <db> _ username passwd) dbname #f #f socketfile)
-     (format #f "~a:~a:~a:socket:~a" username passwd dbname socketfile))
+     (format #f "~a:~a::socket:~a" username passwd socketfile))
     (else (error 'mysql "Wrong connection config!" mysql))))
 
 (define-record-type <sqlite3>
@@ -83,7 +83,7 @@
 (define (->postgresql postgresql)
   (match postgresql
     (($ <postgresql> ($ <db> _ username passwd) dbname port addr)
-     (format #f "~a:~a:~a:tcp:~a:~a" username passwd dbname addr port))
+     (format #f "~a:~a::tcp:~a:~a" username passwd addr port))
     (else (error 'postgresql "Wrong connection config!" postgresql))))
 
 ;; NOTE:
@@ -122,8 +122,8 @@
    ((dbd #:key (db-name "artanis") (db-username "root") (db-passwd "")
          (proto "tcp") (host "localhost") (port 3306))
     (let ((str (case dbd
-                 ((mysql) (format #f "~a:~a:~a:~a:~a:~a" db-username db-passwd db-name proto host port))
-                 ((postgresql) (format #f "~a:~a:~a:tcp:~a:~a" db-username db-passwd db-name host port))
+                 ((mysql) (format #f "~a:~a::~a:~a:~a" db-username db-passwd proto host port))
+                 ((postgresql) (format #f "~a:~a::tcp:~a:~a" db-username db-passwd host port))
                  ((sqlite3) (format #f "~a" db-name)))))
       (%do-connect dbd str)))))
 
