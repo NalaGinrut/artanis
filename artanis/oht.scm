@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015
+;;  Copyright (C) 2014,2015,2016
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -244,8 +244,9 @@
       (`(spawn ,sid ,proc) (%spawn rc #:idname sid #:proc proc))
       (else (throw 'artanis-err 500 "session-maker: Invalid config mode" mode))))
   (define (check-it rc idname)
-    (and=> (session-restore (cookie-ref (rc-cookie rc) idname))
-           (lambda (s) (session-from-correct-client? s rc))))
+    (let ((sid (cookie-ref (rc-cookie rc) idname)))
+      (and=> (session-restore (or sid ""))
+             (lambda (s) (session-from-correct-client? s rc)))))
   (lambda (rc cmd)
     (match cmd
       ('check (check-it rc "sid"))
