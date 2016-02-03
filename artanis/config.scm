@@ -68,7 +68,7 @@
 
     ;; for session namespace
     ((session path) "session")
-    ((session engine) simple)
+    ((session backend) simple)
 
     ;; for upload namespace
     ((upload types) (jpg png gif))
@@ -150,7 +150,7 @@
 (define (parse-namespace-session item)
   (match item
     (('path path) (conf-set! '(session path) path))
-    (('engine engine) (conf-set! '(session engine) (string->symbol engine)))
+    (('backend backend) (conf-set! '(session backend) (string->symbol backend)))
     (else (error parse-namespace-session "Config: Invalid item" item))))
 
 (define (parse-namespace-upload item)
