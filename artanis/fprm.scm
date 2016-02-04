@@ -138,6 +138,9 @@
 
 (define (->postgresql-type name . args)
   (case name
+    ;; Boolean Type
+    ((boolean) (->0 name args)) ; BOOLEAN Stores TRUE or FALSE values
+
     ;; Numeric Types
     ((bigserial) (->0 name args)) ;  bigserial 8 bytes large autoincrementing integer 1 to 9223372036854775807
     ((int) (->0 name args))
@@ -213,7 +216,6 @@
     ;; CHARACTER VARYING(n) Character string. Variable length. Maximum length n
     ((char-var) (->1 "character varying" args))
     ((binary) (->1 name args)) ; BINARY(n) Binary string. Fixed-length n
-    ((boolean) (->0 name args)) ; BOOLEAN Stores TRUE or FALSE values
     ((varbinary) (->1 name args)) ; VARBINARY(n)
     ;; Binary VARYING(n) Binary string. Variable length. Maximum length n
     ((binary-var) (->1 "binary varying" args))
