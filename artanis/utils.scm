@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015
+;;  Copyright (C) 2013,2014,2015,2016
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -63,7 +63,7 @@
             sxml->xml-string run-after-request! run-before-response!
             make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
             generate-kv-from-post-qstr handle-proper-owner
-            generate-data-url verify-ENTRY
+            generate-data-url verify-ENTRY exclude-dbd
             draw-expander remove-ext scan-app-components cache-this-route!
             dump-route-from-cache generate-modify-time delete-directory
             handle-existing-file check-drawing-method
@@ -950,6 +950,16 @@
              (format #f "This is only supported by `~a', but the current dbd is `~a'"
                      dbd0 dbd1)
              'body ...)))))
+
+(define-syntax-rule (exclude-dbd dbds body ...)
+  (let ((dbd (get-conf '(db dbd))))
+    (cond
+     ((memq dbd dbds)
+      (throw 'artanis-err 500
+             (format #f "This isn't supported by `~a', please check it out again!"
+                     dbds)
+             'body ...))
+     (else body ...))))
 
 (define %libc-errno-pointer
   ;; Glibc's 'errno' pointer.
