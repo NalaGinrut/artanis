@@ -59,7 +59,7 @@
   (get-random-from-dev))
 
 (define (session->alist session)
-  (hash-map->list list session))
+  (hash-map->list cons session))
 
 ;; FIXME: maybe optional according to conf?
 (define (session-from-correct-client? session rc)
@@ -73,7 +73,8 @@
     ret))
 
 (define (get-session-file sid)
-  (format #f "~a/~a.session" (get-conf '(session path)) sid))
+  (format #f "~a/prv/~a/~a.session" (current-toplevel)
+          (get-conf '(session path)) sid))
 
 (define (new-session rc data expires)
   (let ((expires-str (make-expires expires))
@@ -112,7 +113,9 @@
                  ;;       string, that's enough.
                  (expires varchar 29)
                  (client varchar 39) ; 39 for IPv6
-                 (valid boolean)))) ; FALSE if expired
+                 ;; NOTE: Since Boolean type is not supported by all
+                 ;;       DBDs, so we choose Integer to make them happy.
+                 (valid integer)))) ; 1 for valid, 0 for expired
     (mt 'create 'Sessions defs #:if-exists? 'ignore #:primary-keys '(sid))
     (format (artanis-current-output) "Init session DB backend is done!~%")))
 
@@ -121,17 +124,17 @@
         (expires (hash-ref ss "expires"))
         (client (hash-ref ss "client"))
         (data (object->string (hash-ref ss "data")))
-        (valid "true"))
+        (valid "1"))
     (mt 'set 'Sessions #:sid sid #:expires expires #:client client
         #:data data #:valid valid)))
 
 (define (backend:session-destory/db sb sid)
   (let ((mt (map-table-from-DB (session-backend-meta sb))))
-    (mt 'set 'Sessions #:valid 'false)))
+    (mt 'set 'Sessions #:valid "0")))
 
 (define (backend:session-restore/db sb sid)
   (let* ((mt (map-table-from-DB (session-backend-meta sb)))
-         (cnd (where #:sid sid #:valid "true"))
+         (cnd (where #:sid sid #:valid "1"))
          (valid (mt 'get 'Sessions #:condition cnd #:ret 'top)))
     (when (get-conf 'debug-mode)
           (format (artanis-current-output)
@@ -141,7 +144,7 @@
 (define (backend:session-set/db sb sid k v)
   (define-syntax-rule (-> x) (and x (call-with-input-string x read)))
   (let* ((mt (map-table-from-DB (session-backend-meta sb)))
-         (cnd (where #:sid sid #:valid "true"))
+         (cnd (where #:sid sid #:valid "1"))
          (data (-> (mt 'ref 'Sessions #:columns '(data) #:condition cnd))))
     (and data
          (mt 'set 'Sessions
@@ -151,7 +154,7 @@
 (define (backend:session-ref/db sb sid k)
   (define-syntax-rule (-> x) (and x (call-with-input-string x read)))
   (let* ((mt (map-table-from-DB (session-backend-meta sb)))
-         (cnd (where #:sid sid #:valid "true"))
+         (cnd (where #:sid sid #:valid "1"))
          (data (-> (mt 'ref 'Sessions #:columns '(data) #:condition cnd))))
     (and data (assoc-ref data k))))
 
@@ -211,33 +214,30 @@
 
 (define (load-session-from-file sid)
   (let ((f (get-session-file sid)))
-    (and f ; if cookie file exists
-         (call-with-input-file sid read))))
+    (and (file-exists? f) ; if cookie file exists
+         (call-with-input-file f read))))
 
 (define (save-session-to-file sid session)
-  (let ((s (session->alist session))
-        (f (get-session-file sid)))
-    ;; if file exists, it'll be removed then create a new one
-    (when f 
-      (delete-file f)
-      (call-with-output-file f
-        (lambda (port)
-          (write s port))))))
+  (let* ((f (get-session-file sid))
+         (fp (open-file f "w"))); if file exists, the contents will be removed.
+    (write session fp)
+    (close fp)))
 
 ;; session.engine = file, for managing sessions with files.
 (define (backend:session-init/file sb)
   (format (artanis-current-output)
           "Initilizing session backend `~:@(~a~)'...~%" 'file)
-  (let ((path (get-conf '(session path))))
+  (let ((path (format #f "~a/prv/~a" (current-toplevel)
+                      (get-conf '(session path)))))
     (cond
-     ((file-is-directory? path)
-      (format (artanis-current-output)
-              "Session path `~a' exists, keep it for existing sessions!~%"
-              path))
      ((not (file-exists? path))
       (mkdir path)
       (format (artanis-current-output)
               "Session path `~a' doesn't exist, created it!~%"
+              path))
+     ((file-is-directory? path)
+      (format (artanis-current-output)
+              "Session path `~a' exists, keep it for existing sessions!~%"
               path))
      (else
       (throw 'artanis-err 500
@@ -246,27 +246,50 @@
 
 (define (backend:session-store/file sb sid ss)
   (let ((s (session->alist ss)))
+    (format (artanis-current-output)
+            "[Session] store session `~a' to file~%" sid)
     (save-session-to-file sid s)))
 
 (define (backend:session-destory/file sb sid)
   (let ((f (get-session-file sid)))
-    (and f (delete-file f))))
+    (and (file-exists? f)
+         (delete-file f))))
 
 (define (backend:session-restore/file sb sid)
-  (let ((f (get-session-file sid)))
-    (and (file-exists? f)
-         (make-session (load-session-from-file sid)))))
+  (cond
+   ((string-null? sid)
+    (format (artanis-current-output)
+            "[Session] No sid specified!~%")
+    #f) ; no sid, just do nothing.
+   (else
+    (format (artanis-current-output)
+            "[Session] Try to restore session `~a' from file" sid)
+    (and=> (load-session-from-file sid) make-session))))
 
 (define (backend:session-set/file sb sid k v)
-  (let* ((ss (load-session-from-file sid))
-         (data (assoc-ref ss "data")))
-    (save-session-to-file
-     sid
-     (assoc-set! ss "data" (assoc-set! data k v)))))
+  (let ((ss (load-session-from-file sid)))
+    (cond
+     ((not ss)
+      (format (artanis-current-output)
+              "[Session] session `~a' doesn't exist!~%" sid)
+      #f)
+     (else
+      (format (artanis-current-output)
+              "[Session] set ~a to ~a in session `~a'~%"
+              k v sid)
+      (let ((data (assoc-ref ss "data")))
+        (save-session-to-file
+         sid
+         (assoc-set! ss "data" (assoc-set! data k v))))))))
 
 (define (backend:session-ref/file sb sid k)
   (let ((ss (load-session-from-file sid)))
-    (assoc-ref (assoc-ref ss "data") k)))
+    (cond
+     ((not ss)
+      (format (artanis-current-output)
+              "[Session] session `~a' doesn't exist!~%" sid)
+      #f)
+     (else (assoc-ref (assoc-ref ss "data") k)))))
 
 (define (new-session-backend/file)
   (make-session-backend 'file
