@@ -66,7 +66,7 @@
             generate-data-url verify-ENTRY exclude-dbd
             draw-expander remove-ext scan-app-components cache-this-route!
             dump-route-from-cache generate-modify-time delete-directory
-            handle-existing-file check-drawing-method
+            handle-existing-file check-drawing-method DEBUG
             subbv->string subbv=? bv-read-line bv-read-delimited put-bv
             bv-u8-index bv-u8-index-right build-bv-lookup-table filesize
             plist-remove gen-migrate-module-name try-to-load-migrate-cache
@@ -992,3 +992,7 @@
                                            (sizeof int)))))))))
             (ref bv))))
       (lambda () 0)))
+
+(define-syntax-rule (DEBUG fmt args ...)
+  (when (get-conf 'debug-mode)
+        (format (artanis-current-output) fmt args ...)))
