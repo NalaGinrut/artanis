@@ -1,10 +1,7 @@
-* Add local conf for each APP
 * Add local lib for each APP
 * theme (based on template)
 * make own favicon.ico (now use opensuse ico instead)
 * implement expand-conds for ssql
-* implement tpl cache, not read tpl file every time rendering
-* design a generic session framework with optional store method: memcached/file+RCU/Berkerley DB...
 * sql-mapping syntax should support multi-sql code, but should deal with SQL-injection
 * upload progress json feedback (need new server-core)
 * SSE support, add some helper functions
@@ -25,10 +22,6 @@ Some ideas:
    each scheduled green-thread was over.
 
 * Use sendfile on static files, this may need new server-core.
-
-* Add FAM(File Alteration Monitor) based reload-on-the-fly mechanism to debug mode. `inotify' would be fine enough.
-  ** Never use it in productive environment.
-  ** Could be named 'hotfix-on-debug', and #:hotfix-on-debug should checkout if there's guile-inotify.
 
 * In MySQL, delete huge data in product environment will cause halt. There're two ways:
   1. limit 1000 and loop
