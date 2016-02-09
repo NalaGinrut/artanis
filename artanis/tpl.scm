@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015
+;;  Copyright (C) 2013,2014,2015,2016
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -28,14 +28,41 @@
 
 (define-module (artanis tpl)
   #:use-module (artanis utils)
+  #:use-module (artanis env)
   #:use-module (artanis tpl parser)
   #:export (tpl-render tpl-render-from-file))
+
+(define (load-from-tpl-cache file)
+  ;; check if original file is newer than cache file
+  (define (cache-is-old? cfile ofile)
+    (let ((ost (stat ofile))
+          (cst (stat cfile)))
+      (> (stat:mtime ost) (stat:mtime cst))))
+  (let ((cfile (format #f "~a/tmp/cache/tpl/~a" (current-toplevel) file)))
+    (and (file-exists? cfile)
+         (cache-is-old? cfile file)
+         (cat file #f))))
 
 (define (tpl->expr tpl)
   (call-with-input-string tpl tpl-read))
 
-(define-syntax-rule (tpl-render tpl e)
+(define (cache-the-file expr ofile)
+  (let* ((cdir (format #f "~a/tmp/cache/tpl/~a/"
+                       (current-toplevel) (dirname ofile)))
+         (cfile (string-append cdir (basename ofile) ".cache")))
+    (when (not (file-exists? cdir))
+          (DEBUG "Create cache directory ~a~%" cdir)
+          (checkout-the-path cdir))
+    (when (file-exists? cfile) (delete-file cfile))
+    (DEBUG "Refresh tpl cache ~a~%" cfile)
+    (call-with-output-file cfile
+      (lambda (port) (display expr port)))))
+
+;; NOTE:
+;; cache? is #f, mean no need to recache, otherwise cache? is the cache filename
+(define-syntax-rule (tpl-render tpl e cache?)
   (let ((expr (tpl->expr tpl)))
+    (cache-the-file expr cache?)
     (call-with-output-string
      (lambda (port)
        (parameterize ((current-output-port port))
@@ -43,6 +70,11 @@
 
 (define-syntax-rule (tpl-render-from-file file e)
   (cond
+   ((load-from-tpl-cache file)
+    => (lambda (str)
+         (DEBUG "Load tpl cache ~a~%" file)
+         (tpl-render str e #f)))
    ((file-exists? file)
-    (tpl-render (cat file #f) e))
+    (DEBUG "Render tpl from file ~a~%" file)
+    (tpl-render (cat file #f) e file))
    (else (throw 'artanis-err 500 "No such a tpl file" file))))
