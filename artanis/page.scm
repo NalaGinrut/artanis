@@ -50,8 +50,13 @@
   (or (assoc-ref (rc-bt rc) key)
       (get-from-qstr rc key)))
 
-(define (page-show file port)
-  (bv-cat (string-append (get-conf '(server syspage path)) "/" file) port))
+(define (syspage-show file)
+  (let ((local-syspage (format #f "~a/sys/pages/~a" (current-toplevel) file)))
+    (cond
+     ((file-exists? local-syspage)
+      (bv-cat local-syspage #f))
+     (else
+      (bv-cat (string-append (get-conf '(server syspage path)) "/" file) #f)))))
 
 ;; ENHANCE: use colored output
 (define* (log status mime req #:optional (port (current-error-port)))
@@ -74,7 +79,7 @@
                      #:headers `((server . ,(get-conf '(server info)))
                                  (last-modified . ,mtime)
                                  (content-type . (text/html (charset . ,charset)))))
-     (page-show (status->page status) #f))))
+     (syspage-show (status->page status)))))
 
 (define (rc-conn-recycle rc body)
   (and=> (rc-conn rc) DB-close))
@@ -86,7 +91,7 @@
   (run-hook *before-response-hook* rc body))
 
 (define (init-after-request-hook)
- #t)
+ #t) ; nothing to do.
 
 (define (init-before-response-hook)
   (run-before-response! rc-conn-recycle))
@@ -106,7 +111,7 @@
                    (status 200) 
                    (mtime (generate-modify-time (current-time))))
       (run-before-response-hooks rc body)
-      (let ((type (assoc-ref pre-headers 'content-type)))
+      (let ((type (assq-ref pre-headers 'content-type)))
         (and type (log status (car type) (rc-req rc))))
       (values
        (build-response #:code status
@@ -147,7 +152,7 @@
 (define* (response-emit body #:key (status 200) 
                         (headers '())
                         (mtime (current-time)))
-  ;;(format #t "headers: ~a~%" headers)
+  (DEBUG "Response emit headers: ~a~%" headers)
   (values body #:pre-headers (prepare-headers headers) #:status status
           #:mtime (generate-modify-time mtime)))
 
