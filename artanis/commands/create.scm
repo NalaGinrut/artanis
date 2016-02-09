@@ -35,7 +35,7 @@
 
 (define conf-header
 "##  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-##  Copyright (C) 2015
+##  Copyright (C) 2015,2016
 ##      \"Mu Lei\" known as \"NalaGinrut\" <NalaGinrut@gmail.com>
 ##  Artanis is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU General Public License as published by
@@ -72,7 +72,7 @@
 (define (tmp-cache-handler p)
   (define (-> f) (string-append p "/" f))
   (let ((readme (-> "README"))
-        (route-cache (-> ".route.cache")))
+        (route-cache (-> "route.cache")))
     (print-create-info readme)
     (touch readme)
     (call-with-output-file route-cache
@@ -95,8 +95,8 @@
   (define (create-local-config)
     (define (->proper v)
       (match v
-        ((or #t 'true 'on 'yes) 'enable)
-        ((or #f 'false 'off 'no) 'disable)
+        ((or #t 'true 'on 'yes) 'true)
+        ((or #f 'false 'off 'no) 'false)
         ((? list?) (format #f "~{~a~^,~}" v))
         (else v)))
     (define (->cstr ctb)
