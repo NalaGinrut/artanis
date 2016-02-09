@@ -55,8 +55,11 @@
               args)
     ht))
 
+;; Session identifiers should be at least 128 bits (16 chars)
+;; long to prevent brute-force session guessing attacks.
+;; Here, we use 256 bits sid.
 (define (get-new-sid)
-  (get-random-from-dev))
+  (get-random-from-dev #:length 16)) ; NOTE: one hex contains two chars
 
 (define (session->alist session)
   (hash-map->list cons session))
@@ -102,10 +105,9 @@
 
 ;; session.engine = db, for managing sessions with DB support.
 (define (backend:session-init/db sb)
-  (format (artanis-current-output)
-          "Initilizing session backend `~:@(~a~)'...~%" 'db)
+  (DEBUG "Initilizing session backend `~:@(~a~)'...~%" 'db)
   (let* ((mt (map-table-from-DB (session-backend-meta sb)))
-         (defs '((sid varchar 40)
+         (defs '((sid varchar 32)
                  (data text)
                  ;; NOTE: expires should be string, NOT datetime!
                  ;;       Because datetime is not compatible with
@@ -117,7 +119,7 @@
                  ;;       DBDs, so we choose Integer to make them happy.
                  (valid integer)))) ; 1 for valid, 0 for expired
     (mt 'create 'Sessions defs #:if-exists? 'ignore #:primary-keys '(sid))
-    (format (artanis-current-output) "Init session DB backend is done!~%")))
+    (DEBUG "Init session DB backend is done!~%")))
 
 (define (backend:session-store/db sb sid ss)
   (let ((mt (map-table-from-DB (session-backend-meta sb)))
@@ -136,9 +138,7 @@
   (let* ((mt (map-table-from-DB (session-backend-meta sb)))
          (cnd (where #:sid sid #:valid "1"))
          (valid (mt 'get 'Sessions #:condition cnd #:ret 'top)))
-    (when (get-conf 'debug-mode)
-          (format (artanis-current-output)
-                  "[backend:session-restore/db] ~a~%" valid))
+    (DEBUG "[backend:session-restore/db] ~a~%" valid)
     (and (not (null? valid)) (apply make-session valid))))
 
 (define (backend:session-set/db sb sid k v)
@@ -170,8 +170,7 @@
 
 ;; session.engine = simple, for managing sessions with simple memory caching.
 (define (backend:session-init/simple sb)
-  (format (artanis-current-output)
-          "Initilizing session backend `~:@(~a~)'...~%" 'simple))
+  (DEBUG "Initilizing session backend `~:@(~a~)'...~%" 'simple))
 
 (define (backend:session-store/simple sb sid ss)
   (hash-set! (session-backend-meta sb) sid ss))
@@ -190,8 +189,7 @@
     => (lambda (ss) (hash-set! ss k v)))
    (else
     (throw 'artanis-err 500
-     (format (artanis-current-output)
-             "Session id (~a) doesn't hit anything!~%" sid)))))
+     (format #f "Session id (~a) doesn't hit anything!~%" sid)))))
 
 (define (backend:session-ref/simple sb sid k)
   (cond
@@ -199,8 +197,7 @@
     => (lambda (ss) (hash-ref (hash-ref ss "data") k)))
    (else
     (throw 'artanis-err 500
-    (format (artanis-current-output)
-            "Session id (~a) doesn't hit anything!~%" sid)))))
+           (format #f "Session id (~a) doesn't hit anything!~%" sid)))))
 
 (define (new-session-backend/simple)
   (make-session-backend 'simple
@@ -225,20 +222,15 @@
 
 ;; session.engine = file, for managing sessions with files.
 (define (backend:session-init/file sb)
-  (format (artanis-current-output)
-          "Initilizing session backend `~:@(~a~)'...~%" 'file)
+  (DEBUG "Initilizing session backend `~:@(~a~)'...~%" 'file)
   (let ((path (format #f "~a/prv/~a" (current-toplevel)
                       (get-conf '(session path)))))
     (cond
      ((not (file-exists? path))
       (mkdir path)
-      (format (artanis-current-output)
-              "Session path `~a' doesn't exist, created it!~%"
-              path))
+      (DEBUG "Session path `~a' doesn't exist, created it!~%" path))
      ((file-is-directory? path)
-      (format (artanis-current-output)
-              "Session path `~a' exists, keep it for existing sessions!~%"
-              path))
+      (DEBUG "Session path `~a' exists, keep it for existing sessions!~%" path))
      (else
       (throw 'artanis-err 500
              (format #f "Session path `~a' conflict with an existed file!~%"
@@ -246,8 +238,7 @@
 
 (define (backend:session-store/file sb sid ss)
   (let ((s (session->alist ss)))
-    (format (artanis-current-output)
-            "[Session] store session `~a' to file~%" sid)
+    (DEBUG "[Session] store session `~a' to file~%" sid)
     (save-session-to-file sid s)))
 
 (define (backend:session-destory/file sb sid)
@@ -258,25 +249,20 @@
 (define (backend:session-restore/file sb sid)
   (cond
    ((string-null? sid)
-    (format (artanis-current-output)
-            "[Session] No sid specified!~%")
+    (DEBUG "[Session] No sid specified!~%")
     #f) ; no sid, just do nothing.
    (else
-    (format (artanis-current-output)
-            "[Session] Try to restore session `~a' from file" sid)
+    (DEBUG "[Session] Try to restore session `~a' from file~%" sid)
     (and=> (load-session-from-file sid) make-session))))
 
 (define (backend:session-set/file sb sid k v)
   (let ((ss (load-session-from-file sid)))
     (cond
      ((not ss)
-      (format (artanis-current-output)
-              "[Session] session `~a' doesn't exist!~%" sid)
+      (DEBUG "[Session] session `~a' doesn't exist!~%" sid)
       #f)
      (else
-      (format (artanis-current-output)
-              "[Session] set ~a to ~a in session `~a'~%"
-              k v sid)
+      (DEBUG "[Session] set ~a to ~a in session `~a'~%" k v sid)
       (let ((data (assoc-ref ss "data")))
         (save-session-to-file
          sid
@@ -286,8 +272,7 @@
   (let ((ss (load-session-from-file sid)))
     (cond
      ((not ss)
-      (format (artanis-current-output)
-              "[Session] session `~a' doesn't exist!~%" sid)
+      (DEBUG "[Session] session `~a' doesn't exist!~%" sid)
       #f)
      (else (assoc-ref (assoc-ref ss "data") k)))))
 
@@ -326,16 +311,12 @@
     (and session
          (cond
           ((session-expired? session)
-           (when (get-conf 'debug-mode)
-                 (format (artanis-current-output)
-                         "[Session] sid: ~a is expired, destory!~%" sid))
+           (DEBUG "[Session] sid: ~a is expired, destory!~%" sid)
            (session-destory! sid)
            #f) ; expired then return #f
           (else
-           (when (get-conf 'debug-mode)
-                 (format (artanis-current-output)
-                         "[Session] Restored session: ~a~%"
-                         (hash-map->list cons session)))
+           (DEBUG "[Session] Restored session: ~a~%"
+                  (hash-map->list cons session))
            session))))) ; non-expired, return session
 ;; if no session then return #f
 
@@ -349,8 +330,7 @@
   (let* ((sid (get-new-sid))
          (session (or (session-restore sid)
                       (session-store! sid (new-session rc data expires)))))
-    (format (artanis-current-output)
-            "Session spawned: sid - ~a, data - ~a~%" sid data)
+    (DEBUG "Session spawned: sid - ~a, data - ~a~%" sid data)
     (values sid session)))
 
 (define *session-backend-table*
