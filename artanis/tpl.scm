@@ -21,9 +21,9 @@
 ;;  is based on SXML.
 ;;  If you want to embed the template into HTML code, say:
 ;;  <html>
-;;    <% (define var 123) %>
+;;    <% (let ((var "123")) %>
 ;;    <p> <%= (let ((x (expt 2 100))) (+ 1 x)) %> </p>
-;;    <% (tpl->html `(p ,var)) %>
+;;    <% (tpl->html `(p ,var))) %>
 ;;  </html>
 
 (define-module (artanis tpl)
