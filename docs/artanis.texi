@@ -149,6 +149,10 @@ Upload files
 * Receive upload from client::
 * Send upload to Server::
 
+Sessions
+
+* Session backend::
+
 Authentication
 
 * Init Authentication::
@@ -347,11 +351,11 @@ If you're using application folder, the configure file @verb{~conf/artanis.conf~
 @section Database config
 
 @example
-db.enable = enable | disable
+db.enable = <boolean>
 @end example
 @itemize
 @item
-Whether to use database, if disabled, the database won't be initialized in the beginning, which saves memeories and boot time.
+Whether to use database, if disabled, the database won't be initialized in the beginning, which saves memory and boot time.
 @end itemize
 
 @example
@@ -379,7 +383,7 @@ The address of the database server, @strong{@emph{localhost}} in default.
 @end itemize
 
 @example
-db.socket = enable | disable
+db.socket = <boolean>
 @end example
 @itemize
 @item
@@ -432,7 +436,7 @@ Specify your own server info, it'll be /*Artanis-x.x.x/* in default, depends on 
 @end itemize
 
 @example
-server.nginx = enable | disable
+server.nginx = <boolean>
 @end example
 @itemize
 @item
@@ -474,7 +478,7 @@ server.workers = <integer>
 @item
 The number of works in Artanis server core.
 @item
-@emph{@strong{Note:}} This item won't work before Artanis-0.2. So just ingore it.
+@emph{@strong{Note:}} This item won't work before Artanis-0.2. So just ignore it.
 @end itemize
 
 @example
@@ -484,7 +488,7 @@ server.wqlen = <integer>
 @item
 The length of the work queue in Artanis server.
 @item
-@emph{@strong{Note:}} This item won't work before Artanis-0.2. So just ingore it.
+@emph{@strong{Note:}} This item won't work before Artanis-0.2. So just ignore it.
 @end itemize
 
 @example
@@ -494,14 +498,14 @@ server.trigger = <string>
 @item
 The trigger mode of Epoll.
 @item
-@emph{@strong{Note:}} This item won't work before Artanis-0.2. So just ingore it.
+@emph{@strong{Note:}} This item won't work before Artanis-0.2. So just ignore it.
 @end itemize
 
 @node Host config
 @section Host config
 
 @example
-host.name = enable | disable
+host.name = <string> | <boolean>
 @end example
 @itemize
 @item
@@ -547,13 +551,13 @@ Specify the session files path. It depends on the session engine.
 @end itemize
 
 @example
-session.engine = simple | db | redis | <certain-third-party>
+session.backend = simple | db | file | <certain-third-party>
 @end example
 @itemize
 @item
-Specify session engine.
+Specify session backend.
 @item
-@emph{@strong{Note:}} Keep it `simple' unless this note removed away someday!
+See more details in @ref{Session backend,Session backend}.
 @end itemize
 
 @node Upload config
@@ -817,7 +821,7 @@ Finally, the handler needs to return a string as the HTTP response body, so we h
 This chapter introduces some useful documents to help you understand Scheme language well.
 Feel free to come back here if you have any problem with Scheme syntax.
 
-If any possibile, read them again and again. 
+If any possible, read them again and again.
 
 Scheme was introduced in 1975 by Gerald J. Sussman and Guy L. Steele Jr. and was the first dialect of Lisp to fully support lexical scoping,
 first-class procedures, and continuations. In its earliest form it was a small language intended primarily for research and teaching,
@@ -859,7 +863,7 @@ These are good articles for Pythoners:
 @uref{http://draketo.de/proj/py2guile,Going from Python to Guile Scheme}
 @end enumerate
 
-Still, please don't spend too much time on them, the purose is to let newbies get a little familiar with the grammar of Scheme.
+Still, please don't spend too much time on them, the purpose is to let newbies get a little familiar with the grammar of Scheme.
 
 @node For Rubyist
 @section For Rubyist
@@ -1102,7 +1106,7 @@ Options:
                                    Default: none
   -u, [--user=USER]              # Database user name
                                    Default: root
-  -p, [--port=PORT]              # Specify listenning port
+  -p, [--port=PORT]              # Specify listening port
                                    Default: 3000
   -g, [--debug]                  # Debug mode
                                    Default: disable
@@ -1895,9 +1899,9 @@ If you want to deal with uploading files, store-uploaded-files would be you frie
 @verb{~#:simple-ret?~} specifies the mode of return:
 @itemize
 @item
-if #t, there're only two possible return value, 'success for sucess, 'none for nothing has been done.
+if #t, there're only two possible return value, 'success for success, 'none for nothing has been done.
 @item
-if #f, and while it's successful, it returns a list to show more detais: (success size-list filename-list).
+if #f, and while it's successful, it returns a list to show more details: (success size-list filename-list).
 @end itemize
 
 @verb{~#:mode~} chmod files to mode.
@@ -1967,6 +1971,35 @@ And the APIs of session is :session
 @item
 'spawn-and-keep spawn a session then keep with the name "sid".
 @end itemize
+@menu
+* Session backend::
+@end menu
+
+@node Session backend
+@section Session backend
+
+A session backend is the way to manage sessions in low-level. Usually, users may not care about how it's done.
+
+GNU Artanis supports 3 session backends:
+
+@itemize
+@item
+@emph{SIMPLE}:
+
+This will store sessions in memory as hashtable, it's simple and fast, but consume more memories along with increasing of sessions.
+
+@item
+@emph{DB}:
+
+This depends on your database config. Storing sessions in database. It's good for massive sessions.
+
+@item
+@emph{FILE}:
+
+Storing sessions to files, it's slower, but could be an option if you have no database and limited memory, and you don't care much about performance.
+@end itemize
+
+@emph{NOTE: GNU Artanis is flexible enough for users to define their own sesssion backend as plugins, but it requires a specific package manager, this will be added in the future.}
 
 @node Cookies
 @chapter Cookies
