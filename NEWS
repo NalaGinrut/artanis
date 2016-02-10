@@ -29,3 +29,12 @@ Changes in 0.1.1
   Added inotify support.
   Fixed several bugs.
   Updated manual.
+
+Changes in 0.1.2
+* Notable changes
+  Rewrited session management. Now support three new backends simple/file/db.
+  Added HTML template caching.
+  Fixed several bugs.
+  Updated manual.
+
+  
