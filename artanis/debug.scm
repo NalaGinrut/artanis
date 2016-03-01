@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015
+;;  Copyright (C) 2015,2016
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -50,7 +50,7 @@
 
 ;; TODO: Here we should get rid of various temp files, include Emacs'.
 ;;       Feel free to add more if any necessary.
-(define *valid-mod-re* (string->sre "^[^.#$~]+[.]scm$"))
+(define *valid-mod-re* (string->irregex "^[^.#$~]+[.]scm$"))
 (define (get-all-changed-files p)
   (define (is-valid-module-file? f)
     (irregex-match *valid-mod-re* f))
