@@ -150,7 +150,7 @@
      (or (string=? vv "FALSE") (string=? vv "TRUE")))))
 
 (define *date-re*
-  (string->sre "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}"))
+  (string->irregex "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}"))
 (define (date-validator v)
   (check-field-value
    'date
