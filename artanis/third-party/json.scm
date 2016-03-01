@@ -38,7 +38,7 @@
                json-parser-port
                json))
 
-(define *word-re* (string->sre "^[a-zA-Z0-9_]+$"))
+(define *word-re* (string->irregex "^[a-zA-Z0-9_]+$"))
 
 (define (make-json-checker fix re err)
   (lambda (jstr)
@@ -48,7 +48,7 @@
 
 ;; check whether JSON object is an array, it is considered to be harmful to
 ;; return an array directly.
-(define *array-re* (string->sre "^\\[[^\\]]*\\]$"))
+(define *array-re* (string->irregex "^\\[[^\\]]*\\]$"))
 (define not-an-array
   (make-json-checker not *array-re* "[ERROR] return JSON as an array is dangerous!~%"))
 
