@@ -909,7 +909,7 @@
           (lp (cddr next) (list (car next) (cadr next)) ret)))
      (else (lp (cdr next) kk (cons (car next) ret))))))
 
-(define *name-re* (string->sre "([^.]+)\\.scm"))
+(define *name-re* (string->irregex "([^.]+)\\.scm"))
 (define (gen-migrate-module-name f)
   (cond
    ((irregex-search *name-re* (basename f))
