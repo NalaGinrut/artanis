@@ -72,16 +72,16 @@
         (opts (oah->opts opts-and-handler))
         (handler (oah->handler opts-and-handler)))
     (hash-set! *handlers-table*
-               (string-append method " " path-regexp)
+               (cons method path-regexp)
                (make-handler-rc handler keys (new-oht opts #:rule rule #:keys keys)))))
 
-(define (get rule . opts-and-handler) (define-handler "GET" rule opts-and-handler))
-(define (post rule . opts-and-handler) (define-handler "POST" rule opts-and-handler))
-(define (put rule . opts-and-handler) (define-handler "PUT" rule opts-and-handler))
-(define (patch rule . opts-and-handler) (define-handler "PATCH" rule opts-and-handler))
+(define (get rule . opts-and-handler) (define-handler 'GET rule opts-and-handler))
+(define (post rule . opts-and-handler) (define-handler 'POST rule opts-and-handler))
+(define (put rule . opts-and-handler) (define-handler 'PUT rule opts-and-handler))
+(define (patch rule . opts-and-handler) (define-handler 'PATCH rule opts-and-handler))
 ;; NOTE: delete method is rarely used, and this name will override the list deletion in Scheme.
 ;;       So my vote is changing its name, feel free to let me know if it's improper.
-(define (page-delete rule . opts-and-handler) (define-handler "DELETE" rule opts-and-handler))
+(define (page-delete rule . opts-and-handler) (define-handler 'DELETE rule opts-and-handler))
 
 ;; NOTE: we banned "\" in the path to avoid SQL-injection!!!
 (define *rule-regexp* (make-regexp ":[^\\/]+"))    

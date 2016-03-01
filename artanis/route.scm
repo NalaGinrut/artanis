@@ -21,9 +21,9 @@
   #:use-module (artanis utils)
   #:use-module (artanis cookie)
   #:use-module (artanis env)
+  #:use-module (artanis irregex)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
-  #:use-module (ice-9 regex)
   #:use-module (web uri)
   #:use-module (web request)
   #:export (make-handler-rc
@@ -115,9 +115,6 @@
     (init-query! rc) ; init query-string and post body
     rc))
 
-;; compiled regexp for optimization
-(define *key-regexp* (make-regexp "([^ ]+) (.+)"))
-
 ;; find & set the key of rule-handler,
 ;; which is used to find the (handler . keys)
 ;; FIXME: each method should have a own table
@@ -125,11 +122,10 @@
   (define rmtd (rc-method rc))
   (define path (rc-path rc))
   (define (key-matches-route? pattern)
-    (let* ((ml (regexp-split *key-regexp* pattern))
-           (method (cadr ml))
-           (path-regexp (caddr ml)))
-      (and (eq? rmtd (string->symbol method))
-           (regexp-exec (make-regexp path-regexp) path))))
+    (let ((method (car pattern))
+          (path-regexp (cdr pattern)))
+      (and (eq? rmtd method)
+           (irregex-match path-regexp path))))
   (rc-rhk! rc (find key-matches-route? (hash-keys *handlers-table*))))
 
 ;; find&set! the rule handler to rc
@@ -142,14 +138,14 @@
     (rc-keys! rc (handler-rc-keys hrc))))
 
 (define (init-rule-path-regexp! rc)
-  (rc-re! rc (caddr (regexp-split *key-regexp* (rc-rhk rc)))))
+  (rc-re! rc (string->irregex (cdr (rc-rhk rc)))))
 
 ;; init key-bindings table
 (define (init-rule-key-bindings! rc)
-  (let ((m (string-match (rc-re rc) (rc-path rc))))
+  (let ((m (irregex-search (rc-re rc) (rc-path rc))))
     (rc-bt! rc
-            (map (lambda (k i) (cons k (match:substring m i))) 
-                 (rc-keys rc) (iota (1- (match:count m)) 1)))))
+            (map (lambda (k i) (cons k (irregex-match-substring m i))) 
+                 (rc-keys rc) (iota (irregex-match-num-submatches m) 1)))))
 
 (define (init-query! rc)
   ;; NOTE: All the prefix/postfix ":" in query/post keys are trimmed.
