@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015
+;;  Copyright (C) 2015,2016
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -45,7 +45,7 @@
   (print-options)
   (display announce-foot))
 
-(define *verstr-re* (string->sre "VERSION=(\\d{14})"))
+(define *verstr-re* (string->irregex "VERSION=(\\d{14})"))
 
 ;; TODO: add more options
 (define (opts-parser opts)
@@ -60,7 +60,7 @@
 
 (define (%migrate op name opts)
   (define *mfile-re*
-    (string->sre (format #f "^(\\d{14})_~a\\.scm$" name)))
+    (string->irregex (format #f "^(\\d{14})_~a\\.scm$" name)))
   (define (compare-mfile x y)
     (let ((mx (irregex-match-substring (irregex-search *mfile-re* x) 1))
           (my (irregex-match-substring (irregex-search *mfile-re* y) 1)))
