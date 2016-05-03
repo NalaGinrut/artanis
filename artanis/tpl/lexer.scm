@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015
+;;  Copyright (C) 2013,2014,2015,2016
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -29,6 +29,7 @@
 (define ssend #\>)
 (define smiddle #\%)
 (define sshow #\=)
+(define scmd #\@)
 (define end-sign (string-append "\\\"" (string smiddle)))
 
 (define enter-string #f)
@@ -65,8 +66,8 @@
       (cond
        ((eof-object? c)
         (throw 'artanis-err 500 "Invalid template text! No proper end sign!"))
-       ((and (not enter-string) (char=? c #\%) (char=? (peek-char port) #\>))
-        (read-char port) ; #\>
+       ((and (not enter-string) (char=? c smiddle) (char=? (peek-char port) ssend))
+        (read-char port) ; skip ssend
         (string-concatenate-reverse (cons code ret))) ; exit
        ((char=? #\" c)
         (not! enter-string)
@@ -101,6 +102,15 @@
        (else
         (lp (read-html port) (cons (string c) (cons html ret))))))))
 
+(define (next-is-cmd-start? c port)
+  (let ((c2 (peek-char port)))
+    (cond
+     ((and (not enter-string) (char=? c sstart) (char=? c2 scmd))
+      (read-char port) ; skip scmd
+      (let ((cmd (read-delimited " " port)))
+        (string->symbol cmd)))
+     (else #f))))
+      
 (define next-token
   (lambda (port)
     (let* ((c (read-char port))
@@ -120,6 +130,10 @@
         => (lambda (type)
              (set! code-start #f)
              (return port type (get-the-code port))))
+       ((and (not enter-string) (not code-start) (next-is-cmd-start? c port))
+        => (lambda (cmd)
+             (set! code-start #f)
+             (return port 'command (cons cmd (get-the-code port)))))
        (else
         (unget-char1 c port)
         (return port 'html (get-the-html port)))))))

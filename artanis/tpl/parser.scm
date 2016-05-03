@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015
+;;  Copyright (C) 2013,2014,2015,2016
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -26,15 +26,31 @@
 (define (tpl-read port)
   (make-reader make-parser make-tpl-tokenizer port))
 
+(define (gen-command cmd args)
+  (case cmd
+    ((include)
+     (if (file-exists? args)
+         (apply cat args #f)
+         (throw 'artanis-err 500 "Included file in template doesn't exist!" args)))
+    ((css)
+     (format #f "<link rel=\"stylesheet\" href=\"/pub/css/~a\">" args))
+    ((icon)
+     (format #f "<link rel=\"icon\" href=\"/pub/img/~a\" type=\"image/x-icon\">" args))
+    ((js)
+     (format #f "<script type=\"text/javascript\" src=\"/pub/js/~a\"> </script>" args))
+    (else
+     (throw 'artanis-err 500 "Invalid command in template!" cmd))))
+     
 (define (make-parser)
   (lalr-parser
-   (code disp-code html) ; terminal tokens
+   (code disp-code html command) ; terminal tokens
 
    (tpls (tpls tpl) : (string-concatenate (list $1 $2))
          (tpl) : $1
          (*eoi*) : *eof-object*)
 
    (tpl (html) : (string-trim-both $1)
+        (command) : (gen-command (car $1) (cadr $1))
         (program) : $1)
 
    (program (code) : $1
