@@ -22,21 +22,22 @@
 /* Define to 1 if you have the `memchr' function. */
 #undef HAVE_MEMCHR
 
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
 /* Define to 1 if you have the `mkdir' function. */
 #undef HAVE_MKDIR
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 
-/* Always define to 1, for backward compatibility. You can assume <stdlib.h>
-   exists. */
+/* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
 
 /* Define to 1 if you have the <strings.h> header file. */
 #undef HAVE_STRINGS_H
 
-/* Always define to 1, for backward compatibility. You can assume <string.h>
-   exists. */
+/* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
@@ -60,8 +61,7 @@
 /* Define to 1 if `vfork' works. */
 #undef HAVE_WORKING_VFORK
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR
 
 /* Define to the address where bug reports for this package should be sent. */
@@ -82,8 +82,7 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-/* Always define to 1, for backward compatibility. You can assume the C90
-   standard headers exist. */
+/* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
 /* Define to `__inline__' or `__inline' if that's what the C compiler
