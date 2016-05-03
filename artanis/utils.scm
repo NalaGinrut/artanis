@@ -70,7 +70,8 @@
             subbv->string subbv=? bv-read-line bv-read-delimited put-bv
             bv-u8-index bv-u8-index-right build-bv-lookup-table filesize
             plist-remove gen-migrate-module-name try-to-load-migrate-cache
-            flush-to-migration-cache gen-local-conf-file with-dbd errno)
+            flush-to-migration-cache gen-local-conf-file with-dbd errno
+            call-with-sigint)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -454,8 +455,7 @@
             item
             (or (and=> (get-the-val keyword-args (car item)) ->string)
                 (cdr item) ; default value
-                (throw 'artanis-err 500
-                       "(utils)item->string: Missing keyword" (car item)))))
+                "")))
       (string-concatenate (map item->string items)))))
 
 ;; the normal mode, no double quotes for vals
@@ -996,3 +996,23 @@
 (define-syntax-rule (DEBUG fmt args ...)
   (when (get-conf 'debug-mode)
         (format (artanis-current-output) fmt args ...)))
+
+(define call-with-sigint
+  (if (not (provided? 'posix))
+      (lambda (thunk handler-thunk) (thunk))
+      (lambda (thunk handler-thunk)
+        (let ((handler #f))
+          (catch 'interrupt
+            (lambda ()
+              (dynamic-wind
+                (lambda ()
+                  (set! handler
+                        (sigaction SIGINT (lambda (sig) (throw 'interrupt)))))
+                thunk
+                (lambda ()
+                  (if handler
+                      ;; restore Scheme handler, SIG_IGN or SIG_DFL.
+                      (sigaction SIGINT (car handler) (cdr handler))
+                      ;; restore original C handler.
+                      (sigaction SIGINT #f)))))
+            (lambda (k . _) (handler-thunk)))))))
