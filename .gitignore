@@ -63,8 +63,6 @@ cscope.files
 *.d
 !artanis/commands/version.scm
 artanis/version.scm
-*.m4
-m4/
 ltmain.sh
 libtool
 examples/upload
