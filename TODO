@@ -1,4 +1,3 @@
-* Add local lib for each APP
 * theme (based on template)
 * make own favicon.ico (now use opensuse ico instead)
 * implement expand-conds for ssql
@@ -28,7 +27,7 @@ Some ideas:
   2. use store procedure
 
 * Security stratage:
-  1. uri-decode should only be used in response processing, never request processing!
+  1. uri-decode should only be used in response-processing, never request-processing!
   2. Any string which will be sent into DBI shouldn't be uri-decode in advanced!
 
 * Reconsider security tokens fetching
@@ -36,3 +35,9 @@ Some ideas:
 
 * Rewrite local-redirect-to for supporing controllers, and don't take use of "Location" header for it.
   Just find out and call the rule handler directly.
+
+* Ulimited categorizing. Use :categorize as shortcut. Two possible methods:
+  1. migrate a category table, and generate a lookup table each time before Artanis start.
+     It is hard to update category in runtime.
+  2. get category chain recursively, it should be fast in Scheme
+  
