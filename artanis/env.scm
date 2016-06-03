@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015
+;;  Copyright (C) 2014,2015,2016
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -46,7 +46,9 @@
             current-dbconn
             current-appname
             change-session-backend!
-            current-session-backend))
+            current-session-backend
+            protocol-add!
+            lookup-protocol))
 
 ;; WARNING: For concurrency in green-thread, all these stuffs should be immutable
 ;;          IN THE RUN TIME!!!
@@ -116,3 +118,11 @@
 (define *session-backend* #f)
 (define (change-session-backend! x) (set! *session-backend* x))
 (define (current-session-backend) *session-backend*)
+
+(define *proto-table* (make-hash-table))
+
+(define (protocol-add! name proto)
+  (hashq-set! *proto-table* name proto))
+
+(define (lookup-protocol name)
+  (hashq-ref *proto-table* name))
