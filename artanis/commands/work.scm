@@ -23,6 +23,7 @@
   #:use-module (artanis commands)
   #:use-module (artanis artanis)
   #:use-module (artanis config)
+  #:use-module (artanis server)
   #:use-module (artanis mvc controller)
   #:use-module (artanis mvc model)
   #:use-module (artanis mvc view)
@@ -104,7 +105,8 @@
   (add-to-load-path (string-append (current-toplevel) "/lib"))
   (try-load-app)
   (register-rules)
-  (load-rules))
+  (load-rules)
+  (init-server-core))
 
 (define (work . args)
   (let ((options (if (null? args) '() (getopt-long args option-spec))))
