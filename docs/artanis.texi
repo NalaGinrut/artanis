@@ -1,7 +1,7 @@
 \input texinfo    @c -*- texinfo -*-
 @c %**start of header
-@setfilename artanis.info
-@settitle GNU Artanis web-framework Manual
+@setfilename artanis.texi
+@settitle 
 @documentencoding UTF-8
 @documentlanguage en
 @syncodeindex pg cp
@@ -17,7 +17,7 @@
 
 @ifnottex
 @node Top
-@top GNU Artanis web-framework Manual
+@top 
 @end ifnottex
 
 @menu
@@ -51,10 +51,15 @@ Introduction
 * Conventions used in this manual::
 * No warranty::
 
+
+
+
 Installation
 
 * For users::
 * For contributors::
+
+
 
 Configuration
 
@@ -66,6 +71,8 @@ Configuration
 * Cache config::
 * Debug config::
 
+
+
 Hello World
 
 * Use Guile REPL and verify GNU Artanis installation::
@@ -75,12 +82,16 @@ Hello World
 * Regex in URL remapping::
 * Database operating::
 
+
+
 Basic in Scheme
 
 * For newbies::
 * For Pythonistas::
 * For Rubyist::
 * For deep learners::
+
+
 
 Basic in GNU Artanis
 
@@ -91,6 +102,8 @@ Basic in GNU Artanis
 * Running server::
 * Working with Nginx::
 
+
+
 The Art command line
 
 * art create::
@@ -98,10 +111,14 @@ The Art command line
 * art migrate::
 * art work::
 
+
+
 MVC
 
 * Controllers/Views::
 * Models::
+
+
 
 URL remapping
 
@@ -109,6 +126,8 @@ URL remapping
 * URL handling::
 * Get parameters from URL::
 * Redirect link::
+
+
 
 Layouts and Rendering in GNU Artanis
 
@@ -119,6 +138,8 @@ Layouts and Rendering in GNU Artanis
 * Embedded Templating::
 * SXML Templating::
 
+
+
 Database
 
 * Migration::
@@ -126,6 +147,9 @@ Database
 * SSQL (experimental)::
 * FPRM (experimental)::
 * SQL Mapping (experimental)::
+
+
+
 
 FPRM (experimental)
 
@@ -137,6 +161,7 @@ FPRM (experimental)
 * Drop a table::
 * Check existence of table::
 * Get schema of a table::
+
 MIME
 
 * JSON::
@@ -144,14 +169,16 @@ MIME
 * XML::
 * SXML::
 
+
+
 Upload files
 
 * Receive upload from client::
 * Send upload to Server::
 
-Sessions
 
-* Session backend::
+
+
 
 Authentication
 
@@ -159,10 +186,14 @@ Authentication
 * Basic Authentication::
 * Common Authentication::
 
+
+
 Cache
 
 * On web caching::
 * Cache APIs::
+
+
 
 Utils
 
@@ -173,7 +204,7 @@ Utils
 @end detailmenu
 @end menu
 
-
+xcxc#+TITLE: GNU Artanis web-framework Manual
 
 @node Introduction
 @chapter Introduction
@@ -200,6 +231,7 @@ Guile is also an interpreter and compiler for other dynamic programming language
 
 @uref{http://en.wikipedia.org/wiki/Scheme_%28programming_language%29,Scheme} is a functional programming language and one of the two main dialects of the programming language @uref{http://en.wikipedia.org/wiki/Lisp_(programming_language),Lisp}.
 Scheme follows a minimalist design philosophy specifying a small standard core with powerful tools for language extension.
+
 @menu
 * Conventions used in this manual::
 * No warranty::
@@ -302,7 +334,7 @@ tar xvzf guile-dbd-mysql-2.1.4.tar.gz
 cd guile-dbd-mysql-2.1.4 && ./configure && make
 sudo make install
 @end example
-MySQL is used for the examples in this manual. You may find dbd plugins for other databases at @indicateurl{ttp://download.gna.org/guile-dbi}. The installation process is identical.
+MySQL is used for the examples in this manual. You may find dbd plugins for other databases at [BROKEN LINK: nil]. The installation process is identical.
 
 @strong{Install the latest GNU Artanis:}
 
@@ -337,6 +369,7 @@ If you're using minimum mode, say, no application folder. The configure file mus
 @item
 If you're using application folder, the configure file @verb{~conf/artanis.conf~} will be generated automatically for you.
 @end itemize
+
 @menu
 * Database config::
 * Server config::
@@ -351,7 +384,7 @@ If you're using application folder, the configure file @verb{~conf/artanis.conf~
 @section Database config
 
 @example
-db.enable = <boolean>
+db.enable = enable | disable
 @end example
 @itemize
 @item
@@ -383,7 +416,7 @@ The address of the database server, @strong{@emph{localhost}} in default.
 @end itemize
 
 @example
-db.socket = <boolean>
+db.socket = enable | disable
 @end example
 @itemize
 @item
@@ -436,7 +469,7 @@ Specify your own server info, it'll be /*Artanis-x.x.x/* in default, depends on 
 @end itemize
 
 @example
-server.nginx = <boolean>
+server.nginx = enable | disable
 @end example
 @itemize
 @item
@@ -505,7 +538,7 @@ The trigger mode of Epoll.
 @section Host config
 
 @example
-host.name = <string> | <boolean>
+host.name = enable | disable
 @end example
 @itemize
 @item
@@ -551,13 +584,13 @@ Specify the session files path. It depends on the session engine.
 @end itemize
 
 @example
-session.backend = simple | db | file | <certain-third-party>
+session.engine = simple | db | redis | <certain-third-party>
 @end example
 @itemize
 @item
-Specify session backend.
+Specify session engine.
 @item
-See more details in @ref{Session backend,Session backend}.
+@emph{@strong{Note:}} Keep it `simple' unless this note removed away someday!
 @end itemize
 
 @node Upload config
@@ -829,6 +862,7 @@ supporting only a handful of predefined syntactic forms and procedures. Scheme i
 it still derives its power from a small set of key concepts. Early implementations of the language were interpreter-based and slow, but
 Guile Scheme is trying to implement sophisticated compiler that generate better optimized code, and even a plan for AOT compiler generated
 native code in the future.
+
 @menu
 * For newbies::
 * For Pythonistas::
@@ -1020,6 +1054,7 @@ And run GNU Artanis:
 @chapter The Art command line
 
 GNU Artanis provides @strong{art} command line tool to save users' time.
+
 @menu
 * art create::
 * art draw::
@@ -1123,6 +1158,7 @@ user interfaces.
 It divides a given software application into three interconnected parts, so as to
 separate internal representations of information from the ways that information is
 presented to or accepted from the user.
+
 @menu
 * Controllers/Views::
 * Models::
@@ -1547,6 +1583,7 @@ For example:
 FPRM stands for Functional Programming Relational Mapping. It's a new word I invented. But it's not new concept. FP here indicates @strong{stateless}. 
 
 @emph{FPRM is still experimental and work-in-progress.}
+
 @menu
 * Connect to DB server::
 * Map DB table::
@@ -1800,6 +1837,7 @@ To be continued @dots{}
 #:mime type ; for registering type
 (:mime rc body) ; for emit the reponse with the proper MIME
 @end example
+
 @menu
 * JSON::
 * CSV::
@@ -1834,7 +1872,7 @@ For example:
 
 @verb{~scm->json~} will print the result directly.
 
-If you need to format JSON as a string to return to clients, please use @verb{~scm->json-string~}. 
+If you need to format JSON as a string to return to clients, please use @verb{~scm->json-string~}.
 
 @node CSV
 @section CSV
@@ -1870,6 +1908,7 @@ You can use SXML to replace XML for exchanging data format. This way saves some 
 @chapter Upload files
 
 If you want to deal with uploading files, store-uploaded-files would be you friend.
+
 @menu
 * Receive upload from client::
 * Send upload to Server::
@@ -1971,35 +2010,6 @@ And the APIs of session is :session
 @item
 'spawn-and-keep spawn a session then keep with the name "sid".
 @end itemize
-@menu
-* Session backend::
-@end menu
-
-@node Session backend
-@section Session backend
-
-A session backend is the way to manage sessions in low-level. Usually, users may not care about how it's done.
-
-GNU Artanis supports 3 session backends:
-
-@itemize
-@item
-@emph{SIMPLE}:
-
-This will store sessions in memory as hashtable, it's simple and fast, but consume more memories along with increasing of sessions.
-
-@item
-@emph{DB}:
-
-This depends on your database config. Storing sessions in database. It's good for massive sessions.
-
-@item
-@emph{FILE}:
-
-Storing sessions to files, it's slower, but could be an option if you have no database and limited memory, and you don't care much about performance.
-@end itemize
-
-@emph{NOTE: GNU Artanis is flexible enough for users to define their own sesssion backend as plugins, but it requires a specific package manager, this will be added in the future.}
 
 @node Cookies
 @chapter Cookies
@@ -2216,6 +2226,7 @@ But, if your current URL rule is used for authentication (once you use @verb{~#:
 @chapter Utils
 
 @strong{The functions introduced here need to import (artanis utils) module.}
+
 @menu
 * String Template::
 * Random Number Generator::
@@ -2453,21 +2464,20 @@ ADDENDUM: How to use this License for your documents
 
 To use this License in a document you have written, include a copy of the License in the document and put the following copyright and license notices just after the title page:
 
-  Copyright (C)  year  your name.
-  Permission is granted to copy, distribute and/or modify this document
-  under the terms of the GNU Free Documentation License, Version 1.3
-  or any later version published by the Free Software Foundation;
-  with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
-  Texts.  A copy of the license is included in the section entitled ``GNU
-  Free Documentation License''.
+Copyright (C)  year  your name.
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
+Texts.  A copy of the license is included in the section entitled ``GNU
+Free Documentation License''.
 If you have Invariant Sections, Front-Cover Texts and Back-Cover Texts, replace the “with…Texts.” line with this:
 
-    with the Invariant Sections being list their titles, with
-    the Front-Cover Texts being list, and with the Back-Cover Texts
-    being list.
+with the Invariant Sections being list their titles, with
+the Front-Cover Texts being list, and with the Back-Cover Texts
+being list.
 If you have Invariant Sections without Cover Texts, or some other combination of the three, merge those two alternatives to suit the situation.
 
 If your document contains nontrivial examples of program code, we recommend releasing these examples in parallel under your choice of free software license, such as the GNU General Public License, to permit their use in free software.
 
-@c Emacs 24.2.1 (Org mode 8.3beta)
 @bye
