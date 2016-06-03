@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015
+;;  Copyright (C) 2014,2015,2016
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -20,14 +20,16 @@
 ;; ---------------------------------------------------------------------
 ;; This module is the brand new high performance concurrency server of
 ;; Artanis, which is based on Guile's powerful delimited-continuations.
-;;
-;; NOTE: I have no plan to finish this server module soon, because it's
-;;       not in a high priority at present. But I have to provide some
-;;       parameters for other modules in advance.
 
 (define-module (artanis server)
   #:use-module (artanis utils)
   #:use-module (artanis config)
-  #:export (current-worker))
+  #:use-module (artanis env)
+  #:use-module (artanis server http)
+  #:export (current-worker
+            init-server-core))
 
 (define current-worker (make-parameter 0))
+
+(define (init-server-core)
+  (protocol-add! 'http (new-http-protocol)))
