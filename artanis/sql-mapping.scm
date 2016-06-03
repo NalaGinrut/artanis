@@ -40,7 +40,8 @@
 ;; 4. DSL should handle key-value or list for users easily.
 ;; 5. DSL should handle Stored-Procedure for specific DB implementation (as possible).
 ;; 6. There's no ORM, but FPRM. The only difference is that you never see
-;;    Classes but Closures. Hmm...what's the essential difference? Stateless, of course!
+;;    Classes but Closures. Hmm...what's the essential difference?
+;;    We should try to be stateless, it's still experimental.
 
 ;; NOTE: sql-mapping-maker returns conn object, users have to get certain rows as will.
 (define (sql-mapping-maker mode rule keys)
