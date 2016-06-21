@@ -1,18 +1,19 @@
-#+TITLE: GNU Artanis web-framework Manual
+xcxc#+TITLE: GNU Artanis web-framework Manual
 #+AUTHOR: Mu Lei known as NalaGinrut
 #+EMAIL: mulei@gnu.org
 #+LANGUAGE: en
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="../css/manual.css" />
 #+STARTUP: hidestar latexpreview
 
-#+TEXINFO_FILENAME: artanis.info
+#+TEXINFO_FILENAME: artanis.texi
 #+TEXINFO_HEADER: @syncodeindex pg cp
 #+TEXINFO_PRINTED_TITLE: GNU Artanis
 
 #+OPTIONS: H:3 toc:t \n:nil ::t |:t ^:nil -:t f:t *:t tex:t d:(HIDE) tags:not-in-toc
 #+OPTIONS: tex:t          Do the right thing automatically (MathJax)
 #+OPTIONS: tex:verbatim   Verbatim export, for jsMath or so
-
+#+OPTIONS: broken-links:mark somewhere
+#+OPTIONS: 
 * Introduction
 
 #+begin_src nil
@@ -305,7 +306,7 @@ $1 = "GNU Artanis-x.x.x"
 #+end_src
 ** Simple HTTP server
 Run this code in your console:
-#+begin_src nil
+#+begin_src bash
 guile -c "(use-modules (artanis artanis))(init-server)(run)"
 ## You'll see this screen:
 Anytime you want to Quit just try Ctrl+C, thanks!
