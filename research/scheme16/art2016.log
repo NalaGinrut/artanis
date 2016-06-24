@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Debian) (preloaded format=pdflatex 2016.6.20)  24 JUN 2016 22:41
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Debian) (preloaded format=pdflatex 2016.6.20)  25 JUN 2016 00:45
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -444,39 +444,35 @@ Non-PDF special ignored!
 LaTeX Warning: Command \textendash invalid in math mode on input line 189.
 
 
-Underfull \hbox (badness 2608) in paragraph at lines 266--269
+Underfull \hbox (badness 2608) in paragraph at lines 268--271
 \OT1/ptm/b/n/9 shift\OT1/ptm/m/n/9 /\OT1/ptm/b/n/9 reset\OT1/ptm/m/n/9 , \OT1/p
 tm/b/n/9 %\OT1/ptm/m/n/9 /\OT1/ptm/b/n/9 abort\OT1/ptm/m/n/9 , and \OT1/ptm/b/n
 /9 call-with-prompt\OT1/ptm/m/n/9 /\OT1/ptm/b/n/9 abort-to-prompt\OT1/ptm/m/n/9
  .
  []
 
-
-Underfull \vbox (badness 1769) has occurred while \output is active []
-
- [2]
-(/usr/share/texlive/texmf-dist/tex/latex/base/ts1cmtt.fd
+[2] (/usr/share/texlive/texmf-dist/tex/latex/base/ts1cmtt.fd
 File: ts1cmtt.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 ) (./coroutine.scm
 [3]) <websocket.png, id=25, 619.31375pt x 637.38126pt>
 File: websocket.png Graphic file (type png)
  <use websocket.png>
-Package pdftex.def Info: websocket.png used on input line 431.
+Package pdftex.def Info: websocket.png used on input line 434.
 (pdftex.def)             Requested size: 185.79555pt x 191.21585pt.
 
 <wss.png, id=27, 793.96625pt x 475.7775pt>
 File: wss.png Graphic file (type png)
  <use wss.png>
-Package pdftex.def Info: wss.png used on input line 444.
+Package pdftex.def Info: wss.png used on input line 447.
 (pdftex.def)             Requested size: 238.19171pt x 142.73434pt.
 
 <httpgw.png, id=28, 973.6375pt x 622.325pt>
 File: httpgw.png Graphic file (type png)
  <use httpgw.png>
-Package pdftex.def Info: httpgw.png used on input line 458.
+Package pdftex.def Info: httpgw.png used on input line 461.
 (pdftex.def)             Requested size: 243.40877pt x 155.58086pt.
 
-Overfull \hbox (3.40877pt too wide) in paragraph at lines 458--459
+Overfull \hbox (3.40877pt too wide) in paragraph at lines 461--462
  [][] 
  []
 
@@ -533,7 +529,7 @@ Underfull \hbox (badness 2057) in paragraph at lines 85--88
 Here is how much of TeX's memory you used:
  6785 strings out of 493014
  98897 string characters out of 6135690
- 314192 words of memory out of 5000000
+ 311192 words of memory out of 5000000
  10206 multiletter control sequences out of 15000+600000
  57990 words of font info for 70 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -551,7 +547,7 @@ mb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr
 /share/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/
 texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/font
 s/type1/urw/times/utmri8a.pfb>
-Output written on art2016.pdf (6 pages, 264529 bytes).
+Output written on art2016.pdf (6 pages, 264795 bytes).
 PDF statistics:
  84 PDF objects out of 1000 (max. 8388607)
  56 compressed objects within 1 object stream

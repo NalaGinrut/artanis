@@ -85,9 +85,9 @@
   
   This paper introduces a web framework design in Scheme programming language, which takes advantage of websocket protocol to provide both
   convenience and efficiency. In spite of the expressiveness, Scheme provides powerful abstract ability to implement co-routines with
-  continuations for the server core.
+  {\it continuations} for the server core.
 
-  One of the significant aim is to design a high performance generic server core with delimited continuations, and we'll show how it's useful
+  One of the significant aim is to design a high performance generic server core with {\it delimited continuations}, and we'll show how it's useful
   for Internet of Things (IoT).
   
   GNU Artanis also provides useful modules for web programming, RESTful, web caching, templating, MVC, and a novel abstraction for relational
@@ -122,12 +122,12 @@ over HTTP. The {\it HTTP Gateway} is not a new concept, actually it's hidden in 
 for it is important to understand how GNU Artanis manages all the websocket connections. We'll mention it in \ref{HTTP Gateway}.
 
 Besides, this paper will show a different way to implement concurrent server. It is different from the callback way used in C or Node.js.
-We use continuations which has been already practiced as the abstract of concurrent processes in several cases
+We use {\it continuations} which has been already practiced as the abstract of concurrent processes in several cases
 \citep{Krishnamurthi2007}\citep{Hieb:1990:CC:99164.99178}\citep{Hieb:1994:SUB:184324.184330}.
-It is proved that continuations could be the model for directly expressing concurrency in Scheme language \citep{shivers1997continuations}.
+It is proved that {\it continuations} could be the model for directly expressing concurrency in Scheme language \citep{shivers1997continuations}.
 In this paper, we'll take GNU Artanis as a study case to indicate the same purpose. Moreover,
-GNU Artanis uses GNU Guile which is a practical Scheme implementation which provides delimited continuations for better implementing co-routines.
-In this paper, we'll show a new way with the feature named delimited continuations, which is better abstract than traditional continuations.
+GNU Artanis uses GNU Guile which is a practical Scheme implementation which provides {\it delimited continuations} for better implementing co-routines.
+In this paper, we'll show a new way with the feature named {\it delimited continuations}, which is better abstract than traditional {\it continuations}.
 We'll discuss it in \ref{Delimited Continuations}.
 
 The C10K and C10M problem has told us that the performance is not the only thing to concern for high concurrent server, but also the scalability.  
@@ -149,10 +149,10 @@ transfer their definition in semantics to Scheme code naturally for practical pr
 \subsection{First Class Continuations}
 
 A {\it continuation} is ``the rest of the computation''. It is often referred as {\it call/cc} standing for
-{\it call-with-current-continuation}, which captures (reifies) the state of underlying machine named the {\it current continuation}.
-The captured continuation is also referred as {\it escape procedure} passed into the scope by the argument (as a function) of {\it call/cc}.
+{\it call-with-current-continuation}, which captures (reifies) the state of underlying machine state named the {\it current continuation}.
+The captured {\it continuation} is also referred as {\it escape procedure} passed into the scope by the argument (as a function) of {\it call/cc}.
 When the {\it escape procedure} is called within the context, the run-time discards the trivial
-continuation at the time point of the calling and throws the previous captured continuation back into the machine state.
+{\it continuation} at the time point of the calling and throws the previous captured {\it continuation} back into the machine state.
 
 The {\it continuations} captured by {\it call/cc} often implies {\it first class}, which means a continuation
 could be passed and returned from functions, and stored in a data structure with indefinite extent.
@@ -187,7 +187,7 @@ $(2)$ Wouldn't reduce the source term. And $E[...\mapsto...]$ means capture-avoi
 The term $(E_1\:E_2)$ represents the application of a function $E_1$ to an input $E_2$. The $\kappa$
 is {\it continuation} which has the type that a function from values to values. In spirit of CPS,
 the $\lambda\textendash${\it abstract} in Figure \ref{fig:cont_sema} denotes a function from an environment $\rho$ to a function
-accepting an argument $v$ and a continuation $\kappa'$.
+accepting an argument $v$ and a {\it continuation} $\kappa'$.
 
 And we give semantic of {\it call/cc} according to Figure \ref{fig:cont_sema}:
 \begin{align*}
@@ -219,9 +219,9 @@ The common placeholder  ``$\_$'' is $\kappa'$ in semantic definition, which is t
 The $\rho$ is dismissed since the environment is managed by Scheme inexplicitly.
 
 In most of the Scheme implementations, ${\it call/cc}$ is rarely in CPS which helped us to analysis the control flow for better understanding
-of continuations.
+of {\it continuations}.
 But practically, we have to dismiss the explicit continuation passing ($k$ or $\kappa$ above) which makes the expression complex.
-It is hard to show how the continuation $\kappa$ is processed in non-CPS form, so we just need to know the continuation will be captured and
+It is hard to show how the {\it continuation} $\kappa$ is processed in non-CPS form, so we just need to know the {\it continuation} will be captured and
 threw by in Scheme inexplicitly.
 
 Although {\it call/cc} is a fine way to implement threads, it is well known that {\it call/cc} captures too many things which are overkill for most
@@ -232,10 +232,12 @@ other control features. To avoid this problem, we introduce {\it delimited conti
 {\it Delimited continuations} are more expressive than {\it call/cc}.
 Nevertheless, it captures less things to make the {\it continuations} more lightweight.
 
-As an ordinary continuation stands for ``the rest of the computation'', a delimited continuation represents
+As an ordinary {\it continuation} stands for ``the rest of the computation'', a {\it delimited continuation} represents
 ``the rest of the computation up to somewhere'' \citep{sumii2000implementation}.
 
-Following the semantics in Figure \ref{fig:cont_sema}, {\it shift} and {\it reset} has the definition \citep{Danvy92representingcontrol:}:
+Although many competing delimited control operators exist in language research community, {\bf shift}/{\bf reset} are common to be mentioned. 
+Following the semantics in Figure \ref{fig:cont_sema}, {\bf shift} and {\bf reset} has the definition \citep{Danvy92representingcontrol:}:
+
 \begin{align*}
   \llbracket{(\text{{\bf reset}}\:E)}\rrbracket\rho \quad&=\quad \lambda{\kappa_r}.(\kappa_r\:\: (\llbracket{E}\rrbracket\rho\:\: \lambda{x}.x))
   \\
@@ -243,10 +245,10 @@ Following the semantics in Figure \ref{fig:cont_sema}, {\it shift} and {\it rese
   \lambda{\kappa_s}.(\llbracket{M}\rrbracket\rho[c\mapsto\lambda{v\kappa'}.(\kappa'\:(\kappa_s\:v))]\:\:\lambda{x}.x)
 \end{align*}
 
-Note $\lambda{x}.x$ is a common procedure named {\it identity} which is used to indicate an empty continuation.
+Note $\lambda{x}.x$ is a common procedure named {\it identity} which is used to indicate an empty {\it continuation} here.
 Apparently, if there's no {\bf shift} within {\bf reset}, the evaluated expression $E$ will be returned without any change from {\bf reset} because
-it's applied by {\it identity} function as the empty continuation. But if {\bf shift} is evaluated within, the $\kappa_r$ has no chance to
-be applied because the whole context returns by applying $\kappa_s$. What does it mean? It means that the continuation was truncated (delimited) to
+it's applied by {\it identity} function as the empty {\it continuation}. But if {\bf shift} is evaluated within, the $\kappa_r$ has no chance to
+be applied because the whole context returns by applying $\kappa_s$. What does it mean? It means that the {\it continuation} was truncated (delimited) to
 $\kappa_s$, and the trivial $\kappa_r$ won't be captured that reduced the cost. It is very different from {\it full-continuation} capturing in
 ${\bf call/cc}$. This feature would solve the ``overkilled'' problem we've mentioned in the end of last section.
 
@@ -256,8 +258,8 @@ co-routines.
 
 Although it is naturally to implement {\it delimited continuations} by complex CPS transforming in semantics. It's never the best performance way.
 GNU Guile implemented {\it delimited continuations} in the direct way that uses the language's native stack representation, and not requiring global
-or local transformations \citep{wingo2010}. Rather than CPS transformation, the direct implementation will copy the continuation chain resides in the
-heap, and involves copying of continuation frames both during reification and reflection.
+or local transformations \citep{wingo2010}. Rather than CPS transformation, the direct implementation will copy the {\it continuation} chain resides in the
+heap, and involves copying of {\it continuation} frames both during reification and reflection.
 
 According to the test results, it shows that the direct implement approach is fabulously faster than CPS transforming way
 \citep{Gasbichler:2002:FSC:581478.581504}. Nevertheless, there could possibly be further optimizing of stack/heap management and copying methods to make
@@ -276,7 +278,8 @@ in \ref{Co-routines}. A common usage of it could be this:
    '(the-tag-to-locate-prompts)
    (lambda ()
     ... ; Do your job
-    (abort-to-prompt '(the-tag-to-locate-prompts))
+   (abort-to-prompt
+    '(the-tag-to-locate-prompts))
     ... ; continue the work
     ...)
    (lambda (k . args)
@@ -286,8 +289,8 @@ in \ref{Co-routines}. A common usage of it could be this:
 \end{lstlisting}
 
 {\it Delimited continuations} has been implemented in few languages: GNU Guile, PLT Scheme, Scheme48, OCaml, Scala.
-Considering that many mainstream dynamic languages has first class continuations (call/cc), optimistically, it is possible that more languages
-will implement delimited continuations too. In view of above mentioned reasons, the study case in this paper may shed some light on server
+Considering that many mainstream dynamic languages has {\it first class continuations} (call/cc), optimistically, it is possible that more languages
+will implement {\it delimited continuations} too. In view of above mentioned reasons, the study case in this paper may shed some light on server
 design issue for the future.
 
 \subsection{Co-routines} \label{Co-routines}
@@ -306,12 +309,12 @@ critical overheads (trap into kernel, locks, synchronization), no mention the di
 it is even complained by people that threads model is bad idea for practices \citep{ousterhout1996threads}.
 
 Since Scheme provides full support for continuations, implementing co-routines is nearly trivial, requiring only that a queue of continuations
-be maintained. Moreover, this paper introduce the way to implement co-routines with delimited continuations. We'll see how this approach is
+be maintained. Moreover, this paper introduce the way to implement co-routines with {\it delimited continuations}. We'll see how this approach is
 convenient and clean later in this section.
 
-As described in \ref{Delimited Continuations}, GNU Guile provides several similar abstract interfaces to handle delimited continuations.
+As described in \ref{Delimited Continuations}, GNU Guile provides several similar abstract interfaces to handle {\it delimited continuations}.
 Here we choose the pair functions {\it call-with-prompt} and {\it abort-to-prompt} for it, since it's easier to invoke scheduler procedure
-which is used to resume the stopped co-routines while throwing the delimited continuations.
+which is used to resume the stopped co-routines while throwing the {\it delimited continuations}.
 
 The basic principle of co-routine implementation is that saving context to a first class object then adding it into a queue, and scheduling
 around till the queue is empty. So the first step is to initialize a queue:
@@ -344,7 +347,7 @@ as the index of the request in our example.
  (queue-in! *work-queue* (cons idx k)))
 \end{lstlisting}
 
-The sleeping feature is implemented with {\it abort-to-prompt}. When it's called, the run-time will throw the current continuation bound to
+The sleeping feature is implemented with {\it abort-to-prompt}. When it's called, the run-time will throw the {\it current continuation} bound to
 {\it k} as the first argument of {\it save-context} function.
 
 \begin{lstlisting}
@@ -354,7 +357,7 @@ The sleeping feature is implemented with {\it abort-to-prompt}. When it's called
   idx))
 \end{lstlisting}
 
-Each time when certain condition were met, the related delimited continuation would be resumed. The {\it resume} function will resume the task
+Each time when certain condition were met, the related {\it delimited continuation} would be resumed. The {\it resume} function will resume the task
 properly. Note that the resumed continuation should be re-delimit again to avoid stack issues. And when calling {\it k} for resuming continuations,
 it is necessary to pass {\it idx} as the argument.
 
@@ -423,7 +426,7 @@ This approach keeps a bi-directional ongoing conversation taking place between c
 beyond, websocket provides full-duplex communication.
 And all the communications are done over TCP port 80, which is of benefit for those environments which block non-web Internet connections
 behind a firewall. This makes all the connections long living session rather than short session as traditional HTTP does and provides the
-possibility for implementing Comet technology, which was the old way to provide full-dumplex communication on 80 port, in a more convenient way.
+possibility for implementing Comet technology, the old way for full-dumplex communication on web, in a more convenient way.
 
 \begin{figure}[tbph]
   \centering
@@ -447,7 +450,7 @@ the exactly the same way with handshake in HTTP, then upgrade to websocket proto
 
 \subsection{HTTP Gateway} \label{HTTP Gateway}
 
-One of the key concept of GNU Artanis is the HTTP Gateway. As mentioned earlier in this paper, HTTP Gateway is not a new concept,
+One of the important concept of GNU Artanis is the HTTP Gateway. As mentioned earlier in this paper, HTTP Gateway is not a new concept,
 for it's transparent in many server program.
 
 The HTTP Gateway, as described intuitively, is a portal between client and customized protocol processing module of the server program,
@@ -461,8 +464,8 @@ and taking the HTTP negotiation to allow them to share information by communicat
 \end{figure}
 
 The Figure \ref{fig:httpgw} shows the HTTP Gateway architecture in GNU Artanis.
-Obviously, it takes advantage of the convenience in the server core of GNU Artanis to provide arbitrary protocol services in the
-natural of websocket. Beyond the web server, it becomes a {\it generic server}, which handles connections in various protocols in the
+It provides arbitrary protocol services over the websocket. Beyond the web server, it becomes a {\it generic server}, which handles
+connections of various protocols in the
 same time. A {\it generic server} seems useless and meaningless in the past. Because most of the application of server programs are for
 dedicated protocol, and to provide single service as its main duty.
 
@@ -472,7 +475,7 @@ pattern is obviously meets the KISS (Keep It Stupid and Simple) principle. Moreo
 
 For the {\it generic server}, people don't have to listen on many TCP ports, there's just one port, 80 or 443 (for HTTPS). And the HTTP
 Gateway will dispatch the requests to the related service, and maintain the long live session for each connection in a high concurrent way.
-In the simplest way, all the services are running in GNU Artanis rather than standalone, and it's good for quick developing then deployment.
+In the simplest way, all the services are running in GNU Artanis rather than standalone, and it's good for both quick developing and deployment.
 But it's tight coupled, if one of the services is broken, the whole GNU Artanis may down. Fortunately, it is allowed to make each service
 standalone, similar to CGI, but in bytevector way according to websocket configuration, rather than HTTP requests redirecting.
 
@@ -481,7 +484,7 @@ So, what's the value of a {\it generic server}?
 It is obvious that the massive protocol-customized connections will appear in such a scenario like Internet of Things (IoT).
 There'll be many IoT nodes as the massive clients, with various sensors or monitors, which may require various application level protocols,
 although their messaging protocol maybe the same (MQTT over websocket).
-For {\it generic server} reduces the workload of customizing and management of various protocols connections, and IoT based applications are
+For {\it generic server} reduces the workload of customizing and management of various protocols, and IoT based applications are
 well-known to be the next big thing, the {\it generic server} may act important role in next decades. 
 
 \subsection{Concurrency} \label{Concurrency}
@@ -495,11 +498,11 @@ Unfortunately, it is useless if one just purchase stronger machines with more ra
 processing could be higher, but increase few connections concurrently.
 
 The bottleneck is not the performance of machine, but the algorithm of events dispatching. The traditional select() and poll() are outdated,
-for their $O(n)$ complexity drags the performance when it tries to query large number of the ready file descriptors. The modern epoll() has
+for their $O(n)$ complexity drags the performance when it tries to query large number of sockets. The modern epoll() has
 constant time complexity for that, say $O(1)$, and obviously win the title.
 
-Beyond, the edge-trigger mode of epoll() with non-blocking I/O is widely used in the industry for high performance concurrent programming.
-It is believed that the quality of a server is no longer stuck by concurrency, but the optimizing of the language implementation,
+Beyond, the edge-trigger mode of epoll() co-operated with non-blocking I/O is widely used in the industry for high performance concurrent programming.
+It is believed that the concern of a server is not only about concurrency, but also the optimizing of the language implementation,
 and better exception handling for robustness of the server system.
 
 Of course, it's necessary to provide advanced scaling methodology for higher concurrency need to meet the future cloud computing. But it's
@@ -527,7 +530,7 @@ the user and rendered for their use.
 
 \subsection{MVC}
 
-Model$-$View$-$Controller (MVC) is a software architectural pattern for implementing user interfaces on computers. It divides a given software
+Model-View-Controller (MVC) is a software architectural pattern for implementing user interfaces on computers. It divides a given software
 application into three interconnected parts, so as to separate internal representations of information from the ways that information is
 presented to or accepted from the user. Traditionally used for desktop graphical user interfaces (GUIs), this architecture has become extremely
 popular for designing web applications.
@@ -545,9 +548,10 @@ Usually, Relational Mapping (RM) stands for ORM (Object Relational Mapping).
 It is a programming technique for converting data between incompatible type systems in object-oriented (OO) programming languages.
 
 However, although GNU Guile has an object system named GOOPS, GNU Artanis choose not to use OO for programming. It is enough
-to use the features of Functional Programming (FP) to replace OO, and it's proved in GNU Artanis development. Because of this reason, GNU Artanis
-doesn't implement ORM, but closures to replace classes, and message passing for dispatching the methods to mimic half-baked OO, which is more
-lightweight and less complexity than OO. It is called Functional Programming Relational Mapping (FPRM) in GNU Artanis.
+to use the features of Functional Programming (FP) to replace the essentials in OO, and it's proved in GNU Artanis development.
+Because of this reason, GNU Artanis doesn't implement ORM, but closures to replace classes, and message passing for dispatching the methods
+to mimic half-baked OO, which is more lightweight and less complexity than OO. It is called Functional Programming Relational Mapping (FPRM)
+in GNU Artanis.
 
 \subsection{Sessions}
 
