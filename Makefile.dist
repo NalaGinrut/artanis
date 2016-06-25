@@ -1,0 +1,3 @@
+configure: configure.ac
+	aclocal -I m4
+	autoconf
