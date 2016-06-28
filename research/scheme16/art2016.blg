@@ -1,0 +1,50 @@
+This is BibTeX, Version 0.99d (TeX Live 2016/Debian)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: art2016.aux
+The style file: unsrtabbrvnat.bst
+Database file #1: mmrref.bib
+Warning--empty booktitle in shivers1997continuations
+Warning--empty year in shivers1997continuations
+Warning--empty year in shivers1997continuations
+You've used 14 entries,
+            2773 wiz_defined-function locations,
+            708 strings with 7373 characters,
+and the built_in function-call counts, 6533 in all, are:
+= -- 637
+> -- 271
+< -- 16
++ -- 95
+- -- 81
+* -- 481
+:= -- 977
+add.period$ -- 63
+call.type$ -- 14
+change.case$ -- 69
+chr.to.int$ -- 14
+cite$ -- 31
+duplicate$ -- 323
+empty$ -- 576
+format.name$ -- 103
+if$ -- 1421
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 12
+newline$ -- 95
+num.names$ -- 56
+pop$ -- 141
+preamble$ -- 1
+purify$ -- 55
+quote$ -- 0
+skip$ -- 243
+stack$ -- 0
+substring$ -- 250
+swap$ -- 56
+text.length$ -- 5
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 154
+warning$ -- 3
+while$ -- 62
+width$ -- 0
+write$ -- 226
+(There were 3 warnings)
