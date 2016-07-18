@@ -131,7 +131,7 @@ In this paper, we'll show a new way with the feature named {\it delimited contin
 We'll discuss it in \ref{Delimited Continuations}.
 
 The C10K and C10M problem has told us that the performance is not the only thing to concern for high concurrent server, but also the scalability.  
-The old method to use select() or poll() has $O(n)$ complexity, which is the handicap to hold more connections \citep{lemon2001kqueue}.
+The old method is to use select() or poll() has $O(n)$ complexity, which is the handicap to hold more connections \citep{lemon2001kqueue}.
 The new method is kqueue()/epoll()/IOCP which has O(1) complexity to query available connection sockets. We'll take epoll() as an example to
 discuss the scalability issue in \ref{Concurrency}.
 

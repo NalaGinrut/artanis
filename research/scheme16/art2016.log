@@ -1,10 +1,10 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Debian) (preloaded format=pdflatex 2016.6.20)  28 JUN 2016 19:56
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Debian) (preloaded format=pdflatex 2016.6.30)  19 JUL 2016 02:18
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
 **art2016.tex
 (./art2016.tex
-LaTeX2e <2016/03/31>
+LaTeX2e <2016/03/31> patch level 1
 Babel <3.9r> and hyphenation patterns for 83 language(s) loaded.
 (./sigplanconf.cls
 Document Class: sigplanconf 2015/12/03 v3.2 ACM SIGPLAN Proceedings
@@ -137,15 +137,15 @@ File: listings.cfg 2015/06/04 1.6 listings configuration
 Package: listings 2015/06/04 1.6 (Carsten Heinz)
 
 (/usr/share/texlive/texmf-dist/tex/latex/graphics/color.sty
-Package: color 2016/05/09 v1.1c Standard LaTeX Color (DPC)
+Package: color 2016/06/02 v1.1d Standard LaTeX Color (DPC)
 
 (/usr/share/texlive/texmf-dist/tex/latex/graphics-cfg/color.cfg
 File: color.cfg 2016/01/02 v1.6 sample color configuration
 )
-Package color Info: Driver file: pdftex.def on input line 144.
+Package color Info: Driver file: pdftex.def on input line 147.
 
 (/usr/share/texlive/texmf-dist/tex/latex/pdftex-def/pdftex.def
-File: pdftex.def 2011/05/27 v0.06d Graphics/color for pdfTeX
+File: pdftex.def 2016/06/17 v0.06h Graphics/color for pdfTeX
 
 (/usr/share/texlive/texmf-dist/tex/generic/oberdiek/infwarerr.sty
 Package: infwarerr 2016/05/16 v1.4 Providing info/warning/error messages (HO)
@@ -241,15 +241,15 @@ Package textcomp Info: Setting ptmj sub-encoding to TS1/4 on input line 409.
 Package: graphicx 2014/10/28 v1.0g Enhanced LaTeX Graphics (DPC,SPQR)
 
 (/usr/share/texlive/texmf-dist/tex/latex/graphics/graphics.sty
-Package: graphics 2016/05/09 v1.0r Standard LaTeX Graphics (DPC,SPQR)
+Package: graphics 2016/06/02 v1.0s Standard LaTeX Graphics (DPC,SPQR)
 
 (/usr/share/texlive/texmf-dist/tex/latex/graphics/trig.sty
 Package: trig 2016/01/03 v1.10 sin cos tan (DPC)
 )
 (/usr/share/texlive/texmf-dist/tex/latex/graphics-cfg/graphics.cfg
-File: graphics.cfg 2016/01/02 v1.10 sample graphics configuration
+File: graphics.cfg 2016/06/04 v1.11 sample graphics configuration
 )
-Package graphics Info: Driver file: pdftex.def on input line 96.
+Package graphics Info: Driver file: pdftex.def on input line 99.
 )
 \Gin@req@height=\dimen117
 \Gin@req@width=\dimen118
@@ -264,7 +264,7 @@ LaTeX Font Info:    Overwriting symbol font `stmry' in version `bold'
 Package: caption 2016/02/21 v3.3-144 Customizing captions (AR)
 
 (/usr/share/texlive/texmf-dist/tex/latex/caption/caption3.sty
-Package: caption3 2016/02/04 v1.7-139 caption3 kernel (AR)
+Package: caption3 2016/05/22 v1.7-166 caption3 kernel (AR)
 Package caption3 Info: TeX engine: e-TeX on input line 67.
 \captionmargin=\dimen119
 \captionmargin@=\dimen120
@@ -352,11 +352,12 @@ File: ot1ptm.fd 2001/06/04 font definitions for OT1/ptm.
 \optype@=\count126
 \x@count=\count127
 \maxXLscripts@=\dimen135
-) (./lstlang0.sty)
-(./art2016.aux)
+)
+(/home/nalaginrut/Project/scheme-listings/lstlang0.sty) (./art2016.aux)
 \openout1 = `art2016.aux'.
 
- (/usr/share/texlive/texmf-dist/tex/latex/base/ts1cmr.fd
+
+(/usr/share/texlive/texmf-dist/tex/latex/base/ts1cmr.fd
 File: ts1cmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
 \c@lstlisting=\count128
@@ -375,7 +376,7 @@ File: ts1cmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 \makeMPintoPDFobject=\count134
 \everyMPtoPDFconversion=\toks24
 ) (/usr/share/texlive/texmf-dist/tex/generic/oberdiek/pdftexcmds.sty
-Package: pdftexcmds 2016/05/10 v0.21 Utility functions of pdfTeX for LuaTeX (HO
+Package: pdftexcmds 2016/05/21 v0.22 Utility functions of pdfTeX for LuaTeX (HO
 )
 
 (/usr/share/texlive/texmf-dist/tex/generic/oberdiek/ifluatex.sty
@@ -412,6 +413,8 @@ Package etexcmds Info: Could not find \expanded.
 (etexcmds)             that some package has redefined \expanded.
 (etexcmds)             In the latter case, load this package earlier.
 )))
+Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
+38.
 Package grfext Info: Graphics extension search list:
 (grfext)             [.png,.pdf,.jpg,.mps,.jpeg,.jbig2,.jb2,.PNG,.PDF,.JPG,.JPE
 G,.JBIG2,.JB2,.eps]
@@ -527,13 +530,13 @@ Underfull \hbox (badness 2057) in paragraph at lines 85--88
 
 ) [6] (./art2016.aux) ) 
 Here is how much of TeX's memory you used:
- 6785 strings out of 493014
- 98897 string characters out of 6135690
- 311192 words of memory out of 5000000
- 10206 multiletter control sequences out of 15000+600000
- 57990 words of font info for 70 fonts, out of 8000000 for 9000
+ 6792 strings out of 493014
+ 99173 string characters out of 6135690
+ 219010 words of memory out of 5000000
+ 10213 multiletter control sequences out of 15000+600000
+ 57823 words of font info for 69 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 38i,11n,43p,240b,1500s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 40i,11n,43p,240b,1502s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-ts1.
 enc}{/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/share/texl
 ive/texmf-dist/fonts/type1/public/amsfonts/cm/cmss9.pfb></usr/share/texlive/tex
@@ -547,7 +550,7 @@ mb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr
 /share/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/
 texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/font
 s/type1/urw/times/utmri8a.pfb>
-Output written on art2016.pdf (6 pages, 264797 bytes).
+Output written on art2016.pdf (6 pages, 263539 bytes).
 PDF statistics:
  84 PDF objects out of 1000 (max. 8388607)
  56 compressed objects within 1 object stream
