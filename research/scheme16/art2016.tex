@@ -80,15 +80,15 @@
 
 \begin{abstract}
   The traditional Internet communication is largely based on HTTP protocol, which provides hyperlinked, stateless exchange of information.
-  Although HTTP is convenient and easy to understand, it's problematic for real-time data exchange. The websocket protocol is one of the ways
+  Although HTTP is convenient and easy to understand, it's problematic for real-time data exchange. Websockets protocol is one of the ways
   to solve the problem. It reduces overhead and provides efficient, stateful communication between client and server \citep{6197172}.
   
   This paper introduces a web framework design in Scheme programming language, which takes advantage of websocket protocol to provide both
-  convenience and efficiency. In spite of the expressiveness, Scheme provides powerful abstract ability to implement co-routines with
+  convenience and efficiency. In addition to the expressiveness, Scheme provides powerful abstract ability to implement co-routines with
   {\it continuations} for the server core.
 
-  One of the significant aim is to design a high performance generic server core with {\it delimited continuations}, and we'll show how it's useful
-  for Internet of Things (IoT).
+  One of the significant aims is to design a high performance generic server core with {\it delimited continuations}, and we'll show how it's
+  useful for Internet of Things (IoT).
   
   GNU Artanis also provides useful modules for web programming, RESTful, web caching, templating, MVC, and a novel abstraction for relational
   mapping to operate databases. We'll give it a summary in the rest of the paper.
@@ -108,7 +108,7 @@ Scheme, web framework, websocket, delimited continuation, co-routine, generic se
 
 Web framework is a library for rapid prototyping web development, and usually provide CLI (Command Line Interface) or
 GUI (Graphical User Interface) tools to generate code for reducing workload according to certain patterns specified by the developers.
-In spite of using web specific language such as PHP, the older approach for web programming is CGI (Common Gateway Interface).
+In addition to using web specific language such as PHP, the older approach for web programming is CGI (Common Gateway Interface).
 Although many people think CGI is outdated, it is simple to understand and easy to use.
 It can yet be regarded as a practical way for web programming.
 
@@ -121,8 +121,8 @@ This paper will use the term {\it HTTP Gateway} to indicate the unified connecti
 over HTTP. The {\it HTTP Gateway} is not a new concept, actually it's hidden in many server design. It is worth to discuss it explicitly,
 for it is important to understand how GNU Artanis manages all the websocket connections. We'll mention it in \ref{HTTP Gateway}.
 
-Besides, this paper will show a different way to implement concurrent server. It is different from the callback way used in C or Node.js.
-We use {\it continuations} which has been already practiced as the abstract of concurrent processes in several cases
+In addition, this paper will show a different way to implement concurrent server. It is different from the callback way used in C or Node.js.
+The {\it continuations} commonly used to implement concurrent processes
 \citep{Krishnamurthi2007}\citep{Hieb:1990:CC:99164.99178}\citep{Hieb:1994:SUB:184324.184330}.
 It is proved that {\it continuations} could be the model for directly expressing concurrency in Scheme language \citep{shivers1997continuations}.
 In this paper, we'll take GNU Artanis as a study case to indicate the same purpose. Moreover,
@@ -130,12 +130,13 @@ GNU Artanis uses GNU Guile which is a practical Scheme implementation which prov
 In this paper, we'll show a new way with the feature named {\it delimited continuations}, which is better abstract than traditional {\it continuations}.
 We'll discuss it in \ref{Delimited Continuations}.
 
-The C10K and C10M problem has told us that the performance is not the only thing to concern for high concurrent server, but also the scalability.  
+The C10K (concurrent in 10,000) and C10M (concurrent in 10,000,000) problem has told us that the performance is not the only thing to concern
+for high concurrent server, but also the scalability.  
 The old method is to use select() or poll() has $O(n)$ complexity, which is the handicap to hold more connections \citep{lemon2001kqueue}.
 The new method is kqueue()/epoll()/IOCP which has O(1) complexity to query available connection sockets. We'll take epoll() as an example to
 discuss the scalability issue in \ref{Concurrency}.
 
-The websocket is a protocol for two-way communication between client and server over TCP connection. The client is, in a broad sense,
+Websockets is a protocol for two-way communication between client and server over TCP connection. The client is, in a broad sense,
 unnecessary to be a web browser. One of the benefit of websocket is that the developers could take advantage of TLS used in HTTPS for
 encryption. And another is that unified listening port for arbitrary services. We will discuss websocket in \ref{Websocket}.
 
@@ -148,10 +149,11 @@ transfer their definition in semantics to Scheme code naturally for practical pr
 
 \subsection{First Class Continuations}
 
-A {\it continuation} is ``the rest of the computation''. It is often referred as {\it call/cc} standing for
-{\it call-with-current-continuation}, which captures (reifies) the state of underlying machine state named the {\it current continuation}.
+A {\it continuation} is ``the rest of the computation''. In Scheme, {\it continuation} is implemented as {\it first class continuation},
+which is often referred to as {\it call/cc} standing for
+{\it call-with-current-continuation}. It captures (reifies) the state of underlying machine state named the {\it current continuation}.
 The captured {\it continuation} is also referred as {\it escape procedure} passed into the scope by the argument (as a function) of {\it call/cc}.
-When the {\it escape procedure} is called within the context, the run-time discards the trivial
+When the {\it escape procedure} is called within the context, the run-time discards the
 {\it continuation} at the time point of the calling and throws the previous captured {\it continuation} back into the machine state.
 
 The {\it continuations} captured by {\it call/cc} often implies {\it first class}, which means a continuation
@@ -249,25 +251,26 @@ Note $\lambda{x}.x$ is a common procedure named {\it identity} which is used to 
 Apparently, if there's no {\bf shift} within {\bf reset}, the evaluated expression $E$ will be returned without any change from {\bf reset} because
 it's applied by {\it identity} function as the empty {\it continuation}. But if {\bf shift} is evaluated within, the $\kappa_r$ has no chance to
 be applied because the whole context returns by applying $\kappa_s$. What does it mean? It means that the {\it continuation} was truncated (delimited) to
-$\kappa_s$, and the trivial $\kappa_r$ won't be captured that reduced the cost. It is very different from {\it full-continuation} capturing in
-${\bf call/cc}$. This feature would solve the ``overkilled'' problem we've mentioned in the end of last section.
+$\kappa_s$, and the trivial $\kappa_r$ won't be captured. That's why it can reduce the cost compared to {\it full continuation}.
+It is very different from {\it full-continuation}
+capturing in ${\bf call/cc}$. This feature would solve the ``overkilled'' problem we've mentioned in the end of last section.
 
 So far, we've explained the preliminary principle of {\it delimited continuation}. It is necessary to stop the discussion in semantics and get back
 to our topic. We're going to depict how GNU Guile handles {\it delimited continuations}, and how it helps for our main purpose for implementing
 co-routines.
 
-Although it is naturally to implement {\it delimited continuations} by complex CPS transforming in semantics. It's never the best performance way.
+Although it is natural to implement {\it delimited continuations} by complex CPS transforming in semantics. It's never the best performance way.
 GNU Guile implemented {\it delimited continuations} in the direct way that uses the language's native stack representation, and not requiring global
 or local transformations \citep{wingo2010}. Rather than CPS transformation, the direct implementation will copy the {\it continuation} chain resides in the
 heap, and involves copying of {\it continuation} frames both during reification and reflection.
 
 According to the test results, it shows that the direct implement approach is fabulously faster than CPS transforming way
-\citep{Gasbichler:2002:FSC:581478.581504}. Nevertheless, there could possibly be further optimizing of stack/heap management and copying methods to make
-it better.
+\citep{Gasbichler:2002:FSC:581478.581504}. The direct implementation captures {\it continuation} by copying stack directly.
+Nevertheless, there could possibly be further optimizing of stack/heap management and copying methods to make it better.
 
-There're three equivalent terms of interfaces to handle {\it delimited continuations} in GNU Guile. In spite of the common term {\bf shift}/{\bf reset},
-{\bf \%}/{\bf abort}, and {\bf call-with-prompt}/{\bf abort-to-prompt}. The only difference is their operational approach. It depends on you and your
-need to decide how to choose from them.
+There're three equivalent terms of interfaces to handle {\it delimited continuations} in GNU Guile. In addition to the common term
+{\bf shift}/{\bf reset},
+{\bf \%}/{\bf abort}, and {\bf call-with-prompt}/{\bf abort-to-prompt}. The only difference is their operational approach.
 
 We choose {\bf call-with-prompt}/{\bf abort-to-prompt} for its third argument as a function will receive the thrown {\it continuation}, and will be
 called automatically each time the {\bf abort-to-prompt} is called. This feature is very useful to implement the scheduler of co-routines. We'll show it
@@ -288,21 +291,22 @@ in \ref{Co-routines}. A common usage of it could be this:
     (scheduler ...))))
 \end{lstlisting}
 
-{\it Delimited continuations} has been implemented in few languages: GNU Guile, PLT Scheme, Scheme48, OCaml, Scala.
+{\it Delimited continuations} have been implemented in few languages: GNU Guile, PLT Scheme, Scheme48, OCaml, Scala.
 Considering that many mainstream dynamic languages has {\it first class continuations} (call/cc), optimistically, it is possible that more languages
 will implement {\it delimited continuations} too. In view of above mentioned reasons, the study case in this paper may shed some light on server
 design issue for the future.
 
 \subsection{Co-routines} \label{Co-routines}
 
-Co-routines are essentially procedures which save states between calls. It has become very important form of concurrency, and avoid practical
+Co-routines are essentially procedures which save states between calls. It has become a very important form of concurrency, and avoids practical
 difficulties (race conditions, deadlock, etc) to reduce complexities. Developers are unnecessary to take care of synchronization by
 themselves, but leave it to this paradigm as its built-in feature. Co-routines is not generic enough to solve any concurrency problem, however,
 it's idea solution for server-side development.
 
 It is demonstrated that co-routines may easily be defined by users given first class continuations\citep{Haynes:1984:CC:800055.802046}. The
 term ``first class'' here means a continuation could be passed and returned from functions, and stored in a data structure with indefinite
-extent. The co-routine could be implemented as a procedure with local state. In server-side development, in spite of traditional HTTP requesting,
+extent. The co-routine could be implemented as a procedure with local state. In server-side development, in addition to traditional HTTP
+requesting,
 most servers need to maintain long live session for a connection. It is required that these procedures could be broken for a while, and sleep
 to the time when next packet arrives. In old fashion, people uses OS level threads (say, pthread) to avoid blocking. But it brings some
 critical overheads (trap into kernel, locks, synchronization), no mention the difficulties in debugging programs with threads. Ironically,
@@ -411,22 +415,28 @@ Schedule end!
 Having finally learned about this powerful weapon named co-routines, we may consider how to bleed it out for the potentiality of a server program.
 We'll reasonably show the server core design in both functionality and performance concern.
 
-The websocket protocol plays an important role in the functionality.
-
 As is the case of the performance concern, non-blocking and edge-triggered I/O multiplexing, as we'll describe it in GNU/Linux environment, epoll()
-will be discussed in this case.
+will be discussed in this case. GNU Artanis uses epoll() for I/O multiplexing.
+
+Websockets protocol plays an important role in the functionality.
+The idea of the generic server is to implement a websocket library, and use it to parse requests wrapped in websocket protocol, then redirect
+a requests to a proper service handler (local or remote, decided by users). This is called HTTP Gateway. With such a design we could handle
+connections in various protocols (rather than dedicated one protocol) wrapped in websocket. It is so-called {\it generic}.
+
+When we talk about the generic server core for a web framework, it seems confused a bit. Because a web framework should have a dedicated HTTP
+server. But we could implement generic server over HTTP because websocket makes it possible. So let's see how websocket make it.
 
 \subsection{Websocket} \label{Websocket}
 
 Although the term websocket looks like kind of web related stuff, it is an independent TCP-based protocol.
 The only relationship to HTTP is that the handshake process is based on HTTP protocol as an upgrade request.
 
-This makes it possible to allow messages to be passed pack and forth while keeping the connection open.
+This makes it possible to allow messages to be passed back and forth while keeping the connection open.
 This approach keeps a bi-directional ongoing conversation taking place between client (most of the time it's a browser) and the server,
 beyond, websocket provides full-duplex communication.
-And all the communications are done over TCP port 80, which is of benefit for those environments which block non-web Internet connections
-behind a firewall. This makes all the connections long living session rather than short session as traditional HTTP does and provides the
-possibility for implementing Comet technology, the old way for full-dumplex communication on web, in a more convenient way.
+And all the communications are done over TCP port (usually 80), which is of benefit for those environments which block non-web Internet
+connections behind a firewall. This makes all the connections long living sessions rather than short session as traditional HTTP does and
+provides the possibility for implementing Comet technology, the old way for full-dumplex communication on web, in a more convenient way.
 
 \begin{figure}[tbph]
   \centering
@@ -435,7 +445,7 @@ possibility for implementing Comet technology, the old way for full-dumplex comm
   \caption{Websocket handshake and communication}
 \end{figure}
 
-Another benefit to transport data over HTTP is that many existing HTTP security mechanisms also apply to websocket.
+Another benefit to transporting data over HTTP is that many existing HTTP security mechanisms also apply to websocket.
 With this unified security model, a list of standard HTTP security methods could be applied to a websocket connection.
 For example, the same encryption as HTTPS using TLS/SSL. It's the same way to configure TLS encryption for websocket as you do for HTTPS with
 certificates. In HTTPS, the client and server first establish a secure envelop which begin with HTTP protocol. Websocket Secure (WSS) use
@@ -464,27 +474,27 @@ and taking the HTTP negotiation to allow them to share information by communicat
 \end{figure}
 
 The Figure \ref{fig:httpgw} shows the HTTP Gateway architecture in GNU Artanis.
-It provides arbitrary protocol services over the websocket. Beyond the web server, it becomes a {\it generic server}, which handles
-connections of various protocols in the
-same time. A {\it generic server} seems useless and meaningless in the past. Because most of the application of server programs are for
-dedicated protocol, and to provide single service as its main duty.
+It provides arbitrary protocol services over websockets. Beyond the web server, it becomes a {\it generic server}, which handles
+connections of multi-protocols in the
+same time. A {\it generic server} is rarely mentioned before, because most of the application of server programs are for dedicated protocol,
+and to provide single service as its main duty.
 
 For the {\it dedicated server}, FTP, HTTP as in web service, game server, IRC, etc. Usually, the remote server starts a service program
 as a daemon listening on a TCP/UDP port according to a convention, and provides just one service in a dedicated protocol. Such a decoupled
-pattern is obviously meets the KISS (Keep It Stupid and Simple) principle. Moreover, when one service is down, it won't effect the others.
+pattern is obviously meets the KISS (Keep It Smart and Simple) principle. Moreover, when one service is down, it won't effect the others.
 
 For the {\it generic server}, people don't have to listen on many TCP ports, there's just one port, 80 or 443 (for HTTPS). And the HTTP
 Gateway will dispatch the requests to the related service, and maintain the long live session for each connection in a high concurrent way.
 In the simplest way, all the services are running in GNU Artanis rather than standalone, and it's good for both quick developing and deployment.
-But it's tight coupled, if one of the services is broken, the whole GNU Artanis may down. Fortunately, it is allowed to make each service
-standalone, similar to CGI, but in bytevector way according to websocket configuration, rather than HTTP requests redirecting.
+Some people may think it's too tight coupled, if one of the services is broken, the whole GNU Artanis may down. How we solve it?
+Fortunately, it is allowed to make each service standalone, similar to CGI, but in bytevector way according to websocket configuration, rather than HTTP requests redirecting. This would be good enough to solve the issue.
 
 So, what's the value of a {\it generic server}?
 
 It is obvious that the massive protocol-customized connections will appear in such a scenario like Internet of Things (IoT).
-There'll be many IoT nodes as the massive clients, with various sensors or monitors, which may require various application level protocols,
+There'll be many IoT nodes as the massive clients, with many sensors or monitors, which may require many application level protocols,
 although their messaging protocol maybe the same (MQTT over websocket).
-For {\it generic server} reduces the workload of customizing and management of various protocols, and IoT based applications are
+For {\it generic server} reduces the workload of customizing and management of multi-protocols, and IoT based applications are
 well-known to be the next big thing, the {\it generic server} may act important role in next decades. 
 
 \subsection{Concurrency} \label{Concurrency}
@@ -494,23 +504,28 @@ Many years ago, the industry has been focusing on {\it C10K} problem dealing wit
 Nowadays, it's becoming {\it C10M} which means at least 10 million connections concurrently.
 
 No matter how the number is increasing, the main purpose is to hold more connections concurrently as possible.
-Unfortunately, it is useless if one just purchase stronger machines with more rams. In this way, the performance of single connection
-processing could be higher, but increase few connections concurrently.
+Unfortunately, it is useless if one just purchase stronger machines with more RAM. In this way, the performance of single connection
+processing could be higher, but increasing few connections concurrently.
 
 The bottleneck is not the performance of machine, but the algorithm of events dispatching. The traditional select() and poll() are outdated,
 for their $O(n)$ complexity drags the performance when it tries to query large number of sockets. The modern epoll() has
 constant time complexity for that, say $O(1)$, and obviously win the title.
 
-Beyond, the edge-trigger mode of epoll() co-operated with non-blocking I/O is widely used in the industry for high performance concurrent programming.
+Beyond, the edge-trigger mode of epoll() co-operated with non-blocking I/O is widely used in the industry for high performance concurrent
+programming.
 It is believed that the concern of a server is not only about concurrency, but also the optimizing of the language implementation,
 and better exception handling for robustness of the server system.
 
 Of course, it's necessary to provide advanced scaling methodology for higher concurrency need to meet the future cloud computing. But it's
-out of our purpose in this paper.
+out of scope in this paper.
+
+GNU Artanis choose epoll() for its I/O multiplexing, and take advantage of the non-blocking to implement asynchronous I/O in co-routines.
+This model is proved to be practical and well-known in industry. We choose this model (epoll + non-blocking) to co-operate with co-routines
+to provide good performance and concurrency.
 
 \section{Some features in GNU Artanis} \label{Some features in GNU Artanis}
 
-In spite of the server core, there're some notable features in GNU Artanis.
+In addition to the server core, there're some notable features in GNU Artanis.
 
 \subsection{RESTful}
 
