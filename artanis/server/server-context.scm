@@ -54,6 +54,9 @@
    ready-queue ; a queue contains connect socket
    event-set))
 
+;; A table contains continuations
+;; * content: the continuation
+;; * mutex: a mutex for lock
 (define-record-type work-table
   (fields content mutex))
 
