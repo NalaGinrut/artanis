@@ -180,7 +180,7 @@
                       (list int int int '*)))
 
 (define-public (epoll-ctl epfd op fd event)
-  (let* ((ret (%epoll-ctl epfd op fd (bytevector->pointer event)));;(make-c-struct epoll-event-meta event)))
+  (let* ((ret (%epoll-ctl epfd op fd (bytevector->pointer event)))
          (err (errno)))
     (cond
      ((zero? ret) ret)
