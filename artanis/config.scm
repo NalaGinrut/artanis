@@ -60,7 +60,8 @@
     ((server wqlen) 64) ; work queue maxlen
     ((server trigger) edge)
     ((server impl) ragnarok)
-    ((server polltimeout) 500)
+    ((server polltimeout) 500) ; in miliseconds
+    ((server bufsize) 4096) ; in Bytes
 
     ;; for host namespace
     ((host name) #f)
@@ -80,7 +81,7 @@
     ;; ((mail sender) "/usr/sbin/sendmail")
 
     ;; for cache namespace
-    ((cache maxage) 3600)
+    ((cache maxage) 3600) ; in seconds
 
     ;; for debug mode
     ((debug monitor) ""))) ; user specified monitoring paths
@@ -138,7 +139,10 @@
     (('workers workers) (conf-set! '(server workers) (->integer workers)))
     (('backlog backlog) (conf-set! '(server backlog) (->integer backlog)))
     (('wqlen wqlen) (conf-set! '(server wqlen) (->integer wqlen)))
-    (('trigger trigger) (conf-set! '(server trigger) trigger))
+    (('trigger trigger) (conf-set! '(server trigger) (string->symbol trigger)))
+    (('polltimeout polltimeout) (conf-set! '(server polltimeout) (->integer polltimeout)))
+    (('bufsize bufsize) (conf-set! '(server bufsize) (->integer bufsize)))
+    (('impl impl) (conf-set! '(server impl) (string->symbol impl)))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 
 (define (parse-namespace-host item)
