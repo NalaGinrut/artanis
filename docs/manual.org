@@ -1,4 +1,4 @@
-xcxc#+TITLE: GNU Artanis web-framework Manual
+#+TITLE: GNU Artanis web-framework Manual
 #+AUTHOR: Mu Lei known as NalaGinrut
 #+EMAIL: mulei@gnu.org
 #+LANGUAGE: en
@@ -112,13 +112,13 @@ sudo make install
 #+end_src
 
 ** For contributors
-First of all, thank you for contributing! You may clone the main git repository, or the mirror on GitHub: 
+First of all, thank you for contributing! You may clone the main git repository, or the mirror on GitLab: 
 
 #+begin_src null
 git clone git://git.savannah.gnu.org/artanis.git
 
-# mirror on Github
-git clone git@github.com:NalaGinrut/artanis.git
+# mirror on GitLab
+git clone https://gitlab.com/NalaGinrut/artanis.git
 #+end_src
 * Configuration
 A configuration file is required when Artanis is run for the first time.
