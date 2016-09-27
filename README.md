@@ -1,5 +1,23 @@
 [![Build Status](https://travis-ci.org/NalaGinrut/artanis.svg)](https://travis-ci.org/NalaGinrut/artanis)
 
+NOTICE
+=========
+According to [GNU Ethical Repository Criteria Evaluations](https://www.gnu.org/software/repo-criteria-evaluation.html). GNU Artanis as GNU official project is not proper to be maintained on GitHub.
+So I **will not** do maintenance work for GNU Artanis on github to show my position on free software.
+That means I **will not** response to issues or pull requests. Until GitHub show some respect to freedom of users for these issues:
+* No other nonfree software is required to use the site (thus, no Flash). 
+* Does not discriminate against classes of users, or against any country.
+
+The maintenance repo will be these two:
+* [GNU official repo](http://git.savannah.gnu.org/cgit/artanis.git/)
+   Accepts patches and issues on mailing-list artanis@gnu.org
+
+* [GitLab repo](https://gitlab.com/NalaGinrut/artanis)
+   Accepts issues and pull requests.
+
+For historical reasons, GNU Artanis will maintain the site with gh-pages on GitHub since the pages service on GitLab is very different so I can't just move it simply.
+Before we have a better/modern Savannah, we have to endure this situation.
+
 GNU Artanis
 =========
 
