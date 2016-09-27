@@ -14,29 +14,6 @@
       <name>Mu Lei known as NalaGinrut &lt;nalaginrut@gmail.com&gt;</name>
     </author>
     <content type="html">
-&lt;h3 id="sailing-to-devnull"&gt;Sailing to /dev/null&lt;/h3&gt;
-&lt;p&gt;That is no future for mediocre coder.&lt;/p&gt;
-&lt;p&gt;The hacker is one another's arm. Codes in the editors.&lt;/p&gt;
-&lt;p&gt;Those dying generations - at their song.&lt;/p&gt;
-&lt;pre&gt;&lt;tt class="highlight scheme-language"&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;use-modules &lt;span class="paren2"&gt;(&lt;span class="default"&gt;artanis artanis&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
-
-&lt;span class="paren1"&gt;(&lt;span class="default"&gt;get &lt;span class="string"&gt;&amp;quot;/hello&amp;quot;&lt;/span&gt;
- &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;lambda&lt;/span&gt;&lt;/i&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="string"&gt;&amp;quot;hello world&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
-&lt;span class="comment"&gt;;; run it 
-&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;run &lt;span class="keyword"&gt;#:port&lt;/span&gt; 8080&lt;/span&gt;)&lt;/span&gt;&lt;/tt&gt;&lt;/pre&gt;
-&lt;pre&gt;&lt;tt class="highlight sh-language"&gt;curl localhost:8080/hello
-==&amp;gt; hello world&lt;/tt&gt;&lt;/pre&gt;</content>
-    <id>tag:web-artanis.com,2013-07-24:/index.html</id>
-    <published>2013-07-24T08:01:27Z</published>
-    <title type="text">GNU Artanis web-framework</title>
-    <updated>2013-07-24T08:01:27Z</updated>
-    <link href="www.web-artanis.com/index.html" rel="alternate" type="application/xhtml+xml" />
-  </entry>
-  <entry>
-    <author>
-      <name>Mu Lei known as NalaGinrut &lt;nalaginrut@gmail.com&gt;</name>
-    </author>
-    <content type="html">
 &lt;h3 id="learn-scheme-in-15-minutes"&gt;Learn Scheme in 15 minutes&lt;/h3&gt;
 &lt;pre&gt;&lt;tt class="highlight scheme-language"&gt;&lt;span class="comment"&gt;;; This gives an introduction to Scheme in 15 minutes
 &lt;/span&gt;&lt;span class="comment"&gt;;;
@@ -631,5 +608,28 @@ vec &lt;span class="comment"&gt;; =&amp;gt; #(1 2 3 4)
     <title type="text">Learn Scheme in 15 minutes</title>
     <updated>2013-07-24T08:01:27Z</updated>
     <link href="www.web-artanis.com/scheme.html" rel="alternate" type="application/xhtml+xml" />
+  </entry>
+  <entry>
+    <author>
+      <name>Mu Lei known as NalaGinrut &lt;nalaginrut@gmail.com&gt;</name>
+    </author>
+    <content type="html">
+&lt;h3 id="sailing-to-devnull"&gt;Sailing to /dev/null&lt;/h3&gt;
+&lt;p&gt;That is no future for mediocre coder.&lt;/p&gt;
+&lt;p&gt;The hacker is one another's arm. Codes in the editors.&lt;/p&gt;
+&lt;p&gt;Those dying generations - at their song.&lt;/p&gt;
+&lt;pre&gt;&lt;tt class="highlight scheme-language"&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;use-modules &lt;span class="paren2"&gt;(&lt;span class="default"&gt;artanis artanis&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+
+&lt;span class="paren1"&gt;(&lt;span class="default"&gt;get &lt;span class="string"&gt;&amp;quot;/hello&amp;quot;&lt;/span&gt;
+ &lt;span class="paren2"&gt;(&lt;span class="default"&gt;&lt;i&gt;&lt;span class="symbol"&gt;lambda&lt;/span&gt;&lt;/i&gt; &lt;span class="paren3"&gt;(&lt;span class="default"&gt;&lt;/span&gt;)&lt;/span&gt; &lt;span class="string"&gt;&amp;quot;hello world&amp;quot;&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;)&lt;/span&gt;
+&lt;span class="comment"&gt;;; run it 
+&lt;/span&gt;&lt;span class="paren1"&gt;(&lt;span class="default"&gt;run &lt;span class="keyword"&gt;#:port&lt;/span&gt; 8080&lt;/span&gt;)&lt;/span&gt;&lt;/tt&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;tt class="highlight sh-language"&gt;curl localhost:8080/hello
+==&amp;gt; hello world&lt;/tt&gt;&lt;/pre&gt;</content>
+    <id>tag:web-artanis.com,2013-07-24:/index.html</id>
+    <published>2013-07-24T08:01:27Z</published>
+    <title type="text">GNU Artanis web-framework</title>
+    <updated>2013-07-24T08:01:27Z</updated>
+    <link href="www.web-artanis.com/index.html" rel="alternate" type="application/xhtml+xml" />
   </entry>
 </feed>
