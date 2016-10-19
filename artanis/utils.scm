@@ -1041,7 +1041,7 @@
    ((integer? o) 'int)
    ((number? o) 'number)
    ((null? o) 'ANY)
-   (else 'Unknown)))
+   (else 'UNKNOWN)))
 
 (define (check-args-types op args)
   (match (procedure-property op 'type-anno)
@@ -1076,9 +1076,6 @@
 
 (define-syntax ::define
   (syntax-rules (->)
-    #;
-    ((_ (op args ...) ((targs ...) -> func-type) body ...)
-    (::define (op args ...) ((targs ...) -> (func-type)) body ...))
     ((_ (op args ...) ((targs ...) -> func-types ...) body ...)
      (begin
        (define (op args ...)
