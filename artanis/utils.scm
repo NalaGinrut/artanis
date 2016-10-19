@@ -42,7 +42,8 @@
   #:use-module ((rnrs)
                 #:select (get-bytevector-all utf8->string put-bytevector
                           bytevector-u8-ref string->utf8 bytevector-length
-                          make-bytevector bytevector-s32-native-ref))
+                          make-bytevector bytevector-s32-native-ref
+                          make-record-type record-rtd record-accessor))
   #:export (regexp-split hash-keys cat bv-cat get-global-time
             get-local-time string->md5 unsafe-random string-substitute
             get-file-ext get-global-date get-local-date uri-decode
@@ -71,7 +72,8 @@
             bv-u8-index bv-u8-index-right build-bv-lookup-table filesize
             plist-remove gen-migrate-module-name try-to-load-migrate-cache
             flush-to-migration-cache gen-local-conf-file with-dbd errno
-            call-with-sigint)
+            call-with-sigint define-box-type make-box-type unbox-type
+            ::define)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -1016,3 +1018,75 @@
                       ;; restore original C handler.
                       (sigaction SIGINT #f)))))
             (lambda (k . _) (handler-thunk)))))))
+
+(define-syntax-rule (define-box-type name)
+  (define-record-type name (fields treasure)))
+
+(define-macro (make-box-type bt v)
+  (list (symbol-append 'make- bt) v))
+
+(define-syntax-rule (box-type-treasure t)
+  (record-accessor (record-rtd t) 0))
+
+(define-syntax-rule (unbox-type t)
+  (let ((treasure-getter (box-type-treasure t)))
+    (treasure-getter t)))
+
+(define (detect-type-name o)
+  (cond
+   ;; NOTE: record? is for R6RS record-type, but record-type? is not
+   ((record? o) (record-type-name (record-rtd o)))
+   ((symbol? o) 'symbol)
+   ((string? o) 'string)
+   ((integer? o) 'int)
+   ((number? o) 'number)
+   ((null? o) 'ANY)
+   (else 'Unknown)))
+
+(define (check-args-types op args)
+  (match (procedure-property op 'type-anno)
+    (((targs ...) '-> (func-types ...))
+     (for-each
+      (lambda (v e)
+        (or (eq? (detect-type-name v) e)
+            (throw 'artanis-err 500
+                   (format #f "Argument ~a(~a) is expected to be type `~a'"
+                           v (detect-type-name v) e))))
+      args targs))
+    (else (throw 'artanis-err 500 "Invalid type annotation"
+                 (procedure-property op 'type-anno)))))
+
+(define (check-function-types op fret)
+  (match (procedure-property op 'type-anno)
+    (((targs ...) '-> (func-types ...))
+     (for-each
+      (lambda (v e)
+        (or (eq? (detect-type-name v) e)
+            (throw 'artanis-err 500
+                   (format #f "`Return value ~a(~a) is expected to be type `~a'"
+                           v (detect-type-name v) e))))
+      fret func-types))
+    (else (throw 'artanis-err 500 "Invalid type annotation"
+                 (procedure-property op 'type-anno)))))
+
+(define (detect-and-set-type-anno! op ftypes atypes)
+  (let ((type `(,atypes -> ,ftypes)))
+    (set-procedure-property! op 'type-anno type)
+    type))
+
+(define-syntax ::define
+  (syntax-rules (->)
+    #;
+    ((_ (op args ...) ((targs ...) -> func-type) body ...)
+    (::define (op args ...) ((targs ...) -> (func-type)) body ...))
+    ((_ (op args ...) ((targs ...) -> func-types ...) body ...)
+     (begin
+       (define (op args ...)
+         (when (get-conf 'debug-mode) (check-args-types op (list args ...)))
+         (call-with-values
+             (lambda () body ...)
+           (lambda ret
+             (when (get-conf 'debug-mode)
+                   (eq? (detect-type-name ret) (check-function-types op ret)))
+             (apply values ret))))
+       (detect-and-set-type-anno! op '(func-types ...) '(targs ...))))))
