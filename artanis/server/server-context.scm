@@ -44,7 +44,17 @@
             task?
             task-conn
             task-kont
-            task-prio))
+            task-prio
+
+            make-ragnarok-client
+            ragnarok-client?
+            client-sockport
+            client-sockport-decriptor
+            client-connection
+
+            remove-from-work-table!
+            add-current-task-to-work-table!
+            get-task-from-work-table))
 
 (define-record-type ragnarok-server
   (fields
@@ -69,6 +79,68 @@
 
 (define-record-type task
   (fields
-   conn   ; connect socket fd
+   conn   ; connecting socket port
    kont   ; delimited continuation
    prio)) ; priority
+
+(define-box-type ragnarok-client)
+(define-syntax-rule (make-ragnarok-client v)
+  (make-box-type ragnarok-client v))
+
+;; for emacs:
+;; (put '::define 'scheme-indent-function 1)
+
+;; ragnarok-client -> socket-port
+(::define (client-sockport c)
+  (:anno: (ragnarok-client) -> socket-port)
+  (car (unbox-type c)))
+
+;; ragnarok-client -> integer
+(::define (client-sockport-decriptor c)
+  (:anno: (ragnarok-client) -> int)
+  (port->fdes (client-port (unbox-type c))))
+
+;; ragnarok-client -> vector 
+(::define (client-details c)
+  (:anno: (ragnarok-client) -> vector)
+  (cdr (unbox-type c)))
+
+;; ragnarok-client -> integer
+(::define (client-fam c)
+  (:anno: (ragnarok-client) -> int)
+  (sockaddr:fam (client-details c)))
+
+;; ragnarok-client -> integer
+(::define (client-addr c)
+  (:anno: (ragnarok-client) -> int)
+  (sockaddr:addr (client-details c)))
+
+;; ragnarok-client -> integer
+;; NOTE: Different from listenning-port
+(::define (client-connecting-port c)
+  (:anno: (ragnarok-client) -> int)
+  (sockaddr:port (client-details c)))
+
+;; work-table -> ragnarok-client -> ANY
+(::define (remove-from-work-table! wt client)
+  (:anno: (work-table ragnarok-client) -> ANY)
+  (assume-type wt hash-table?)
+  (assume-type client ragnarok-client?)
+  (hashv-remove! (work-table-content wt) (client-sockport-decriptor client )))
+
+;; work-table -> integer -> ANY
+(::define (add-current-task-to-work-table! wt client)
+  (:anno: (work-table int) -> ANY)
+  (assume-type wt hash-table?)
+  (assume-type client ragnarok-client?)
+  (hashv-set! wt conn (current-task)))
+
+;; work-table -> sockport -> task -> ANY
+(::define (add-a-task-to-work-table! wt client task)
+  (:anno: (work-table sockport task) -> ANY)
+  (hashv-set! wt (client-sockport-decriptor client) task))
+
+;; work-table -> ragnarok-client -> task
+(::define (get-task-from-work-table wt client)
+  (:anno: (work-table ragnarok-client) -> task)
+  (hashv-ref wt (client-sockport-decriptor client)))
