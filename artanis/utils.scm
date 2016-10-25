@@ -1032,6 +1032,9 @@
   (let ((treasure-getter (box-type-treasure t)))
     (treasure-getter t)))
 
+(define (socket-port? sp)
+  (and (port? sp) (eq? (port-filename sp) 'socket)))
+
 (define (detect-type-name o)
   (cond
    ;; NOTE: record? is for R6RS record-type, but record-type? is not
@@ -1040,6 +1043,8 @@
    ((string? o) 'string)
    ((integer? o) 'int)
    ((number? o) 'number)
+   ((vector? o) 'vector)
+   ((socket-port? o) 'socket)
    ((null? o) 'ANY)
    (else 'UNKNOWN)))
 
@@ -1075,8 +1080,8 @@
     type))
 
 (define-syntax ::define
-  (syntax-rules (->)
-    ((_ (op args ...) ((targs ...) -> func-types ...) body ...)
+  (syntax-rules (-> :anno:)
+    ((_ (op args ...) (:anno: (targs ...) -> func-types ...) body ...)
      (begin
        (define (op args ...)
          (when (get-conf 'debug-mode) (check-args-types op (list args ...)))
