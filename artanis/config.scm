@@ -59,7 +59,7 @@
     ((server workers) 1)
     ((server wqlen) 64) ; work queue maxlen
     ((server trigger) edge)
-    ((server impl) ragnarok)
+    ((server engine) ragnarok)
     ((server polltimeout) 500) ; in miliseconds
     ((server bufsize) 4096) ; in Bytes
 
