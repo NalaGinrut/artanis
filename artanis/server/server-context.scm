@@ -19,7 +19,14 @@
 
 (define-module (artanis server server-context)
   #:use-module ((rnrs) #:select (define-record-type))
-  #:export (make-ragnarok-server
+  #:export (make-ragnarok-engine
+            ragnarok-engine?
+            ragnarok-engine-name
+            ragnarok-engine-breaker
+            ragnarok-engine-runner
+            ragnarok-engine-loader
+
+            make-ragnarok-server
             ragnarok-server?
             ragnarok-server-epfd
             ragnarok-server-listen-socket
@@ -55,6 +62,13 @@
             remove-from-work-table!
             add-current-task-to-work-table!
             get-task-from-work-table))
+
+(define-record-type ragnarok-engine
+  (fields
+   name
+   breaker
+   runner
+   loader))
 
 (define-record-type ragnarok-server
   (fields
