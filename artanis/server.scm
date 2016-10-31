@@ -25,11 +25,10 @@
   #:use-module (artanis utils)
   #:use-module (artanis config)
   #:use-module (artanis env)
+  #:use-module (artanis server ragnarok)
   #:use-module (artanis server http)
-  #:export (current-worker
-            init-server-core))
-
-(define current-worker (make-parameter 0))
+  #:export (init-server-core)
+  #:re-export (ragnarok-http-gateway-run))
 
 (define (init-server-core)
   (protocol-add! 'http (new-http-protocol)))

@@ -48,7 +48,8 @@
             change-session-backend!
             current-session-backend
             protocol-add!
-            lookup-protocol))
+            lookup-protocol
+            current-worker))
 
 ;; WARNING: For concurrency in green-thread, all these stuffs should be immutable
 ;;          IN THE RUN TIME!!!
@@ -126,3 +127,5 @@
 
 (define (lookup-protocol name)
   (hashq-ref *proto-table* name))
+
+(define current-worker (make-parameter 0))
