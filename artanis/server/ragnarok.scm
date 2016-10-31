@@ -24,18 +24,20 @@
 (define-module (artanis server ragnarok)
   #:use-module (artanis utils)
   #:use-module (artanis config)
-  #:use-module (artanis server)
   #:use-module (artanis server epoll)
   #:use-module (artanis server server-context)
   #:use-module ((srfi srfi-1) #:select (fold))
+  #:use-module (system repl error-handling)
   #:use-module (srfi srfi-9)
   #:use-module (ice-9 threads)
   #:use-module (rnrs bytevectors)
-  #:use-module (foreign system)
+  #:use-module (system foreign)
   #:use-module (web request)
   #:use-module (web response)
   #:use-module (web server)
-  #:export (establish-http-gateway))
+  #:export (establish-http-gateway
+            break-task
+            run-task))
 
 ;; default socket should be nonblock
 (define (make-listen-fd family addr port)
@@ -55,19 +57,24 @@
   (let ((n (get-conf '(server workers))))
     (map (lambda (i) (new-work-table)) (iota n))))
 
-(define (%remove-from-work-table! conn)
-  (hashv-remove! (work-table-content (current-worktable)) conn))
+;; NOTE: We need this null-task as a placeholder to let task scheduling loop
+;;       work smoothly.
+(define (the-null-task)
+  (DEBUG "A NULL-Task was called. The work table seems empty~%"))
 
-(define (%add-current-task-to-work-table! wt conn)
-  (hashv-set! wt conn))
+(define current-task (make-parameter the-null-task))
+(define current-proto (make-parameter (did-not-specify-parameter 'proto)))
+(define current-server (make-parameter (did-not-specify-parameter 'server)))
+(define current-client (make-parameter (did-not-specify-parameter 'client)))
 
-(define (current-worktable)
-  (ragnarok-server-work-table ragnarok))
+(define *proto-conn-table* (make-hash-table))
 
-(define (current-task)
-  (let ((wq (work-table-content (current-worktable)))
-        (worker (current-worker)))
-    (table-head (list-ref wq (1+ worker)))))
+(define (specified-proto? client)
+  (and=> (hashv-ref *proto-conn-table* (client-sockport-decriptor client))
+         lookup-protocol))
+
+(define (register-proto! client protoname)
+  (hashv-set! *proto-conn-table* (client-sockport-decriptor client) protoname))
 
 (define (get-trigger)
   (case (get-conf '(server trigger))
@@ -96,6 +103,11 @@
 (define *write-event* EPOLLOUT)
 (define (gen-write-event) (logior *error-event* (get-trigger) *write-event*))
 
+(define (make-ragnarok-server epfd fd work-table work-queue event-set)
+  ;; TODO: should there be a global var to hold ragnarok instance?
+  #t
+  )
+
 ;; Ragnarok server will establish a http-gateway, and support various protocols
 ;; based on websocket.
 (define* (ragnarok-open #:key
@@ -112,29 +124,67 @@
     (make-ragnarok-server epfd fd (generate-work-tables) (new-queue) event-set)))
 
 (define (with-stack-and-prompt thunk)
-  (call-with-prompt (default-prompt-tag)
-                    (lambda () (start-stack #t (thunk)))
-                    (lambda (k proc)
-                      (with-stack-and-prompt (lambda () (proc k))))))
+  (call-with-prompt
+   'serve-one-request
+   (lambda () (start-stack #t (thunk)))
+   (lambda (k proc)
+     (with-stack-and-prompt (lambda () (proc k))))))
 
 ;; NOTE: make sure `client' is connect socket
-(define (is-continuable-work? server client)
+(define (is-a-continuable-work? server client)
   (let* ((wt (ragnarok-server-work-table server))
-         (task (hashv-ref wt (car client))))
+         (task (get-task-from-work-table wt client)))
     (cond
-     (task
-      (hashv-remove! wt (car client))
-      task)
-     (else #f))))
+     (task ; if task exists in work-table
+      (remove-from-work-table! wt client) ; then remove it from work-table
+      task) ; and return this task for later application (restore the execution)
+     (else #f)))) ; not a continuable work since it's not in the work-table
+
+(define (break-task)
+  (abort-to-prompt
+   'serve-one-request
+   (current-proto)
+   (current-server)
+   (current-client)))
 
 (define (run-task task)
-  ((task-kont task)))
+  (call-with-prompt
+   'serve-one-request
+   (lambda ()
+     ((task-kont task)))
+   ragnarok-scheduler))
 
 (define (get-requests-from-client server)
   (let ((epfd (ragnarok-server-epfd server))
         (events (ragnarok-server-event-set server))
         (timeout (get-conf '(server polltimeout))))
     (epoll-wait epfd events timeout)))
+
+(define (handle-request proto client handler request body)
+  (define (request-error-handler k . e)
+    (values (build-response #:code 500) #f '()))
+  (call-with-error-handling
+   (lambda ()
+     (call-with-values
+         (lambda ()
+           (with-stack-and-prompt
+            (lambda ()
+              (apply handler request body))))
+       (lambda (response body)
+         (call-with-values (lambda ()
+                             (DEBUG "Ragnarok: In handler~%")
+                             (sanitize-response request response body))
+           (lambda (response body)
+             (DEBUG "Ragnarok: Sanitized~%")
+             ;; NOTE: we return '() as the state here to keep it compatible with the
+             ;;       continuation of Guile built-in server.
+             (values response body '()))))))
+   #:pass-keys '(quit interrupt)
+   #:on-error (if (batch-mode?) 'backtrace 'debug)
+   #:post-error request-error-handler))
+
+(define-syntax-rule (protocol-service-open proto server client)
+  ((protocol-open proto) server client))
 
 (define (serve-one-request handler proto server client)
   (DEBUG "Ragnarok: enter~%")
@@ -144,30 +194,40 @@
      (catch #t
             (lambda ()
               (call-with-values
-                  (lambda () (ragnarok-read proto client))
+                  (lambda ()
+                    (when (not (protocol-service-is-opened? client proto))
+                          (protocol-service-open proto server client))
+                    (ragnarok-read proto server client))
                 (lambda (client request body)
                   (DEBUG "Ragnarok: read client~%")
                   (call-with-values
                       (lambda ()
                         (DEBUG "Ragnarok: new request ready~%")
                         (cond
-                         ((is-continuable-work? server client)
+                         ((is-a-continuable-work? server client)
                           => (lambda (task)
                                (DEBUG "Ragnarok: continue request~%")
-                               (run-task task)))
+                               (parameterize ((current-task task)
+                                              (current-proto proto)
+                                              (current-server server)
+                                              (current-client client))
+                                 (run-task task))))
                          (else
                           (DEBUG "Ragnarok: handle request~%")
-                          (handle-request handler request body))))
+                          (let ((kont (lambda ()
+                                        (handle-request proto client handler request body)))
+                                (conn (car client))
+                                (prio #t)) ; TODO: we don't have prio yet
+                            (parameterize ((current-task (make-task conn kont prio)))
+                              (run-task (current-task)))))))
                     (lambda (response body)
                       (DEBUG "Ragnarok: write client~%")
-                      (write-client proto server client response body))))))
+                      (ragnarok-write proto server client response body))))))
             (lambda (k . e)
               (let ((E (get-errno e)))
                 (cond
-                 ((eq? k 'interrupt)
-                  ;; rethrow interrupt signal
-                  (throw 'interrupt))
                  ((or (= E EAGAIN) (= E EWOULDBLOCK))
+                  (DEBUG "Ragnarok: EAGAIN, break to sleep~%")
                   (abort-to-prompt 'serve-one-request proto server client))
                  (else (apply throw k e)))))))
    ragnarok-scheduler))
@@ -202,44 +262,59 @@
        (ragnarok-close http server)
        (values)))))
 
+;; NOTE: we don't schedule guile-engine, although it provides naive mechanism for scheduling.
+(define (new-guile-engine)
+  (define info "You're using `guile' engine, which has no scheduler yet!")
+  (make-ragnarok-engine
+   'guile
+   (lambda () (DEBUG info))
+   (lambda _ (DEBUG info))
+   guile-builtin-server-run))
+
+(define (new-ragnarok-engine)
+  (make-ragnarok-engine
+   'ragnarok
+   break-task
+   run-task
+   ragnarok-http-gateway-run))
+
 (define *server-cores*
-  `((ragnarok . ,ragnarok-http-gateway-run)
-    (guile    . ,guile-builtin-server-run)))
-  
-;; '(server impl) specified server core, so if it's `ragnarok', Artanis will
+  `((ragnarok . ,(new-ragnaork-engine))
+    (guile    . ,(new-guile-engine))))
+
+(define (get-ragnarok-engine-loader name)
+  (ragnarok-engine-loader (assoc-ref *server-cores* name)))
+
+(define (lookup-server-engine engine-name)
+  (assoc-ref *server-cores* engine-name))
+
+;; '(server engine) specified server core, so if it's `ragnarok', Artanis will
 ;; use (artanis server ragnarok). If it's `guile' then Artanis will use
 ;; (web server), say, Guile built-in server.
 (define (establish-http-gateway handler)
-  (let* ((impl (lookup-server-impl (get-conf '(server impl))))
-         (loader (assq *server-cores* impl)))
+  (let* ((engine (lookup-server-engine (get-conf '(server engine))))
+         (loader (get-ragnarok-engine-loader engine)))
     (cond
      (loader (loader handler))
-     (else (error establish-http-gateway "Invalid (server impl) in artanis.conf" impl)))))
+     (else (error establish-http-gateway
+                  "Invalid `server.engine' in artanis.conf" (ragnaork-engine-name engine))))))
 
-;; (define (ragnarok-read rag proto ev)
-;;   (call-with-error-handling
-;;    (lambda ()
-;;      (define-syntax-rule (->port ev)
-;;        (let ((events (car ev))
-;;              (fd (cdr ev)))
-;;          (cond
-;;           ((= (logand events *rw-event*) *rw-event*)
-;;            (fdes->ports  
-;;      ((protocol-read proto) rag (->port ev)))
-;;    #:pass-keys '(quit interrupt)
-;;    #:on-error (if (batch-mode?) 'backtrace 'debug)
-;;    #:post-error (lambda _ (values #f #f #f))))
+(define (ragnarok-read proto server client)
+  ((protocol-read proto) server client))
 
-(define (ragnarok-clean-current-conn-fd)
+(define (ragnarok-write proto server client response body)
+  ((protocol-write proto) server client response body))
+
+(define (ragnarok-clean-current-conn-fd server)
   (let ((conn (task-conn (current-task)))
-        (epfd (ragnarok-server-epfd ragnarok)))
+        (epfd (ragnarok-server-epfd server)))
     ;; NOTE:
     ;; In kernel versions before 2.6.9, the EPOLL_CTL_DEL operation required a
-    ;; non-null pointer in event, even though this argument is ignored.  Since
-    ;; Linux 2.6.9, event can be specified as NULL when  using  EPOLL_CTL_DEL.
-    ;; Applications  that  need  to be portable to kernels before 2.6.9 should
+    ;; non-null pointer in event, even though this argument is ignored. Since
+    ;; Linux 2.6.9, event can be specified as NULL when using EPOLL_CTL_DEL.
+    ;; Applications that need to be portable to kernels before 2.6.9 should
     ;; specify a non-null pointer in event.
-    ;; So, Artanis doesn't compatible with Linux 2.6.9 and before.
+    ;; So, Artanis isn't compatible with Linux 2.6.9 and before.
     (epoll-ctl epfd EPOLL_CTL_DEL conn %null-pointer)))
 
 ;; clean task from work-table
@@ -253,6 +328,7 @@
      ((> workers 1) (with-mutex (work-table-mutex wq) (do-clean-task)))
      (else (throw 'artanis-err 500 "Invalid (server workers) !" workers)))))
 
-(define (ragnarok-close proto client server)
-  (ragnarok-clean-current-conn-fd)
-  ((protocol-close proto) client server))
+(define (ragnarok-close proto server)
+  (ragnarok-clean-current-conn-fd server)
+  (ragnarok-clean-current-task)
+  ((protocol-close proto) server))
