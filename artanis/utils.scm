@@ -73,7 +73,7 @@
             plist-remove gen-migrate-module-name try-to-load-migrate-cache
             flush-to-migration-cache gen-local-conf-file with-dbd errno
             call-with-sigint define-box-type make-box-type unbox-type
-            ::define)
+            ::define did-not-specify-parameter)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -1092,3 +1092,7 @@
                    (eq? (detect-type-name ret) (check-function-types op ret)))
              (apply values ret))))
        (detect-and-set-type-anno! op '(func-types ...) '(targs ...))))))
+
+(define-syntax-rule (did-not-specify-parameter what)
+  (throw 'artanis-err 500
+         (format #f "`current-~a' isn't specified, it's likely a bug!" what)))
