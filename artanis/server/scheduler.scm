@@ -35,13 +35,14 @@
   ;; TODO: how to compute priority
   #t)
 
-;; NOTE: When we fetch the current task from work-queue, we'll remove it
-;;       (say, the head) from work-queue. We don't remove the head when we close it.
+;; NOTE: When we fetch the current task from work-table, we'll remove it
+;;       from work-table. We don't remove the head when we close it.
 (define (save-current-task! k proto client server)
-  (let ((wt (ragnarok-server-work-table server))
-        (task (make-task (car client) k (compute-prio proto client server))))
+  (let* ((wt (ragnarok-server-work-table server))
+         (conn (client-sockport client))
+        (task (make-task conn k (compute-prio proto client server))))
     (DEBUG "Save current task!~%")
-    (hashv-set! wt (car client) k)))
+    (add-a-task-to-work-table! wt client task)))
 
 (define (ragnarok-scheduler k proto server client)
   (DEBUG "Enter ragnarok scheduler!~%")
