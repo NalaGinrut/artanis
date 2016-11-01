@@ -27,8 +27,16 @@
   #:use-module (artanis env)
   #:use-module (artanis server ragnarok)
   #:use-module (artanis server http)
-  #:export (init-server-core)
-  #:re-export (ragnarok-http-gateway-run))
+  #:export (init-server-core
+            schedule-task)
+  #:re-export (establish-http-gateway))
+
+(define schedule-task
+  (lambda ()
+    (error
+     'schedule-task
+     "If you saw this line, it means server-core hasn't been initialized!")))
 
 (define (init-server-core)
+  (set! schedule-task (get-task-breaker))
   (protocol-add! 'http (new-http-protocol)))
