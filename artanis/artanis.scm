@@ -33,7 +33,7 @@
   #:use-module (artanis debug)
   #:use-module (artanis third-party csv)
   #:use-module (artanis third-party json)
-  #:use-module (artanis server ragnarok)
+  #:use-module (artanis server)
   #:use-module (artanis version)
   #:use-module (web server)
   #:use-module (srfi srfi-1)
