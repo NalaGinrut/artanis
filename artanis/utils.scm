@@ -1043,6 +1043,8 @@
    ((string? o) 'string)
    ((integer? o) 'int)
    ((number? o) 'number)
+   ((thunk? o) 'thunk)
+   ((procedure? o) 'proc)
    ((vector? o) 'vector)
    ((socket-port? o) 'socket)
    ((null? o) 'ANY)
