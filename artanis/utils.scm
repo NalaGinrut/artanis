@@ -1098,3 +1098,15 @@
 (define-syntax-rule (did-not-specify-parameter what)
   (throw 'artanis-err 500
          (format #f "`current-~a' isn't specified, it's likely a bug!" what)))
+
+(define (artanis-error-printer port key args default-printer)
+  (format port "GNU Artanis encountered exception!~%") ; TODO: should be in red
+  (match args
+    ((subr msg . args)
+     (when subr
+       (format port "<~a>~%" (current-filename)) ; TODO: should be in cyan
+       (format port "In procedure ~a :~%" subr)) ; TODO: should be in yellow
+     (format port "~t")
+     (apply format port msg args)) ; TODO: should be colored
+    (else (default-printer))))
+
