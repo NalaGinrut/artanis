@@ -191,8 +191,6 @@
 ;; make sure to call init-server at the beginning
 (define* (init-server #:key (statics '(png jpg jpeg ico html js css))
                       (cache-statics? #f) (exclude '()))
-  ;; set the default printer for artanis specific errors
-  (set-exception-printer! 'artanis-err artanis-error-printer)
   (default-route-init statics cache-statics? exclude)
   (init-hook)
   (init-config))

@@ -128,22 +128,31 @@
   (format (current-error-port) "[EXCEPTION] ~a is abnormal request, status: ~a, "
           (uri-path (request-uri request)) status)
   (display "rendering a sys page for it...\n" (current-error-port)) 
-  (render-sys-page status request))
+  (render-sys-page status requ))
 
 (define (work-with-request request body)
   (catch 'artanis-err
     (lambda ()
       (let* ((rc (new-route-context request body))
              (handler (rc-handler rc)))
-        (if handler 
+        (if handler
             (handler-render handler rc)
             (render-sys-page 404 rc))))
     (lambda (k . e)
-      (let ((status (car e))
-            (reason (cadr e))
-            (info (caddr e)))
-        (format (current-error-port) "[ERR Reason]: ~a ~a~%" reason info)
-        (format-status-page status request)))))
+      (define port (current-error-port))
+      (format port (ERROR-TEXT "GNU Artanis encountered exception!~%"))
+      (match e
+        (((? procedure subr) (? string? msg) . args)
+         (format port "<~a>~%" (WARN-TEXT (current-filename)))
+         (when subr (format port "In procedure ~a :~%" (WARN-TEXT subr)))
+         (apply format port (REASON-TEXT msg) args))
+        (((? integer? status) (? procedure subr) (? string? msg) . args)
+         (format port "HTTP ~a~%" (STATUS-TEXT status))
+         (format port "<~a>~%" (WARN-TEXT (current-filename)))
+         (when subr (format port "In procedure ~a :~%" (WARN-TEXT subr)))
+         (apply format port (REASON-TEXT msg) args)
+         (format-status-page status request))
+        (else (error work-with-request "BUG: wrong exception handler!"))))))
 
 (define (response-emit-error status)
   (response-emit "" #:status status))
@@ -157,7 +166,10 @@
           #:mtime (generate-modify-time mtime)))
 
 (define (throw-auth-needed)
-  (response-emit "" #:status 401 #:headers '((WWW-Authenticate . "Basic realm=\"Secure Area\""))))
+  (response-emit
+   ""
+   #:status 401
+   #:headers '((WWW-Authenticate . "Basic realm=\"Secure Area\""))))
 
 (define (server-handler request request-body)
   ;; ENHANCE: could put some stat hook here
