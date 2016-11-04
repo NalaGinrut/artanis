@@ -73,7 +73,8 @@
             plist-remove gen-migrate-module-name try-to-load-migrate-cache
             flush-to-migration-cache gen-local-conf-file with-dbd errno
             call-with-sigint define-box-type make-box-type unbox-type
-            ::define did-not-specify-parameter)
+            ::define did-not-specify-parameter WARN-TEXT ERROR-TEXT REASON-TEXT
+            NOTIFY-TEXT STATUS-TEXT)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -1099,14 +1100,55 @@
   (throw 'artanis-err 500
          (format #f "`current-~a' isn't specified, it's likely a bug!" what)))
 
-(define (artanis-error-printer port key args default-printer)
-  (format port "GNU Artanis encountered exception!~%") ; TODO: should be in red
-  (match args
-    ((subr msg . args)
-     (when subr
-       (format port "<~a>~%" (current-filename)) ; TODO: should be in cyan
-       (format port "In procedure ~a :~%" subr)) ; TODO: should be in yellow
-     (format port "~t")
-     (apply format port msg args)) ; TODO: should be colored
-    (else (default-printer))))
+;; Text-coloring helper functions, borrowed from guile-colorized
+(define *color-list*
+  `((CLEAR       .   "0")
+    (RESET       .   "0")
+    (BOLD        .   "1")
+    (DARK        .   "2")
+    (UNDERLINE   .   "4")
+    (UNDERSCORE  .   "4")
+    (BLINK       .   "5")
+    (REVERSE     .   "6")
+    (CONCEALED   .   "8")
+    (BLACK       .  "30")
+    (RED         .  "31")
+    (GREEN       .  "32")
+    (YELLOW      .  "33")
+    (BLUE        .  "34")
+    (MAGENTA     .  "35")
+    (CYAN        .  "36")
+    (WHITE       .  "37")
+    (ON-BLACK    .  "40")
+    (ON-RED      .  "41")
+    (ON-GREEN    .  "42")
+    (ON-YELLOW   .  "43")
+    (ON-BLUE     .  "44")
+    (ON-MAGENTA  .  "45")
+    (ON-CYAN     .  "46")
+    (ON-WHITE    .  "47")))
 
+(define (get-color color)
+  (assq-ref *color-list* color))
+
+(define (generate-color colors)
+  (let ((color-list
+         (filter-map get-color colors)))
+    (if (null? color-list)
+        ""
+        (string-append "\x1b[" (string-join color-list ";" 'infix) "m"))))
+
+(define* (colorize-string-helper color str control #:optional (rl-ignore #f))
+  (if rl-ignore
+      (string-append "\x01" (generate-color color) "\x02" str "\x01" (generate-color control) "\x02")
+      (string-append (generate-color color) str (generate-color control))))
+
+(define* (colorize-string str color)
+  "Example: (colorize-string \"hello\" '(BLUE BOLD))" 
+  (colorize-string-helper color str '(RESET) (using-readline?)))
+
+(define-syntax-rule (WARN-TEXT str) (colorize-string str '(YELLOW)))
+(define-syntax-rule (ERROR-TEXT str) (colorize-string str '(RED)))
+(define-syntax-rule (REASON-TEXT str) (colorize-string str '(CYAN)))
+(define-syntax-rule (NOTIFY-TEXT str) (colorize-string str '(WHITE)))
+(define-syntax-rule (STATUS-TEXT num) (colorize-string (object->string num)'(WHITE)))
