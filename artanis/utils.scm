@@ -1047,9 +1047,9 @@
    ((thunk? o) 'thunk)
    ((procedure? o) 'proc)
    ((vector? o) 'vector)
+   ((bytevectors? o) 'bv)
    ((socket-port? o) 'socket)
-   ((null? o) 'ANY)
-   (else 'UNKNOWN)))
+   (else 'ANY)))
 
 (define (check-args-types op args)
   (match (procedure-property op 'type-anno)
@@ -1082,6 +1082,9 @@
     (set-procedure-property! op 'type-anno type)
     type))
 
+;; NOTE: This macro can detect multi return values.
+;; TODO:
+;; 1. support multi-types, say, string/bv, maybe not easy to do it faster?
 (define-syntax ::define
   (syntax-rules (-> :anno:)
     ((_ (op args ...) (:anno: (targs ...) -> func-types ...) body ...)
