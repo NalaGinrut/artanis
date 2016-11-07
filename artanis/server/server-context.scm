@@ -98,7 +98,7 @@
    prio)) ; priority
 
 (define-box-type ragnarok-client)
-(define-syntax-rule (make-ragnarok-client v)
+(define (make-ragnarok-client v)
   (make-box-type ragnarok-client v))
 
 ;; for emacs:
