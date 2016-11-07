@@ -25,15 +25,10 @@ texinfo.tex
 *~
 ,*
 aclocal.m4
-confdefs.h
 config.build-subdirs
 config.cache
-config.h
 config.status
-conftest
-conftest.c
 depcomp
-ltconfig
 mdate-sh
 missing
 mkinstalldirs
