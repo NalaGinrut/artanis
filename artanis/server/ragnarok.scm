@@ -154,14 +154,19 @@
      ((task-kont task)))
    ragnarok-scheduler))
 
-(define (get-requests-from-client server)
+(::define (get-clients-from-service server)
+  ;; should be client list but we don't check internally.
+  (:anno: (ragnarok-server) -> list)
   (let ((epfd (ragnarok-server-epfd server))
         (events (ragnarok-server-event-set server))
         (timeout (get-conf '(server polltimeout))))
-    (epoll-wait epfd events timeout)))
+    (map make-ragnarok-client (epoll-wait epfd events timeout))))
 
 (define (handle-request proto client handler request body)
   (define (request-error-handler k . e)
+    ;; NOTE: We don't have to do any work here but just throw 500 exception.
+    ;;       When this handler is called, it must hit the pass-keys, which
+    ;;       should be silient and throw 500.
     (values (build-response #:code 500) #f '()))
   (call-with-error-handling
    (lambda ()
@@ -174,60 +179,74 @@
          (call-with-values
              (lambda ()
                (DEBUG "Ragnarok: In handler~%")
+               ;; TODO: optimize sanitize-response to be faster
                (sanitize-response request response body))
            (lambda (response body)
              (DEBUG "Ragnarok: Sanitized~%")
-             ;; NOTE: we return '() as the state here to keep it compatible with the
-             ;;       continuation of Guile built-in server.
+             ;; NOTE: we return '() as the state here to keep it compatible with
+             ;;       the continuation of Guile built-in server, although it's
+             ;;       useless in Ragnarok.
              (values response body '()))))))
+   ;; pass-keys should be the keys which will not be described in details, since
+   ;; the server developers doesn't care about them. If exception key hits pass-keys,
+   ;; post-error handler will be called.
    #:pass-keys '(quit interrupt)
+   ;; Programs can call `batch-mode?' to see if they are running as part of a
+   ;; script or if they are running interactively. REPL implementations ensure that
+   ;; `batch-mode?' returns #f during their extent.
    #:on-error (if (batch-mode?) 'backtrace 'debug)
    #:post-error request-error-handler))
 
-(define (serve-one-request handler proto server client)
+(::define (serve-one-request handler proto server client)
+  (:anno: (proc protocol ragnarok-server ragnarok-client) -> ANY)
   (define-syntax-rule (protocol-service-open)
     ((protocol-open proto) server client))
+  (define (try-to-serve-one-request)
+    (call-with-values
+        (lambda ()
+          (when (not (protocol-service-is-opened? client proto))
+            (protocol-service-open))
+          (ragnarok-read proto server client))
+      (lambda (client request body)
+        (DEBUG "Ragnarok: read client~%")
+        (call-with-values
+            (lambda ()
+              (DEBUG "Ragnarok: new request ready~%")
+              (parameterize ((current-proto proto)
+                             (current-server server)
+                             (current-client client))
+                (cond
+                 ((is-a-continuable-work? server client)
+                  => (lambda (task)
+                       (DEBUG "Ragnarok: continue request~%")
+                       (parameterize ((current-task task))
+                         (run-task task))))
+                 (else
+                  (DEBUG "Ragnarok: handle request~%")
+                  (let ((kont (lambda ()
+                                (handle-request proto client handler request body)))
+                        (conn (client-connecting-port client))
+                        (prio #t)) ; TODO: we don't have prio yet
+                    (parameterize ((current-task (make-task conn kont prio)))
+                      (run-task (current-task))))))))
+          (lambda (response body)
+            (DEBUG "Ragnarok: write client~%")
+            (ragnarok-write proto server client response body))))))
+
   (DEBUG "Ragnarok: enter~%")
+  ;; NOTE: delimited here to limit the continuation capturing granularity.
   (call-with-prompt
    'serve-one-request
    (lambda ()
      (catch #t
-       (lambda ()
-         (call-with-values
-             (lambda ()
-               (when (not (protocol-service-is-opened? client proto))
-                     (protocol-service-open))
-               (ragnarok-read proto server client))
-           (lambda (client request body)
-             (DEBUG "Ragnarok: read client~%")
-             (call-with-values
-                 (lambda ()
-                   (DEBUG "Ragnarok: new request ready~%")
-                   (parameterize ((current-proto proto)
-                                  (current-server server)
-                                  (current-client client))
-                     (cond
-                      ((is-a-continuable-work? server client)
-                       => (lambda (task)
-                            (DEBUG "Ragnarok: continue request~%")
-                            (parameterize ((current-task task))
-                              (run-task task))))
-                      (else
-                       (DEBUG "Ragnarok: handle request~%")
-                       (let ((kont (lambda ()
-                                     (handle-request proto client handler request body)))
-                             (conn (client-connecting-port client))
-                             (prio #t)) ; TODO: we don't have prio yet
-                         (parameterize ((current-task (make-task conn kont prio)))
-                           (run-task (current-task))))))))
-               (lambda (response body)
-                 (DEBUG "Ragnarok: write client~%")
-                 (ragnarok-write proto server client response body))))))
+       try-to-serve-one-request
        (lambda (k . e)
          (let ((E (get-errno e)))
            (cond
             ((or (= E EAGAIN) (= E EWOULDBLOCK))
              (DEBUG "Ragnarok: EAGAIN, break to sleep~%")
+             ;; NOTE: Any capturing should aborted to 'serve-one-request, or you
+             ;;       will miss the scheduler, sometimes cause unknown crash too.
              (abort-to-prompt 'serve-one-request proto server client))
             (else (apply throw k e)))))))
    ragnarok-scheduler))
@@ -236,14 +255,16 @@
   (apply (@ (web server) run-server) handler 'http
          (list #:port (get-conf '(host port)))))
 
-(define (get-one-request-from-client server)
+(define (get-one-request-from-clients server)
   (let ((rq (ragnarok-server-ready-queue server)))
     (cond
      ((queue-empty? rq)
-      (let ((el (get-requests-from-client server)))
+      ;; if the queue is empty, filling the queue with new requests
+      ;; with one epoll query.
+      (let ((el (get-clients-from-service server)))
         ;; TODO: el should compute priority
         (for-each (lambda (e) (queue-in! rq e)) el)
-        (get-one-request-from-client server)))
+        (get-one-request-from-clients server)))
      (else (queue-out! rq)))))
 
 (define (ragnarok-http-gateway-run handler)
@@ -252,12 +273,12 @@
     ;; handle C-c to break the server loop properly
     (call-with-sigint
      (lambda ()
-       (let main-loop((client (get-one-request-from-client server)))
+       (let main-loop((client (get-one-request-from-clients server)))
          (let ((proto (cond
                        ((specified-proto? client) => identity)
                        (else http))))
            (serve-one-request handler proto server client)
-           (main-loop (get-one-request-from-client server)))))
+           (main-loop (get-one-request-from-clients server)))))
      (lambda ()
        ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
        (ragnarok-close http server)
@@ -305,10 +326,15 @@
      (else (error establish-http-gateway
                   "Invalid `server.engine' in artanis.conf" (ragnaork-engine-name engine))))))
 
-(define (ragnarok-read proto server client)
+(::define (ragnarok-read proto server client)
+  (:anno: (protocol ragnarok-server ragnarok-client) -> ANY)
   ((protocol-read proto) server client))
 
-(define (ragnarok-write proto server client response body)
+(::define (ragnarok-write proto server client response body)
+  ;; FIXME:
+  ;; Since body could be string/bv, and we haven't supported multi-types yet,
+  ;; then we just use ANY here to ingore the body type.
+  (:anno: (protocol ragnarok-server ragnarok-client response ANY) -> ANY)
   ((protocol-write proto) server client response body))
 
 (define (ragnarok-clean-current-conn-fd server)
@@ -337,7 +363,8 @@
      ((> workers 1) (with-mutex (work-table-mutex wq) (do-clean-task)))
      (else (throw 'artanis-err 500 "Invalid (server workers) !" workers)))))
 
-(define (ragnarok-close proto server)
+(::define (ragnarok-close proto server)
+  (:anno: (protocol ragnarok-server) -> ANY)
   (ragnarok-clean-current-conn-fd server)
   (ragnarok-clean-current-task)
   ((protocol-close proto) server))
