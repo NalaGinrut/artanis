@@ -13,3 +13,5 @@ Thanks these guys who gave me help:
   Fixed misc grammar issues.
 * Mohammed Sadik <sadiq@sadiqpk.org>
   Fixed many typos and grammar errors in the manual.
+* Jan Wedekind <jan@wedesoft.de>
+  Optimized autogen and configure to make the configuring faster.
