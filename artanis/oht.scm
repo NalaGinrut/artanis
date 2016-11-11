@@ -64,7 +64,8 @@
             :mime
             :auth
             :session
-            :from-post))
+            :from-post
+            :websocket))
 
 (define (define-handler method rule opts-and-handler)
   (let ((keys (rule->keys rule))
@@ -217,16 +218,16 @@
 
 ;; for #:mime
 (define (mime-maker type rule keys)
-  (define mime (mime-guess type))
-  (lambda (rc . args)
-    (define headers `((content-type . (,(mime-guess type)))))
-    (define-syntax-rule (-> func) (values (apply func args) #:pre-headers headers))
-    (case type
-      ((json jsonp) (-> ->json-string))
-      ((xml) (-> sxml->xml-string))
-      ((csv) (-> sxml->csv-string))
-      ((sxml) (values (object->string (car args)) #:pre-headers headers))
-      (else (throw 'artanis-err 500 "mime-maker: Invalid type!" type)))))
+  (define headers `((content-type . (,(mime-guess type)))))
+  (define-syntax-rule (-> func the-args) (values (apply func the-args) #:pre-headers headers))
+  (define gen-mime
+   (case type
+     ((json jsonp) (lambda (args) (-> ->json-string args)))
+     ((xml) (lambda (args) (-> sxml->xml-string args)))
+     ((csv) (lambda (args) (-> sxml->csv-string args)))
+     ((sxml) (lambda (args) (values (object->string (car args)) #:pre-headers headers)))
+     (else (throw 'artanis-err 500 "mime-maker: Invalid type!" type))))
+  (lambda (rc . args) (gen-mime args)))
 
 ;; for #:session
 (define (session-maker mode rule keys)
@@ -237,11 +238,11 @@
         (let ((cookie (new-cookie #:npv `((,idname . ,sid)))))
           (and cookie (rc-set-cookie! rc (list cookie)))
           sid))))
-  (define* (spawn-handler rc #:key (keep? #f))
+  (define spawn-handler
     (match mode
-      ((or #t 'spawn) (%spawn rc))
-      (`(spawn ,sid) (%spawn rc #:idname sid))
-      (`(spawn ,sid ,proc) (%spawn rc #:idname sid #:proc proc))
+      ((or #t 'spawn) %spawn)
+      (`(spawn ,sid) (lambda (rc) (%spawn rc #:idname sid)))
+      (`(spawn ,sid ,proc) (lambda (rc) (%spawn rc #:idname sid #:proc proc)))
       (else (throw 'artanis-err 500 "session-maker: Invalid config mode" mode))))
   (define (check-it rc idname)
     (let ((sid (cookie-ref (rc-cookie rc) idname)))
@@ -308,6 +309,33 @@
       ('(store) (post-handler rc))
       (else (throw 'artanis-err 500 "from-post-maker: Invalid cmd!" cmd)))))
 
+;; for #:websocket
+(define (websocket-maker type rule keys)
+  (define call-with-websocket-channel
+    (match args
+      (('proto (? symbol? proto))
+       ;; TODO: call protocol initilizer, and establish websocket for it.
+       #t)
+      (('redirect (? string? ip/usk))
+       ;; NOTE: We use IP rather than hostname, since it's usually redirect to
+       ;;       an inner address. Using hostname may cause DNS issues.
+       ;; NOTE: ip/usk means ip or unix-socket, the string ip/usk should be this:
+       ;;       (ip|unix)://[1-9._-/:a-zA-Z]+
+       ;; TODO: call protocol initilizer, and establish websocket
+       ;;       to redirect it.
+       #t)
+      (('proxy (? symbol? proto))
+       ;; NOTE: Setup a proxy with certain protocol handler.
+       ;;       Different from the regular proxy design, the proxy in Artanis doesn't
+       ;;       need a listen port, since it's always 80/443. The client should
+       ;;       support websocket, and visit the relative URL for establishing
+       ;;       a websocket channel. Then the rest is the same with regular proxy.
+       #t)
+      (else (throw 'artanis-err 500 "websocket-maker: Invalid type!" type))))
+  (lambda (rc . args)
+    ;; TODO: parsing command and apply call-with-websocket-channel
+    #t))
+
 ;; ---------------------------------------------------------------------------------
   
 ;; NOTE: these short-cut-maker should never be exported!
@@ -317,6 +345,8 @@
 ;; CONVENTION:
 ;; 1. When a var is arounded with ${..}, and there's ":" as its prefix,
 ;;    say, ${:xxx}, it means "to get xxx from rule key".
+;; 2. Arounded with ${..}, and there's "@" as its prefix, say, ${@xxx},
+;;    it means "to get xxx from body" (POST way).
 (define *options-meta-handler-table*
   `(;; a short way for sql-mapping from the bindings in rule
     ;; e.g #:sql-mapping "select * from table where id=${:id}"
@@ -428,7 +458,10 @@
     (#:session . ,session-maker)
 
     ;; Get data from POST
-    (#:from-post . ,from-post-maker)))
+    (#:from-post . ,from-post-maker)
+
+    ;; Establish websocket channel
+    (#:websocket . ,websocket-maker)))
 
 (define-macro (meta-handler-register what)
   `(define-syntax-rule (,(symbol-append ': what) rc args ...)
@@ -446,6 +479,7 @@
 (meta-handler-register auth)
 (meta-handler-register session)
 (meta-handler-register from-post)
+(meta-handler-register websocket)
 
 (define-syntax-rule (:cookies-set! rc ck k v)
   ((:cookies rc 'set) ck k v))
