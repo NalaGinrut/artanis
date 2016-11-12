@@ -42,9 +42,11 @@
             make-protocol
             protocol?
             protocol-name
+            protocol-open
             protocol-read
             protocol-write
             protocol-close
+            protocol-rt
             define-protocol
 
             make-task
@@ -85,11 +87,35 @@
   (fields content mutex))
 
 (define-record-type protocol
-  (fields name open read write close))
+  (fields name  ; the name of the protocol (in symbol)
+          open  ;
+          read  ; server -> client -> ANY
+          write ; server -> client -> response -> str/bv -> ANY
+          close ; server -> ANY
+          rt))  ; rt stands for redirect-table
 
+;; NOTE: Any methods in protocol shouldn't be bound to Ragnarok.
+;;       We have to make sure the developers could implement their
+;;       own server-core.
 (define-syntax-rule (define-protocol name open read write close)
   (define name
-    (make-protocol 'name open read write close)))
+    (make-protocol 'name open read write close (make-hash-table))))
+
+(define-record-type redirector
+  (fields
+   remote-port ; remote port
+   count       ; transfered bytes
+   mutex       ; a mutex for locking
+   ))
+
+;; A redirectors table holds all the redirectors as the value, and the
+;; client port descriptor is the key.
+(define (make-redirectors-table) (make-hash-table))
+
+(::define (get-the-redirector-of-protocol server proto)
+  (hashq-ref
+   (ragnaork-server-services server)
+   (protocol-name proto)))
 
 (define-record-type task
   (fields
