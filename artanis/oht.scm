@@ -317,10 +317,11 @@
        ;; TODO: call protocol initilizer, and establish websocket for it.
        #t)
       (('redirect (? string? ip/usk))
-       ;; NOTE: We use IP rather than hostname, since it's usually redirect to
+       ;; NOTE: We use IP rather than hostname, since it's usually redirected to
        ;;       an inner address. Using hostname may cause DNS issues.
-       ;; NOTE: ip/usk means ip or unix-socket, the string ip/usk should be this:
-       ;;       (ip|unix)://[1-9._-/:a-zA-Z]+
+       ;; NOTE: ip/usk means ip or unix-socket, the pattern should be this:
+       ;;       ^ip://(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(:[0-9]{1,5})?$
+       ;;       ^unix://[a-zA-Z-_0-9]+\\.socket$
        ;; TODO: call protocol initilizer, and establish websocket
        ;;       to redirect it.
        #t)
@@ -461,6 +462,27 @@
     (#:from-post . ,from-post-maker)
 
     ;; Establish websocket channel
+    ;; Each time developers set :websocket and specifed a protocol, say, `myproto',
+    ;; Artanis will check if the file app/protocols/myproto.scm exists, then load
+    ;; the protocol initialize function in `myproto' which will also add `myproto'
+    ;; into *proto-table*. Then ragnarok will take charge of it to call the correct
+    ;; handlers.
+    ;; There're 3 cases:
+    ;; 1. Regular protocol handling over websocket
+    ;;    The initializer will create an instance for the protocol.
+    ;; 2. Redirect to another address (IP or UNIX socket)
+    ;;    The initializer will create a binding pair in redirect table:
+    ;;    src port and des port.
+    ;;    In this case, there's no protocol handling in Artanis. The protocol handler
+    ;;    is in remote (could be a host machine, or a process in current OS).
+    ;; 3. Proxy mode:
+    ;;    Different from reguar proxy, the proxy in Artanis runs over websocket, and
+    ;;    there's no extra listenning port, only 80/443.
+    ;;    In this case, there're 2 situations:
+    ;;    a. transparent proxy
+    ;;       No protocol handling at all, just redirecting the data without cooking.
+    ;;    b. cooked proxy
+    ;;       There's a bound protocol instance for it.
     (#:websocket . ,websocket-maker)))
 
 (define-macro (meta-handler-register what)
