@@ -29,7 +29,8 @@
   #:use-module (artanis server http)
   #:export (init-server-core
             schedule-task)
-  #:re-export (establish-http-gateway))
+  #:re-export (establish-http-gateway
+               protocol-service-open))
 
 (define schedule-task
   (lambda ()
