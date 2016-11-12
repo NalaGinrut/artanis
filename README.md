@@ -4,6 +4,9 @@
 [![amd64](http://img.shields.io/badge/architecture-amd64-lightgrey.png)](https://en.wikipedia.org/wiki/X86-64)
 [![Travis CI](https://travis-ci.org/NalaGinrut/artanis.png)](https://travis-ci.org/NalaGinrut/artanis)
 
+GNU Artanis needs a logo, contribution is welcome!
+=========
+
 NOTICE
 =========
 According to [GNU Ethical Repository Criteria Evaluations](https://www.gnu.org/software/repo-criteria-evaluation.html). GNU Artanis as GNU official project is not proper to be maintained on GitHub.
