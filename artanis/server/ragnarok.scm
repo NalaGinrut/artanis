@@ -37,7 +37,8 @@
   #:use-module (web response)
   #:use-module (web server)
   #:export (establish-http-gateway
-            get-task-breaker))
+            get-task-breaker
+            protocol-service-open))
 
 ;; default socket should be nonblock
 (define (make-listen-fd family addr port)
@@ -197,18 +198,18 @@
    #:on-error (if (batch-mode?) 'backtrace 'debug)
    #:post-error request-error-handler))
 
+(define-syntax-rule (protocol-service-open)
+  ((protocol-open proto) server client))
+
 (::define (serve-one-request handler proto server client)
   (:anno: (proc protocol ragnarok-server ragnarok-client) -> ANY)
-  (define-syntax-rule (protocol-service-open)
-    ((protocol-open proto) server client))
   (define (try-to-serve-one-request)
     (call-with-values
         (lambda ()
-          (when (not (protocol-service-is-opened? client proto))
-            (protocol-service-open))
+          (DEBUG "Ragnarok: start to read client~%")
           (ragnarok-read proto server client))
       (lambda (client request body)
-        (DEBUG "Ragnarok: read client~%")
+        (DEBUG "Ragnarok: finish read client~%")
         (call-with-values
             (lambda ()
               (DEBUG "Ragnarok: new request ready~%")
@@ -333,7 +334,7 @@
 (::define (ragnarok-write proto server client response body)
   ;; FIXME:
   ;; Since body could be string/bv, and we haven't supported multi-types yet,
-  ;; then we just use ANY here to ingore the body type.
+  ;; then we just use ANY type here to ingore the body type.
   (:anno: (protocol ragnarok-server ragnarok-client response ANY) -> ANY)
   ((protocol-write proto) server client response body))
 
