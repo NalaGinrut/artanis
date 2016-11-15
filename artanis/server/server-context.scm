@@ -18,6 +18,7 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis server server-context)
+  #:use-module (artanis utils)
   #:use-module ((rnrs) #:select (define-record-type))
   #:export (make-ragnarok-engine
             ragnarok-engine?
@@ -59,11 +60,14 @@
             ragnarok-client?
             client-sockport
             client-sockport-decriptor
-            client-connection
+            client-connecting-port
 
             remove-from-work-table!
-            add-current-task-to-work-table!
-            get-task-from-work-table))
+            add-a-task-to-work-table!
+            get-task-from-work-table
+
+            specified-proto?
+            register-proto!))
 
 (define-record-type ragnarok-engine
   (fields
@@ -105,8 +109,7 @@
   (fields
    remote-port ; remote port
    count       ; transfered bytes
-   mutex       ; a mutex for locking
-   ))
+   mutex))     ; a mutex for locking
 
 ;; A redirectors table holds all the redirectors as the value, and the
 ;; client port descriptor is the key.
@@ -131,6 +134,7 @@
 ;; (put '::define 'scheme-indent-function 1)
 
 ;; ragnarok-client -> socket-port
+;; NOTE: The remote connection wrapped in Guile socket port.
 (::define (client-sockport c)
   (:anno: (ragnarok-client) -> socket-port)
   (car (unbox-type c)))
@@ -151,12 +155,18 @@
   (sockaddr:fam (client-details c)))
 
 ;; ragnarok-client -> integer
+;; NOTE: It's actually sin_addr.s_addr, which is the remote IP.
 (::define (client-addr c)
   (:anno: (ragnarok-client) -> int)
   (sockaddr:addr (client-details c)))
 
+(::define (address->ip c)
+  (:anno: (ragnarok-client) -> string)
+  (inet-ntop (get-family) (client-addr c)))
+
 ;; ragnarok-client -> integer
 ;; NOTE: Different from listenning-port
+;; NOTE: This is socket port, say, ip:port, don't be confused with Guile port.
 (::define (client-connecting-port c)
   (:anno: (ragnarok-client) -> int)
   (sockaddr:port (client-details c)))
@@ -164,16 +174,7 @@
 ;; work-table -> ragnarok-client -> ANY
 (::define (remove-from-work-table! wt client)
   (:anno: (work-table ragnarok-client) -> ANY)
-  (assume-type wt hash-table?)
-  (assume-type client ragnarok-client?)
-  (hashv-remove! (work-table-content wt) (client-sockport-decriptor client )))
-
-;; work-table -> integer -> ANY
-(::define (add-current-task-to-work-table! wt client)
-  (:anno: (work-table int) -> ANY)
-  (assume-type wt hash-table?)
-  (assume-type client ragnarok-client?)
-  (hashv-set! wt conn (current-task)))
+  (hashv-remove! (work-table-content wt) (client-sockport-decriptor client)))
 
 ;; work-table -> sockport -> task -> ANY
 (::define (add-a-task-to-work-table! wt client task)
@@ -184,3 +185,15 @@
 (::define (get-task-from-work-table wt client)
   (:anno: (work-table ragnarok-client) -> task)
   (hashv-ref wt (client-sockport-decriptor client)))
+
+;; This is a table to record client and proto pairs (CP pairs), client is the
+;; key while protocol name is the value.
+;; NOTE: The CP pairs should be recorded in http-open handler, 
+(define *proto-conn-table* (make-hash-table))
+
+(define (specified-proto? client)
+  (and=> (hashv-ref *proto-conn-table* (client-sockport-decriptor client))
+         lookup-protocol))
+
+(define (register-proto! client protoname)
+  (hashv-set! *proto-conn-table* (client-sockport-decriptor client) protoname))
