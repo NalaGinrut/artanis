@@ -63,38 +63,12 @@
 (define (the-null-task)
   (DEBUG "A NULL-Task was called. The work table seems empty~%"))
 
+;; NOTE: We can't put them in env.scm, since it uses things imported
+;;       from utils.scm. But it's OK and it's better the keep them private.
 (define current-task (make-parameter the-null-task))
 (define current-proto (make-parameter (did-not-specify-parameter 'proto)))
 (define current-server (make-parameter (did-not-specify-parameter 'server)))
 (define current-client (make-parameter (did-not-specify-parameter 'client)))
-
-(define *proto-conn-table* (make-hash-table))
-
-(define (specified-proto? client)
-  (and=> (hashv-ref *proto-conn-table* (client-sockport-decriptor client))
-         lookup-protocol))
-
-(define (register-proto! client protoname)
-  (hashv-set! *proto-conn-table* (client-sockport-decriptor client) protoname))
-
-(define (get-trigger)
-  (case (get-conf '(server trigger))
-    ((edge) EPOLLET)
-    ((level) 0)
-    (else (throw 'artanis-err 500 "Invalid (server trigger)!"
-                 (get-conf '(server trigger))))))
-
-(define (get-family)
-  (case (get-conf '(host family))
-    ((ipv4) AF_INET)
-    ((ipv6) AF_INET6)
-    (else (throw 'artanis-err 500 "Invalid (host family)!"
-                 (get-conf '(host family))))))
-        
-(define (get-addr)
-  (let ((host (get-conf '(host addr)))
-        (family (get-family)))
-    (inet-pton family host)))
 
 (define *error-event* (logior EPOLLRDHUP EPOLLHUP))
 (define *read-event* EPOLLIN)
@@ -111,6 +85,10 @@
 
 ;; Ragnarok server will establish a http-gateway, and support various protocols
 ;; based on websocket.
+;; NOTE: Different from other ragnarok interfaces, ragnarok-open is not going to
+;;       call `open' method of protocol instance. ragnarok-open is only used for
+;;       establishing http-gateway.
+;; NOTE: Since http service always opens, it's no need to call http-open.
 (define* (ragnarok-open #:key
                         (host (get-conf '(host name)))
                         (family (get-family))
@@ -140,13 +118,6 @@
       (remove-from-work-table! wt client) ; then remove it from work-table
       task) ; and return this task for later application (restore the execution)
      (else #f)))) ; not a continuable work since it's not in the work-table
-
-(define (break-task)
-  (abort-to-prompt
-   'serve-one-request
-   (current-proto)
-   (current-server)
-   (current-client)))
 
 (define (run-task task)
   (call-with-prompt
@@ -223,11 +194,20 @@
                        (parameterize ((current-task task))
                          (run-task task))))
                  (else
-                  (DEBUG "Ragnarok: handle request~%")
+                  (DEBUG "Ragnarok: new request~%")
                   (let ((kont (lambda ()
                                 (handle-request proto client handler request body)))
-                        (conn (client-connecting-port client))
-                        (prio #t)) ; TODO: we don't have prio yet
+                        (conn (client-sockport client))
+                        (prio #t) ; TODO: we don't have prio yet
+                        (bufsize (get-conf '(server bufsize))))
+                    ;; NOTE: The block-buffer is NOT a blocking I/O. They're in totally
+                    ;;       different concept. block-buffer is a mechanism to hold data in an
+                    ;;       allocated memeory block. Blocking I/O means the I/O operation
+                    ;;       has to stop before the data is fully received.
+                    ;; NOTE: For blocking I/O, buffering is always meaningless. We're using
+                    ;;       non-blocking I/O, so we need block-buffer.
+                    (setvbuf conn 'block)
+                    (setsockopt conn SOL_SOCKET SO_SNDBUF bufsize)
                     (parameterize ((current-task (make-task conn kont prio)))
                       (run-task (current-task))))))))
           (lambda (response body)
@@ -246,9 +226,10 @@
            (cond
             ((or (= E EAGAIN) (= E EWOULDBLOCK))
              (DEBUG "Ragnarok: EAGAIN, break to sleep~%")
-             ;; NOTE: Any capturing should aborted to 'serve-one-request, or you
+             ;; NOTE: Any capturing should be aborted to 'serve-one-request, or you
              ;;       will miss the scheduler, sometimes cause unknown crash too.
              (abort-to-prompt 'serve-one-request proto server client))
+            ;; TODO: How should we handle the *error-event* ?
             (else (apply throw k e)))))))
    ragnarok-scheduler))
 
@@ -269,15 +250,19 @@
      (else (queue-out! rq)))))
 
 (define (ragnarok-http-gateway-run handler)
+  (define-syntax-rule (detect-client-protocol client)
+    (cond
+     ((specified-proto? client) => identity)
+     (else 'http)))
   (let ((http (lookup-protocol 'http))
         (server (ragnarok-open)))
     ;; handle C-c to break the server loop properly
     (call-with-sigint
      (lambda ()
+       ;; NOTE: There's no current-server and current-client here, they're bound
+       ;;       in serve-one-request.
        (let main-loop((client (get-one-request-from-clients server)))
-         (let ((proto (cond
-                       ((specified-proto? client) => identity)
-                       (else http))))
+         (let ((proto (detect-client-protocol client)))
            (serve-one-request handler proto server client)
            (main-loop (get-one-request-from-clients server)))))
      (lambda ()
