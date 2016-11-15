@@ -61,11 +61,13 @@
     ((server trigger) edge)
     ((server engine) ragnarok)
     ((server polltimeout) 500) ; in miliseconds
-    ((server bufsize) 4096) ; in Bytes
+    ;; From "HOP, A Fast Server for the Diffuse Web", Serrano.
+    ((server bufsize) 12288) ; in Bytes
 
     ;; for host namespace
     ((host name) #f)
     ((host addr) "127.0.0.1")
+
     ((host port) 3000)
     ((host family) ipv4)
 
