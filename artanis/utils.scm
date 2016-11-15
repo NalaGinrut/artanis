@@ -37,6 +37,7 @@
   #:use-module (ice-9 local-eval)
   #:use-module (ice-9 receive)
   #:use-module (ice-9 q)
+  #:use-module (ice-9 control)
   #:use-module (web http)
   #:use-module (web request)
   #:use-module ((rnrs)
@@ -74,7 +75,8 @@
             flush-to-migration-cache gen-local-conf-file with-dbd errno
             call-with-sigint define-box-type make-box-type unbox-type
             ::define did-not-specify-parameter WARN-TEXT ERROR-TEXT REASON-TEXT
-            NOTIFY-TEXT STATUS-TEXT)
+            NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr
+            break-task close-task)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -1155,3 +1157,36 @@
 (define-syntax-rule (REASON-TEXT str) (colorize-string str '(CYAN)))
 (define-syntax-rule (NOTIFY-TEXT str) (colorize-string str '(WHITE)))
 (define-syntax-rule (STATUS-TEXT num) (colorize-string (object->string num)'(WHITE)))
+
+(define (get-trigger)
+  (case (get-conf '(server trigger))
+    ((edge) EPOLLET)
+    ((level) 0)
+    (else (throw 'artanis-err 500 "Invalid (server trigger)!"
+                 (get-conf '(server trigger))))))
+
+(define (get-family)
+  (case (get-conf '(host family))
+    ((ipv4) AF_INET)
+    ((ipv6) AF_INET6)
+    (else (throw 'artanis-err 500 "Invalid (host family)!"
+                 (get-conf '(host family))))))
+        
+(define (get-addr)
+  (let ((host (get-conf '(host addr)))
+        (family (get-family)))
+    (inet-pton family host)))
+
+(define (schedule-task cmd)
+  (abort-to-prompt
+   'serve-one-request
+   (current-proto)
+   (current-server)
+   (current-client)
+   cmd))
+
+(define (break-task)
+  (schedule-task 'save))
+
+(define (close-task)
+  (schedule-task 'close))
