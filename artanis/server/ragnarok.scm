@@ -78,11 +78,6 @@
 (define *write-event* EPOLLOUT)
 (define (gen-write-event) (logior *error-event* (get-trigger) *write-event*))
 
-(define (make-ragnarok-server epfd fd work-table work-queue event-set)
-  ;; TODO: should there be a global var to hold ragnarok instance?
-  #t
-  )
-
 ;; Ragnarok server will establish a http-gateway, and support various protocols
 ;; based on websocket.
 ;; NOTE: Different from other ragnarok interfaces, ragnarok-open is not going to
@@ -111,7 +106,7 @@
 
 ;; NOTE: make sure `client' is connect socket
 (define (is-a-continuable-work? server client)
-  (let* ((wt (ragnarok-server-work-table server))
+  (let* ((wt (current-work-table server))
          (task (get-task-from-work-table wt client)))
     (cond
      (task ; if task exists in work-table
@@ -228,7 +223,7 @@
              (DEBUG "Ragnarok: EAGAIN, break to sleep~%")
              ;; NOTE: Any capturing should be aborted to 'serve-one-request, or you
              ;;       will miss the scheduler, sometimes cause unknown crash too.
-             (abort-to-prompt 'serve-one-request proto server client))
+             (break-task))
             ;; TODO: How should we handle the *error-event* ?
             (else (apply throw k e)))))))
    ragnarok-scheduler))
