@@ -105,9 +105,12 @@
 (define draw:is-skip? (make-parameter #f))
 (define draw:is-quiet? (make-parameter #f))
 
+(define *null-device-output-port*
+  (open-input-file *null-device*))
+
 (define (artanis-current-output)
   (if (draw:is-quiet?)
-      (open-output-file *null-device*)
+      *null-device-output-port*
       (current-output-port)))
 
 (define *controllers-table* (make-hash-table))
