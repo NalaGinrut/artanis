@@ -152,7 +152,7 @@
          (when subr (format port "In procedure ~a :~%" (WARN-TEXT subr)))
          (apply format port (REASON-TEXT msg) args)
          (format-status-page status request))
-        (else (error work-with-request "BUG: wrong exception handler!"))))))
+        (else (apply throw k e))))))
 
 (define (response-emit-error status)
   (response-emit "" #:status status))
