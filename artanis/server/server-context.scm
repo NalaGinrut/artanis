@@ -19,6 +19,7 @@
 
 (define-module (artanis server server-context)
   #:use-module (artanis utils)
+  #:use-module (artanis env)
   #:use-module ((rnrs) #:select (define-record-type))
   #:export (make-ragnarok-engine
             ragnarok-engine?
@@ -34,6 +35,7 @@
             ragnarok-server-work-table
             ragnarok-server-ready-queue
             ragnarok-server-event-set
+            current-work-table
 
             make-work-table
             work-table?
@@ -50,6 +52,15 @@
             protocol-rt
             define-protocol
 
+            make-redirector
+            redirector?
+            redirector-type
+            redirector-content
+            redirector-count
+            redirector-mutex
+            register-redirector!
+            get-the-redirector-of-protocol
+            
             make-task
             task?
             task-conn
@@ -80,9 +91,13 @@
   (fields
    epfd
    listen-socket
-   work-table ; a table contains continuations
+   work-table ; a table list contains continuations
    ready-queue ; a queue contains connect socket
    event-set))
+
+(define (current-work-table server)
+  (list-ref (ragnarok-server-work-table server)
+            (current-worker)))
 
 ;; A table contains continuations
 ;; * content: the continuation
@@ -107,18 +122,39 @@
 
 (define-record-type redirector
   (fields
-   remote-port ; remote port
+   type        ; proxy or websocket
+   content     ; remote port or #f
    count       ; transfered bytes
    mutex))     ; a mutex for locking
 
 ;; A redirectors table holds all the redirectors as the value, and the
 ;; client port descriptor is the key.
+;; NOTE: There're 2 kinds of redirector types:
+;; 1. 'proxy
+;;    For redirecting to the remote socket port.
+;;    The content field will be the remote socket port.
+;; 2. 'websocket
+;;    For regular usage of websocket. If the http-read detects the current
+;;    client was bound to a websocket, then http-read won't read its body.
+;;    The body reading will be delayed to be in the handler, users have to
+;;    use :websocket command to read the parsed body according to the
+;;    registered protocol parser.
+;;    The content field will be #f/
 (define (make-redirectors-table) (make-hash-table))
 
 (::define (get-the-redirector-of-protocol server proto)
   (hashq-ref
    (ragnaork-server-services server)
    (protocol-name proto)))
+
+(define (register-redirector! server client proto type content)
+  (hashv-set! (get-the-redirector-of-protocol server proto)
+              (client-sockport-decriptor client)
+              (make-redirector
+               type
+               content
+               0
+               (make-mutex))))
 
 (define-record-type task
   (fields
