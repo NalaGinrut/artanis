@@ -19,16 +19,8 @@
 
 (define-module (artanis server scheduler)
   #:use-module (artanis utils)
-  #:use-module (artanis config)
-  #:use-module (artanis server epoll)
   #:use-module (artanis server server-context)
-  #:use-module ((srfi srfi-1) #:select (fold))
-  #:use-module (srfi srfi-9)
-  #:use-module (rnrs bytevectors)
-  #:use-module ((rnrs) #:select (define-record-type))
-  #:use-module (web request)
-  #:use-module (web response)
-  #:use-module (web server)
+  #:use-module (ice-9 match)
   #:export (ragnarok-scheduler))
 
 (define (compute-prio proto client server)
@@ -40,11 +32,27 @@
 (define (save-current-task! k proto client server)
   (let* ((wt (ragnarok-server-work-table server))
          (conn (client-sockport client))
-        (task (make-task conn k (compute-prio proto client server))))
+         (task (make-task conn k (compute-prio proto client server))))
     (DEBUG "Save current task!~%")
     (add-a-task-to-work-table! wt client task)))
 
-(define (ragnarok-scheduler k proto server client)
+(define (close-current-task! k proto client server)
+  (let ((wt (ragnarok-server-work-table server)))
+    (remove-from-work-table! wt client)))
+
+;; NOTE: We don't call prompt in this scheduler again, since we will get
+;;       new task from outside.
+;; NOTE: We must pass proto/server/client as arguments, since current-proto is
+;;       parameter, it can't be captured by abort handler (say,
+;;       ragnarok-scheduler). So we must pass them in with abort-to-prompt. Or
+;;       we will lose the correct bound parameter value.
+(define (ragnarok-scheduler k proto server client cmd)
   (DEBUG "Enter ragnarok scheduler!~%")
-  (save-current-task! k proto client server)
-  #t)
+  (match cmd
+    ('save
+     (save-current-task! k proto client server))
+    ('close
+     ;; NOTE: This will close task by removing task from the work-table.
+     ;;       The related socket port should be closed before here.
+     (close-current-task! k proto client server))
+    (else (throw 'artanis-err ragnarok-scheduler "Invalid command ~a" cmd))))
