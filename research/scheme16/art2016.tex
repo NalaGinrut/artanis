@@ -222,7 +222,7 @@ So far we have seen the preliminary principle of {\it delimited continuation}. I
 Although it is natural to implement {\it delimited continuations} by complex CPS transforming in semantics. It never has the best performance.
 GNU Guile implemented {\it delimited continuations} in the direct way that uses the language's native stack representation, not requiring global or local transformations \citep{wingo2010}. Rather than CPS transformation, the direct implementation will copy the {\it continuation} chain which resides in the heap, and involves copying of {\it continuation} frames both during reification and reflection.
 
-According to test results, it shows that the direct implement approach is fabulously faster than CPS transforming way
+According to test results, it shows that the direct-implementing approach is fabulously faster than CPS transforming way
 \citep{Gasbichler:2002:FSC:581478.581504}. The direct implementation captures {\it continuation} by copying the stack directly.
 Nevertheless, we could possibly further optimize of stack/heap management and copying methods to make it better.
 
@@ -352,7 +352,7 @@ Having finally learned about this powerful weapon named co-routines, we may cons
 
 As it is the case for performance concerns, i.e. non-blocking and edge-triggered I/O multiplexing, as we will describe in GNU/Linux environments, epoll() will be discussed in this case. GNU Artanis uses epoll() for I/O multiplexing.
 
-The websockets protocol plays an important role in this functionality. The idea is to have a generic server which implements the websocket library and uses it to parse requests wrapped in the websockets protocol, and, then, redirects a requests to a proper service handler (local or remote, decided by the user). This is called simply a HTTP Gateway. With such a design we could handle connections in various protocols (rather than one dedicated protocol) wrapped in websockets. It is called {\it generic}.
+The websockets protocol plays an important role in this functionality. The idea is to have a generic server which implements the websocket library and uses it to parse requests wrapped in the websockets protocol, and, then, redirects a requests to a proper service handler (local or remote, decided by the user). This is called simply a HTTP Gateway. With such a design we could handle connections in various protocols (rather than one dedicated protocol) wrapped in websockets. It is called {\it generic}, for it supports arbitrary protocols to meet the generic needs.
 
 When we talk about the generic server core for a web framework, it may sound confusing. Because a web framework should have a dedicated HTTP server. But one could implement a generic server over HTTP because websockets makes it possible. So, let's see how websockets make it possible.
 
@@ -397,7 +397,7 @@ The Figure \ref{fig:httpgw} shows the HTTP Gateway architecture in GNU Artanis.
 It provides arbitrary protocol services over websockets. Beyond the web server, it becomes a {\it generic server}, which handles connections of multi-protocols at the
 same time. A {\it generic server} was rarely mentioned before, because most of the applications for server programs are for dedicated protocols as well as to provide a single service as its main duty.
 
-For the {\it dedicated server}, FTP, HTTP as in a web service, game server, IRC, etc. Usually, the remote server starts a service program as a daemon listening on a TCP/UDP port according to a convention, and provides just one service in a dedicated protocol. Such a decoupled pattern meets the KISS (Keep It Smart and Simple) principle. Moreover, when one service is down, it will not effect the others.
+For the {\it dedicated server} which usually provides just one protocol service, for instance,  a HTTP server. Usually, the remote server starts a service program as a daemon listening on a TCP/UDP port according to a convention, and provides one service for a dedicated protocol. Such a decoupled pattern meets the KISS (Keep It Smart and Simple) principle. Moreover, when one service is down, it will not effect the others.
 
 For the {\it generic server}, people do not have to listen on many TCP ports, there is just one port, 80 or 443 (for HTTPS). And the HTTP Gateway will dispatch the requests to the related service, and maintain the long live session for each connection in a high concurrent way.
 In the simplest form, all the services are running in GNU Artanis rather than standalone, and this is good for both quick development and deployment.

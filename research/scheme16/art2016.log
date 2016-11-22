@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Debian) (preloaded format=pdflatex 2016.9.8)  5 NOV 2016 12:45
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Debian) (preloaded format=pdflatex 2016.9.8)  22 NOV 2016 19:33
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -352,11 +352,12 @@ File: ot1ptm.fd 2001/06/04 font definitions for OT1/ptm.
 \optype@=\count126
 \x@count=\count127
 \maxXLscripts@=\dimen135
-) (./lstlang0.sty)
-(./art2016.aux)
+)
+(/home/nalaginrut/Project/scheme-listings/lstlang0.sty) (./art2016.aux)
 \openout1 = `art2016.aux'.
 
- (/usr/share/texlive/texmf-dist/tex/latex/base/ts1cmr.fd
+
+(/usr/share/texlive/texmf-dist/tex/latex/base/ts1cmr.fd
 File: ts1cmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
 \c@lstlisting=\count128
@@ -545,13 +546,13 @@ Underfull \hbox (badness 2057) in paragraph at lines 85--88
 
 ] (./art2016.aux) ) 
 Here is how much of TeX's memory you used:
- 6795 strings out of 493013
- 99095 string characters out of 6135683
- 301366 words of memory out of 5000000
- 10217 multiletter control sequences out of 15000+600000
- 57990 words of font info for 70 fonts, out of 8000000 for 9000
+ 6793 strings out of 493013
+ 99188 string characters out of 6135683
+ 215061 words of memory out of 5000000
+ 10215 multiletter control sequences out of 15000+600000
+ 57823 words of font info for 69 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 40i,11n,43p,721b,1500s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 40i,11n,43p,721b,1502s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-ts1.enc}
 {/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/share/texlive/
 texmf-dist/fonts/type1/public/amsfonts/cm/cmss9.pfb></usr/share/texlive/texmf-d
@@ -565,7 +566,7 @@ tmaryrd/stmary9.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb8a
 re/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texm
 f-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/fonts/ty
 pe1/urw/times/utmri8a.pfb>
-Output written on art2016.pdf (7 pages, 267026 bytes).
+Output written on art2016.pdf (7 pages, 265805 bytes).
 PDF statistics:
  89 PDF objects out of 1000 (max. 8388607)
  60 compressed objects within 1 object stream
