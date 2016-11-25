@@ -1051,6 +1051,7 @@
    ((vector? o) 'vector)
    ((bytevectors? o) 'bv)
    ((socket-port? o) 'socket)
+   ((boolean? o) 'boolean)
    (else 'ANY)))
 
 (define (check-args-types op args)
@@ -1177,6 +1178,9 @@
         (family (get-family)))
     (inet-pton family host)))
 
+;; NOTE: We must pass parameters here, say, current-proto, etc.
+;;       Because the abort handler (here, the scheduler) will not capture
+;;       the parameters bound in prompt thunk.
 (define (schedule-task cmd)
   (abort-to-prompt
    'serve-one-request
