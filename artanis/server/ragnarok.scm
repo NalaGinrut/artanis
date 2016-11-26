@@ -65,6 +65,18 @@
 
 ;; NOTE: We can't put them in env.scm, since it uses things imported
 ;;       from utils.scm. But it's OK and it's better the keep them private.
+;; NOTE: These parameters should only be used by these functions:
+;;       1. request handler
+;;          Since it's bound before calling the handler.
+;;          It'll be exception when it's called outside the handler.
+;;       2. call-with-abort
+;;          These parameters will be unbound when it's aborted in to the
+;;          scheduler. So we could use them to pass task/proto/server/client
+;;          into the scheduler.
+;;       3. (artanis route)
+;;          It is used within the handler, so it's fine to use the parameters.
+;;       4. All hooks related to request
+;;          They are actually called within the handler.
 (define current-task (make-parameter the-null-task))
 (define current-proto (make-parameter (did-not-specify-parameter 'proto)))
 (define current-server (make-parameter (did-not-specify-parameter 'server)))
@@ -95,7 +107,7 @@
          (epfd (epoll-create1 0)))
     (sigaction SIGPIPE SIG_IGN) ; FIXME: should we remove the related threads?
     (epoll-ctl epfd EPOLL_CTL_ADD fd listen-event)
-    (make-ragnarok-server epfd fd (generate-work-tables) (new-queue) event-set)))
+    (make-ragnarok-server epfd fd (generate-work-tables) (new-ready-queue) event-set)))
 
 (define (with-stack-and-prompt thunk)
   (call-with-prompt
@@ -121,15 +133,19 @@
      ((task-kont task)))
    ragnarok-scheduler))
 
-(::define (get-clients-from-service server)
+(::define (fill-ready-queue-from-service server)
   ;; should be client list but we don't check internally.
   (:anno: (ragnarok-server) -> list)
   (let ((epfd (ragnarok-server-epfd server))
         (events (ragnarok-server-event-set server))
-        (timeout (get-conf '(server polltimeout))))
-    (map make-ragnarok-client (epoll-wait epfd events timeout))))
+        (timeout (get-conf '(server polltimeout)))
+        (rq (ragnarok-server-ready-queue server)))
+    (for-each
+     (lambda (e)
+       (ready-queue-in! rq (make-ragnarok-client e)))
+     (epoll-wait epfd events timeout))))
 
-(define (handle-request proto client handler request body)
+(define (handle-request handler request body)
   (define (request-error-handler k . e)
     ;; NOTE: We don't have to do any work here but just throw 500 exception.
     ;;       When this handler is called, it must hit the pass-keys, which
@@ -167,6 +183,10 @@
 (define-syntax-rule (protocol-service-open)
   ((protocol-open proto) server client))
 
+(define (is-listenning-port? server client)
+ (let ((listen-socket (ragnarok-server-listen-socket server)))
+   (= (port->fdes listen-socket) (client-sockport-decriptor client))))
+
 (::define (serve-one-request handler proto server client)
   (:anno: (proc protocol ragnarok-server ragnarok-client) -> ANY)
   (define (try-to-serve-one-request)
@@ -188,8 +208,11 @@
                        (DEBUG "Ragnarok: continue request~%")
                        (parameterize ((current-task task))
                          (run-task task))))
-                 (else
+                 ((is-listenning-port? server client)
                   (DEBUG "Ragnarok: new request~%")
+                  ;; The ready socket is listenning socket, so we need to call
+                  ;; `accept' on it to get a connecting socket. And create a
+                  ;; new task with this new connecting socket.
                   (let ((kont (lambda ()
                                 (handle-request proto client handler request body)))
                         (conn (client-sockport client))
@@ -204,7 +227,17 @@
                     (setvbuf conn 'block)
                     (setsockopt conn SOL_SOCKET SO_SNDBUF bufsize)
                     (parameterize ((current-task (make-task conn kont prio)))
-                      (run-task (current-task))))))))
+                      (run-task (current-task)))))
+                 (else
+                  ;; NOTE: If we come here, it means the ready socket neither:
+                  ;; 1. A continuable task
+                  ;;    The connecting socket which was registered to work-table
+                  ;; 2. The listenning socket
+                  ;;    It means a new request is on-site. It requires this
+                  ;;    listenning socket to be `accept' to get connecting
+                  ;;    socket for the actually task.
+                  (DEBUG "Ragnarok: Impossible to be here, maybe a BUG?~%")
+                  (throw 'artanis-err 500 serve-one-request "Can't be here!~%")))))
           (lambda (response body)
             (DEBUG "Ragnarok: write client~%")
             (ragnarok-write proto server client response body))))))
@@ -217,7 +250,7 @@
      (catch #t
        try-to-serve-one-request
        (lambda (k . e)
-         (let ((E (get-errno e)))
+         (let ((E (system-error-errno e)))
            (cond
             ((or (= E EAGAIN) (= E EWOULDBLOCK))
              (DEBUG "Ragnarok: EAGAIN, break to sleep~%")
@@ -235,14 +268,12 @@
 (define (get-one-request-from-clients server)
   (let ((rq (ragnarok-server-ready-queue server)))
     (cond
-     ((queue-empty? rq)
+     ((ready-queue-empty? rq)
       ;; if the queue is empty, filling the queue with new requests
       ;; with one epoll query.
-      (let ((el (get-clients-from-service server)))
-        ;; TODO: el should compute priority
-        (for-each (lambda (e) (queue-in! rq e)) el)
-        (get-one-request-from-clients server)))
-     (else (queue-out! rq)))))
+      (fill-ready-queue-from-service server)
+      (get-one-request-from-clients server))
+     (else (ready-queue-out! rq)))))
 
 (define (ragnarok-http-gateway-run handler)
   (define-syntax-rule (detect-client-protocol client)
@@ -286,6 +317,7 @@
    (lookup-server-engine
     (get-conf '(server engine)))))
 
+;; (server-core-name . server-engine)
 (define *server-cores*
   `((ragnarok . ,(new-ragnaork-engine))
     (guile    . ,(new-guile-engine))))
