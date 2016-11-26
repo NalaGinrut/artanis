@@ -51,8 +51,12 @@
             lookup-protocol
             current-worker))
 
-;; WARNING: For concurrency in green-thread, all these stuffs should be immutable
-;;          IN THE RUN TIME!!!
+;; WARNING:
+;; For concurrency in green-thread, all these stuffs should be immutable
+;; when the server-core start to work!!!
+;; TODO:
+;; set a global variable when server-core started, and each accessor here
+;; should check it first.
 
 ;; table structure:
 ;; '((rule-handler-key (handler . keys)) ...)
@@ -63,9 +67,10 @@
 
 ;; NOTE: pool size equals to workers (work queues)
 ;; TODO: Should be pool of pool.
-;;       In principle, each worker need just one connection because of green-thread.
-;;       But async needs non-block, so we need a pool for each worker since each conn
-;;       could be scheduled when it encounters EWOULDBREAK.
+;;       In principle, each worker needs just one connection because of
+;;       green-thread. But async needs non-blocking, so we need a pool
+;;       for each worker since each connnection could be scheduled when it
+;;       encounters EWOULDBREAK or EAGAIN.
 (define *conn-pool* #f)
 
 (define *before-response-hook* (make-hook 2))
