@@ -37,6 +37,12 @@
             ragnarok-server-event-set
             current-work-table
 
+            new-ready-queue
+            ready-queue?
+            ready-queue-empty?
+            ready-queue-in!
+            ready-queue-out!
+
             make-work-table
             work-table?
             work-table-content
@@ -94,6 +100,29 @@
    work-table ; a table list contains continuations
    ready-queue ; a queue contains connect socket
    event-set))
+
+(define-box-type ready-queue)
+(define (make-ready-queue v)
+  (make-box-type ready-queue v))
+
+(define (new-ready-queue)
+  (make-ready-queue (new-queue)))
+
+(::define (ready-queue-empty? rq)
+  (:anno: (ready-queue) -> boolean)
+  (queue-empty? (unbox-type rq)))
+
+(::define (ready-queue-in! rq v)
+  (:anno: (ready-queue) -> ready-queue)
+  (queue-in! (unbox-type rq) v))
+
+(::define (ready-queue-out! rq)
+  (:anno: (ready-queue) -> ANY)
+  (queue-out! (unbox-type rq)))
+
+(::define (ready-queue-length rq)
+  (:anno: (ready-queue) -> int)
+  (queue-length (unbox-type rq)))
 
 (define (current-work-table server)
   (list-ref (ragnarok-server-work-table server)
