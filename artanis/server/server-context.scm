@@ -69,7 +69,7 @@
             
             make-task
             task?
-            task-conn
+            task-client
             task-kont
             task-prio
 
@@ -82,6 +82,7 @@
             remove-from-work-table!
             add-a-task-to-work-table!
             get-task-from-work-table
+            restore-working-client
 
             specified-proto?
             register-proto!))
@@ -187,7 +188,7 @@
 
 (define-record-type task
   (fields
-   conn   ; connecting socket port
+   client ; connecting client
    kont   ; delimited continuation
    prio)) ; priority
 
@@ -250,6 +251,14 @@
 (::define (get-task-from-work-table wt client)
   (:anno: (work-table ragnarok-client) -> task)
   (hashv-ref wt (client-sockport-decriptor client)))
+
+(::define (restore-working-client wt fd)
+  (:anno: (work-table int) -> ragnarok-client)
+  (let ((task (hashv-ref (work-table-content wt) fd)))
+    (if task
+        (task-client task)
+        (throw 'artanis-err 500 restore-working-client
+               "BUG: No such client ~a%" fd))))
 
 ;; This is a table to record client and proto pairs (CP pairs), client is the
 ;; key while protocol name is the value.
