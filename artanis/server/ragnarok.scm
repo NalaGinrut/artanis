@@ -27,6 +27,7 @@
   #:use-module (artanis config)
   #:use-module (artanis server epoll)
   #:use-module (artanis server server-context)
+  #:use-module (artanis aio)
   #:use-module ((srfi srfi-1) #:select (fold))
   #:use-module (system repl error-handling)
   #:use-module (srfi srfi-9)
@@ -133,16 +134,26 @@
      ((task-kont task)))
    ragnarok-scheduler))
 
+;; NOTE: We will call `accept' if it's listenning socket. So it means it's
+;;       impossible to encounter listenning socket after here.
 (::define (fill-ready-queue-from-service server)
   ;; should be client list but we don't check internally.
   (:anno: (ragnarok-server) -> list)
+  (define (listenning-port? e)
+    (let ((listen-socket (ragnarok-server-listen-socket server)))
+      (= (car e) (port->fdes listen-socket))))
   (let ((epfd (ragnarok-server-epfd server))
         (events (ragnarok-server-event-set server))
         (timeout (get-conf '(server polltimeout)))
         (rq (ragnarok-server-ready-queue server)))
     (for-each
      (lambda (e)
-       (ready-queue-in! rq (make-ragnarok-client e)))
+       (let ((client
+              (cond
+               ((listenning-port? e)
+                (make-ragnarok-client (accept (car e))))
+               (else (restore-working-client server e)))))
+         (ready-queue-in! rq client)))
      (epoll-wait epfd events timeout))))
 
 (define (handle-request handler request body)
@@ -183,7 +194,7 @@
 (define-syntax-rule (protocol-service-open)
   ((protocol-open proto) server client))
 
-(define (is-listenning-port? server client)
+(define (is-listenning-socket? server client)
  (let ((listen-socket (ragnarok-server-listen-socket server)))
    (= (port->fdes listen-socket) (client-sockport-decriptor client))))
 
@@ -208,7 +219,7 @@
                        (DEBUG "Ragnarok: continue request~%")
                        (parameterize ((current-task task))
                          (run-task task))))
-                 ((is-listenning-port? server client)
+                 ((not (is-listenning-port? server client))
                   (DEBUG "Ragnarok: new request~%")
                   ;; The ready socket is listenning socket, so we need to call
                   ;; `accept' on it to get a connecting socket. And create a
@@ -228,8 +239,13 @@
                     (setsockopt conn SOL_SOCKET SO_SNDBUF bufsize)
                     (parameterize ((current-task (make-task conn kont prio)))
                       (run-task (current-task)))))
+                 ((is-listenning-socket? server client)
+                  ;; For safe, we check if it's listenning socket here, if it's true,
+                  ;; then it's definitly a bug.
+                  (throw 'artanis-err 500 try-to-serve-one-request
+                         "BUG: it's impossible to be a listenning port here!~%" client))
                  (else
-                  ;; NOTE: If we come here, it means the ready socket neither:
+                  ;; NOTE: If we come here, it means the ready socket is NEITHER:
                   ;; 1. A continuable task
                   ;;    The connecting socket which was registered to work-table
                   ;; 2. The listenning socket
@@ -246,19 +262,7 @@
   ;; NOTE: delimited here to limit the continuation capturing granularity.
   (call-with-prompt
    'serve-one-request
-   (lambda ()
-     (catch #t
-       try-to-serve-one-request
-       (lambda (k . e)
-         (let ((E (system-error-errno e)))
-           (cond
-            ((or (= E EAGAIN) (= E EWOULDBLOCK))
-             (DEBUG "Ragnarok: EAGAIN, break to sleep~%")
-             ;; NOTE: Any capturing should be aborted to 'serve-one-request, or you
-             ;;       will miss the scheduler, sometimes cause unknown crash too.
-             (break-task))
-            ;; TODO: How should we handle the *error-event* ?
-            (else (apply throw k e)))))))
+   try-to-serve-one-request
    ragnarok-scheduler))
 
 (define (guile-builtin-server-run handler)
@@ -282,19 +286,21 @@
      (else 'http)))
   (let ((http (lookup-protocol 'http))
         (server (ragnarok-open)))
-    ;; handle C-c to break the server loop properly
-    (call-with-sigint
-     (lambda ()
-       ;; NOTE: There's no current-server and current-client here, they're bound
-       ;;       in serve-one-request.
-       (let main-loop((client (get-one-request-from-clients server)))
-         (let ((proto (detect-client-protocol client)))
-           (serve-one-request handler proto server client)
-           (main-loop (get-one-request-from-clients server)))))
-     (lambda ()
-       ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
-       (ragnarok-close http server)
-       (values)))))
+    ;; NOTE: There's no current-server and current-client here, they're bound
+    ;;       in serve-one-request.
+    (let main-loop((client (get-one-request-from-clients server)))
+      (let ((proto (detect-client-protocol client)))
+        (call-with-sigint
+         ;; handle C-c to break the server loop properly
+         (lambda ()
+           (serve-one-request handler proto server client))
+         (lambda ()
+           ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
+           ;; NOTE: The parameters will be lost when exception raised here, so we can't
+           ;;       use any of current-task/server/client/proto in the exception handler
+           (ragnarok-close http server client)
+           (values)))
+        (main-loop (get-one-request-from-clients server))))))
 
 ;; NOTE: we don't schedule guile-engine, although it provides naive mechanism for scheduling.
 (define (new-guile-engine)
@@ -335,7 +341,22 @@
   (let* ((engine (lookup-server-engine (get-conf '(server engine))))
          (loader (get-ragnarok-engine-loader engine)))
     (cond
-     (loader (loader handler))
+     (loader
+      (cond
+       ;; NOTE: Guile inner engine is not ready for non-blocing yet,
+       ;;       but we provide the possibility for the future customized engine
+       ;;       if users don't like rangarok (how is that possible!)
+       ((and (eq? (get-conf '(server trigger)) 'edge)
+             (not (eq? (get-conf '(server engine)) 'guile)))
+        ;; enable global suspendable ports for non-blocking
+        ;; NOTE: only for ragnarok engine, not for Guile built-in engine.         
+        (install-suspendable-ports!)
+        (parameterize ((current-read-waiter async-read-waiter)
+                       (current-write-waiter async-write-waiter))
+          (loader handler)))
+       (else
+        ;; not for non-blocking I/O
+        (loader handler))))
      (else (error establish-http-gateway
                   "Invalid `server.engine' in artanis.conf" (ragnaork-engine-name engine))))))
 
@@ -350,8 +371,8 @@
   (:anno: (protocol ragnarok-server ragnarok-client response ANY) -> ANY)
   ((protocol-write proto) server client response body))
 
-(define (ragnarok-clean-current-conn-fd server)
-  (let ((conn (task-conn (current-task)))
+(define (ragnarok-clean-current-conn-fd server client)
+  (let ((conn-fd (client-sockport-decriptor client))
         (epfd (ragnarok-server-epfd server)))
     ;; NOTE:
     ;; In kernel versions before 2.6.9, the EPOLL_CTL_DEL operation required a
@@ -360,15 +381,17 @@
     ;; Applications that need to be portable to kernels before 2.6.9 should
     ;; specify a non-null pointer in event.
     ;; So, Artanis isn't compatible with Linux 2.6.9 and before.
-    (epoll-ctl epfd EPOLL_CTL_DEL conn %null-pointer)
+    (epoll-ctl epfd EPOLL_CTL_DEL conn-fd #vu8())
     ;; Close the connection gracefully
-    (shutdown conn 2) ; Stop both recv and trans
-    (close conn))) ; deallocate the File Descriptor
+    ;; FIXME: shutdown or close ?
+    ;;(shutdown conn-fd 2) ; Stop both recv and trans
+    (close conn-fd))) ; deallocate the File Descriptor
 
 ;; clean task from work-table
-(define (ragnarok-clean-current-task)
+(define (ragnarok-clean-current-task server client)
   (define-syntax-rule (do-clean-task)
-    (%remove-from-work-table! (task-conn (current-task))))
+    (let ((wt (ragnarok-server-work-table server)))
+     (remove-from-work-table! wt client)))
   ;; NOTE: current task is the head of work-table
   (let ((workder (get-conf '(server workers))))
     (cond
@@ -376,8 +399,10 @@
      ((> workers 1) (with-mutex (work-table-mutex wq) (do-clean-task)))
      (else (throw 'artanis-err 500 "Invalid (server workers) !" workers)))))
 
-(::define (ragnarok-close proto server)
-  (:anno: (protocol ragnarok-server) -> ANY)
-  (ragnarok-clean-current-conn-fd server)
-  (ragnarok-clean-current-task)
-  ((protocol-close proto) server))
+;; NOTE: The parameters will be lost when exception raised here, so we can't
+;;       use any of current-task/server/client/proto in this function.
+(::define (ragnarok-close proto server client)
+  (:anno: (protocol ragnarok-server ragnarok-client) -> ANY)
+  (ragnarok-clean-current-conn-fd server client)
+  (ragnarok-clean-current-task server client)
+  ((protocol-close proto) server client))
