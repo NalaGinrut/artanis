@@ -180,7 +180,7 @@
                       (list int int int '*)))
 
 (define-public (epoll-ctl epfd op fd event)
-  (let* ((ret (%epoll-ctl epfd op fd (bytevector->pointer event)))
+  (let* ((ret (%epoll-ctl epfd op fd (or event %null-pointer)))
          (err (errno)))
     (cond
      ((zero? ret) ret)
@@ -239,3 +239,6 @@
       (throw 'system-error "epoll-pwait" "~S: ~A"
              (list epfd events maxevents timeout sigmask (strerror err))
              (list err))))))
+
+(define-public (is-peer-shutdown? e)
+  (not (zero? (logand (cdr e) EPOLLRDHUP))))
