@@ -20,6 +20,7 @@
 (define-module (artanis server server-context)
   #:use-module (artanis utils)
   #:use-module (artanis env)
+  #:use-module (ice-9 threads)
   #:use-module ((rnrs) #:select (define-record-type))
   #:export (make-ragnarok-engine
             ragnarok-engine?
@@ -173,6 +174,7 @@
 (define (make-redirectors-table) (make-hash-table))
 
 (::define (get-the-redirector-of-protocol server proto)
+  (:anno: (ragnarok-server ragnarok-proto) -> redirector)
   (hashq-ref
    (ragnaork-server-services server)
    (protocol-name proto)))
