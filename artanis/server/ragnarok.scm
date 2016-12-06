@@ -136,9 +136,9 @@
 
 ;; NOTE: We will call `accept' if it's listenning socket. So it means it's
 ;;       impossible to encounter listenning socket after here.
-(::define (fill-ready-queue-from-service server)
+(::define (fill-ready-queue-from-service proto server)
   ;; should be client list but we don't check internally.
-  (:anno: (ragnarok-server) -> list)
+  (:anno: (ragnarok-proto ragnarok-server) -> ready-queue)
   (define (listenning-port? e)
     (let ((listen-socket (ragnarok-server-listen-socket server)))
       (= (car e) (port->fdes listen-socket))))
@@ -152,6 +152,12 @@
               (cond
                ((listenning-port? e)
                 (make-ragnarok-client (accept (car e))))
+               ((is-peer-shutdown? e)
+                (DEBUG "Peer shutdown ~a" e)
+                (ragnarok-close
+                 proto
+                 server
+                 (restore-working-client server e)))
                (else (restore-working-client server e)))))
          (ready-queue-in! rq client)))
      (epoll-wait epfd events timeout))))
@@ -269,13 +275,13 @@
   (apply (@ (web server) run-server) handler 'http
          (list #:port (get-conf '(host port)))))
 
-(define (get-one-request-from-clients server)
+(define (get-one-request-from-clients proto server)
   (let ((rq (ragnarok-server-ready-queue server)))
     (cond
      ((ready-queue-empty? rq)
       ;; if the queue is empty, filling the queue with new requests
       ;; with one epoll query.
-      (fill-ready-queue-from-service server)
+      (fill-ready-queue-from-service proto server)
       (get-one-request-from-clients server))
      (else (ready-queue-out! rq)))))
 
@@ -288,7 +294,7 @@
         (server (ragnarok-open)))
     ;; NOTE: There's no current-server and current-client here, they're bound
     ;;       in serve-one-request.
-    (let main-loop((client (get-one-request-from-clients server)))
+    (let main-loop((client (get-one-request-from-clients proto server)))
       (let ((proto (detect-client-protocol client)))
         (call-with-sigint
          ;; handle C-c to break the server loop properly
@@ -325,7 +331,7 @@
 
 ;; (server-core-name . server-engine)
 (define *server-cores*
-  `((ragnarok . ,(new-ragnaork-engine))
+  `((ragnarok . ,(new-ragnarok-engine))
     (guile    . ,(new-guile-engine))))
 
 (define (get-ragnarok-engine-loader name)
@@ -381,7 +387,7 @@
     ;; Applications that need to be portable to kernels before 2.6.9 should
     ;; specify a non-null pointer in event.
     ;; So, Artanis isn't compatible with Linux 2.6.9 and before.
-    (epoll-ctl epfd EPOLL_CTL_DEL conn-fd #vu8())
+    (epoll-ctl epfd EPOLL_CTL_DEL conn-fd #f) ; #f means %null-pointer here
     ;; Close the connection gracefully
     ;; FIXME: shutdown or close ?
     ;;(shutdown conn-fd 2) ; Stop both recv and trans
