@@ -31,6 +31,7 @@
   #:use-module (web request)
   #:use-module (web response)
   #:use-module (web http)
+  #:use-module (ice-9 match)
   #:export (params
             response-emit
             throw-auth-needed
@@ -142,11 +143,11 @@
       (define port (current-error-port))
       (format port (ERROR-TEXT "GNU Artanis encountered exception!~%"))
       (match e
-        (((? procedure subr) (? string? msg) . args)
+        (((? procedure? subr) (? string? msg) . args)
          (format port "<~a>~%" (WARN-TEXT (current-filename)))
          (when subr (format port "In procedure ~a :~%" (WARN-TEXT subr)))
          (apply format port (REASON-TEXT msg) args))
-        (((? integer? status) (? procedure subr) (? string? msg) . args)
+        (((? integer? status) (? procedure? subr) (? string? msg) . args)
          (format port "HTTP ~a~%" (STATUS-TEXT status))
          (format port "<~a>~%" (WARN-TEXT (current-filename)))
          (when subr (format port "In procedure ~a :~%" (WARN-TEXT subr)))
