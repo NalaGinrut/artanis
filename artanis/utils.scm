@@ -44,7 +44,7 @@
                 #:select (get-bytevector-all utf8->string put-bytevector
                           bytevector-u8-ref string->utf8 bytevector-length
                           make-bytevector bytevector-s32-native-ref
-                          make-record-type record-rtd record-accessor))
+                          define-record-type record-rtd record-accessor))
   #:export (regexp-split hash-keys cat bv-cat get-global-time
             get-local-time string->md5 unsafe-random string-substitute
             get-file-ext get-global-date get-local-date uri-decode
@@ -1103,8 +1103,9 @@
        (detect-and-set-type-anno! op '(func-types ...) '(targs ...))))))
 
 (define-syntax-rule (did-not-specify-parameter what)
-  (throw 'artanis-err 500
-         (format #f "`current-~a' isn't specified, it's likely a bug!" what)))
+  (lambda ()
+    (throw 'artanis-err 500
+           (format #f "`current-~a' isn't specified, it's likely a bug!" what))))
 
 ;; Text-coloring helper functions, borrowed from guile-colorized
 (define *color-list*
