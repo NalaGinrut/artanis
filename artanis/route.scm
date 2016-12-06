@@ -99,7 +99,7 @@
 (define (new-route-context request body)
   (let* ((uri (request-uri request))
          (path (uri-path uri))
-         (m (valid-method? (request-method request))) 
+         (m (valid-method? (request-method request)))
          ;; NOTE: sanitize-response will handle 'HEAD method
          ;;       though rc-method is 'GET when request-method is 'HEAD,
          ;;       sanitize-response only checks method from request
@@ -118,6 +118,7 @@
 ;; find & set the key of rule-handler,
 ;; which is used to find the (handler . keys)
 ;; FIXME: each method should have a own table
+;; FIXME: use better data structure other than hashtable to make it faster
 (define (init-rule-handler-key! rc)
   (define rmtd (rc-method rc))
   (define path (rc-path rc))
