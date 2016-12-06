@@ -260,14 +260,10 @@
       (else (throw 'artanis-err 500 "session-maker: Invalid call cmd" cmd)))))
 
 (define (from-post-maker mode rule keys)
-  (define post-data #f)
   (define* (post->qstr-table rc #:optional (safe? #f))
-    (when (not post-data)
-      (set! post-data
-            (if (rc-body rc)
-                (generate-kv-from-post-qstr (rc-body rc) #:no-evil? safe?)
-                '())))
-    post-data)
+    (if (rc-body rc)
+        (generate-kv-from-post-qstr (rc-body rc) #:no-evil? safe?)
+        '()))
   (define (default-success-ret size-list filename-list)
     (call-with-output-string
      (lambda (port)
@@ -302,14 +298,22 @@
       ;; upload operation, indeed
       (('store rest ...) (apply store-the-bv rc rest))
       (else (throw 'artanis-err 500 "post-handler: Invalid mode!" mode))))
+  (define (get-values-from-post pl . keys)
+    (apply
+     values
+     (map
+      (lambda (k) (post-ref pl k))
+      keys)))
   (lambda (rc . cmd)
     (match cmd
       (`(get ,key) (post-ref (post-handler rc) key))
-      ('(get) (rc-body rc))
+      ('(get) (post-handler rc))
+      (('get-vals keys ...) (apply get-values-from-post (post-handler rc) keys))
       ('(store) (post-handler rc))
       (else (throw 'artanis-err 500 "from-post-maker: Invalid cmd!" cmd)))))
 
 ;; for #:websocket
+;; 
 (define (websocket-maker type rule keys)
   (define call-with-websocket-channel
     (match args
@@ -322,6 +326,7 @@
        ;; NOTE: ip/usk means ip or unix-socket, the pattern should be this:
        ;;       ^ip://(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(:[0-9]{1,5})?$
        ;;       ^unix://[a-zA-Z-_0-9]+\\.socket$
+       ;; NOTE: Equivalent to transparent proxy.
        ;; TODO: call protocol initilizer, and establish websocket
        ;;       to redirect it.
        #t)
