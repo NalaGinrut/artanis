@@ -40,4 +40,6 @@ Some ideas:
   1. migrate a category table, and generate a lookup table each time before Artanis start.
      It is hard to update category in runtime.
   2. get category chain recursively, it should be fast in Scheme
-  
+
+* Add error waiter for current-task/client/server/proto, and bind them to somewhere they should not appear.
+  This may help developers to find out the possible bug.
