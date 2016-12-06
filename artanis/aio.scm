@@ -46,14 +46,14 @@
 ;; NOTE: Most of the time, you just need to parameterize async-read-waiter or
 ;;       async-write-waiter, that's enough. But if you want to do more things
 ;;       when EAGAIN happens, please use these helper functions:
-(define-syntax (define-artanis-write-waiter name body ...)
+(define-syntax define-artanis-write-waiter
   (syntax-rules ()
     ((_ (name port . args) body ...)
      (define (name port . args)
        body ...
        (async-write-waiter port)))))
 
-(define-syntax (define-artanis-read-waiter name body ...)
+(define-syntax define-artanis-read-waiter
   (syntax-rules ()
     ((_ (name port . args) body ...)
      (define (name port . args)
