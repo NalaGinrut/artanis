@@ -315,7 +315,7 @@
 ;; for #:websocket
 ;; 
 (define (websocket-maker type rule keys)
-  (define call-with-websocket-channel
+  (define (call-with-websocket-channel args)
     (match args
       (('proto (? symbol? proto))
        ;; TODO: call protocol initilizer, and establish websocket for it.
@@ -337,7 +337,7 @@
        ;;       support websocket, and visit the relative URL for establishing
        ;;       a websocket channel. Then the rest is the same with regular proxy.
        #t)
-      (else (throw 'artanis-err 500 "websocket-maker: Invalid type!" type))))
+      (else (throw 'artanis-err 500 websocket-maker "Invalid type!" type))))
   (lambda (rc . args)
     ;; TODO: parsing command and apply call-with-websocket-channel
     #t))
