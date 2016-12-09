@@ -19,13 +19,14 @@
 
 (define-module (artanis page)
   #:use-module (artanis utils)
+  #:use-module (artanis env)
   #:use-module (artanis config)
   #:use-module (artanis cookie)
   #:use-module (artanis tpl)
   #:use-module (artanis tpl sxml)
   #:use-module (artanis db)
   #:use-module (artanis route)
-  #:use-module (artanis env)
+  #:use-module (artanis websocket)
   #:use-module (srfi srfi-19)
   #:use-module (web uri)
   #:use-module (web request)
@@ -129,7 +130,7 @@
   (format (current-error-port) "[EXCEPTION] ~a is abnormal request, status: ~a, "
           (uri-path (request-uri request)) status)
   (display "rendering a sys page for it...\n" (current-error-port)) 
-  (render-sys-page status requ))
+  (render-sys-page status request))
 
 (define (work-with-request request body)
   (catch 'artanis-err
@@ -147,13 +148,18 @@
          (format port "<~a>~%" (WARN-TEXT (current-filename)))
          (when subr (format port "In procedure ~a :~%" (WARN-TEXT subr)))
          (apply format port (REASON-TEXT msg) args))
-        (((? integer? status) (? procedure? subr) (? string? msg) . args)
+        (((? integer? status) (? procedure? subr) ? string? msg . args)
          (format port "HTTP ~a~%" (STATUS-TEXT status))
          (format port "<~a>~%" (WARN-TEXT (current-filename)))
          (when subr (format port "In procedure ~a :~%" (WARN-TEXT subr)))
          (apply format port (REASON-TEXT msg) args)
          (format-status-page status request))
-        (else (apply throw k e))))))
+        (else
+         (format port "~a - ~a~%"
+                 (WARN-TEXT
+                  "BUG: invalid exception format, but we throw it anyway!")
+                 e)
+         (apply throw k e))))))
 
 (define (response-emit-error status)
   (response-emit "" #:status status))
