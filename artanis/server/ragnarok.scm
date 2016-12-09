@@ -27,16 +27,14 @@
   #:use-module (artanis config)
   #:use-module (artanis server epoll)
   #:use-module (artanis server server-context)
+  #:use-module (artanis server scheduler)
   #:use-module (artanis aio)
   #:use-module ((srfi srfi-1) #:select (fold))
   #:use-module (system repl error-handling)
   #:use-module (srfi srfi-9)
   #:use-module (ice-9 threads)
+  #:use-module (ice-9 suspendable-ports)
   #:use-module (rnrs bytevectors)
-  #:use-module (system foreign)
-  #:use-module (web request)
-  #:use-module (web response)
-  #:use-module (web server)
   #:export (establish-http-gateway
             get-task-breaker
             protocol-service-open))
@@ -53,35 +51,11 @@
     (listen sock (get-conf '(server backlog)))
     (port->fdes sock)))
 
-(define (generate-work-table)
+(define (generate-work-tables)
   (define (new-work-table)
     (make-work-table (make-hash-table) (make-mutex)))
   (let ((n (get-conf '(server workers))))
     (map (lambda (i) (new-work-table)) (iota n))))
-
-;; NOTE: We need this null-task as a placeholder to let task scheduling loop
-;;       work smoothly.
-(define (the-null-task)
-  (DEBUG "A NULL-Task was called. The work table seems empty~%"))
-
-;; NOTE: We can't put them in env.scm, since it uses things imported
-;;       from utils.scm. But it's OK and it's better the keep them private.
-;; NOTE: These parameters should only be used by these functions:
-;;       1. request handler
-;;          Since it's bound before calling the handler.
-;;          It'll be exception when it's called outside the handler.
-;;       2. call-with-abort
-;;          These parameters will be unbound when it's aborted in to the
-;;          scheduler. So we could use them to pass task/proto/server/client
-;;          into the scheduler.
-;;       3. (artanis route)
-;;          It is used within the handler, so it's fine to use the parameters.
-;;       4. All hooks related to request
-;;          They are actually called within the handler.
-(define current-task (make-parameter the-null-task))
-(define current-proto (make-parameter (did-not-specify-parameter 'proto)))
-(define current-server (make-parameter (did-not-specify-parameter 'server)))
-(define current-client (make-parameter (did-not-specify-parameter 'client)))
 
 (define *error-event* (logior EPOLLRDHUP EPOLLHUP))
 (define *read-event* EPOLLIN)
@@ -105,10 +79,13 @@
   (let* ((fd (make-listen-fd family addr port))
          (listen-event (make-epoll-event fd (gen-read-event)))
          (event-set (make-epoll-event-set))
-         (epfd (epoll-create1 0)))
+         (epfd (epoll-create1 0))
+         (services (make-hash-table))
+         (ready-queue (new-ready-queue))
+         (work-table (generate-work-tables)))
     (sigaction SIGPIPE SIG_IGN) ; FIXME: should we remove the related threads?
     (epoll-ctl epfd EPOLL_CTL_ADD fd listen-event)
-    (make-ragnarok-server epfd fd (generate-work-tables) (new-ready-queue) event-set)))
+    (make-ragnarok-server epfd fd work-table ready-queue event-set services)))
 
 (define (with-stack-and-prompt thunk)
   (call-with-prompt
@@ -225,13 +202,13 @@
                        (DEBUG "Ragnarok: continue request~%")
                        (parameterize ((current-task task))
                          (run-task task))))
-                 ((not (is-listenning-port? server client))
+                 ((not (is-listenning-socket? server client))
                   (DEBUG "Ragnarok: new request~%")
                   ;; The ready socket is listenning socket, so we need to call
                   ;; `accept' on it to get a connecting socket. And create a
                   ;; new task with this new connecting socket.
                   (let ((kont (lambda ()
-                                (handle-request proto client handler request body)))
+                                (handle-request handler request body)))
                         (conn (client-sockport client))
                         (prio #t) ; TODO: we don't have prio yet
                         (bufsize (get-conf '(server bufsize))))
@@ -282,7 +259,7 @@
       ;; if the queue is empty, filling the queue with new requests
       ;; with one epoll query.
       (fill-ready-queue-from-service proto server)
-      (get-one-request-from-clients server))
+      (get-one-request-from-clients proto server))
      (else (ready-queue-out! rq)))))
 
 (define (ragnarok-http-gateway-run handler)
@@ -294,19 +271,19 @@
         (server (ragnarok-open)))
     ;; NOTE: There's no current-server and current-client here, they're bound
     ;;       in serve-one-request.
-    (let main-loop((client (get-one-request-from-clients proto server)))
+    (let main-loop((client (get-one-request-from-clients http server)))
       (let ((proto (detect-client-protocol client)))
         (call-with-sigint
          ;; handle C-c to break the server loop properly
          (lambda ()
-           (serve-one-request handler proto server client))
+           (serve-one-request handler http server client))
          (lambda ()
            ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
            ;; NOTE: The parameters will be lost when exception raised here, so we can't
            ;;       use any of current-task/server/client/proto in the exception handler
            (ragnarok-close http server client)
            (values)))
-        (main-loop (get-one-request-from-clients server))))))
+        (main-loop (get-one-request-from-clients http server))))))
 
 ;; NOTE: we don't schedule guile-engine, although it provides naive mechanism for scheduling.
 (define (new-guile-engine)
@@ -364,7 +341,7 @@
         ;; not for non-blocking I/O
         (loader handler))))
      (else (error establish-http-gateway
-                  "Invalid `server.engine' in artanis.conf" (ragnaork-engine-name engine))))))
+                  "Invalid `server.engine' in artanis.conf" (ragnarok-engine-name engine))))))
 
 (::define (ragnarok-read proto server client)
   (:anno: (protocol ragnarok-server ragnarok-client) -> ANY)
@@ -395,14 +372,14 @@
 
 ;; clean task from work-table
 (define (ragnarok-clean-current-task server client)
-  (define-syntax-rule (do-clean-task)
-    (let ((wt (ragnarok-server-work-table server)))
-     (remove-from-work-table! wt client)))
+  (define-syntax-rule (do-clean-task wt)
+    (remove-from-work-table! wt client))
   ;; NOTE: current task is the head of work-table
-  (let ((workder (get-conf '(server workers))))
+  (let ((wt (ragnarok-server-work-table server))
+        (workers (get-conf '(server workers))))
     (cond
-     ((= 1 workers) (do-clean-task))
-     ((> workers 1) (with-mutex (work-table-mutex wq) (do-clean-task)))
+     ((= 1 workers) (do-clean-task wt))
+     ((> workers 1) (with-mutex (work-table-mutex wt) (do-clean-task wt)))
      (else (throw 'artanis-err 500 "Invalid (server workers) !" workers)))))
 
 ;; NOTE: The parameters will be lost when exception raised here, so we can't
