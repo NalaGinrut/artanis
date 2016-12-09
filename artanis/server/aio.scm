@@ -25,8 +25,9 @@
 ;; So one may use this aio interface to make sure Artanis is happy.
 ;; =============================================================================
 
-(define-module (artanis aio)
+(define-module (artanis server aio)
   #:use-module (artanis utils)
+  #:use-module (artanis server scheduler)
   #:use-module (ice-9 suspendable-ports)
   #:export (async-read-waiter
             async-write-waiter
