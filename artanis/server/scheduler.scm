@@ -21,7 +21,27 @@
   #:use-module (artanis utils)
   #:use-module (artanis server server-context)
   #:use-module (ice-9 match)
-  #:export (ragnarok-scheduler))
+  #:export (ragnarok-scheduler
+            schedule-with-command
+            break-task
+            close-task))
+
+;; NOTE: We must pass parameters here, say, current-proto, etc.
+;;       Because the abort handler (here, the scheduler) will not capture
+;;       the parameters bound in prompt thunk.
+(define (schedule-with-command cmd)
+  (abort-to-prompt
+   'serve-one-request
+   (current-proto)
+   (current-server)
+   (current-client)
+   cmd))
+
+(define (break-task)
+  (schedule-with-command 'save))
+
+(define (close-task)
+  (schedule-with-command 'close))
 
 (define (compute-prio proto client server)
   ;; TODO: how to compute priority
@@ -40,6 +60,14 @@
   (let ((wt (ragnarok-server-work-table server)))
     (remove-from-work-table! wt client)))
 
+(define try-customized-scheduler identity)
+
+(define-syntax-rule (register-new-scheduler! body ...)
+  (set! try-customized-scheduler
+        (lambda (cmd)
+          (match cmd
+            body ...))))
+
 ;; NOTE: We don't call prompt in this scheduler again, since we will get
 ;;       new task from outside.
 ;; NOTE: We must pass proto/server/client as arguments, since current-proto is
@@ -55,4 +83,6 @@
      ;; NOTE: This will close task by removing task from the work-table.
      ;;       The related socket port should be closed before here.
      (close-current-task! k proto client server))
-    (else (throw 'artanis-err ragnarok-scheduler "Invalid command ~a" cmd))))
+    (else
+     (try-customized-scheduler cmd)
+     (throw 'artanis-err ragnarok-scheduler "Invalid command ~a" cmd))))
