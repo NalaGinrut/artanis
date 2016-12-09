@@ -43,11 +43,11 @@
   #:use-module ((rnrs)
                 #:select (get-bytevector-all utf8->string put-bytevector
                           bytevector-u8-ref string->utf8 bytevector-length
-                          make-bytevector bytevector-s32-native-ref
+                          make-bytevector bytevector-s32-native-ref bytevector?
                           define-record-type record-rtd record-accessor))
-  #:export (regexp-split hash-keys cat bv-cat get-global-time
-            get-local-time string->md5 unsafe-random string-substitute
-            get-file-ext get-global-date get-local-date uri-decode
+  #:export (regexp-split hash-keys cat bv-cat get-global-time sanitize-response
+            build-response get-local-time string->md5 unsafe-random uri-decode
+            get-file-ext get-global-date get-local-date string-substitute
             nfx static-filename remote-info seconds-now local-time-stamp
             parse-date write-date make-expires export-all-from-module!
             alist->hashtable expires->time-utc local-eval-string
@@ -75,8 +75,7 @@
             flush-to-migration-cache gen-local-conf-file with-dbd errno
             call-with-sigint define-box-type make-box-type unbox-type
             ::define did-not-specify-parameter WARN-TEXT ERROR-TEXT REASON-TEXT
-            NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr
-            break-task close-task)
+            NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -92,6 +91,8 @@
 (define uri-decode (@ (web uri) uri-decode))
 (define parse-date (@@ (web http) parse-date))
 (define write-date (@@ (web http) write-date))
+(define sanitize-response (@ (web server) sanitize-response))
+(define build-response (@ (web response) build-response))
 
 (define-syntax-rule (local-eval-string str e)
   (local-eval 
@@ -1049,7 +1050,7 @@
    ((thunk? o) 'thunk)
    ((procedure? o) 'proc)
    ((vector? o) 'vector)
-   ((bytevectors? o) 'bv)
+   ((bytevector? o) 'bv)
    ((socket-port? o) 'socket)
    ((boolean? o) 'boolean)
    (else 'ANY)))
@@ -1162,7 +1163,7 @@
 
 (define (get-trigger)
   (case (get-conf '(server trigger))
-    ((edge) EPOLLET)
+    ((edge) (@ (ragnarok server epoll) EPOLLET))
     ((level) 0)
     (else (throw 'artanis-err 500 "Invalid (server trigger)!"
                  (get-conf '(server trigger))))))
@@ -1178,20 +1179,3 @@
   (let ((host (get-conf '(host addr)))
         (family (get-family)))
     (inet-pton family host)))
-
-;; NOTE: We must pass parameters here, say, current-proto, etc.
-;;       Because the abort handler (here, the scheduler) will not capture
-;;       the parameters bound in prompt thunk.
-(define (schedule-task cmd)
-  (abort-to-prompt
-   'serve-one-request
-   (current-proto)
-   (current-server)
-   (current-client)
-   cmd))
-
-(define (break-task)
-  (schedule-task 'save))
-
-(define (close-task)
-  (schedule-task 'close))
