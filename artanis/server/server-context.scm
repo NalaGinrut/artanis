@@ -36,6 +36,7 @@
             ragnarok-server-work-table
             ragnarok-server-ready-queue
             ragnarok-server-event-set
+            ragnarok-server-services
             current-work-table
 
             new-ready-queue
@@ -86,7 +87,12 @@
             restore-working-client
 
             specified-proto?
-            register-proto!))
+            register-proto!
+
+            current-task
+            current-proto
+            current-server
+            current-client))
 
 (define-record-type ragnarok-engine
   (fields
@@ -101,7 +107,8 @@
    listen-socket
    work-table ; a table list contains continuations
    ready-queue ; a queue contains connect socket
-   event-set))
+   event-set
+   services))
 
 (define-box-type ready-queue)
 (define (make-ready-queue v)
@@ -176,7 +183,7 @@
 (::define (get-the-redirector-of-protocol server proto)
   (:anno: (ragnarok-server ragnarok-proto) -> redirector)
   (hashq-ref
-   (ragnaork-server-services server)
+   (ragnarok-server-services server)
    (protocol-name proto)))
 
 (define (register-redirector! server client proto type content)
@@ -210,7 +217,7 @@
 ;; ragnarok-client -> integer
 (::define (client-sockport-decriptor c)
   (:anno: (ragnarok-client) -> int)
-  (port->fdes (client-port (unbox-type c))))
+  (port->fdes (client-sockport (unbox-type c))))
 
 ;; ragnarok-client -> vector 
 (::define (client-details c)
@@ -273,3 +280,28 @@
 
 (define (register-proto! client protoname)
   (hashv-set! *proto-conn-table* (client-sockport-decriptor client) protoname))
+
+
+;; NOTE: We need this null-task as a placeholder to let task scheduling loop
+;;       work smoothly.
+(define (the-null-task)
+  (DEBUG "A NULL-Task was called. The work table seems empty~%"))
+
+;; NOTE: We can't put them in env.scm, since it uses things imported
+;;       from utils.scm. But it's OK and it's better the keep them private.
+;; NOTE: These parameters should only be used by these functions:
+;;       1. request handler
+;;          Since it's bound before calling the handler.
+;;          It'll be exception when it's called outside the handler.
+;;       2. call-with-abort
+;;          These parameters will be unbound when it's aborted in to the
+;;          scheduler. So we could use them to pass task/proto/server/client
+;;          into the scheduler.
+;;       3. (artanis route)
+;;          It is used within the handler, so it's fine to use the parameters.
+;;       4. All hooks related to request
+;;          They are actually called within the handler.
+(define current-task (make-parameter the-null-task))
+(define current-proto (make-parameter (did-not-specify-parameter 'proto)))
+(define current-server (make-parameter (did-not-specify-parameter 'server)))
+(define current-client (make-parameter (did-not-specify-parameter 'client)))
