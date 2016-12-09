@@ -27,10 +27,14 @@
   #:use-module (artanis env)
   #:use-module (artanis server ragnarok)
   #:use-module (artanis server http)
-  #:export (init-server-core
-            schedule-task)
+  #:use-module (artanis server scheduler)
   #:re-export (establish-http-gateway
-               protocol-service-open))
+               get-task-breaker
+               protocol-service-open
+               break-task
+               close-task)
+  #:export (init-server-core
+            schedule-task))
 
 (define schedule-task
   (lambda ()
