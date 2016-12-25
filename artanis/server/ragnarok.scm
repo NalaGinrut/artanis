@@ -82,10 +82,10 @@
          (epfd (epoll-create1 0))
          (services (make-hash-table))
          (ready-queue (new-ready-queue))
-         (work-table (generate-work-tables)))
+         (work-tables (generate-work-tables)))
     (sigaction SIGPIPE SIG_IGN) ; FIXME: should we remove the related threads?
     (epoll-ctl epfd EPOLL_CTL_ADD fd listen-event)
-    (make-ragnarok-server epfd fd work-table ready-queue event-set services)))
+    (make-ragnarok-server epfd fd work-tables ready-queue event-set services)))
 
 (define (with-stack-and-prompt thunk)
   (call-with-prompt
@@ -375,11 +375,11 @@
   (define-syntax-rule (do-clean-task wt)
     (remove-from-work-table! wt client))
   ;; NOTE: current task is the head of work-table
-  (let ((wt (ragnarok-server-work-table server))
+  (let ((wt (current-work-table server))
         (workers (get-conf '(server workers))))
     (cond
      ((= 1 workers) (do-clean-task wt))
-     ((> workers 1) (with-mutex (work-table-mutex wt) (do-clean-task wt)))
+     ((> workers 1) (schedule-if-locked (work-table-mutex wt) (do-clean-task wt)))
      (else (throw 'artanis-err 500 "Invalid (server workers) !" workers)))))
 
 ;; NOTE: The parameters will be lost when exception raised here, so we can't
