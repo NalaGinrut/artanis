@@ -24,7 +24,8 @@
   #:export (ragnarok-scheduler
             schedule-with-command
             break-task
-            close-task))
+            close-task
+            schedule-if-locked))
 
 ;; NOTE: We must pass parameters here, say, current-proto, etc.
 ;;       Because the abort handler (here, the scheduler) will not capture
@@ -42,6 +43,17 @@
 
 (define (close-task)
   (schedule-with-command 'close))
+
+(define-syntax-rule (schedule-if-locked mutex body ...)
+  (let lp ()
+    (cond
+     ((mutex-locked? mutex)
+      (break-task)
+      (lp))
+     (else
+      (lock-mutex mutex)
+      body ...
+      (unlock-mutex mutex)))))
 
 (define (compute-prio proto client server)
   ;; TODO: how to compute priority
