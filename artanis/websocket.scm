@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015
+;;  Copyright (C) 2013,2014,2015,2016,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -20,6 +20,7 @@
 (define-module (artanis websocket)
   #:use-module (artanis utils)
   #:use-module (artanis crypto base64)
+  #:use-module (artanis server server-context)
   #:use-module (ice-9 iconv)
   #:use-module (rnrs bytevectors)
   #:use-module (web request)
@@ -27,7 +28,8 @@
   #:use-module (web server)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-1)
-  #:export (websocket:key->accept))
+  #:export (websocket:key->accept
+            detect-if-connecting-websocket))
 
 (define *ws-magic* "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
@@ -71,7 +73,7 @@
                    (format #f "~\x7e~a" (->pack 2 len)))
                   (else (integer->char len))))
          (head (integer->char (logior #x80 opcode))))
-    (format #f "~a~a~a" head length data)))    
+    (format #f "~a~a~a" head length data)))
 
 (define (websocket:key->accept wsk)
   (let* ((realkey (string-append wsk *ws-magic*))
@@ -114,3 +116,13 @@
                   (logxor 
                    (bytevector-u8-ref bv i) (bytevector-u8-ref masks (modulo j 4))))))
           (lp (1+ i) (1+ j) (cons c ret))))))))
+
+;; If the URL hit and haven't registered, then register it.
+(define (detect-if-connecting-websocket rc body)
+  (let ((server (current-server))
+        (client (current-client))
+        (rhk (rc-rhk rc))
+        (port (request-port (rc-req rc))))
+    (or (and (get-handler-rc rhk)
+             (get-the-redirector-of-protocol server client))
+        (register-redirector! server client 'websocket port))))
