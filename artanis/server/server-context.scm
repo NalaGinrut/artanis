@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016
+;;  Copyright (C) 2016,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -33,11 +33,11 @@
             ragnarok-server?
             ragnarok-server-epfd
             ragnarok-server-listen-socket
-            ragnarok-server-work-table
+            ragnarok-server-work-tables ; get all work-tables
             ragnarok-server-ready-queue
             ragnarok-server-event-set
             ragnarok-server-services
-            current-work-table
+            current-work-table ; get work-table from the current worker
 
             new-ready-queue
             ready-queue?
@@ -57,13 +57,12 @@
             protocol-read
             protocol-write
             protocol-close
-            protocol-rt
             define-protocol
 
             make-redirector
             redirector?
             redirector-type
-            redirector-content
+            redirector-port
             redirector-count
             redirector-mutex
             register-redirector!
@@ -105,10 +104,10 @@
   (fields
    epfd
    listen-socket
-   work-table ; a table list contains continuations
+   work-tables ; a table list contains continuations
    ready-queue ; a queue contains connect socket
    event-set
-   services))
+   services))  ; a table to hold all redirectors (int -> redirector)
 
 (define-box-type ready-queue)
 (define (make-ready-queue v)
@@ -134,34 +133,33 @@
   (queue-length (unbox-type rq)))
 
 (define (current-work-table server)
-  (list-ref (ragnarok-server-work-table server)
+  (list-ref (ragnarok-server-work-tables server)
             (current-worker)))
 
 ;; A table contains continuations
-;; * content: the continuation
-;; * mutex: a mutex for lock
 (define-record-type work-table
-  (fields content mutex))
+  (fields
+   content ; the continuation
+   mutex)) ; a mutex for lock
 
 (define-record-type protocol
-  (fields name  ; the name of the protocol (in symbol)
-          open  ;
-          read  ; server -> client -> ANY
-          write ; server -> client -> response -> str/bv -> ANY
-          close ; server -> ANY
-          rt))  ; rt stands for redirect-table
+  (fields name    ; the name of the protocol (in symbol)
+          open    ;
+          read    ; server -> client -> ANY
+          write   ; server -> client -> response -> str/bv -> ANY
+          close)) ; server -> ANY
 
 ;; NOTE: Any methods in protocol shouldn't be bound to Ragnarok.
 ;;       We have to make sure the developers could implement their
 ;;       own server-core.
 (define-syntax-rule (define-protocol name open read write close)
   (define name
-    (make-protocol 'name open read write close (make-hash-table))))
+    (make-protocol 'name open read write close)))
 
 (define-record-type redirector
   (fields
    type        ; proxy or websocket
-   content     ; remote port or #f
+   port        ; remote port or #f
    count       ; transfered bytes
    mutex))     ; a mutex for locking
 
@@ -174,24 +172,24 @@
 ;; 2. 'websocket
 ;;    For regular usage of websocket. If the http-read detects the current
 ;;    client was bound to a websocket, then http-read won't read its body.
-;;    The body reading will be delayed to be in the handler, users have to
+;;    The body reading will be delayed to the handler, users have to
 ;;    use :websocket command to read the parsed body according to the
 ;;    registered protocol parser.
-;;    The content field will be #f/
+;;    The content field is #f.
 (define (make-redirectors-table) (make-hash-table))
 
-(::define (get-the-redirector-of-protocol server proto)
+(::define (get-the-redirector-of-protocol server client)
   (:anno: (ragnarok-server ragnarok-proto) -> redirector)
-  (hashq-ref
+  (hashv-ref
    (ragnarok-server-services server)
-   (protocol-name proto)))
+   (client-sockport-decriptor client)))
 
-(define (register-redirector! server client proto type content)
-  (hashv-set! (get-the-redirector-of-protocol server proto)
+(define (register-redirector! server client type port)
+  (hashv-set! (get-the-redirector-of-protocol server client)
               (client-sockport-decriptor client)
               (make-redirector
                type
-               content
+               port
                0
                (make-mutex))))
 
