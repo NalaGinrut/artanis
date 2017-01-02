@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016
+;;  Copyright (C) 2016,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -147,7 +147,7 @@
     (cond
      ((>= efd 0) efd)
      (else
-      (throw 'system-error "epoll-create" "~S: ~A"
+      (throw 'artanis-err 500 epoll-create "~S: ~A"
              (list size (strerror err))
              (list err))))))
 
@@ -164,7 +164,7 @@
     (cond
      ((>= efd 0) efd)
      (else
-      (throw 'system-error "epoll-create1" "~S: ~A"
+      (throw 'artanis-err 500 epoll-create1 "~S: ~A"
              (list flag (strerror err))
              (list err))))))
 
@@ -180,12 +180,14 @@
                       (list int int int '*)))
 
 (define-public (epoll-ctl epfd op fd event)
-  (let* ((ret (%epoll-ctl epfd op fd (or event %null-pointer)))
+  (let* ((ret (%epoll-ctl epfd op fd (if event
+                                         (bytevector->pointer event)
+                                         %null-pointer)))
          (err (errno)))
     (cond
      ((zero? ret) ret)
      (else
-      (throw 'system-error "epoll-ctl" "~S: ~A"
+      (throw 'artanis-err 500 epoll-ctl "~S: ~A"
              (list epfd op fd event (strerror err))
              (list err))))))
 
@@ -218,7 +220,7 @@
     (cond
      ((>= ret 0) (epoll-event-set->list events ret))
      (else
-      (throw 'system-error "epoll-wait" "~S: ~A"
+      (throw 'artanis-err 500 epoll-wait "~S: ~A"
              (list epfd events maxevents timeout (strerror err))
              (list err))))))
 
@@ -236,7 +238,7 @@
     (cond
      ((>= ret 0) (epoll-event-set->list events ret))
      (else
-      (throw 'system-error "epoll-pwait" "~S: ~A"
+      (throw 'artanis-err 500 epoll-pwait "~S: ~A"
              (list epfd events maxevents timeout sigmask (strerror err))
              (list err))))))
 
