@@ -89,8 +89,8 @@
   (date rc-mtime rc-mtime!) ; modified time, users need to set it in handler
   (cookie rc-cookie rc-cookie!) ; the cookie parsed from header string
   (set-cookie rc-set-cookie rc-set-cookie!) ; the cookies needed to be set as response
-  ;; auto connection doesn't need users to close it, it's auto closed when request is over.
-  (conn rc-conn rc-conn!)) ; auto connection from pool
+  ;; auto DB connection doesn't need users to close it, it's auto closed when request is over.
+  (conn rc-conn rc-conn!)) ; auto DB connection from pool
 
 (define (get-header rc k)
   ;; (display (request-headers (rc-req rc)))(newline)
