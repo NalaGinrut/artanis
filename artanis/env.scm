@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2016
+;;  Copyright (C) 2014,2015,2016,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -65,8 +65,11 @@
 (define *handlers-table* (make-hash-table))
 (define *conf-hash-table* (make-hash-table))
 
-;; NOTE: pool size equals to workers (work queues)
-;; TODO: Should be pool of pool.
+;; NOTE: Should be a vector holds queues. Vector size equals to workers.
+;;       The init queue size equals to (server wqlen).
+;;       If all the available DB conn were blocked, a new DB conn will be
+;;       created, and never closed but just recycled by *conn-pool*.
+;; NOTE: Should be pool of pool.
 ;;       In principle, each worker needs just one connection because of
 ;;       green-thread. But async needs non-blocking, so we need a pool
 ;;       for each worker since each connnection could be scheduled when it
