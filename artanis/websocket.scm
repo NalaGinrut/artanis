@@ -29,6 +29,7 @@
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-1)
   #:export (websocket:key->accept
+            this-rule-enabled-websocket!
             detect-if-connecting-websocket))
 
 (define *ws-magic* "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
@@ -117,12 +118,18 @@
                    (bytevector-u8-ref bv i) (bytevector-u8-ref masks (modulo j 4))))))
           (lp (1+ i) (1+ j) (cons c ret))))))))
 
+(define *rules-with-websocket* '())
+
+(define (this-rule-enabled-websocket! rule)
+  (set! *rules-with-websocket*
+        (cons rule *rules-with-websocket*)))
+
 ;; If the URL hit and haven't registered, then register it.
-(define (detect-if-connecting-websocket rc body)
-  (let ((server (current-server))
-        (client (current-client))
-        (rhk (rc-rhk rc))
-        (port (request-port (rc-req rc))))
-    (or (and (get-handler-rc rhk)
+(define (detect-if-connecting-websocket req server client)
+  (define (if-url-need-websocket url)
+    (any (lambda (rule) (irregex-search rule url)) *rules-with-websocket*))
+  (let ((url (request-path req))
+        (port (request-port req)))
+    (or (and (if-url-need-websocket url)
              (get-the-redirector-of-protocol server client))
         (register-redirector! server client 'websocket port))))
