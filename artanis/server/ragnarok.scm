@@ -131,10 +131,11 @@
                 (make-ragnarok-client (accept (car e))))
                ((is-peer-shutdown? e)
                 (DEBUG "Peer shutdown ~a" e)
-                (ragnarok-close
-                 proto
-                 server
-                 (restore-working-client server e)))
+                (parameterize ((must-close-connection? #t))
+                  (ragnarok-close
+                   proto
+                   server
+                   (restore-working-client server e))))
                (else (restore-working-client server e)))))
          (ready-queue-in! rq client)))
      (epoll-wait epfd events timeout))))
@@ -354,38 +355,8 @@
   (:anno: (protocol ragnarok-server ragnarok-client response ANY) -> ANY)
   ((protocol-write proto) server client response body))
 
-(define (ragnarok-clean-current-conn-fd server client)
-  (let ((conn-fd (client-sockport-decriptor client))
-        (epfd (ragnarok-server-epfd server)))
-    ;; NOTE:
-    ;; In kernel versions before 2.6.9, the EPOLL_CTL_DEL operation required a
-    ;; non-null pointer in event, even though this argument is ignored. Since
-    ;; Linux 2.6.9, event can be specified as NULL when using EPOLL_CTL_DEL.
-    ;; Applications that need to be portable to kernels before 2.6.9 should
-    ;; specify a non-null pointer in event.
-    ;; So, Artanis isn't compatible with Linux 2.6.9 and before.
-    (epoll-ctl epfd EPOLL_CTL_DEL conn-fd #f) ; #f means %null-pointer here
-    ;; Close the connection gracefully
-    ;; FIXME: shutdown or close ?
-    ;;(shutdown conn-fd 2) ; Stop both recv and trans
-    (close conn-fd))) ; deallocate the File Descriptor
-
-;; clean task from work-table
-(define (ragnarok-clean-current-task server client)
-  (define-syntax-rule (do-clean-task wt)
-    (remove-from-work-table! wt client))
-  ;; NOTE: current task is the head of work-table
-  (let ((wt (current-work-table server))
-        (workers (get-conf '(server workers))))
-    (cond
-     ((= 1 workers) (do-clean-task wt))
-     ((> workers 1) (schedule-if-locked (work-table-mutex wt) (do-clean-task wt)))
-     (else (throw 'artanis-err 500 "Invalid (server workers) !" workers)))))
-
 ;; NOTE: The parameters will be lost when exception raised here, so we can't
 ;;       use any of current-task/server/client/proto in this function.
 (::define (ragnarok-close proto server client)
   (:anno: (protocol ragnarok-server ragnarok-client) -> ANY)
-  (ragnarok-clean-current-conn-fd server client)
-  (ragnarok-clean-current-task server client)
   ((protocol-close proto) server client))
