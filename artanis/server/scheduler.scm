@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016
+;;  Copyright (C) 2016,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -19,6 +19,7 @@
 
 (define-module (artanis server scheduler)
   #:use-module (artanis utils)
+  #:use-module (artanis env)
   #:use-module (artanis server server-context)
   #:use-module (ice-9 match)
   #:export (ragnarok-scheduler
@@ -68,9 +69,17 @@
     (DEBUG "Save current task!~%")
     (add-a-task-to-work-table! wt client task)))
 
-(define (close-current-task! k proto client server)
-  (let ((wt (ragnarok-server-work-table server)))
-    (remove-from-work-table! wt client)))
+;; clean task from work-table
+(define (close-current-task server client)
+  (define-syntax-rule (do-clean-task wt)
+    (remove-from-work-table! wt client))
+  ;; NOTE: current task is the head of work-table
+  (let ((wt (current-work-table server))
+        (workers (get-conf '(server workers))))
+    (cond
+     ((= 1 workers) (do-clean-task wt))
+     ((> workers 1) (schedule-if-locked (work-table-mutex wt) (do-clean-task wt)))
+     (else (throw 'artanis-err 500 "Invalid (server workers) !" workers)))))
 
 (define try-customized-scheduler identity)
 
@@ -81,7 +90,8 @@
             body ...))))
 
 ;; NOTE: We don't call prompt in this scheduler again, since we will get
-;;       new task from outside.
+;;       new task from outside. That means the scheduler doesn't bump new
+;;       task for the next, but leave this work to the main-loop.
 ;; NOTE: We must pass proto/server/client as arguments, since current-proto is
 ;;       parameter, it can't be captured by abort handler (say,
 ;;       ragnarok-scheduler). So we must pass them in with abort-to-prompt. Or
@@ -94,7 +104,7 @@
     ('close
      ;; NOTE: This will close task by removing task from the work-table.
      ;;       The related socket port should be closed before here.
-     (close-current-task! k proto client server))
+     (close-current-task! server client))
     (else
      (try-customized-scheduler cmd)
      (throw 'artanis-err ragnarok-scheduler "Invalid command ~a" cmd))))
