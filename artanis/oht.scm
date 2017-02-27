@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2016
+;;  Copyright (C) 2014,2015,2016,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -72,6 +72,8 @@
         (path-regexp (compile-rule rule))
         (opts (oah->opts opts-and-handler))
         (handler (oah->handler opts-and-handler)))
+    (when (assoc-ref opts #:websocket)
+      (this-rule-enabled-websocket! rule))
     (hash-set! *handlers-table*
                (cons method path-regexp)
                (make-handler-rc handler keys (new-oht opts #:rule rule #:keys keys)))))
@@ -322,7 +324,7 @@
        #t)
       (('redirect (? string? ip/usk))
        ;; NOTE: We use IP rather than hostname, since it's usually redirected to
-       ;;       an inner address. Using hostname may cause DNS issues.
+       ;;       a LAN address. Using hostname may cause DNS issues.
        ;; NOTE: ip/usk means ip or unix-socket, the pattern should be this:
        ;;       ^ip://(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(:[0-9]{1,5})?$
        ;;       ^unix://[a-zA-Z-_0-9]+\\.socket$
@@ -334,10 +336,11 @@
        ;; NOTE: Setup a proxy with certain protocol handler.
        ;;       Different from the regular proxy design, the proxy in Artanis doesn't
        ;;       need a listen port, since it's always 80/443. The client should
-       ;;       support websocket, and visit the relative URL for establishing
+       ;;       support websocket, and visit the related URL for establishing
        ;;       a websocket channel. Then the rest is the same with regular proxy.
        #t)
       (else (throw 'artanis-err 500 websocket-maker "Invalid type!" type))))
+  (this-rule-enabled-websocket! rule)
   (lambda (rc . args)
     ;; TODO: parsing command and apply call-with-websocket-channel
     #t))
