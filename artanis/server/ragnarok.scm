@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016
+;;  Copyright (C) 2016,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -19,6 +19,12 @@
 
 ;; ===============================================================
 ;; Ragnarok is the name of generic server core of Artanis.
+;;
+;; NOTE: The protocol doesn't mean you can define your own protocol
+;;       here. It must be always HTTP content-compatible protocol,
+;;       say, HTTPS, HTTP/2, etc. It is only for server-core.
+;; NOTE: Artanis provides arbitrary protocol parsing by websocket
+;;       over HTTP. Don't mess up!!!
 ;; ===============================================================
 
 (define-module (artanis server ragnarok)
@@ -223,11 +229,6 @@
                     (setsockopt conn SOL_SOCKET SO_SNDBUF bufsize)
                     (parameterize ((current-task (make-task conn kont prio)))
                       (run-task (current-task)))))
-                 ((is-listenning-socket? server client)
-                  ;; For safe, we check if it's listenning socket here, if it's true,
-                  ;; then it's definitly a bug.
-                  (throw 'artanis-err 500 try-to-serve-one-request
-                         "BUG: it's impossible to be a listenning port here!~%" client))
                  (else
                   ;; NOTE: If we come here, it means the ready socket is NEITHER:
                   ;; 1. A continuable task
@@ -237,7 +238,7 @@
                   ;;    listenning socket to be `accept' to get connecting
                   ;;    socket for the actually task.
                   (DEBUG "Ragnarok: Impossible to be here, maybe a BUG?~%")
-                  (throw 'artanis-err 500 serve-one-request "Can't be here!~%")))))
+                  (throw 'artanis-err 500 try-to-serve-one-request "Can't be here!~%")))))
           (lambda (response body)
             (DEBUG "Ragnarok: write client~%")
             (ragnarok-write proto server client response body))))))
