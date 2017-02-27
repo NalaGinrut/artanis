@@ -49,7 +49,8 @@
             current-session-backend
             protocol-add!
             lookup-protocol
-            current-worker))
+            current-worker
+            must-close-connection?))
 
 ;; WARNING:
 ;; For concurrency in green-thread, all these stuffs should be immutable
@@ -140,3 +141,5 @@
   (hashq-ref *proto-table* name))
 
 (define current-worker (make-parameter 0))
+
+(define must-close-connection? (make-parameter #f))
