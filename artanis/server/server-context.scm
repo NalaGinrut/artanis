@@ -79,6 +79,7 @@
             client-sockport
             client-sockport-decriptor
             client-connecting-port
+            client-ip
 
             remove-from-work-table!
             add-a-task-to-work-table!
@@ -160,7 +161,7 @@
   (fields
    type        ; proxy or websocket
    port        ; remote port or #f
-   count       ; transfered bytes
+   count       ; transfered bytes, maybe useful
    mutex))     ; a mutex for locking
 
 ;; A redirectors table holds all the redirectors as the value, and the
@@ -236,6 +237,9 @@
 (::define (address->ip c)
   (:anno: (ragnarok-client) -> string)
   (inet-ntop (get-family) (client-addr c)))
+
+(::define (client-ip c)
+  (address->ip (client-addr c)))
 
 ;; ragnarok-client -> integer
 ;; NOTE: Different from listenning-port
