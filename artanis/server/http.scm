@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016
+;;  Copyright (C) 2016,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -23,9 +23,32 @@
   #:use-module (artanis config)
   #:use-module (artanis server server-context)
   #:use-module (artanis server epoll)
+  #:use-module (artanis scheduler)
   #:use-module (web request)
   #:use-module (web response)
+  #:use-module (rnrs #:select (put-bytevector bytevector?))
   #:export (new-http-protocol))
+
+(define (clean-current-conn-fd server client)
+  (let ((conn-fd (client-sockport-decriptor client))
+        (epfd (ragnarok-server-epfd server)))
+    ;; NOTE:
+    ;; In kernel versions before 2.6.9, the EPOLL_CTL_DEL operation required a
+    ;; non-null pointer in event, even though this argument is ignored. Since
+    ;; Linux 2.6.9, event can be specified as NULL when using EPOLL_CTL_DEL.
+    ;; Applications that need to be portable to kernels before 2.6.9 should
+    ;; specify a non-null pointer in event.
+    ;; So, Artanis isn't compatible with Linux 2.6.9 and before.
+    (epoll-ctl epfd EPOLL_CTL_DEL conn-fd #f) ; #f means %null-pointer here
+    ;; Close the connection gracefully
+    ;; FIXME: shutdown or close ?
+    ;;(shutdown conn-fd 2) ; Stop both recv and trans
+    (close conn-fd))) ; deallocate the File Descriptor
+
+(define (%%raw-close-connection server client)
+  (clean-current-conn-fd server client)
+  ;; Trigger the `abort' and back the main-loop
+  (close-task))
 
 ;; NOTE: HTTP service is established by default, so it's unecessary to do any
 ;;       openning work.
@@ -60,37 +83,60 @@
         (bad-request port)
         (close-port port)))))))
 
-(define (http-write server client)
-  #t)
+(define (keep-alive? response)
+  (let ((v (response-version response)))
+    (and (or (< (response-code response) 400)
+             (= (response-code response) 404))
+         (case (car v)
+           ((1)
+            (case (cdr v)
+              ((1) (not (memq 'close (response-connection response))))
+              ((0) (memq 'keep-alive (response-connection response)))))
+           (else #f)))))
 
-
-(define (clean-current-conn-fd server client)
-  (let ((conn-fd (client-sockport-decriptor client))
-        (epfd (ragnarok-server-epfd server)))
-    ;; NOTE:
-    ;; In kernel versions before 2.6.9, the EPOLL_CTL_DEL operation required a
-    ;; non-null pointer in event, even though this argument is ignored. Since
-    ;; Linux 2.6.9, event can be specified as NULL when using EPOLL_CTL_DEL.
-    ;; Applications that need to be portable to kernels before 2.6.9 should
-    ;; specify a non-null pointer in event.
-    ;; So, Artanis isn't compatible with Linux 2.6.9 and before.
-    (epoll-ctl epfd EPOLL_CTL_DEL conn-fd #f) ; #f means %null-pointer here
-    ;; Close the connection gracefully
-    ;; FIXME: shutdown or close ?
-    ;;(shutdown conn-fd 2) ; Stop both recv and trans
-    (close conn-fd))) ; deallocate the File Descriptor
-
-;; clean task from work-table
-(define (clean-current-task server client)
-  (define-syntax-rule (do-clean-task wt)
-    (remove-from-work-table! wt client))
-  ;; NOTE: current task is the head of work-table
-  (let ((wt (current-work-table server))
-        (workers (get-conf '(server workers))))
-    (cond
-     ((= 1 workers) (do-clean-task wt))
-     ((> workers 1) (schedule-if-locked (work-table-mutex wt) (do-clean-task wt)))
-     (else (throw 'artanis-err 500 "Invalid (server workers) !" workers)))))
+(define (http-write server client response body)
+  (cond
+   ((get-the-redirector-of-protocol server client)
+    ;; If the protocol has been registered by the client, then it means
+    ;; the client enabled a special websocket-based protocol other than
+    ;; HTTP. And we will not close this client, but treat it as a waiting
+    ;; connection.
+    => (lambda (proto)
+         (let ((name (protocol-name proto))
+               (ip (client-ip client))
+               (port (client-sockport client)))
+           (DEBUG "The ~a client ~a is writing...~%" name ip)
+           ;; send body to websocket client
+           (cond
+            ((not body))                ; pass
+            ((bytevector? body)
+             (put-bytevector port body)
+             (force-output port))
+            (else
+             (throw 'artanis-err 500 "0: Expected a bytevector for body" body)))
+           (DEBUG "The ~a client ~a is suspending...~%" name ip)
+           ;; The websocket connection always keep alive, unless :websocket
+           ;; command tell it to close.
+           (break-task))))
+   (else
+    (let* ((res (write-response response (client-sockport client)))
+           (port (response-port res)))  ; return the continued port
+      ;; send body to regular HTTP client
+      (cond
+       ((not body))                     ; pass
+       ((bytevector? body)
+        (write-response-body res body))
+       (else
+        (throw 'artanis-err 500 "1: Expected a bytevector for body" body)))
+      (cond
+       ((must-close-connection?)
+        (%%raw-close-connection server client))
+       ((keep-alive? res)
+        (force-output port)
+        (task-break))
+       (else
+        (%%raw-close-connection server client)))
+      (values)))))
 
 ;; Check if the client in the redirectors table:
 ;; 1. In the table, just scheduled for next time.
@@ -104,12 +150,11 @@
     ;; HTTP. And we will not close this client, but treat it as a waiting
     ;; connection.
     => (lambda (proto)
-         (let ((name (protocol-name prot))
+         (let ((name (protocol-name proto))
                (ip (client-ip client)))
-           (DEBUG "The client(~a) is ~a~%" name ip))))
-   (else
-    (clean-current-conn-fd server client)
-    (clean-current-task server client))))
+           (DEBUG "The ~a client ~a is suspending...~%" name ip)
+           (break-task))))
+   (else (%%raw-close-connection server client))))
 
 (define-protocol http http-open http-read http-write http-close)
 
