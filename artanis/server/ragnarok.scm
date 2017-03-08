@@ -195,7 +195,7 @@
         (lambda ()
           (DEBUG "Ragnarok: start to read client~%")
           (ragnarok-read proto server client))
-      (lambda (client request body)
+      (lambda (request body)
         (DEBUG "Ragnarok: finish read client~%")
         (call-with-values
             (lambda ()
