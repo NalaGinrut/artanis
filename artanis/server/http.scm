@@ -45,6 +45,10 @@
     ;;(shutdown conn-fd 2) ; Stop both recv and trans
     (close conn-fd))) ; deallocate the File Descriptor
 
+;; NOTE: Close operation must follow these steps:
+;; 1. remove fd from epoll event
+;; 2. close fd
+;; 3. abort to the main-loop
 (define (%%raw-close-connection server client)
   (clean-current-conn-fd server client)
   ;; Trigger the `abort' and back the main-loop
@@ -56,7 +60,8 @@
   (throw 'artanis-err 500 http-open
          "This method shouldn't be called, it's likely a bug!"))
 
-(define (http-read server client)
+(::define (http-read server client)
+  (:anno: (ragnarok-server ragnarok-client) -> (request ANY))
   (define (bad-request port)
     (write-response (build-response #:version '(1 . 1) #:code 400
                                     #:headers '((content-length . 0)))))
@@ -64,8 +69,7 @@
    (cond
     ((eof-object? (peek-char port))
      (DEBUG "Encountered EOF, closing ~a~%" (address->ip client))
-     (close-port port)
-     (close-task))
+     (%%raw-close-connection server client))
     (else
      (with-throw-handler
       #t
@@ -76,9 +80,15 @@
       ;; This helps us to avoid unwind and re-throw exception.
       (lambda ()
         (let* ((req (read-request port))
-               (body (if (detect-if-connecting-websocket req server client)
+               (is-websock? (detect-if-connecting-websocket req server client))
+               (body (if is-websock?
                          #f (read-request-body req))))
-          (values port req body)))
+          (when (and is-websock? (get-conf 'debug-mode))
+            (let ((name (protocol-name proto))
+                  (ip (client-ip client)))
+              (DEBUG "The websocket based ~a client ~a is reading...~%" name ip)
+              (DEBUG "Just return #f body according to Artanis convention~%")))
+            (values req body)))
       (lambda (k . e)
         (bad-request port)
         (close-port port)))))))
@@ -94,7 +104,8 @@
               ((0) (memq 'keep-alive (response-connection response)))))
            (else #f)))))
 
-(define (http-write server client response body)
+(::define (http-write server client response body)
+  (:anno: (ragnarok-server rangarok-client response ANY) -> ANY)
   (cond
    ((get-the-redirector-of-protocol server client)
     ;; If the protocol has been registered by the client, then it means
@@ -103,29 +114,19 @@
     ;; connection.
     => (lambda (proto)
          (let ((name (protocol-name proto))
-               (ip (client-ip client))
-               (port (client-sockport client)))
-           (DEBUG "The ~a client ~a is writing...~%" name ip)
-           ;; send body to websocket client
-           (cond
-            ((not body))                ; pass
-            ((bytevector? body)
-             (put-bytevector port body)
-             (force-output port))
-            (else
-             (throw 'artanis-err 500 "0: Expected a bytevector for body" body)))
-           (DEBUG "The ~a client ~a is suspending...~%" name ip)
-           ;; The websocket connection always keep alive, unless :websocket
-           ;; command tell it to close.
+               (ip (client-ip client)))
+           (DEBUG "The redirected ~a client ~a is writing...~%" name ip)
+           (DEBUG "Just suspended...~%")
            (break-task))))
    (else
     (let* ((res (write-response response (client-sockport client)))
            (port (response-port res)))  ; return the continued port
       ;; send body to regular HTTP client
       (cond
-       ((not body))                     ; pass
+       ((not body)) ; pass
        ((bytevector? body)
         (write-response-body res body))
+       ((thunk? body) (body))
        (else
         (throw 'artanis-err 500 "1: Expected a bytevector for body" body)))
       (cond
@@ -141,7 +142,8 @@
 ;; Check if the client in the redirectors table:
 ;; 1. In the table, just scheduled for next time.
 ;; 2. Not in the table, just close the connection.
-(define (http-close server client)
+(::define (http-close server client)
+  (:anno: (ragnarok-server ragnarok-client) -> ANY)
   (cond
    ((and (not (must-close-connection?))
          (get-the-redirector-of-protocol server client))
@@ -156,7 +158,5 @@
            (break-task))))
    (else (%%raw-close-connection server client))))
 
-(define-protocol http http-open http-read http-write http-close)
-
 (define (new-http-protocol)
-  (make-protocol 'http http-open http-read http-write http-close (make-hash-table)))
+  (make-protocol 'http http-open http-read http-write http-close))
