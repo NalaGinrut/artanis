@@ -57,7 +57,6 @@
             protocol-read
             protocol-write
             protocol-close
-            define-protocol
 
             make-redirector
             redirector?
@@ -143,19 +142,16 @@
    content ; the continuation
    mutex)) ; a mutex for lock
 
+
+;; NOTE: Any methods in protocol shouldn't be bound to Ragnarok.
+;;       We have to make sure the developers could implement their
+;;       own server-core.
 (define-record-type protocol
   (fields name    ; the name of the protocol (in symbol)
           open    ;
           read    ; server -> client -> ANY
           write   ; server -> client -> response -> str/bv -> ANY
-          close)) ; server -> ANY
-
-;; NOTE: Any methods in protocol shouldn't be bound to Ragnarok.
-;;       We have to make sure the developers could implement their
-;;       own server-core.
-(define-syntax-rule (define-protocol name open read write close)
-  (define name
-    (make-protocol 'name open read write close)))
+          close)) ; server -> client -> ANY
 
 (define-record-type redirector
   (fields
