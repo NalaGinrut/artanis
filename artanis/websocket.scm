@@ -21,6 +21,8 @@
   #:use-module (artanis utils)
   #:use-module (artanis crypto base64)
   #:use-module (artanis server server-context)
+  #:use-module (artanis server scheduler)
+  #:use-module (artanis irregex)
   #:use-module (ice-9 iconv)
   #:use-module (rnrs bytevectors)
   #:use-module (web request)
