@@ -133,5 +133,5 @@
   (let ((url (request-path req))
         (port (request-port req)))
     (or (and (if-url-need-websocket url)
-             (get-the-redirector-of-protocol server client))
+             (get-the-redirector-of-websocket server client))
         (register-redirector! server client 'websocket port))))

@@ -65,7 +65,7 @@
             redirector-count
             redirector-mutex
             register-redirector!
-            get-the-redirector-of-protocol
+            get-the-redirector-of-websocket
             
             make-task
             task?
@@ -79,7 +79,8 @@
             client-sockport-decriptor
             client-connecting-port
             client-ip
-
+            address->ip
+            
             remove-from-work-table!
             add-a-task-to-work-table!
             get-task-from-work-table
@@ -175,14 +176,14 @@
 ;;    The content field is #f.
 (define (make-redirectors-table) (make-hash-table))
 
-(::define (get-the-redirector-of-protocol server client)
-  (:anno: (ragnarok-server ragnarok-proto) -> redirector)
+(::define (get-the-redirector-of-websocket server client)
+  (:anno: (ragnarok-server ragnarok-client) -> redirector)
   (hashv-ref
    (ragnarok-server-services server)
    (client-sockport-decriptor client)))
 
 (define (register-redirector! server client type port)
-  (hashv-set! (get-the-redirector-of-protocol server client)
+  (hashv-set! (get-the-redirector-of-websocket server client)
               (client-sockport-decriptor client)
               (make-redirector
                type
@@ -235,6 +236,7 @@
   (inet-ntop (get-family) (client-addr c)))
 
 (::define (client-ip c)
+  (:anno: (ragnarok-client) -> int)
   (address->ip (client-addr c)))
 
 ;; ragnarok-client -> integer
