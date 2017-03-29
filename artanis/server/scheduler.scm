@@ -20,6 +20,7 @@
 (define-module (artanis server scheduler)
   #:use-module (artanis utils)
   #:use-module (artanis env)
+  #:use-module (artanis config)
   #:use-module (artanis server server-context)
   #:use-module (ice-9 match)
   #:export (ragnarok-scheduler
@@ -63,14 +64,14 @@
 ;; NOTE: When we fetch the current task from work-table, we'll remove it
 ;;       from work-table. We don't remove the head when we close it.
 (define (save-current-task! k proto client server)
-  (let* ((wt (ragnarok-server-work-table server))
+  (let* ((wt (current-work-table server))
          (conn (client-sockport client))
          (task (make-task conn k (compute-prio proto client server))))
     (DEBUG "Save current task!~%")
     (add-a-task-to-work-table! wt client task)))
 
 ;; clean task from work-table
-(define (close-current-task server client)
+(define (close-current-task! server client)
   (define-syntax-rule (do-clean-task wt)
     (remove-from-work-table! wt client))
   ;; NOTE: current task is the head of work-table
