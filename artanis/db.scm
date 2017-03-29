@@ -153,6 +153,7 @@
     conn))
 
 (define (get-conn-from-pool)
+  (define worker (current-worker))
   (if *conn-pool*
       (let ((conn-queue (vector-ref *conn-pool* worker)))
         (if (queue-empty? conn-queue)
@@ -162,6 +163,7 @@
              *conn-pool*)))
 
 (define (recycle-DB-conn conn)
+  (define worker (current-worker))
   (if *conn-pool*
       (let ((conn-queue (vector-ref *conn-pool* worker)))
         (queue-in! conn-queue conn))
@@ -188,8 +190,8 @@
              (let ((dbconns
                     (map
                      (lambda (_) (create-new-DB-conn))
-                     (iota wqlen))
-                   (list->queue dbconns))))
+                     (iota wqlen))))
+               (list->queue dbconns)))
            vec))
     (display "DB pool init ok!\n")
     (format #t "Now there's ~a pool~:p, each contains ~a conns.~%"

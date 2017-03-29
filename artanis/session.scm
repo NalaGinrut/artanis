@@ -160,7 +160,7 @@
 
 (define (new-session-backend/db)
   (make-session-backend 'db
-                        (get-conn-from-pool 0)
+                        (get-conn-from-pool)
                         backend:session-init/db
                         backend:session-store/db
                         backend:session-destory/db

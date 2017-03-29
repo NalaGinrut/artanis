@@ -252,7 +252,7 @@
 
 (define (try-to-use-db)
   (let ((db (get-conf '(db name)))
-        (conn (get-conn-from-pool 0)))
+        (conn (get-conn-from-pool)))
     (case (get-conf '(db dbd))
       ((mysql)
        (let ((sql (->sql create database if not exists db)))
