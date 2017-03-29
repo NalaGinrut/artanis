@@ -40,6 +40,7 @@
   #:use-module (ice-9 control)
   #:use-module (web http)
   #:use-module (web request)
+  #:use-module (web uri)
   #:use-module ((rnrs)
                 #:select (get-bytevector-all utf8->string put-bytevector
                           bytevector-u8-ref string->utf8 bytevector-length
@@ -75,7 +76,7 @@
             flush-to-migration-cache gen-local-conf-file with-dbd errno
             call-with-sigint define-box-type make-box-type unbox-type
             ::define did-not-specify-parameter WARN-TEXT ERROR-TEXT REASON-TEXT
-            NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr)
+            NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr request-path)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -107,10 +108,10 @@
     ht))
 
 (eval-when (eval load compile)
-           (define (export-all-from-module! module-name)
-             (let ((mod (resolve-module module-name)))
-               (module-for-each (lambda (s m) 
-                                  (module-add! (current-module) s m)) mod))))
+  (define (export-all-from-module! module-name)
+    (let ((mod (resolve-module module-name)))
+      (module-for-each (lambda (s m)
+                         (module-add! (current-module) s m)) mod))))
 
 (define (time-expired? expires)
   (if expires
@@ -1179,3 +1180,6 @@
   (let ((host (get-conf '(host addr)))
         (family (get-family)))
     (inet-pton family host)))
+
+(define (request-path req)
+  (uri-path (request-uri req)))
