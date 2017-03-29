@@ -33,6 +33,7 @@
   #:use-module (artanis env)
   #:use-module (artanis mime)
   #:use-module (artanis upload)
+  #:use-module (artanis websocket)
   #:use-module (artanis third-party json)
   #:use-module (artanis third-party csv)
   #:use-module (ice-9 regex) ; FIXME: should use irregex!

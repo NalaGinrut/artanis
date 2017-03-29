@@ -21,12 +21,13 @@
   #:use-module (artanis utils)
   #:use-module (artanis env)
   #:use-module (artanis config)
+  #:use-module (artanis websocket)
   #:use-module (artanis server server-context)
   #:use-module (artanis server epoll)
-  #:use-module (artanis scheduler)
+  #:use-module (artanis server scheduler)
   #:use-module (web request)
   #:use-module (web response)
-  #:use-module (rnrs #:select (put-bytevector bytevector?))
+  #:use-module ((rnrs) #:select (put-bytevector bytevector?))
   #:export (new-http-protocol))
 
 (define (clean-current-conn-fd server client)
@@ -64,7 +65,8 @@
   (:anno: (ragnarok-server ragnarok-client) -> (request ANY))
   (define (bad-request port)
     (write-response (build-response #:version '(1 . 1) #:code 400
-                                    #:headers '((content-length . 0)))))
+                                    #:headers '((content-length . 0)))
+                    port))
   (let ((port (client-sockport client)))
    (cond
     ((eof-object? (peek-char port))
@@ -84,9 +86,8 @@
                (body (if is-websock?
                          #f (read-request-body req))))
           (when (and is-websock? (get-conf 'debug-mode))
-            (let ((name (protocol-name proto))
-                  (ip (client-ip client)))
-              (DEBUG "The websocket based ~a client ~a is reading...~%" name ip)
+            (let ((ip (client-ip client)))
+              (DEBUG "The websocket based client ~a is reading...~%" ip)
               (DEBUG "Just return #f body according to Artanis convention~%")))
             (values req body)))
       (lambda (k . e)
@@ -107,15 +108,15 @@
 (::define (http-write server client response body)
   (:anno: (ragnarok-server rangarok-client response ANY) -> ANY)
   (cond
-   ((get-the-redirector-of-protocol server client)
-    ;; If the protocol has been registered by the client, then it means
+   ((get-the-redirector-of-websocket server client)
+    ;; If there's a redirector has been registered by the client, then it means
     ;; the client enabled a special websocket-based protocol other than
     ;; HTTP. And we will not close this client, but treat it as a waiting
     ;; connection.
-    => (lambda (proto)
-         (let ((name (protocol-name proto))
+    => (lambda (redirector)
+         (let ((type (redirector-type redirector))
                (ip (client-ip client)))
-           (DEBUG "The redirected ~a client ~a is writing...~%" name ip)
+           (DEBUG "The redirected ~a client ~a is writing...~%" type ip)
            (DEBUG "Just suspended...~%")
            (break-task))))
    (else
@@ -134,7 +135,7 @@
         (%%raw-close-connection server client))
        ((keep-alive? res)
         (force-output port)
-        (task-break))
+        (break-task))
        (else
         (%%raw-close-connection server client)))
       (values)))))
@@ -146,15 +147,15 @@
   (:anno: (ragnarok-server ragnarok-client) -> ANY)
   (cond
    ((and (not (must-close-connection?))
-         (get-the-redirector-of-protocol server client))
+         (get-the-redirector-of-websocket server client))
     ;; If the protocol has been registered by the client, then it means
     ;; the client enabled a special websocket-based protocol other than
     ;; HTTP. And we will not close this client, but treat it as a waiting
     ;; connection.
-    => (lambda (proto)
-         (let ((name (protocol-name proto))
+    => (lambda (redirector)
+         (let ((type (redirector-type redirector))
                (ip (client-ip client)))
-           (DEBUG "The ~a client ~a is suspending...~%" name ip)
+           (DEBUG "The ~a client ~a is suspending...~%" type ip)
            (break-task))))
    (else (%%raw-close-connection server client))))
 
