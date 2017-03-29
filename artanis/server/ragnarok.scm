@@ -20,11 +20,11 @@
 ;; ===============================================================
 ;; Ragnarok is the name of generic server core of Artanis.
 ;;
-;; NOTE: The protocol doesn't mean you can define your own protocol
-;;       here. It must be always HTTP content-compatible protocol,
+;; NOTE: The `protocol' here doesn't mean you can define your own
+;;       protocol. It must be always HTTP content-compatible protocol,
 ;;       say, HTTPS, HTTP/2, etc. It is only for server-core.
 ;; NOTE: Artanis provides arbitrary protocol parsing by websocket
-;;       over HTTP. Don't mess up!!!
+;;       over HTTP. Don't mess up with `protocol' !!!
 ;; ===============================================================
 
 (define-module (artanis server ragnarok)
