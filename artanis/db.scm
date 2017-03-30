@@ -27,6 +27,7 @@
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
   #:use-module ((rnrs) #:select (define-record-type))
+  #:use-module (srfi srfi-43)
   #:export (DB-open
             DB-close
             DB-query
@@ -185,8 +186,8 @@
          (wqlen (get-conf '(server wqlen)))
          (vec (make-vector pool-size)))
     (set! *conn-pool*
-          ((@ (srfi srfi-43) vector-map)
-           (lambda (e)
+          (vector-map
+           (lambda (_ e)
              (let ((dbconns
                     (map
                      (lambda (_) (create-new-DB-conn))
