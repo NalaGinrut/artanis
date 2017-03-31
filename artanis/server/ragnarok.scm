@@ -313,10 +313,8 @@
   `((ragnarok . ,(new-ragnarok-engine))
     (guile    . ,(new-guile-engine))))
 
-(define (get-ragnarok-engine-loader name)
-  (ragnarok-engine-loader (assoc-ref *server-cores* name)))
-
 (define (lookup-server-engine engine-name)
+  (DEBUG "Loading server engine '~a' ...~%" engine-name)
   (assoc-ref *server-cores* engine-name))
 
 ;; '(server engine) specified server core, so if it's `ragnarok', Artanis will
@@ -324,7 +322,7 @@
 ;; (web server), say, Guile built-in server.
 (define (establish-http-gateway handler)
   (let* ((engine (lookup-server-engine (get-conf '(server engine))))
-         (loader (get-ragnarok-engine-loader engine)))
+         (loader (ragnarok-engine-loader engine)))
     (cond
      (loader
       (cond
