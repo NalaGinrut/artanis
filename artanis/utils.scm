@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016
+;;  Copyright (C) 2013,2014,2015,2016,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -1164,7 +1164,7 @@
 
 (define (get-trigger)
   (case (get-conf '(server trigger))
-    ((edge) (@ (ragnarok server epoll) EPOLLET))
+    ((edge) (@ (artanis server epoll) EPOLLET))
     ((level) 0)
     (else (throw 'artanis-err 500 "Invalid (server trigger)!"
                  (get-conf '(server trigger))))))
