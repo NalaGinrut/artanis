@@ -195,7 +195,7 @@
                (list->queue dbconns)))
            vec))
     (display "DB pool init ok!\n")
-    (format #t "Now there's ~a pool~:p, each contains ~a conns.~%"
+    (format #t "Now there's ~a connections pool~:p, each contains ~a conns.~%"
             pool-size wqlen)))
 
 ;; ---------------------conn operations-------------------------------
