@@ -193,7 +193,8 @@
                       (cache-statics? #f) (exclude '()))
   (default-route-init statics cache-statics? exclude)
   (init-hook)
-  (init-config))
+  (init-config)
+  (init-server-core))
 
 (define (check-if-not-run-init-server)
   ;; Just check if the conf table is empty

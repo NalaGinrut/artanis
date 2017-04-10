@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2016
+;;  Copyright (C) 2015,2016,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -105,8 +105,7 @@
   (add-to-load-path (string-append (current-toplevel) "/lib"))
   (try-load-app)
   (register-rules)
-  (load-rules)
-  (init-server-core))
+  (load-rules))
 
 (define (work . args)
   (let ((options (if (null? args) '() (getopt-long args option-spec))))
