@@ -1041,9 +1041,14 @@
   (and (port? sp) (eq? (port-filename sp) 'socket)))
 
 (define (detect-type-name o)
+  (define r6rs-record? (@ (rnrs) record?))
+  (define r6rs-record-type-name (@ (rnrs) record-type-name))
+  (define guile-specific-record? (@ (guile) record?))
+  (define guile-specific-record-name (@ (guile) record-type-name))
   (cond
    ;; NOTE: record? is for R6RS record-type, but record-type? is not
-   ((record? o) (record-type-name (record-rtd o)))
+   ((r6rs-record? o) (r6rs-record-type-name (record-rtd o)))
+   ((guile-specific-record? o) (guile-specific-record-name o))
    ((symbol? o) 'symbol)
    ((string? o) 'string)
    ((integer? o) 'int)
@@ -1062,9 +1067,11 @@
      (for-each
       (lambda (v e)
         (or (eq? (detect-type-name v) e)
-            (throw 'artanis-err 500
-                   (format #f "Argument ~a(~a) is expected to be type `~a'"
-                           v (detect-type-name v) e))))
+            (begin
+              (DEBUG "(~{~a~^ ~}) =? (~{~a~^ ~})~%" targs args)
+              (throw 'artanis-err 500
+                     (format #f "~a: Argument ~a is a `~a' type, but I expect type `~a'"
+                             op v (detect-type-name v) e)))))
       args targs))
     (else (throw 'artanis-err 500 "Invalid type annotation"
                  (procedure-property op 'type-anno)))))
