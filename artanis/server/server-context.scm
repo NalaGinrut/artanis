@@ -50,13 +50,13 @@
             work-table-content
             work-table-mutex
 
-            make-protocol
-            protocol?
-            protocol-name
-            protocol-open
-            protocol-read
-            protocol-write
-            protocol-close
+            make-ragnarok-protocol
+            ragnarok-protocol?
+            ragnarok-protocol-name
+            ragnarok-protocol-open
+            ragnarok-protocol-read
+            ragnarok-protocol-write
+            ragnarok-protocol-close
 
             make-redirector
             redirector?
@@ -145,7 +145,7 @@
 ;; NOTE: Any methods in protocol shouldn't be bound to Ragnarok.
 ;;       We have to make sure the developers could implement their
 ;;       own server-core.
-(define-record-type protocol
+(define-record-type ragnarok-protocol
   (fields name    ; the name of the protocol (in symbol)
           open    ;
           read    ; server -> client -> ANY
