@@ -127,6 +127,8 @@
         (cons rule *rules-with-websocket*)))
 
 ;; If the URL hit and haven't registered, then register it.
+;; NOTE: The hook requires (req body) two parameters, so we can't pass server/client
+;;       explicitly.
 (define (detect-if-connecting-websocket req _)
   (define (if-url-need-websocket url)
     (any (lambda (rule) (irregex-search rule url)) *rules-with-websocket*))
