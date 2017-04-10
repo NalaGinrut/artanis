@@ -224,7 +224,7 @@
     (db-query-debug-info sql)
     (dbi-query (<connection>-conn conn) sql)
     (when (not (db-conn-success? conn))
-      (format (current-error-port) "SQL: ~a~%" sql) 
+      (format (current-error-port) "SQL: ~a~%" sql)
       (if check?
           (format (current-error-port) "DB-query check failed: ~a" (db-conn-failed-reason conn))
           (throw 'artanis-err 500 DB-query "failed: " (db-conn-failed-reason conn))))
