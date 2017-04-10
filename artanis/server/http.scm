@@ -82,7 +82,7 @@
       ;; This helps us to avoid unwind and re-throw exception.
       (lambda ()
         (let* ((req (read-request port))
-               (is-websock? (detect-if-connecting-websocket req server client))
+               (is-websock? (detect-if-connecting-websocket req #f))
                (body (if is-websock?
                          #f (read-request-body req))))
           (when (and is-websock? (get-conf 'debug-mode))
@@ -160,4 +160,4 @@
    (else (%%raw-close-connection server client))))
 
 (define (new-http-protocol)
-  (make-protocol 'http http-open http-read http-write http-close))
+  (make-ragnarok-protocol 'http http-open http-read http-write http-close))
