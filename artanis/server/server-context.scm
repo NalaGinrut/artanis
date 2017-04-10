@@ -111,11 +111,9 @@
    services))  ; a table to hold all redirectors (int -> redirector)
 
 (define-box-type ready-queue)
-(define (make-ready-queue v)
-  (make-box-type ready-queue v))
 
 (define (new-ready-queue)
-  (make-ready-queue (new-queue)))
+  (make-box-type ready-queue (new-queue)))
 
 (::define (ready-queue-empty? rq)
   (:anno: (ready-queue) -> boolean)
