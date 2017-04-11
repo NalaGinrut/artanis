@@ -73,7 +73,7 @@
             task-kont
             task-prio
 
-            make-ragnarok-client
+            new-ragnarok-client
             ragnarok-client?
             client-sockport
             client-sockport-decriptor
@@ -196,7 +196,8 @@
    prio)) ; priority
 
 (define-box-type ragnarok-client)
-(define (make-ragnarok-client v)
+(define (new-ragnarok-client v)
+  (DEBUG "make ragnarok client ~a~%" v)
   (make-box-type ragnarok-client v))
 
 ;; for emacs:
@@ -206,12 +207,13 @@
 ;; NOTE: The remote connection wrapped in Guile socket port.
 (::define (client-sockport c)
   (:anno: (ragnarok-client) -> socket-port)
+  ;;(DEBUG "client-sockport: ~a~%" (unbox-type c))
   (car (unbox-type c)))
 
 ;; ragnarok-client -> integer
 (::define (client-sockport-decriptor c)
   (:anno: (ragnarok-client) -> int)
-  (port->fdes (client-sockport (unbox-type c))))
+  (port->fdes (client-sockport c)))
 
 ;; ragnarok-client -> vector 
 (::define (client-details c)
@@ -229,12 +231,12 @@
   (:anno: (ragnarok-client) -> int)
   (sockaddr:addr (client-details c)))
 
-(::define (address->ip c)
-  (:anno: (ragnarok-client) -> string)
-  (inet-ntop (get-family) (client-addr c)))
+(::define (address->ip addr)
+  (:anno: (int) -> string)
+  (inet-ntop (get-family) addr))
 
 (::define (client-ip c)
-  (:anno: (ragnarok-client) -> int)
+  (:anno: (ragnarok-client) -> string)
   (address->ip (client-addr c)))
 
 ;; ragnarok-client -> integer
@@ -252,6 +254,7 @@
 ;; work-table -> sockport -> task -> ANY
 (::define (add-a-task-to-work-table! wt client task)
   (:anno: (work-table sockport task) -> ANY)
+  ;;(DEBUG "add a task to work-table~%" (client-ip client))
   (hashv-set! wt (client-sockport-decriptor client) task))
 
 ;; work-table -> ragnarok-client -> task
