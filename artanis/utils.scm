@@ -47,7 +47,9 @@
                           make-bytevector bytevector-s32-native-ref bytevector?
                           define-record-type record-rtd record-accessor))
   #:export (regexp-split hash-keys cat bv-cat get-global-time sanitize-response
-            build-response get-local-time string->md5 unsafe-random uri-decode
+            build-response write-response get-local-time string->md5 unsafe-random
+            uri-decode response-version response-code response-connection
+            response-port write-response-body read-request
             get-file-ext get-global-date get-local-date string-substitute
             nfx static-filename remote-info seconds-now local-time-stamp
             parse-date write-date make-expires export-all-from-module!
@@ -94,6 +96,13 @@
 (define write-date (@@ (web http) write-date))
 (define sanitize-response (@ (web server) sanitize-response))
 (define build-response (@ (web response) build-response))
+(define write-response (@ (web response) write-response))
+(define response-version (@ (web response) response-version))
+(define response-code (@ (web response) response-code))
+(define response-connection (@ (web response) response-connection))
+(define response-port (@ (web response) response-port))
+(define write-response-body (@ (web response) write-response-body))
+(define read-request (@ (web request) read-request))
 
 (define-syntax-rule (local-eval-string str e)
   (local-eval 
@@ -1056,6 +1065,8 @@
    ((thunk? o) 'thunk)
    ((procedure? o) 'proc)
    ((vector? o) 'vector)
+   ((pair? o) 'pair)
+   ((list? o) 'list)
    ((bytevector? o) 'bv)
    ((socket-port? o) 'socket)
    ((boolean? o) 'boolean)
@@ -1112,9 +1123,7 @@
        (detect-and-set-type-anno! op '(func-types ...) '(targs ...))))))
 
 (define-syntax-rule (did-not-specify-parameter what)
-  (lambda ()
-    (throw 'artanis-err 500
-           (format #f "`current-~a' isn't specified, it's likely a bug!" what))))
+  (format #f "`current-~a' isn't specified, it's likely a bug!" what))
 
 ;; Text-coloring helper functions, borrowed from guile-colorized
 (define *color-list*
