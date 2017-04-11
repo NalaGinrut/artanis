@@ -46,7 +46,7 @@
             protocol-service-open))
 
 ;; default socket should be nonblock
-(define (make-listen-fd family addr port)
+(define (make-listen-socket family addr port)
   (let ((sock (socket family SOCK_STREAM 0)))
     ;; Causes the port to be released immediately after the socket is closed.
     (setsockopt sock SOL_SOCKET SO_REUSEADDR 1)
@@ -55,7 +55,7 @@
           (fcntl sock F_SETFL (logior O_NONBLOCK (fcntl sock F_GETFL 0))))
     (bind sock family addr port)
     (listen sock (get-conf '(server backlog)))
-    (port->fdes sock)))
+    sock))
 
 (define (generate-work-tables)
   (define (new-work-table)
@@ -83,7 +83,8 @@
                         (family (get-family))
                         (addr (get-addr))
                         (port (get-conf '(host port))))
-  (let* ((listen-fd (make-listen-fd family addr port))
+  (let* ((listen-socket (make-listen-socket family addr port))
+         (listen-fd (port->fdes listen-socket))
          (listen-event (make-epoll-event listen-fd (gen-read-event)))
          (event-set (make-epoll-event-set))
          (epfd (epoll-create1 0))
@@ -94,7 +95,7 @@
     (DEBUG "Prepare for regnarok-open~%")
     (epoll-ctl epfd EPOLL_CTL_ADD listen-fd listen-event)
     (DEBUG "Added listenning port to epoll~%")
-    (make-ragnarok-server epfd listen-fd wt ready-q event-set services)))
+    (make-ragnarok-server epfd listen-socket wt ready-q event-set services)))
 
 (define (with-stack-and-prompt thunk)
   (call-with-prompt
@@ -127,30 +128,41 @@
 (::define (fill-ready-queue-from-service proto server)
   ;; should be client list but we don't check internally.
   (:anno: (ragnarok-protocol ragnarok-server) -> ready-queue)
-  (define (listenning-port? e)
+  (define (is-listenning-fd? e)
+    (DEBUG "listenning-port? ~a~%" e)
     (let ((listen-socket (ragnarok-server-listen-socket server)))
+      (DEBUG "listen-socket: ~a~%" listen-socket)
       (= (car e) (port->fdes listen-socket))))
+  (DEBUG "Start to fill ready queue~%")
   (let ((epfd (ragnarok-server-epfd server))
         (events (ragnarok-server-event-set server))
         (timeout (get-conf '(server polltimeout)))
         (rq (ragnarok-server-ready-queue server)))
+    (display "gogogo\n")
     (for-each
      (lambda (e)
        (let ((client
               (cond
-               ((listenning-port? e)
-                (DEBUG "New connection, fd is ~a~%"
-                       (port->fdes (ragnarok-server-listen-socket server)))
-                (make-ragnarok-client (accept (car e))))
+               ((is-listenning-fd? e)
+                (DEBUG "New connection~%")
+                (new-ragnarok-client (accept (ragnarok-server-listen-socket server))))
                ((is-peer-shutdown? e)
                 (DEBUG "Peer shutdown ~a~%" e)
                 (parameterize ((must-close-connection? #t))
                   (ragnarok-close
                    proto
                    server
-                   (restore-working-client server e))))
-               (else (restore-working-client server e)))))
-         (ready-queue-in! rq client)))
+                   (restore-working-client server (car e)))
+                  #f))
+               (else
+                (DEBUG "Restore working client ~a~%" e)
+                (restore-working-client server (car e))))))
+         (cond
+          (client
+           (DEBUG "now get client ~a~%" (client-ip client))
+           (ready-queue-in! rq client))
+          (else
+           (DEBUG "The client ~a is shutdown~%" e)))))
      (epoll-wait epfd events timeout))))
 
 (define (handle-request handler request body)
@@ -196,14 +208,14 @@
    (= (port->fdes listen-socket) (client-sockport-decriptor client))))
 
 (::define (serve-one-request handler proto server client)
-  (:anno: (proc protocol ragnarok-server ragnarok-client) -> ANY)
+  (:anno: (proc ragnarok-protocol ragnarok-server ragnarok-client) -> ANY)
   (define (try-to-serve-one-request)
     (call-with-values
         (lambda ()
-          (DEBUG "Ragnarok: start to read client~%")
+          (DEBUG "Ragnarok: start to read client ~a~%" client)
           (ragnarok-read proto server client))
       (lambda (request body)
-        (DEBUG "Ragnarok: finish read client~%")
+        (DEBUG "Ragnarok: finish read client ~a~%" client)
         (call-with-values
             (lambda ()
               (DEBUG "Ragnarok: new request ready~%")
@@ -217,7 +229,7 @@
                        (parameterize ((current-task task))
                          (run-task task))))
                  ((not (is-listenning-socket? server client))
-                  (DEBUG "Ragnarok: new request~%")
+                  (DEBUG "Ragnarok: new request ~a~%" client)
                   ;; The ready socket is listenning socket, so we need to call
                   ;; `accept' on it to get a connecting socket. And create a
                   ;; new task with this new connecting socket.
@@ -271,9 +283,10 @@
       ;; with one epoll query.
       (DEBUG "ready queue is empty~%")
       (fill-ready-queue-from-service proto server)
+      (DEBUG "fill ready queue from service~%")
       (get-one-request-from-clients proto server))
      (else
-      (DEBUG "ready queue is NOT empty, get one!~%")
+      (DEBUG "ready queue is NOT empty ~a, get one!~%" (unbox-type rq))
       (ready-queue-out! rq)))))
 
 (define (ragnarok-http-gateway-run handler)
@@ -290,8 +303,8 @@
     (when (not http)
       (throw 'artanis-err 500 "BUG: There should be `http' protocol at least!"))
     (let main-loop((client (get-one-request-from-clients http server)))
-      (let ((proto (detect-client-protocol client)))
-        (DEBUG "Enter main-loop, protocol is ~a~%" (ragnarok-protocol-name proto))
+      (let ((proto-name (detect-client-protocol client)))
+        (DEBUG "Enter main-loop, protocol is ~a~%" proto-name)
         (call-with-sigint
          ;; handle C-c to break the server loop properly
          (lambda ()
@@ -369,7 +382,7 @@
                   "Invalid `server.engine' in artanis.conf" (ragnarok-engine-name engine))))))
 
 (::define (ragnarok-read proto server client)
-  (:anno: (protocol ragnarok-server ragnarok-client) -> ANY)
+  (:anno: (ragnarok-protocol ragnarok-server ragnarok-client) -> ANY)
   (DEBUG "ragnarok-read ~a~%" (client-ip client))
   ((ragnarok-protocol-read proto) server client))
 
@@ -377,13 +390,13 @@
   ;; FIXME:
   ;; Since body could be string/bv, and we haven't supported multi-types yet,
   ;; then we just use ANY type here to ingore the body type.
-  (:anno: (protocol ragnarok-server ragnarok-client response ANY) -> ANY)
+  (:anno: (ragnarok-protocol ragnarok-server ragnarok-client response ANY) -> ANY)
   (DEBUG "ragnarok-write ~a~%" (client-ip client))
   ((ragnarok-protocol-write proto) server client response body))
 
 ;; NOTE: The parameters will be lost when exception raised here, so we can't
 ;;       use any of current-task/server/client/proto in this function.
 (::define (ragnarok-close proto server client)
-  (:anno: (protocol ragnarok-server ragnarok-client) -> ANY)
+  (:anno: (ragnarok-protocol ragnarok-server ragnarok-client) -> ANY)
   (DEBUG "ragnarok-close ~a~%" (client-ip client))
   ((ragnarok-protocol-close proto) server client))
