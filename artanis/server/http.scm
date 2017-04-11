@@ -25,8 +25,6 @@
   #:use-module (artanis server server-context)
   #:use-module (artanis server epoll)
   #:use-module (artanis server scheduler)
-  #:use-module (web request)
-  #:use-module (web response)
   #:use-module ((rnrs) #:select (put-bytevector bytevector?))
   #:export (new-http-protocol))
 
@@ -67,6 +65,7 @@
     (write-response (build-response #:version '(1 . 1) #:code 400
                                     #:headers '((content-length . 0)))
                     port))
+  (DEBUG "Enter http-open ~a~%" (client-ip client))
   (let ((port (client-sockport client)))
    (cond
     ((eof-object? (peek-char port))
