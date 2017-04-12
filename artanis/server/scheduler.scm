@@ -82,10 +82,10 @@
      ((> workers 1) (schedule-if-locked (work-table-mutex wt) (do-clean-task wt)))
      (else (throw 'artanis-err 500 "Invalid (server workers) !" workers)))))
 
-(define try-customized-scheduler identity)
+(define customized-scheduler #f)
 
 (define-syntax-rule (register-new-scheduler! body ...)
-  (set! try-customized-scheduler
+  (set! customized-scheduler
         (lambda (cmd)
           (match cmd
             body ...))))
@@ -107,5 +107,6 @@
      ;;       The related socket port should be closed before here.
      (close-current-task! server client))
     (else
-     (try-customized-scheduler cmd)
-     (throw 'artanis-err ragnarok-scheduler "Invalid command ~a" cmd))))
+     (if customized-scheduler
+         (customized-scheduler cmd)
+         (throw 'artanis-err ragnarok-scheduler "Invalid command ~a" cmd)))))
