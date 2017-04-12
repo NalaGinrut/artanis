@@ -243,13 +243,19 @@
 (define p-tag (make-general-tag 'p))
 (define div-tag (make-general-tag 'div))
 
-(define (debug-mode:before-request-handler rc body)
+(define (debug-mode:file-monitoring rc body)
   (reload-monitored-files))
 
 (define (init-debug-mode)
   (conf-set! 'debug-mode #t)
-  (and (current-toplevel) (init-debug-monitor))
-  (run-after-request! debug-mode:before-request-handler))
+  (cond
+   ((current-toplevel)
+    ;; NOTE: If (current-toplevel) is #f, then it means you're not running under
+    ;;       application folder, then the file monitoring feature is disabled automatically.
+    (init-debug-monitor)
+    (run-after-request! debug-mode:file-monitoring))
+   (else (format (artanis-current-output)
+                 "[WARN] You're not in application folder, the file motoring is disabled!~%"))))
 
 (define (try-to-use-db)
   (let ((db (get-conf '(db name)))
