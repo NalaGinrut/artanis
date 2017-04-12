@@ -37,6 +37,10 @@
 (define (get-conf k)
   (hash-ref *conf-hash-table* k))
 
+;; NOTE: These default values will NOT be parsed, so please make sure they're the final
+;;       proper values. E.g, if you expect (->list "") to get '() while parsing config file,
+;;       you MUST specify '() here. Since it's default value, and it is not going to call
+;;       `->list' anywhere.
 (define (default-conf-values)
   `(;; for DB namespace
     ((db enable) false)
@@ -86,7 +90,7 @@
     ((cache maxage) 3600) ; in seconds
 
     ;; for debug mode
-    ((debug monitor) ""))) ; user specified monitoring paths
+    ((debug monitor) '()))) ; user specified monitoring paths
 
 ;; Init all fields with default values
 (for-each (lambda (x) (conf-set! (car x) (cadr x))) (default-conf-values))
