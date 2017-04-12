@@ -49,7 +49,7 @@
   #:export (regexp-split hash-keys cat bv-cat get-global-time sanitize-response
             build-response write-response get-local-time string->md5 unsafe-random
             uri-decode response-version response-code response-connection
-            response-port write-response-body read-request
+            response-port write-response-body read-request read-request-body
             get-file-ext get-global-date get-local-date string-substitute
             nfx static-filename remote-info seconds-now local-time-stamp
             parse-date write-date make-expires export-all-from-module!
@@ -103,6 +103,7 @@
 (define response-port (@ (web response) response-port))
 (define write-response-body (@ (web response) write-response-body))
 (define read-request (@ (web request) read-request))
+(define read-request-body (@ (web request) read-request-body))
 
 (define-syntax-rule (local-eval-string str e)
   (local-eval 
