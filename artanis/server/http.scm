@@ -60,7 +60,7 @@
          "This method shouldn't be called, it's likely a bug!"))
 
 (::define (http-read server client)
-  (:anno: (ragnarok-server ragnarok-client) -> (request ANY))
+  (:anno: (ragnarok-server ragnarok-client) -> (<request> ANY))
   (define (bad-request port)
     (write-response (build-response #:version '(1 . 1) #:code 400
                                     #:headers '((content-length . 0)))
@@ -85,6 +85,7 @@
                (body (if is-websock?
                          #f (read-request-body req))))
           (when (and is-websock? (get-conf 'debug-mode))
+            (DEBUG "websocket mode!~%")
             (let ((ip (client-ip client)))
               (DEBUG "The websocket based client ~a is reading...~%" ip)
               (DEBUG "Just return #f body according to Artanis convention~%")))
@@ -105,7 +106,7 @@
            (else #f)))))
 
 (::define (http-write server client response body)
-  (:anno: (ragnarok-server rangarok-client response ANY) -> ANY)
+  (:anno: (ragnarok-server rangarok-client <response> ANY) -> ANY)
   (cond
    ((get-the-redirector-of-websocket server client)
     ;; If there's a redirector has been registered by the client, then it means
