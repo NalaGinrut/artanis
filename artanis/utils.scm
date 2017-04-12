@@ -50,6 +50,7 @@
             build-response write-response get-local-time string->md5 unsafe-random
             uri-decode response-version response-code response-connection
             response-port write-response-body read-request read-request-body
+            request-uri request-method
             get-file-ext get-global-date get-local-date string-substitute
             nfx static-filename remote-info seconds-now local-time-stamp
             parse-date write-date make-expires export-all-from-module!
@@ -104,6 +105,8 @@
 (define write-response-body (@ (web response) write-response-body))
 (define read-request (@ (web request) read-request))
 (define read-request-body (@ (web request) read-request-body))
+(define request-uri (@ (web request) request-uri))
+(define request-method (@ (web request) request-method))
 
 (define-syntax-rule (local-eval-string str e)
   (local-eval 
