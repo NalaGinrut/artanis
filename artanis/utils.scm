@@ -1053,7 +1053,9 @@
   (define r6rs-record? (@ (rnrs) record?))
   (define r6rs-record-type-name (@ (rnrs) record-type-name))
   (define guile-specific-record? (@ (guile) record?))
-  (define guile-specific-record-name (@ (guile) record-type-name))
+  (define (guile-specific-record-name o)
+    ((@ (guile) record-type-name)
+     ((@ (guile) record-type-descriptor) o)))
   (cond
    ;; NOTE: record? is for R6RS record-type, but record-type? is not
    ((r6rs-record? o) (r6rs-record-type-name (record-rtd o)))
@@ -1077,7 +1079,8 @@
     (((targs ...) '-> (func-types ...))
      (for-each
       (lambda (v e)
-        (or (eq? (detect-type-name v) e)
+        (or (eq? e 'ANY)
+            (eq? (detect-type-name v) e)
             (begin
               (DEBUG "(~{~a~^ ~}) =? (~{~a~^ ~})~%" targs args)
               (throw 'artanis-err 500
@@ -1092,7 +1095,8 @@
     (((targs ...) '-> (func-types ...))
      (for-each
       (lambda (v e)
-        (or (eq? (detect-type-name v) e)
+        (or (eq? e 'ANY)
+            (eq? (detect-type-name v) e)
             (throw 'artanis-err 500
                    (format #f "`Return value ~a(~a) is expected to be type `~a'"
                            v (detect-type-name v) e))))
