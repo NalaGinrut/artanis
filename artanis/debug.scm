@@ -54,7 +54,13 @@
 (define (get-all-changed-files p)
   (define (is-valid-module-file? f)
     (irregex-match *valid-mod-re* f))
-  (let ((itorator ((assoc-ref debug-file-watcher-loops p))))
+  (define (get-watcher-iterator)
+    (let ((getter (assoc-ref debug-file-watcher-loops p)))
+      (if getter
+          (getter)
+          (throw 'artanis-err 500
+                 "BUG: The debug mode is enabled but the watcher didn't init"))))
+  (let ((itorator (get-watcher-iterator)))
     (let lp((event (itorator)) (ret '()))
       (match event
         ('inotify-event-itorator-end
