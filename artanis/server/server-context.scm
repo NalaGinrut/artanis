@@ -181,7 +181,7 @@
    (client-sockport-decriptor client)))
 
 (define (register-redirector! server client type port)
-  (hashv-set! (get-the-redirector-of-websocket server client)
+  (hashv-set! (ragnarok-server-services server)
               (client-sockport-decriptor client)
               (make-redirector
                type
@@ -255,12 +255,12 @@
 (::define (add-a-task-to-work-table! wt client task)
   (:anno: (work-table sockport task) -> ANY)
   ;;(DEBUG "add a task to work-table~%" (client-ip client))
-  (hashv-set! wt (client-sockport-decriptor client) task))
+  (hashv-set! (work-table-content wt) (client-sockport-decriptor client) task))
 
 ;; work-table -> ragnarok-client -> task
 (::define (get-task-from-work-table wt client)
   (:anno: (work-table ragnarok-client) -> task)
-  (hashv-ref wt (client-sockport-decriptor client)))
+  (hashv-ref (work-table-content wt) (client-sockport-decriptor client)))
 
 (::define (restore-working-client wt fd)
   (:anno: (work-table int) -> ragnarok-client)
