@@ -129,13 +129,19 @@
 ;; If the URL hit and haven't registered, then register it.
 ;; NOTE: The hook requires (req body) two parameters, so we can't pass server/client
 ;;       explicitly.
-(define (detect-if-connecting-websocket req _)
-  (define (if-url-need-websocket url)
+(::define (detect-if-connecting-websocket req _)
+  (:anno: (<request> ANY) -> boolean)
+  (define (url-need-websocket? url)
     (any (lambda (rule) (irregex-search rule url)) *rules-with-websocket*))
+  ;;(DEBUG "detect if connecting websocket~%")
   (let ((server (current-server))
         (client (current-client))
         (url (request-path req))
         (port (request-port req)))
-    (or (and (if-url-need-websocket url)
-             (get-the-redirector-of-websocket server client))
-        (register-redirector! server client 'websocket port))))
+    (cond
+     ((url-need-websocket? url)
+      ;; If the URL need websocket, and if it's not registered, then register it.
+      (when (not (get-the-redirector-of-websocket server client))
+        (register-redirector! server client 'websocket port))
+      #t)
+     (else #f))))
