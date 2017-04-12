@@ -210,18 +210,18 @@
 (::define (serve-one-request handler proto server client)
   (:anno: (proc ragnarok-protocol ragnarok-server ragnarok-client) -> ANY)
   (define (try-to-serve-one-request)
-    (call-with-values
-        (lambda ()
-          (DEBUG "Ragnarok: start to read client ~a~%" client)
-          (ragnarok-read proto server client))
-      (lambda (request body)
-        (DEBUG "Ragnarok: finish read client ~a~%" client)
-        (call-with-values
-            (lambda ()
-              (DEBUG "Ragnarok: new request ready~%")
-              (parameterize ((current-proto proto)
-                             (current-server server)
-                             (current-client client))
+    (parameterize ((current-proto proto)
+                   (current-server server)
+                   (current-client client))
+      (call-with-values
+          (lambda ()
+            (DEBUG "Ragnarok: start to read client ~a~%" client)
+            (ragnarok-read proto server client))
+        (lambda (request body)
+          (DEBUG "Ragnarok: finish read client ~a~%" client)
+          (call-with-values
+              (lambda ()
+                (DEBUG "Ragnarok: new request ready~%")
                 (cond
                  ((is-a-continuable-work? server client)
                   => (lambda (task)
@@ -236,7 +236,7 @@
                   (let ((kont (lambda ()
                                 (handle-request handler request body)))
                         (conn (client-sockport client))
-                        (prio #t) ; TODO: we don't have prio yet
+                        (prio #t)        ; TODO: we don't have prio yet
                         (bufsize (get-conf '(server bufsize))))
                     ;; NOTE: The block-buffer is NOT a blocking I/O. They're in totally
                     ;;       different concept. block-buffer is a mechanism to hold data in an
@@ -247,6 +247,8 @@
                     (setvbuf conn 'block)
                     (setsockopt conn SOL_SOCKET SO_SNDBUF bufsize)
                     (parameterize ((current-task (make-task conn kont prio)))
+                      (DEBUG "current server: ~a~%" (current-server))
+                      (DEBUG "current client: ~a~%" (current-client))
                       (DEBUG "Run new task ~a" (client-ip client))
                       (run-task (current-task)))))
                  (else
@@ -258,10 +260,10 @@
                   ;;    listenning socket to be `accept' to get connecting
                   ;;    socket for the actually task.
                   (DEBUG "Ragnarok: Impossible to be here, maybe a BUG?~%")
-                  (throw 'artanis-err 500 try-to-serve-one-request "Can't be here!~%")))))
-          (lambda (response body)
-            (DEBUG "Ragnarok: write client~%")
-            (ragnarok-write proto server client response body))))))
+                  (throw 'artanis-err 500 try-to-serve-one-request "Can't be here!~%"))))
+            (lambda (response body)
+              (DEBUG "Ragnarok: write client~%")
+              (ragnarok-write proto server client response body)))))))
 
   (DEBUG "Ragnarok: enter~%")
   ;; NOTE: delimited here to limit the continuation capturing granularity.
