@@ -119,8 +119,7 @@
 (define (run-task task)
   (call-with-prompt
    'serve-one-request
-   (lambda ()
-     ((task-kont task)))
+   (task-kont task)
    ragnarok-scheduler))
 
 ;; NOTE: We will call `accept' if it's listenning socket. Logically, it's
@@ -171,12 +170,14 @@
     ;;       When this handler is called, it must hit the pass-keys, which
     ;;       should be silient and throw 500.
     (values (build-response #:code 500) #f '()))
+  (DEBUG "handle request~%")
   (call-with-error-handling
    (lambda ()
      (call-with-values
          (lambda ()
            (with-stack-and-prompt
             (lambda ()
+              (DEBUG "prepare the handler~%")
               (handler request body))))
        (lambda (response body)
          (call-with-values
@@ -236,7 +237,7 @@
                   (let ((kont (lambda ()
                                 (handle-request handler request body)))
                         (conn (client-sockport client))
-                        (prio #t)        ; TODO: we don't have prio yet
+                        (prio #t) ; TODO: we don't have prio yet
                         (bufsize (get-conf '(server bufsize))))
                     ;; NOTE: The block-buffer is NOT a blocking I/O. They're in totally
                     ;;       different concept. block-buffer is a mechanism to hold data in an
@@ -247,9 +248,6 @@
                     (setvbuf conn 'block)
                     (setsockopt conn SOL_SOCKET SO_SNDBUF bufsize)
                     (parameterize ((current-task (make-task conn kont prio)))
-                      (DEBUG "current server: ~a~%" (current-server))
-                      (DEBUG "current client: ~a~%" (current-client))
-                      (DEBUG "Run new task ~a" (client-ip client))
                       (run-task (current-task)))))
                  (else
                   ;; NOTE: If we come here, it means the ready socket is NEITHER:
@@ -261,7 +259,10 @@
                   ;;    socket for the actually task.
                   (DEBUG "Ragnarok: Impossible to be here, maybe a BUG?~%")
                   (throw 'artanis-err 500 try-to-serve-one-request "Can't be here!~%"))))
-            (lambda (response body)
+            (lambda (response body _)
+              ;; NOTE: We provide the 3rd parameter here to keep it compatible with
+              ;;       the continuation of Guile built-in server, although it's
+              ;;       useless in Ragnarok.
               (DEBUG "Ragnarok: write client~%")
               (ragnarok-write proto server client response body)))))))
 
