@@ -393,7 +393,7 @@
   ;; FIXME:
   ;; Since body could be string/bv, and we haven't supported multi-types yet,
   ;; then we just use ANY type here to ingore the body type.
-  (:anno: (ragnarok-protocol ragnarok-server ragnarok-client response ANY) -> ANY)
+  (:anno: (ragnarok-protocol ragnarok-server ragnarok-client <response> ANY) -> ANY)
   (DEBUG "ragnarok-write ~a~%" (client-ip client))
   ((ragnarok-protocol-write proto) server client response body))
 
