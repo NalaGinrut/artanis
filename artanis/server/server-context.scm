@@ -253,7 +253,7 @@
 
 ;; work-table -> sockport -> task -> ANY
 (::define (add-a-task-to-work-table! wt client task)
-  (:anno: (work-table sockport task) -> ANY)
+  (:anno: (work-table ragnarok-client task) -> ANY)
   ;;(DEBUG "add a task to work-table~%" (client-ip client))
   (hashv-set! (work-table-content wt) (client-sockport-decriptor client) task))
 
