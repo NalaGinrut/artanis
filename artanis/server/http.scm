@@ -25,7 +25,8 @@
   #:use-module (artanis server server-context)
   #:use-module (artanis server epoll)
   #:use-module (artanis server scheduler)
-  #:use-module ((rnrs) #:select (put-bytevector bytevector?))
+  #:use-module ((rnrs) #:select (put-bytevector bytevector? get-bytevector-n
+                                 bytevector-length))
   #:export (new-http-protocol))
 
 (define (clean-current-conn-fd server client)
@@ -59,17 +60,44 @@
   (throw 'artanis-err 500 http-open
          "This method shouldn't be called, it's likely a bug!"))
 
+(define (http-read-body port content-length)
+  (let ((nbytes (* (get-conf '(server bufsize)) (get-conf '(server sbs)))))
+    (and nbytes
+         (let lp ((bv (get-bytevector-n port nbytes)) (total-size 0))
+           (cond
+            ((= content-length total-size)
+             bv)
+            ((eof-object? (peek-char port))
+             (throw 'artanis-err 400 http-read-body
+                    "EOF while reading request body: ~a bytes of ~a"
+                    (bytevector-length bv) nbytes))
+            (else
+             ;; Each time read Size-Before-Schedule (sbs) will cause a schedule
+             (break-task) ; schedule for next time
+             (lp (get-bytevector-n port nbytes)
+                 (+ total-size (bytevector-length bv)))))))))
+
 (::define (http-read server client)
   (:anno: (ragnarok-server ragnarok-client) -> (<request> ANY))
-  (define (bad-request port)
-    (write-response (build-response #:version '(1 . 1) #:code 400
+  (define (bad-request status port)
+    (write-response (build-response #:version '(1 . 1) #:code status
                                     #:headers '((content-length . 0)))
                     port))
-  (DEBUG "Enter http-open ~a~%" (client-ip client))
+  (define (try-to-read-request-body req)
+    (DEBUG "try to read request body ~a~%" req)
+    (let ((content-length (or (request-content-length req) 0))
+          (port (request-port req)))
+      (cond
+       ((> content-length (get-conf '(upload size)))
+        (throw 'artanis-err 419 try-to-read-request-body "Entity is too large!"))
+       ((zero? content-length) #f)
+       (else
+        (http-read-body port content-length)))))
+  (DEBUG "Enter http-read ~a~%" (client-ip client))
   (let ((port (client-sockport client)))
    (cond
     ((eof-object? (peek-char port))
-     (DEBUG "Encountered EOF, closing ~a~%" (address->ip client))
+     (DEBUG "Encountered EOF, closing ~a~%" (client-ip client))
      (%%raw-close-connection server client))
     (else
      (with-throw-handler
@@ -83,7 +111,7 @@
         (let* ((req (read-request port))
                (is-websock? (detect-if-connecting-websocket req #f))
                (body (if is-websock?
-                         #f (read-request-body req))))
+                         #f (try-to-read-request-body req))))
           (when (and is-websock? (get-conf 'debug-mode))
             (DEBUG "websocket mode!~%")
             (let ((ip (client-ip client)))
@@ -91,7 +119,13 @@
               (DEBUG "Just return #f body according to Artanis convention~%")))
             (values req body)))
       (lambda (k . e)
-        (bad-request port)
+        (apply format (artanis-current-output) (cadr e) (cddr e))
+        (case k
+          ((artanis-err)
+           (bad-request (car e) port))
+         (else
+          ;; General 400 error
+          (bad-request 400 port)))
         (close-port port)))))))
 
 (define (keep-alive? response)
