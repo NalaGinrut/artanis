@@ -67,6 +67,8 @@
     ((server polltimeout) 500) ; in miliseconds
     ;; From "HOP, A Fast Server for the Diffuse Web", Serrano.
     ((server bufsize) 12288) ; in Bytes
+    ;; read size before schedule, it is N times of (server bufsize)
+    ((server sbs) 1)
 
     ;; for host namespace
     ((host name) #f)
@@ -82,6 +84,8 @@
     ;; for upload namespace
     ((upload types) (jpg png gif))
     ((upload path) "upload")
+    ((upload size) 100000000000 #;"5M"
+     )
 
     ;; for mail namespace
     ;; ((mail sender) "/usr/sbin/sendmail")
@@ -148,6 +152,7 @@
     (('trigger trigger) (conf-set! '(server trigger) (string->symbol trigger)))
     (('polltimeout polltimeout) (conf-set! '(server polltimeout) (->integer polltimeout)))
     (('bufsize bufsize) (conf-set! '(server bufsize) (->integer bufsize)))
+    (('sbs sbs) (conf-set! '(server sbs) (->integer sbs)))
     (('impl impl) (conf-set! '(server impl) (string->symbol impl)))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 
@@ -169,6 +174,7 @@
   (match item
     (('types types) (conf-set! '(upload types) (->list types)))
     (('path path) (conf-set! '(upload path) path))
+    (('size size) (conf-set! '(upload size) (->integer size)))
     (else (error parse-namespace-upload "Config: Invalid item" item))))
 
 (define (parse-namespace-mail item)
