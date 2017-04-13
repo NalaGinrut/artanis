@@ -106,7 +106,7 @@
            (else #f)))))
 
 (::define (http-write server client response body)
-  (:anno: (ragnarok-server rangarok-client <response> ANY) -> ANY)
+  (:anno: (ragnarok-server ragnarok-client <response> ANY) -> ANY)
   (cond
    ((get-the-redirector-of-websocket server client)
     ;; If there's a redirector has been registered by the client, then it means
