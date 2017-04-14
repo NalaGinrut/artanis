@@ -79,7 +79,8 @@
             flush-to-migration-cache gen-local-conf-file with-dbd errno
             call-with-sigint define-box-type make-box-type unbox-type
             ::define did-not-specify-parameter WARN-TEXT ERROR-TEXT REASON-TEXT
-            NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr request-path)
+            NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr request-path
+            keep-alive?)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -1208,3 +1209,14 @@
 
 (define (request-path req)
   (uri-path (request-uri req)))
+
+(define (keep-alive? response)
+  (let ((v (response-version response)))
+    (and (or (< (response-code response) 400)
+             (= (response-code response) 404))
+         (case (car v)
+           ((1)
+            (case (cdr v)
+              ((1) (not (memq 'close (response-connection response))))
+              ((0) (memq 'keep-alive (response-connection response)))))
+           (else #f)))))
