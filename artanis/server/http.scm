@@ -25,8 +25,8 @@
   #:use-module (artanis server server-context)
   #:use-module (artanis server epoll)
   #:use-module (artanis server scheduler)
-  #:use-module ((rnrs) #:select (put-bytevector bytevector? get-bytevector-n
-                                 bytevector-length))
+  #:use-module ((rnrs) #:select (put-bytevector bytevector? get-bytevector-n!
+                                 bytevector-length make-bytevector))
   #:export (new-http-protocol))
 
 (define (clean-current-conn-fd server client)
@@ -50,8 +50,10 @@
 ;; 2. close fd
 ;; 3. abort to the main-loop
 (define (%%raw-close-connection server client)
+  (DEBUG "clean current client ~a is closed: ~a~%" (client-sockport client)
+         (port-closed? (client-sockport client)))
   (clean-current-conn-fd server client)
-  ;; Trigger the `abort' and back the main-loop
+  ;; clean from work-table
   (close-task))
 
 ;; NOTE: HTTP service is established by default, so it's unecessary to do any
@@ -61,9 +63,11 @@
          "This method shouldn't be called, it's likely a bug!"))
 
 (define (http-read-body port content-length)
-  (let ((nbytes (* (get-conf '(server bufsize)) (get-conf '(server sbs)))))
+  (let ((nbytes (* (get-conf '(server bufsize)) (get-conf '(server sbs))))
+        (bv (make-bytevector content-length 0))
+        (start 0))
     (and nbytes
-         (let lp ((bv (get-bytevector-n port nbytes)) (total-size 0))
+         (let lp ((read-length (get-bytevector-n! port bv start nbytes)) (total-size start))
            (cond
             ((= content-length total-size)
              bv)
@@ -74,8 +78,9 @@
             (else
              ;; Each time read Size-Before-Schedule (sbs) will cause a schedule
              (break-task) ; schedule for next time
-             (lp (get-bytevector-n port nbytes)
-                 (+ total-size (bytevector-length bv)))))))))
+             (let ((new-start (+ total-size read-length)))
+               (lp (get-bytevector-n! port bv new-start nbytes)
+                   new-start))))))))
 
 (::define (http-read server client)
   (:anno: (ragnarok-server ragnarok-client) -> (<request> ANY))
@@ -126,18 +131,7 @@
          (else
           ;; General 400 error
           (bad-request 400 port)))
-        (close-port port)))))))
-
-(define (keep-alive? response)
-  (let ((v (response-version response)))
-    (and (or (< (response-code response) 400)
-             (= (response-code response) 404))
-         (case (car v)
-           ((1)
-            (case (cdr v)
-              ((1) (not (memq 'close (response-connection response))))
-              ((0) (memq 'keep-alive (response-connection response)))))
-           (else #f)))))
+        (%%raw-close-connection server client)))))))
 
 (::define (http-write server client response body)
   (:anno: (ragnarok-server ragnarok-client <response> ANY) -> ANY)
@@ -152,7 +146,9 @@
                (ip (client-ip client)))
            (DEBUG "The redirected ~a client ~a is writing...~%" type ip)
            (DEBUG "Just suspended...~%")
-           (break-task))))
+           ((redirector-writer redirector) redirector)
+           (break-task)
+           (http-write server client response body))))
    (else
     (let* ((res (write-response response (client-sockport client)))
            (port (response-port res)))  ; return the continued port
@@ -160,25 +156,18 @@
       (cond
        ((not body)) ; pass
        ((bytevector? body)
-        (write-response-body res body))
+        (write-response-body res body)
+        (force-output port))
        ((thunk? body) (body))
        (else
-        (throw 'artanis-err 500 "1: Expected a bytevector for body" body)))
-      (cond
-       ((must-close-connection?)
-        (%%raw-close-connection server client))
-       ((keep-alive? res)
-        (force-output port)
-        (break-task))
-       (else
-        (%%raw-close-connection server client)))
-      (values)))))
+        (throw 'artanis-err 500 "1: Expected a bytevector for body" body)))))))
 
 ;; Check if the client in the redirectors table:
 ;; 1. In the table, just scheduled for next time.
 ;; 2. Not in the table, just close the connection.
 (::define (http-close server client)
   (:anno: (ragnarok-server ragnarok-client) -> ANY)
+  (DEBUG "http close ~a~%" (client-ip client))
   (cond
    ((and (not (must-close-connection?))
          (get-the-redirector-of-websocket server client))
@@ -191,7 +180,9 @@
                (ip (client-ip client)))
            (DEBUG "The ~a client ~a is suspending...~%" type ip)
            (break-task))))
-   (else (%%raw-close-connection server client))))
+   (else
+    (DEBUG "do close connection~%")
+    (%%raw-close-connection server client))))
 
 (define (new-http-protocol)
   (make-ragnarok-protocol 'http http-open http-read http-write http-close))
