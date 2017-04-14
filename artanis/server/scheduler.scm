@@ -27,7 +27,8 @@
             schedule-with-command
             break-task
             close-task
-            schedule-if-locked))
+            schedule-if-locked
+            close-current-task!))
 
 ;; NOTE: We must pass parameters here, say, current-proto, etc.
 ;;       Because the abort handler (here, the scheduler) will not capture
@@ -65,10 +66,10 @@
 ;;       from work-table. We don't remove the head when we close it.
 (define (save-current-task! k proto client server)
   (let* ((wt (current-work-table server))
-         (conn (client-sockport client))
-         (task (make-task conn k (compute-prio proto client server))))
-    (DEBUG "Save current task!~%")
-    (add-a-task-to-work-table! wt client task)))
+         (task (make-task client k (compute-prio proto client server))))
+    (DEBUG "Save current task ~a!~%" client)
+    (add-a-task-to-work-table! wt client task)
+    (DEBUG "Save ok~%")))
 
 ;; clean task from work-table
 (define (close-current-task! server client)
