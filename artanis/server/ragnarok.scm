@@ -34,7 +34,7 @@
   #:use-module (artanis server epoll)
   #:use-module (artanis server server-context)
   #:use-module (artanis server scheduler)
-  #:use-module (artanis aio)
+  #:use-module (artanis server aio)
   #:use-module ((srfi srfi-1) #:select (fold))
   #:use-module (system repl error-handling)
   #:use-module (srfi srfi-9)
@@ -55,6 +55,7 @@
           (fcntl sock F_SETFL (logior O_NONBLOCK (fcntl sock F_GETFL 0))))
     (bind sock family addr port)
     (listen sock (get-conf '(server backlog)))
+    (DEBUG "Listen socket is ~a~%" sock)
     sock))
 
 (define (generate-work-tables)
@@ -111,7 +112,7 @@
          (task (get-task-from-work-table wt client)))
     (cond
      (task ; if task exists in work-table
-      (DEBUG "Continuable work ~a" (client-ip client))
+      (DEBUG "Continuable work ~a~%" (client-ip client))
       (remove-from-work-table! wt client) ; then remove it from work-table
       task) ; and return this task for later application (restore the execution)
      (else #f)))) ; not a continuable work since it's not in the work-table
@@ -140,28 +141,32 @@
     (display "gogogo\n")
     (for-each
      (lambda (e)
+       (DEBUG "Checking event ~a~%" e)
        (let ((client
               (cond
                ((is-listenning-fd? e)
-                (DEBUG "New connection~%")
-                (new-ragnarok-client (accept (ragnarok-server-listen-socket server))))
+                (DEBUG "New connection ~a~%" e)
+                (pk "new client"(new-ragnarok-client (accept (ragnarok-server-listen-socket server)))))
                ((is-peer-shutdown? e)
                 (DEBUG "Peer shutdown ~a~%" e)
                 (parameterize ((must-close-connection? #t))
                   (ragnarok-close
                    proto
                    server
-                   (restore-working-client server (car e)))
+                   (restore-working-client (current-work-table server) (car e)))
+                  (DEBUG "Closed ~a~%" e)
                   #f))
                (else
                 (DEBUG "Restore working client ~a~%" e)
-                (restore-working-client server (car e))))))
+                (pk "restore client"(restore-working-client (current-work-table server) (car e)))))))
          (cond
           (client
+           (DEBUG "start~%")
            (DEBUG "now get client ~a~%" (client-ip client))
+           (DEBUG "end~%")
            (ready-queue-in! rq client))
           (else
-           (DEBUG "The client ~a is shutdown~%" e)))))
+           (DEBUG "The client ~a was shutdown~%" e)))))
      (epoll-wait epfd events timeout))))
 
 (define (handle-request handler request body)
@@ -208,70 +213,91 @@
  (let ((listen-socket (ragnarok-server-listen-socket server)))
    (= (port->fdes listen-socket) (client-sockport-decriptor client))))
 
+(define (register-connecting-socket epfd conn-port)
+  (DEBUG "register ~a as RW event~%" conn-port)
+  (epoll-ctl epfd EPOLL_CTL_ADD (port->fdes conn-port)
+             (make-epoll-event (port->fdes conn-port) (gen-rw-event))
+             #:keep-alive? #t))
+
 (::define (serve-one-request handler proto server client)
   (:anno: (proc ragnarok-protocol ragnarok-server ragnarok-client) -> ANY)
   (define (try-to-serve-one-request)
     (parameterize ((current-proto proto)
                    (current-server server)
                    (current-client client))
-      (call-with-values
-          (lambda ()
-            (DEBUG "Ragnarok: start to read client ~a~%" client)
-            (ragnarok-read proto server client))
-        (lambda (request body)
-          (DEBUG "Ragnarok: finish read client ~a~%" client)
-          (call-with-values
-              (lambda ()
-                (DEBUG "Ragnarok: new request ready~%")
-                (cond
-                 ((is-a-continuable-work? server client)
-                  => (lambda (task)
-                       (DEBUG "Ragnarok: continue request~%")
-                       (parameterize ((current-task task))
-                         (run-task task))))
-                 ((not (is-listenning-socket? server client))
-                  (DEBUG "Ragnarok: new request ~a~%" client)
-                  ;; The ready socket is listenning socket, so we need to call
-                  ;; `accept' on it to get a connecting socket. And create a
-                  ;; new task with this new connecting socket.
-                  (let ((kont (lambda ()
-                                (handle-request handler request body)))
-                        (conn (client-sockport client))
-                        (prio #t) ; TODO: we don't have prio yet
-                        (bufsize (get-conf '(server bufsize))))
-                    ;; NOTE: The block-buffer is NOT a blocking I/O. They're in totally
-                    ;;       different concept. block-buffer is a mechanism to hold data in an
-                    ;;       allocated memeory block. Blocking I/O means the I/O operation
-                    ;;       has to stop before the data is fully received.
-                    ;; NOTE: For blocking I/O, buffering is always meaningless. We're using
-                    ;;       non-blocking I/O, so we need block-buffer.
-                    (setvbuf conn 'block)
-                    (setsockopt conn SOL_SOCKET SO_SNDBUF bufsize)
-                    (parameterize ((current-task (make-task conn kont prio)))
-                      (run-task (current-task)))))
-                 (else
-                  ;; NOTE: If we come here, it means the ready socket is NEITHER:
-                  ;; 1. A continuable task
-                  ;;    The connecting socket which was registered to work-table
-                  ;; 2. The listenning socket
-                  ;;    It means a new request is on-site. It requires this
-                  ;;    listenning socket to be `accept' to get connecting
-                  ;;    socket for the actually task.
-                  (DEBUG "Ragnarok: Impossible to be here, maybe a BUG?~%")
-                  (throw 'artanis-err 500 try-to-serve-one-request "Can't be here!~%"))))
-            (lambda (response body _)
-              ;; NOTE: We provide the 3rd parameter here to keep it compatible with
-              ;;       the continuation of Guile built-in server, although it's
-              ;;       useless in Ragnarok.
-              (DEBUG "Ragnarok: write client~%")
-              (ragnarok-write proto server client response body)))))))
+      (DEBUG "Ragnarok: finish read client ~a~%" client)
+      (cond
+       ((is-a-continuable-work? server client)
+        => (lambda (task)
+             (DEBUG "Ragnarok: continue request~%")
+             (parameterize ((current-task task))
+               (run-task task))))
+       ((not (is-listenning-socket? server client))
+        (DEBUG "Ragnarok: new request ~a~%" client)
+        ;; The ready socket is listenning socket, so we need to call
+        ;; `accept' on it to get a connecting socket. And create a
+        ;; new task with this new connecting socket.
+        (let ((epfd (ragnarok-server-epfd server))
+              (kont (lambda ()
+                      (DEBUG "Ragnarok: new task from ~a ~%" (client-sockport client))
+                      (call-with-values
+                          (lambda ()
+                            (DEBUG "Ragnarok: start to read client ~a~%" client)
+                            (ragnarok-read proto server client))
+                        (lambda (request body)
+                          (call-with-values
+                              (lambda ()
+                                (handle-request handler request body))
+                            (lambda (response body _)
+                              ;; NOTE: We provide the 3rd parameter here to keep it
+                              ;;       compatible with the continuation of Guile built-in
+                              ;;       server, although it's useless in Ragnarok.
+                              (DEBUG "Ragnarok: write client~%")
+                              (ragnarok-write proto server client response body)
+                              (when (not (keep-alive? response))
+                                (ragnarok-close proto server client))))))))
+              (conn (client-sockport client))
+              (prio #t)                 ; TODO: we don't have prio yet
+              (bufsize (get-conf '(server bufsize)))
+              (wt (current-work-table server)))
+          ;; Register new connection socket to epoll event set, or it can't be
+          ;; raised again.
+          ;; NOTE: We don't add it again if the client has already been kept alive.
+          (register-connecting-socket epfd conn)
+          ;; NOTE: The block-buffer is NOT a blocking I/O. They're in totally
+          ;;       different concept. block-buffer is a mechanism to hold data in an
+          ;;       allocated memeory block. Blocking I/O means the I/O operation
+          ;;       has to stop before the data is fully received.
+          ;; NOTE: For blocking I/O, buffering is always meaningless. We're using
+          ;;       non-blocking I/O, so we need block-buffer.
+          (setvbuf conn 'block)
+          (setsockopt conn SOL_SOCKET SO_SNDBUF bufsize)
+          (setsockopt conn SOL_SOCKET SO_KEEPALIVE 1)
+          ;; If `edge' mode, then set new connection port to non-blocking
+          (when (eq? 'edge (get-conf '(server trigger)))
+            (fcntl conn F_SETFL (logior O_NONBLOCK (fcntl conn F_GETFL 0))))
+          ;; NOTE: Each new task will be treated just like it's aborted to be scheduled,
+          ;;       and will be added to the work-table. It means new task will not run
+          ;;       immediately.
+          (add-a-task-to-work-table! wt client (make-task client kont prio))))
+       (else
+        ;; NOTE: If we come here, it means the ready socket is NEITHER:
+        ;; 1. A continuable task
+        ;;    The connecting socket which was registered to work-table
+        ;; 2. The listenning socket
+        ;;    It means a new request is on-site. It requires this
+        ;;    listenning socket to be `accept' to get connecting
+        ;;    socket for the actually task.
+        (DEBUG "Ragnarok: Impossible to be here, maybe a BUG?~%")
+        (throw 'artanis-err 500 try-to-serve-one-request "Can't be here!~%")))))
 
   (DEBUG "Ragnarok: enter~%")
   ;; NOTE: delimited here to limit the continuation capturing granularity.
   (call-with-prompt
    'serve-one-request
    try-to-serve-one-request
-   ragnarok-scheduler))
+   ragnarok-scheduler)
+  (DEBUG "done here~%"))
 
 (define (guile-builtin-server-run handler)
   (apply (@ (web server) run-server) handler 'http
@@ -312,7 +338,8 @@
          ;; handle C-c to break the server loop properly
          (lambda ()
            (DEBUG "Prepare to serve one request ~a~%" (client-ip client))
-           (serve-one-request handler http server client))
+           (serve-one-request handler http server client)
+           (DEBUG "Serve one done~%"))
          (lambda ()
            ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
            ;; NOTE: The parameters will be lost when exception raised here, so we can't
