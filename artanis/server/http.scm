@@ -54,7 +54,8 @@
          (port-closed? (client-sockport client)))
   (clean-current-conn-fd server client)
   ;; clean from work-table
-  (close-task))
+  #;(close-task)
+  (close-current-task! server client))
 
 ;; NOTE: HTTP service is established by default, so it's unecessary to do any
 ;;       openning work.
@@ -98,7 +99,7 @@
        ((zero? content-length) #f)
        (else
         (http-read-body port content-length)))))
-  (DEBUG "Enter http-read ~a~%" (client-ip client))
+  (DEBUG "Enter http-read ~a~%" (client-sockport client))
   (let ((port (client-sockport client)))
    (cond
     ((eof-object? (peek-char port))
