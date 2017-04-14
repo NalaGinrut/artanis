@@ -142,6 +142,6 @@
      ((url-need-websocket? url)
       ;; If the URL need websocket, and if it's not registered, then register it.
       (when (not (get-the-redirector-of-websocket server client))
-        (register-redirector! server client 'websocket port))
+        (register-redirector! server client #f #f 'websocket port))
       #t)
      (else #f))))
