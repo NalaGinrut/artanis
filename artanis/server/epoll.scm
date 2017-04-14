@@ -179,17 +179,21 @@
                       (dynamic-func "epoll_ctl" (dynamic-link))
                       (list int int int '*)))
 
-(define-public (epoll-ctl epfd op fd event)
+(define* (epoll-ctl epfd op fd event #:key (keep-alive? #f))
   (let* ((ret (%epoll-ctl epfd op fd (if event
                                          (bytevector->pointer event)
                                          %null-pointer)))
          (err (errno)))
     (cond
      ((zero? ret) ret)
+     ((and (= ret EEXIST) keep-alive?)
+      (DEBUG "The event ~a exist and kept alive~%" fd)
+      0)
      (else
-      (throw 'artanis-err 500 epoll-ctl "~S: ~A"
+      (throw 'artanis-err 500 epoll-ctl "~a: ~a"
              (list epfd op fd event (strerror err))
              (list err))))))
+(export epoll-ctl)
 
 ;; NOTE: do NOT use this function outside this module!!!
 (define (epoll-event-set->list ees nfds)
