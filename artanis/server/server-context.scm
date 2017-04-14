@@ -60,6 +60,8 @@
 
             make-redirector
             redirector?
+            redirector-reader
+            redirector-writer
             redirector-type
             redirector-port
             redirector-count
@@ -154,6 +156,8 @@
 
 (define-record-type redirector
   (fields
+   reader      ; the registered reader
+   writer      ; the registered writer
    type        ; proxy or websocket
    port        ; remote port or #f
    count       ; transfered bytes, maybe useful
@@ -180,10 +184,12 @@
    (ragnarok-server-services server)
    (client-sockport-decriptor client)))
 
-(define (register-redirector! server client type port)
+(define (register-redirector! server client reader writer type port)
   (hashv-set! (ragnarok-server-services server)
               (client-sockport-decriptor client)
               (make-redirector
+               reader
+               writer
                type
                port
                0
@@ -191,7 +197,7 @@
 
 (define-record-type task
   (fields
-   client ; connecting client
+   client ; connecting client: <port, opt> 
    kont   ; delimited continuation
    prio)) ; priority
 
@@ -251,10 +257,10 @@
   (:anno: (work-table ragnarok-client) -> ANY)
   (hashv-remove! (work-table-content wt) (client-sockport-decriptor client)))
 
-;; work-table -> sockport -> task -> ANY
+;; work-table -> ragnarok-client -> task -> ANY
 (::define (add-a-task-to-work-table! wt client task)
   (:anno: (work-table ragnarok-client task) -> ANY)
-  ;;(DEBUG "add a task to work-table~%" (client-ip client))
+  (DEBUG "NOW work-table ~a~%" (work-table-content wt))
   (hashv-set! (work-table-content wt) (client-sockport-decriptor client) task))
 
 ;; work-table -> ragnarok-client -> task
@@ -265,10 +271,13 @@
 (::define (restore-working-client wt fd)
   (:anno: (work-table int) -> ragnarok-client)
   (let ((task (hashv-ref (work-table-content wt) fd)))
-    (if task
-        (task-client task)
-        (throw 'artanis-err 500 restore-working-client
-               "BUG: No such client ~a%" fd))))
+    (cond
+     (task
+      ;; NOTE: Don't remove the task here, we will remove it later
+      (task-client task))
+     (else
+      (throw 'artanis-err 500 restore-working-client
+             "BUG: No such client ~a%" fd)))))
 
 ;; This is a table to record client and proto pairs (CP pairs), client is the
 ;; key while protocol name is the value.
