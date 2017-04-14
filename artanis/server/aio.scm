@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016
+;;  Copyright (C) 2016,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -20,7 +20,8 @@
 ;; =============================================================================
 ;; Asynchronous I/O wrapper
 ;;
-;; Actually this module is unnecessary for Guile-2.2, but I want to give unified
+;; Actually this module is unnecessary for Guile-2.2 since the I/O waiter is handled
+;; by Guile core automatically, but I want to provide an unified
 ;; interface for users who want to add their own extra server engine to Artanis.
 ;; So one may use this aio interface to make sure Artanis is happy.
 ;; =============================================================================
@@ -28,7 +29,6 @@
 (define-module (artanis server aio)
   #:use-module (artanis utils)
   #:use-module (artanis server scheduler)
-  #:use-module (ice-9 suspendable-ports)
   #:export (async-read-waiter
             async-write-waiter
             define-artanis-read-waiter
