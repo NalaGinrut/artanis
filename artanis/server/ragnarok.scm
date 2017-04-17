@@ -232,7 +232,8 @@
   (DEBUG "AAAAAAAA: register ~a as RW event~%" conn-port)
   (epoll-ctl epfd EPOLL_CTL_ADD (port->fdes conn-port)
              (make-epoll-event (port->fdes conn-port) (gen-rw-event))
-             #:keep-alive? #t))
+             #:keep-alive? #t)
+  (DEBUG "register End~%"))
 
 (::define (serve-one-request handler proto server client)
   (:anno: (proc ragnarok-protocol ragnarok-server ragnarok-client) -> ANY)
@@ -247,34 +248,38 @@
                         (current-task task))
            (run-task task))))
    ((not (is-listenning-socket? server client))
-    (DEBUG "+++++++Ragnarok: new request ~a~%" (client-sockport client))
+    (DEBUG "Ragnarok: new request ~a~%" (client-sockport client))
     ;; The ready socket is listenning socket, so we need to call
     ;; `accept' on it to get a connecting socket. And create a
     ;; new task with this new connecting socket.
-    (let ((epfd (ragnarok-server-epfd server))
-          (kont (lambda ()
-                  (DEBUG "Ragnarok: new task from ~a ~%"
-                         (client-sockport (current-client)))
-                  (call-with-values
-                      (lambda ()
-                        (DEBUG "Ragnarok: start to read client ~a~%" client)
-                        (ragnarok-read (current-proto) (current-server) (current-client)))
-                    (lambda (request body)
-                      (call-with-values
-                          (lambda ()
-                            (handle-request handler request body))
-                        (lambda (response body _)
-                          ;; NOTE: We provide the 3rd parameter here to keep it
-                          ;;       compatible with the continuation of Guile built-in
-                          ;;       server, although it's useless in Ragnarok.
-                          (DEBUG "Ragnarok: write client~%")
-                          (ragnarok-write (current-proto) (current-server)
-                                          (current-client) response body)
-                          (when (not (keep-alive? response))
-                            (ragnarok-close (current-proto) (current-server)
-                                            (current-client)))))))))
-          (conn (client-sockport client))
-          (prio #t)                 ; TODO: we don't have prio yet
+    (letrec ((epfd (ragnarok-server-epfd server))
+             (kont (lambda ()
+                     (DEBUG "Ragnarok: new task from ~a <-> ~a ~%"
+                            (client-sockport client) (client-sockport (current-client)))
+                     (call-with-values
+                         (lambda ()
+                           (DEBUG "Ragnarok: start to read client ~a~%" client)
+                           (ragnarok-read proto server client))
+                       (lambda (request body)
+                         (call-with-values
+                             (lambda ()
+                               (handle-request handler request body))
+                           (lambda (response body _)
+                             ;; NOTE: We provide the 3rd parameter here to keep it
+                             ;;       compatible with the continuation of Guile built-in
+                             ;;       server, although it's useless in Ragnarok.
+                             (DEBUG "Ragnarok: write client~%")
+                             (ragnarok-write proto server client response body)
+                             (cond
+                              ((not (keep-alive? response))
+                               (ragnarok-close proto server client)
+                               (values))
+                              (else
+                               (DEBUG "Client ~a keep alive~%" (client-sockport client))
+                               (break-task)
+                               (kont)))))))))
+             (conn (client-sockport client))
+             (prio #t) ; TODO: we don't have prio yet
           (bufsize (get-conf '(server bufsize)))
           (wt (current-work-table server)))
       ;; Register new connection socket to epoll event set, or it can't be
@@ -296,7 +301,11 @@
       ;; NOTE: Each new task will be treated just like it's aborted to be scheduled,
       ;;       and will be added to the work-table. It means new task will not run
       ;;       immediately.
-      (add-a-task-to-work-table! wt client (make-task client kont prio))))
+      (parameterize ((current-server server)
+                     (current-client client)
+                     (current-proto proto)
+                     (current-task (make-task client kont prio)))
+        (run-task (current-task)))))
    (else
     ;; NOTE: If we come here, it means the ready socket is NEITHER:
     ;; 1. A continuable task
