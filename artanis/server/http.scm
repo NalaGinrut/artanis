@@ -30,7 +30,8 @@
   #:export (new-http-protocol))
 
 (define (clean-current-conn-fd server client)
-  (let ((conn-fd (client-sockport-decriptor client))
+  (let ((conn (client-sockport client))
+        (conn-fd (client-sockport-decriptor client))
         (epfd (ragnarok-server-epfd server)))
     ;; NOTE:
     ;; In kernel versions before 2.6.9, the EPOLL_CTL_DEL operation required a
@@ -41,9 +42,10 @@
     ;; So, Artanis isn't compatible with Linux 2.6.9 and before.
     (epoll-ctl epfd EPOLL_CTL_DEL conn-fd #f) ; #f means %null-pointer here
     ;; Close the connection gracefully
-    ;; FIXME: shutdown or close ?
-    ;;(shutdown conn-fd 2) ; Stop both recv and trans
-    (close conn-fd))) ; deallocate the File Descriptor
+    ;; NOTE: `shutdown' is preferred here, for `close' may cause half-connections
+    ;;       and the work-table will get wrong result.
+    ;; Stop both recv and trans
+    (when (not (port-closed? conn)) (shutdown conn 2))))
 
 ;; NOTE: Close operation must follow these steps:
 ;; 1. remove fd from epoll event
@@ -53,8 +55,8 @@
   (DEBUG "clean current client ~a is closed: ~a~%" (client-sockport client)
          (port-closed? (client-sockport client)))
   (clean-current-conn-fd server client)
+  ;; ((@@ (artanis server ragnarok) print-work-table) server)
   ;; clean from work-table
-  #;(close-task)
   (close-current-task! server client))
 
 ;; NOTE: HTTP service is established by default, so it's unecessary to do any
@@ -103,7 +105,7 @@
   (let ((port (client-sockport client)))
    (cond
     ((eof-object? (peek-char port))
-     (DEBUG "Encountered EOF, closing ~a~%" (client-ip client))
+     (DEBUG "Encountered EOF, closing ~a~%" (client-sockport client))
      (%%raw-close-connection server client))
     (else
      (with-throw-handler
@@ -168,7 +170,7 @@
 ;; 2. Not in the table, just close the connection.
 (::define (http-close server client)
   (:anno: (ragnarok-server ragnarok-client) -> ANY)
-  (DEBUG "http close ~a~%" (client-ip client))
+  (DEBUG "http close ~a~%" (client-sockport client))
   (cond
    ((and (not (must-close-connection?))
          (get-the-redirector-of-websocket server client))
