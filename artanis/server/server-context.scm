@@ -72,8 +72,8 @@
             make-task
             task?
             task-client
-            task-kont
-            task-prio
+            task-kont task-kont-set!
+            task-prio task-prio-set!
 
             new-ragnarok-client
             ragnarok-client?
@@ -198,8 +198,8 @@
 (define-record-type task
   (fields
    client ; connecting client: <port, opt> 
-   kont   ; delimited continuation
-   prio)) ; priority
+   (mutable kont) ; delimited continuation
+   (mutable prio))) ; priority
 
 (define-box-type ragnarok-client)
 (define (new-ragnarok-client v)
@@ -255,12 +255,14 @@
 ;; work-table -> ragnarok-client -> ANY
 (::define (remove-from-work-table! wt client)
   (:anno: (work-table ragnarok-client) -> ANY)
+  (DEBUG "Removed task ~a~%" (client-sockport client))
   (hashv-remove! (work-table-content wt) (client-sockport-decriptor client)))
 
 ;; work-table -> ragnarok-client -> task -> ANY
 (::define (add-a-task-to-work-table! wt client task)
   (:anno: (work-table ragnarok-client task) -> ANY)
-  (DEBUG "NOW work-table ~a~%" (work-table-content wt))
+  (DEBUG "Add new task ~a == ~a~%"
+         (client-sockport client) (client-sockport (task-client task)))
   (hashv-set! (work-table-content wt) (client-sockport-decriptor client) task))
 
 ;; work-table -> ragnarok-client -> task
