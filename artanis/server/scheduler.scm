@@ -66,7 +66,9 @@
 ;;       from work-table. We don't remove the head when we close it.
 (define (save-current-task! k proto client server)
   (let* ((wt (current-work-table server))
-         (task (make-task client k (compute-prio proto client server))))
+         (task (current-task)))
+    (task-kont-set! task k)
+    (task-prio-set! task (compute-prio proto client server))
     (DEBUG "Save current task ~a!~%" client)
     (add-a-task-to-work-table! wt client task)
     (DEBUG "Save ok~%")))
@@ -76,6 +78,7 @@
   (define-syntax-rule (do-clean-task wt)
     (remove-from-work-table! wt client))
   ;; NOTE: current task is the head of work-table
+  (DEBUG "close task ~a~%" (client-sockport client))
   (let ((wt (current-work-table server))
         (workers (get-conf '(server workers))))
     (cond
