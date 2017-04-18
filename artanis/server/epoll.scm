@@ -73,6 +73,10 @@
 (define-public EPOLL_CTL_DEL 2) ; Remove a file decriptor from the interface.
 (define-public EPOLL_CTL_MOD 3) ; Change file decriptor epoll_event structure.
 
+;; EPOLLEXCLUSIVE is available for Linux-4.5+
+;; Set exclusive wakeup mode for the target file descriptor.
+(define-public EPOLLEXCLUSIVE (ash 1 28))
+
 (define-public epoll-data-meta (list '* int uint32 uint64))
 (define-public epoll-data-size (sizeof epoll-data-meta))
 
