@@ -65,25 +65,45 @@
   (throw 'artanis-err 500 http-open
          "This method shouldn't be called, it's likely a bug!"))
 
-(define (http-read-body port content-length)
+(define *error-event* (logior EPOLLRDHUP EPOLLHUP))
+(define *read-event* EPOLLIN)
+(define (gen-read-event) (logior *read-event* (get-trigger)))
+(define *rw-event* (logior EPOLLIN EPOLLOUT))
+(define (gen-rw-event) (logior EPOLLONESHOT *error-event* (get-trigger) *rw-event*))
+(define *write-event* EPOLLOUT)
+(define (gen-write-event) (logior *error-event* (get-trigger) *write-event*))
+
+(define (http-read-body epfd port content-length)
   (let ((nbytes (* (get-conf '(server bufsize)) (get-conf '(server sbs))))
-        (bv (make-bytevector content-length 0))
-        (start 0))
-    (and nbytes
-         (let lp ((read-length (get-bytevector-n! port bv start nbytes)) (total-size start))
-           (cond
-            ((= content-length total-size)
-             bv)
-            ((eof-object? (peek-char port))
-             (throw 'artanis-err 400 http-read-body
-                    "EOF while reading request body: ~a bytes of ~a"
-                    (bytevector-length bv) nbytes))
-            (else
-             ;; Each time read Size-Before-Schedule (sbs) will cause a schedule
-             (break-task) ; schedule for next time
-             (let ((new-start (+ total-size read-length)))
-               (lp (get-bytevector-n! port bv new-start nbytes)
-                   new-start))))))))
+        (bv (make-bytevector content-length 0)))
+    (cond
+     ((not (integer? nbytes))
+      (throw 'artanis-err 500 http-read-body
+             "BUG: nbytes is invalid integer ~a" nbytes))
+     ((zero? nbytes)
+      ;; sbs is zero, just read them all.
+      ;; FIXME: How about bufsize is 0? Should it be caught when setting the buffer?
+      (get-bytevector-n! port bv 0 content-length))
+     (else
+      (let lp ((start 0))
+        (let* ((rest-size (- content-length start))
+               (to-read (if (>= rest-size nbytes) nbytes rest-size))
+               (read-length (get-bytevector-n! port bv start to-read))
+               (size-now (+ start read-length)))
+          (cond
+           ((= content-length size-now)
+            bv)
+           ((eof-object? (peek-char port))
+            (throw 'artanis-err 400 http-read-body
+                   "EOF while reading request body: ~a bytes of ~a"
+                   (bytevector-length bv) nbytes))
+           (else
+            (epoll-ctl epfd EPOLL_CTL_MOD (port->fdes port)
+                       (make-epoll-event (port->fdes port) (gen-rw-event))
+                       #:keep-alive? #t)
+            ;; Each time read Size-Before-Schedule (sbs) will cause a schedule
+            (break-task)                ; schedule for next time
+            (lp size-now)))))))))
 
 (::define (http-read server client)
   (:anno: (ragnarok-server ragnarok-client) -> (<request> ANY))
@@ -93,14 +113,15 @@
                     port))
   (define (try-to-read-request-body req)
     (DEBUG "try to read request body ~a~%" req)
-    (let ((content-length (or (request-content-length req) 0))
+    (let ((epfd (ragnarok-server-epfd server))
+          (content-length (or (request-content-length req) 0))
           (port (request-port req)))
       (cond
        ((> content-length (get-conf '(upload size)))
         (throw 'artanis-err 419 try-to-read-request-body "Entity is too large!"))
        ((zero? content-length) #f)
        (else
-        (http-read-body port content-length)))))
+        (http-read-body epfd port content-length)))))
   (DEBUG "Enter http-read ~a~%" (client-sockport client))
   (let ((port (client-sockport client)))
    (cond
