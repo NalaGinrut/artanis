@@ -147,7 +147,7 @@
          (format port "<~a>~%" (WARN-TEXT (current-filename)))
          (when subr (format port "In procedure ~a :~%" (WARN-TEXT subr)))
          (apply format port (REASON-TEXT msg) args))
-        (((? integer? status) (? procedure? subr) ? string? msg . args)
+        (((? integer? status) (? procedure? subr) (? string? msg) . args)
          (format port "HTTP ~a~%" (STATUS-TEXT status))
          (format port "<~a>~%" (WARN-TEXT (current-filename)))
          (when subr (format port "In procedure ~a :~%" (WARN-TEXT subr)))
