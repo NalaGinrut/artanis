@@ -67,8 +67,9 @@
     ((server polltimeout) 500) ; in miliseconds
     ;; From "HOP, A Fast Server for the Diffuse Web", Serrano.
     ((server bufsize) 12288) ; in Bytes
-    ;; read size before schedule, it is N times of (server bufsize)
-    ((server sbs) 1)
+    ;; read Size-Before-Schedule, it is N times of (server bufsize)
+    ;; if sbs is 0, then it means the http-read will not be scheduled until EOF.
+    ((server sbs) 10)
 
     ;; for host namespace
     ((host name) #f)
