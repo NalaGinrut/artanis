@@ -47,12 +47,18 @@
 
 ;; default socket should be nonblock
 (define (make-listen-socket family addr port)
-  (let ((sock (socket family SOCK_STREAM 0)))
+  (let ((sock (socket family SOCK_STREAM 0))
+        (multi-server? (get-conf '(server multi))))
     ;; Causes the port to be released immediately after the socket is closed.
     (setsockopt sock SOL_SOCKET SO_REUSEADDR 1)
     (when (eq? 'edge (get-conf '(server trigger)))
           ;; nonblock if edge trigger
           (fcntl sock F_SETFL (logior O_NONBLOCK (fcntl sock F_GETFL 0))))
+    ;; NOTE: Since Linux-3.9
+    ;;       SO_REUSEPORT allows multiple sockets on the same host to bind to
+    ;;       the same port, and is intended to improve the performance of multithreaded
+    ;;       network server applications running on top of multicore systems.
+    (when multi-server? (setsockopt sock SOL_SOCKET SO_REUSEPORT 1))
     (bind sock family addr port)
     (listen sock (get-conf '(server backlog)))
     (DEBUG "Listen socket is ~a~%" sock)
