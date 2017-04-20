@@ -47,7 +47,7 @@
     ((db dbd) mysql)
     ((db port) 3306)
     ((db addr) "localhost")
-    ((db socket) #f)
+    ((db socket) false)
     ((db username) "root")
     ((db passwd) "")
     ((db name) ,(or (current-appname) "artanis"))
@@ -55,7 +55,7 @@
 
     ;; for server namespace
     ((server info) ,artanis-version)
-    ((server nginx) #f)
+    ((server nginx) false)
     ((server charset) "utf-8")
     ;; FIXME: use local pages
     ((server syspage path) "/etc/artanis/pages")
@@ -67,9 +67,12 @@
     ((server polltimeout) 500) ; in miliseconds
     ;; From "HOP, A Fast Server for the Diffuse Web", Serrano.
     ((server bufsize) 12288) ; in Bytes
-    ;; read Size-Before-Schedule, it is N times of (server bufsize)
-    ;; if sbs is 0, then it means the http-read will not be scheduled until EOF.
-    ((server sbs) 10)
+    ;; NOTE: Only for Linux-4.5+
+    ;;       Two kernel features are necessary:
+    ;;       EPOLLEXCLUSIVE (since 3.9)
+    ;;       SO_REUSEPORT (since 4.5)
+    ;;       Allows mutiple servers to listen to the same socket port, say 8080.
+    ((server multi) true)
 
     ;; for host namespace
     ((host name) #f)
@@ -153,8 +156,8 @@
     (('trigger trigger) (conf-set! '(server trigger) (string->symbol trigger)))
     (('polltimeout polltimeout) (conf-set! '(server polltimeout) (->integer polltimeout)))
     (('bufsize bufsize) (conf-set! '(server bufsize) (->integer bufsize)))
-    (('sbs sbs) (conf-set! '(server sbs) (->integer sbs)))
     (('impl impl) (conf-set! '(server impl) (string->symbol impl)))
+    (('multi multi) (conf-set! '(server multi) (->bool multi)))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 
 (define (parse-namespace-host item)
