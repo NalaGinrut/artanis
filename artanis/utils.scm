@@ -50,7 +50,7 @@
             build-response write-response get-local-time string->md5 unsafe-random
             uri-decode response-version response-code response-connection
             response-port write-response-body read-request request-uri request-method
-            request-content-length request-port
+            request-content-length request-port read-request-body
             get-file-ext get-global-date get-local-date string-substitute
             nfx static-filename remote-info seconds-now local-time-stamp
             parse-date write-date make-expires export-all-from-module!
@@ -105,6 +105,7 @@
 (define response-port (@ (web response) response-port))
 (define write-response-body (@ (web response) write-response-body))
 (define read-request (@ (web request) read-request))
+(define read-request-body (@ (web request) read-request-body))
 (define request-uri (@ (web request) request-uri))
 (define request-method (@ (web request) request-method))
 (define request-content-length (@ (web request) request-content-length))
@@ -1217,6 +1218,9 @@
          (case (car v)
            ((1)
             (case (cdr v)
+              ;; NOTE: HTTP/1.1 treat all connection keep-alive
+              ;;       unless it requires `close' explicityly
               ((1) (not (memq 'close (response-connection response))))
+              ;; HTTP/1.0 needs explicit keep-alive notice
               ((0) (memq 'keep-alive (response-connection response)))))
            (else #f)))))
