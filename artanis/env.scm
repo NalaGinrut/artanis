@@ -50,7 +50,13 @@
             protocol-add!
             lookup-protocol
             current-worker
-            must-close-connection?))
+            must-close-connection?
+            %os-kernel
+            %os-distro
+            %kernel-version
+            %system-arch
+            kernel-version>=?
+            linux-version>=?))
 
 ;; WARNING:
 ;; For concurrency in green-thread, all these stuffs should be immutable
@@ -143,3 +149,22 @@
 (define current-worker (make-parameter 0))
 
 (define must-close-connection? (make-parameter #f))
+
+(define (%os-kernel)
+  (vector-ref (uname) 0))
+
+(define (%os-distro)
+  (vector-ref (uname) 1))
+
+(define (%kernel-version)
+  (vector-ref (uname) 2))
+
+(define (%system-arch)
+  (vector-ref (uname) 4))
+
+(define (kernel-version>=? vstr)
+  (string>=? (%kernel-version) vstr))
+
+(define (linux-version>=? vstr)
+  (and (string=? (%os-kernel) "Linux")
+       (kernel-version>=? vstr)))

@@ -188,13 +188,19 @@
         (get srule #:cache 'static (lambda (rc) (:cache rc)))
         (get srule static-page-emitter))))
 
+(define (check-invalid-config)
+  (when (and (not (linux-version>=? "4.5")) (get-conf '(server multi)))
+    (error "It's required to have Linux-4.5+ to enable server.multi feature!"))
+  )
+
 ;; make sure to call init-server at the beginning
 (define* (init-server #:key (statics '(png jpg jpeg ico html js css))
                       (cache-statics? #f) (exclude '()))
   (default-route-init statics cache-statics? exclude)
   (init-hook)
   (init-config)
-  (init-server-core))
+  (init-server-core)
+  (check-invalid-config))
 
 (define (check-if-not-run-init-server)
   ;; Just check if the conf table is empty
