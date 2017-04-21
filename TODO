@@ -5,20 +5,7 @@
 * upload progress json feedback (need new server-core)
 * SSE support, add some helper functions
 
-* Implement co-operative server with delimited-continuation
-** green-thread server
-   This may need these stuffs:
-   1. non-blocking;
-   2. scheduling based on delimited-continuations;
-   3. guile-dbi needs non-blocking too;
-   4. enhanced connection pool;
-   5. epoll/kqueue wrapper.
-Some ideas:
-** Format a patch to guile-dbi for supporting non-blocking. However, now that SQL-query can be blocked, we have to face the connection-pool problem.
-   In current implementation, all green-threads works for the same CPU share the same connection from the pool. That's bad, since one of the thread
-   can be scheduled-out in non-blocking mode, so the next scheduled-in thread should get a clean connection from the pool.
-** Maybe there'd be a connection pool for each CPU, and a waiting queue to hold the EWOULDBLOCK dbi-connection. The connection could be recycled when
-   each scheduled green-thread was over.
+* Support kqueue
 
 * Use sendfile on static files, this may need new server-core.
 
