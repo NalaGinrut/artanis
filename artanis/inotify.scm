@@ -157,13 +157,13 @@
 (define (inotify-init)
   (call-with-values
       (lambda () (%inotify-init))
-    (lambda (ifd errno)
+    (lambda (ifd  errno)
       (cond
        ((>= ifd 0) ifd)
        (else
         (throw 'system-error "inotify-init" "~S: ~A"
-               (list (strerror err))
-               (list err)))))))
+               (list (strerror errno))
+               (list errno)))))))
 
 (define (inotify-add-watch fd pathname mask)
   (call-with-values
@@ -174,8 +174,8 @@
        ((>= ret 0) ret)
        (else
         (throw 'system-error "inotify-add-watch" "~S: ~A"
-               (list (strerror err))
-               (list err)))))))
+               (list (strerror errno))
+               (list errno)))))))
 
 (define (inotify-rm-watch fd wd)
   (call-with-values
@@ -185,8 +185,8 @@
        ((>= ret 0) ret)
        (else
         (throw 'system-error "inotify-rm-watch" "~S: ~A"
-               (list (strerror err))
-               (list err)))))))
+               (list (strerror errno))
+               (list errno)))))))
 
 (define (new-inotify-watcher)
   (let ((buf (make-bytevector *max-buf*)))
