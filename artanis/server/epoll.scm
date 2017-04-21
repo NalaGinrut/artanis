@@ -225,7 +225,7 @@
 (define %epoll-wait
   (pointer->procedure int
                       (dynamic-func "epoll_wait" (dynamic-link))
-                      (list int '* int int)))
+                      (list int '* int int) #:return-errno? #t))
 
 (define-public (epoll-wait epfd events timeout)
   (let ((maxevents (get-conf '(server wqlen))))
