@@ -256,7 +256,8 @@
 (::define (remove-from-work-table! wt client)
   (:anno: (work-table ragnarok-client) -> ANY)
   (DEBUG "Removed task ~a~%" (client-sockport client))
-  (hashv-remove! (work-table-content wt) (client-sockport-decriptor client)))
+  (hashv-remove! (work-table-content wt) (client-sockport-decriptor client))
+  (close (client-sockport client)))
 
 ;; work-table -> ragnarok-client -> task -> ANY
 (::define (add-a-task-to-work-table! wt client task)

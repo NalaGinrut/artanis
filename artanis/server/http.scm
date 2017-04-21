@@ -42,10 +42,12 @@
     ;; So, Artanis isn't compatible with Linux 2.6.9 and before.
     (epoll-ctl epfd EPOLL_CTL_DEL conn-fd #f) ; #f means %null-pointer here
     ;; Close the connection gracefully
-    ;; NOTE: `shutdown' is preferred here, for `close' may cause half-connections
-    ;;       and the work-table will get wrong result.
-    ;; Stop both recv and trans
-    (when (not (port-closed? conn)) (shutdown conn 2))))
+    ;; NOTE: `shutdown' is preferred here to stop receiving data.
+    ;;       Then try to send all the rest data.
+    ;; NOTE: We can't just close it here, if we do so, then we've lost the information
+    ;;       to get fd from port which is the key to remove task from work-table. 
+    (shutdown conn 1)
+    (force-output conn)))
 
 ;; NOTE: Close operation must follow these steps:
 ;; 1. remove fd from epoll event
