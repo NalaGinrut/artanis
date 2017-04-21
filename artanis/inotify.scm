@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015
+;;  Copyright (C) 2015,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -142,47 +142,51 @@
 (define %inotify-init
   (pointer->procedure int
                       (dynamic-func "inotify_init" (dynamic-link))
-                      '()))
+                      '() #:return-errno? #t))
 
 (define %inotify-add-watch
   (pointer->procedure int
                       (dynamic-func "inotify_add_watch" (dynamic-link))
-                     (list int '* uint32)))
+                     (list int '* uint32) #:return-errno? #t))
 
 (define %inotify-rm-watch
   (pointer->procedure int
                       (dynamic-func "inotify_rm_watch" (dynamic-link))
-                      (list int int)))
+                      (list int int) #:return-errno? #t))
 
 (define (inotify-init)
-  (let* ((ifd (%inotify-init))
-         (err (errno)))
-    (cond
-     ((>= ifd 0) ifd)
-     (else
-      (throw 'system-error "inotify-init" "~S: ~A"
-             (list (strerror err))
-             (list err))))))
+  (call-with-values
+      (lambda () (%inotify-init))
+    (lambda (ifd errno)
+      (cond
+       ((>= ifd 0) ifd)
+       (else
+        (throw 'system-error "inotify-init" "~S: ~A"
+               (list (strerror err))
+               (list err)))))))
 
 (define (inotify-add-watch fd pathname mask)
-  (let* ((ret (%inotify-add-watch fd (string->pointer pathname) mask))
-         (err (errno)))
-    (cond
-     ((>= ret 0) ret)
-     (else
-      (throw 'system-error "inotify-add-watch" "~S: ~A"
-             (list (strerror err))
-             (list err))))))
+  (call-with-values
+      (lambda ()
+        (%inotify-add-watch fd (string->pointer pathname) mask))
+    (lambda (ret errno)
+      (cond
+       ((>= ret 0) ret)
+       (else
+        (throw 'system-error "inotify-add-watch" "~S: ~A"
+               (list (strerror err))
+               (list err)))))))
 
 (define (inotify-rm-watch fd wd)
-  (let* ((ret (%inotify-rm-watch fd wd))
-         (err (errno)))
-    (cond
-     ((>= ret 0) ret)
-     (else
-      (throw 'system-error "inotify-rm-watch" "~S: ~A"
-             (list (strerror err))
-             (list err))))))
+  (call-with-values
+      (lambda () (%inotify-rm-watch fd wd))
+    (lambda (ret errno)
+      (cond
+       ((>= ret 0) ret)
+       (else
+        (throw 'system-error "inotify-rm-watch" "~S: ~A"
+               (list (strerror err))
+               (list err)))))))
 
 (define (new-inotify-watcher)
   (let ((buf (make-bytevector *max-buf*)))

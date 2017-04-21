@@ -143,34 +143,38 @@
 (define %epoll-create
   (pointer->procedure int
                       (dynamic-func "epoll_create" (dynamic-link))
-                      (list int)))
+                      (list int) #:return-errno? #t))
 
 (define-public (epoll-create size)
-  (let* ((efd (%epoll-create size))
-         (err (errno)))
-    (cond
-     ((>= efd 0) efd)
-     (else
-      (throw 'artanis-err 500 epoll-create "~S: ~A"
-             (list size (strerror err))
-             (list err))))))
+  (call-with-values
+      (lambda ()
+        (%epoll-create size))
+    (lambda (efd errno)
+      (cond
+       ((>= efd 0) efd)
+       (else
+        (throw 'artanis-err 500 epoll-create "~S: ~A"
+               (list size (strerror errno))
+               (list errno)))))))
 
 ;; Same as epoll_create but with an FLAGS parameter.  The unused SIZE
 ;; parameter has been dropped.
 (define %epoll-create1
   (pointer->procedure int
                       (dynamic-func "epoll_create1" (dynamic-link))
-                      (list int)))
+                      (list int) #:return-errno? #t))
 
 (define-public (epoll-create1 flag)
-  (let* ((efd (%epoll-create1 flag))
-         (err (errno)))
-    (cond
-     ((>= efd 0) efd)
-     (else
-      (throw 'artanis-err 500 epoll-create1 "~S: ~A"
-             (list flag (strerror err))
-             (list err))))))
+  (call-with-values
+      (lambda ()
+        (%epoll-create1 flag))
+    (lambda (efd errno)
+      (cond
+       ((>= efd 0) efd)
+       (else
+        (throw 'artanis-err 500 epoll-create1 "~S: ~A"
+               (list flag (strerror errno))
+               (list errno)))))))
 
 ;; Manipulate an epoll instance "epfd". Returns 0 in case of success,
 ;; -1 in case of error ( the "errno" variable will contain the
@@ -181,22 +185,24 @@
 (define %epoll-ctl
   (pointer->procedure int
                       (dynamic-func "epoll_ctl" (dynamic-link))
-                      (list int int int '*)))
+                      (list int int int '*) #:return-errno? #t))
 
 (define* (epoll-ctl epfd op fd event #:key (keep-alive? #f))
-  (let* ((ret (%epoll-ctl epfd op fd (if event
-                                         (bytevector->pointer event)
-                                         %null-pointer)))
-         (err (errno)))
-    (cond
-     ((zero? ret) ret)
-     ((and (= ret EEXIST) keep-alive?)
-      (DEBUG "The event ~a exist and kept alive~%" fd)
-      0)
-     (else
-      (throw 'artanis-err 500 epoll-ctl "~a: ~a"
-             (list epfd op fd event (strerror err))
-             (list err))))))
+  (call-with-values
+      (lambda ()
+        (%epoll-ctl epfd op fd (if event
+                                   (bytevector->pointer event)
+                                   %null-pointer)))
+    (lambda (ret errno)
+      (cond
+       ((zero? ret) ret)
+       ((and (= ret EEXIST) keep-alive?)
+        (DEBUG "The event ~a exist and kept alive~%" fd)
+        0)
+       (else
+        (throw 'artanis-err 500 epoll-ctl "~a: ~a"
+               (list epfd op fd event (strerror errno))
+               (list errno)))))))
 (export epoll-ctl)
 
 ;; NOTE: do NOT use this function outside this module!!!
@@ -222,33 +228,37 @@
                       (list int '* int int)))
 
 (define-public (epoll-wait epfd events timeout)
-  (let* ((maxevents (get-conf '(server wqlen)))
-         (ret (%epoll-wait epfd (bytevector->pointer events) maxevents timeout))
-         (err (errno)))
-    (cond
-     ((>= ret 0) (epoll-event-set->list events ret))
-     (else
-      (throw 'artanis-err 500 epoll-wait "~S: ~A"
-             (list epfd events maxevents timeout (strerror err))
-             (list err))))))
+  (let ((maxevents (get-conf '(server wqlen))))
+    (call-with-values
+        (lambda ()
+          (%epoll-wait epfd (bytevector->pointer events) maxevents timeout))
+      (lambda (ret errno)
+        (cond
+         ((>= ret 0) (epoll-event-set->list events ret))
+         (else
+          (throw 'artanis-err 500 epoll-wait "~S: ~A"
+                 (list epfd events maxevents timeout (strerror errno))
+                 (list errno))))))))
 
 ;; Same as epoll_wait, but the thread's signal mask is temporarily
 ;; and atomically replaced with the one provided as parameter.
 (define %epoll-pwait
   (pointer->procedure int
                       (dynamic-func "epoll_pwait" (dynamic-link))
-                      (list int '* int int '*)))
+                      (list int '* int int '*) #:return-errno? #t))
 
 (define-public (epoll-pwait epfd events maxevents timeout sigmask)
-  (let* ((maxevents (get-conf '(server wqlen)))
-         (ret (%epoll-pwait epfd (bytevector->pointer events) maxevents timeout sigmask))
-         (err (errno)))
-    (cond
-     ((>= ret 0) (epoll-event-set->list events ret))
-     (else
-      (throw 'artanis-err 500 epoll-pwait "~S: ~A"
-             (list epfd events maxevents timeout sigmask (strerror err))
-             (list err))))))
+  (let ((maxevents (get-conf '(server wqlen))))
+    (call-with-values
+        (lambda ()
+          (%epoll-pwait epfd (bytevector->pointer events) maxevents timeout sigmask))
+      (lambda (ret errno)
+        (cond
+         ((>= ret 0) (epoll-event-set->list events ret))
+         (else
+          (throw 'artanis-err 500 epoll-pwait "~S: ~A"
+                 (list epfd events maxevents timeout sigmask (strerror errno))
+                 (list errno))))))))
 
 (define-public (is-peer-shutdown? e)
   (not (zero? (logand (cdr e) EPOLLRDHUP))))
