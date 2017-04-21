@@ -200,7 +200,8 @@
   (init-hook)
   (init-config)
   (init-server-core)
-  (check-invalid-config))
+  (check-invalid-config)
+  (sigaction SIGPIPE SIG_IGN))
 
 (define (check-if-not-run-init-server)
   ;; Just check if the conf table is empty

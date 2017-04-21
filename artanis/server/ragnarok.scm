@@ -98,7 +98,6 @@
          (services (make-hash-table))
          (ready-q (new-ready-queue))
          (wt (generate-work-tables)))
-    (sigaction SIGPIPE SIG_IGN) ; FIXME: should we remove the related threads?
     (DEBUG "Prepare for regnarok-open~%")
     (epoll-ctl epfd EPOLL_CTL_ADD listen-fd listen-event)
     (DEBUG "Added listenning port to epoll~%")
