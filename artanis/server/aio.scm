@@ -40,7 +40,7 @@
   (break-task))
 
 (define (async-write-waiter port)
-  (DEBUG "Async read!~%")
+  (DEBUG "Async write!~%")
   (DEBUG "I would break ~a~%" port)
   (break-task))
 
