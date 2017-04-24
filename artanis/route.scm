@@ -134,7 +134,8 @@
   (let* ((handler-key (rc-rhk rc))
          (hrc (if handler-key  ; get handler-keys pair
                   (get-handler-rc handler-key)
-                  (throw 'artanis-err 404 "invalid handler key" handler-key))))
+                  (throw 'artanis-err 404 init-rule-handler-and-keys!
+                         "invalid handler key ~a" handler-key))))
     (rc-handler! rc (handler-rc-handler hrc))
     (rc-keys! rc (handler-rc-keys hrc))))
 
