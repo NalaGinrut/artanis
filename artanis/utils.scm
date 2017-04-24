@@ -80,7 +80,7 @@
             call-with-sigint define-box-type make-box-type unbox-type
             ::define did-not-specify-parameter WARN-TEXT ERROR-TEXT REASON-TEXT
             NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr request-path
-            keep-alive?)
+            keep-alive? procedure-name->string)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -1192,3 +1192,6 @@
               ;; HTTP/1.0 needs explicit keep-alive notice
               ((0) (memq 'keep-alive (response-connection response)))))
            (else #f)))))
+
+(define (procedure-name->string proc)
+  (symbol->string (procedure-name proc)))

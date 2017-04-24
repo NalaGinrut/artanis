@@ -145,12 +145,14 @@
       (match e
         (((? procedure? subr) (? string? msg) . args)
          (format port "<~a>~%" (WARN-TEXT (current-filename)))
-         (when subr (format port "In procedure ~a :~%" (WARN-TEXT subr)))
+         (when subr (format port "In procedure ~a :~%"
+                            (WARN-TEXT (procedure-name->string subr))))
          (apply format port (REASON-TEXT msg) args))
         (((? integer? status) (? procedure? subr) (? string? msg) . args)
          (format port "HTTP ~a~%" (STATUS-TEXT status))
          (format port "<~a>~%" (WARN-TEXT (current-filename)))
-         (when subr (format port "In procedure ~a :~%" (WARN-TEXT subr)))
+         (when subr (format port "In procedure ~a :~%"
+                            (WARN-TEXT (procedure-name->string subr))))
          (apply format port (REASON-TEXT msg) args)
          (format-status-page status request))
         (else
