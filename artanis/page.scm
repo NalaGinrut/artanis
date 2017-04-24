@@ -193,7 +193,8 @@
              (port (open-input-file filename))
              (mime (guess-mime filename)))
         (values mtime 200 (proc port) mime))
-      (throw 'artanis-err 404 "Static file `~a' doesn't exist!~%" filename)))
+      (throw 'artanis-err 404 generate-response-with-file
+             "Static file `~a' doesn't exist!~%" filename)))
 
 ;; emit static file with no cache(ETag)
 (define* (emit-response-with-file filename #:optional (headers '()))
