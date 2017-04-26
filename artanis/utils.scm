@@ -80,7 +80,7 @@
             call-with-sigint define-box-type make-box-type unbox-type
             ::define did-not-specify-parameter WARN-TEXT ERROR-TEXT REASON-TEXT
             NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr request-path
-            keep-alive? procedure-name->string)
+            keep-alive? procedure-name->string proper-toplevel)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -1195,3 +1195,6 @@
 
 (define (procedure-name->string proc)
   (symbol->string (procedure-name proc)))
+
+(define-syntax-rule (proper-toplevel)
+  (or (current-toplevel) ""))
