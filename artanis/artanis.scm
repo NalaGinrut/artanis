@@ -270,8 +270,7 @@
     (case (get-conf '(db dbd))
       ((mysql)
        (let ((sql (->sql create database if not exists db)))
-         (DB-query conn sql)
-         (DB-query conn (format #f "use ~a;" db))))
+         (DB-query conn sql)))
       ((postgresql)
        (let ((check-sql (->sql select 'schema_name from
                                'information_schema.schemata
@@ -279,14 +278,13 @@
              (create-sql (->sql create database db)))
          (DB-query conn check-sql)
          (when (not (db-conn-success? conn))
-               (DB-query conn create-sql))
-         (DB-query conn (format #f "use ~a;" db))))
+               (DB-query conn create-sql))))
       ((sqlite3) #t) ; sqlite3, do nothing.
       (else (error "Unsupported DBD" (get-conf '(db dbd)))))))
 
 ;; Invalid use-db? must be (dbd username passwd) or #f
-(define* (run #:key (host #f) (port #f) (debug #f) (use-db? #f)
-              (dbd #f) (db-username #f) (db-passwd #f) (db-name #f))
+(define* (run #:key (host #f) (port #f) (debug #f) (use-db? #f) (db-proto #f)
+              (dbd #f) (db-username #f) (db-passwd #f) (db-name #f) (db-addr #f))
   (define (->proper-body-display body)
     (cond
      ((not body) "No body in the request!")
@@ -308,7 +306,7 @@
   (when (or use-db? (get-conf 'use-db?))
     (conf-set! 'use-db? #t)
     (display "User wants to use Database, initializing...\n")
-    (init-database-config dbd db-username db-passwd db-name)
+    (init-database-config dbd db-username db-passwd db-name db-addr db-proto)
     (init-DB)
     (try-to-use-db)
     (display "DB init done!\n")
