@@ -49,7 +49,6 @@
             current-session-backend
             protocol-add!
             lookup-protocol
-            current-worker
             must-close-connection?
             %os-kernel
             %os-distro
@@ -72,15 +71,9 @@
 (define *handlers-table* (make-hash-table))
 (define *conf-hash-table* (make-hash-table))
 
-;; NOTE: Should be a vector holds queues. Vector size equals to workers.
-;;       The init queue size equals to (server wqlen).
+;; NOTE: The init queue size equals to (server wqlen).
 ;;       If all the available DB conn were blocked, a new DB conn will be
 ;;       created, and never closed but just recycled by *conn-pool*.
-;; NOTE: Should be pool of pool.
-;;       In principle, each worker needs just one connection because of
-;;       green-thread. But async needs non-blocking, so we need a pool
-;;       for each worker since each connnection could be scheduled when it
-;;       encounters EWOULDBREAK or EAGAIN.
 (define *conn-pool* #f)
 
 (define *before-response-hook* (make-hook 2))
@@ -145,8 +138,6 @@
 
 (define (lookup-protocol name)
   (hashq-ref *proto-table* name))
-
-(define current-worker (make-parameter 0))
 
 (define must-close-connection? (make-parameter #f))
 
