@@ -145,8 +145,8 @@ ifdef DESTDIR
 	mkdir -p $(DESTDIR)/etc/bash_completion.d/
 	$(CP) $(CMDCOMP) $(DESTDIR)/etc/bash_completion.d/
 else
-	$(CP) $(ARTANIS_ETC) $(PREFIX)/etc/
-	$(CP) $(ARTANIS_PAGES) $(PREFIX)/etc/artanis/
+	$(CP) $(ARTANIS_ETC) /etc/
+	$(CP) $(ARTANIS_PAGES) /etc/artanis/
 	mkdir -p $(PREFIX)/bin/
 	$(CP) $(BIN)/art $(PREFIX)/bin/
 	mkdir -p $(PREFIX)/etc/bash_completion.d/

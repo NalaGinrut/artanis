@@ -1,4 +1,4 @@
 
-configure: configure.ac
+configure: configure.ac Makefile.in
 	aclocal -I m4
 	autoconf
