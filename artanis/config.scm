@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016
+;;  Copyright (C) 2013,2014,2015,2016,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -45,9 +45,9 @@
   `(;; for DB namespace
     ((db enable) false)
     ((db dbd) mysql)
-    ((db port) 3306)
-    ((db addr) "localhost")
-    ((db socket) false)
+    ((db proto) 'tcp)
+    ((db addr) "localhost:3306")
+    ((db socketfile) #f)
     ((db username) "root")
     ((db passwd) "")
     ((db name) ,(or (current-appname) "artanis"))
@@ -60,7 +60,6 @@
     ;; FIXME: use local pages
     ((server syspage path) "/etc/artanis/pages")
     ((server backlog) 128)
-    ((server workers) 1)
     ((server wqlen) 64) ; work queue maxlen
     ((server trigger) edge)
     ((server engine) ragnarok)
@@ -135,10 +134,10 @@
   (match item
     (('enable usedb) (conf-set! 'use-db? (->bool usedb))) 
     (('dbd dbd) (conf-set! '(db dbd) (->symbol dbd)))
-    (('port port) (conf-set! '(db port) (->integer port)))
+    (('proto proto) (conf-set! '(db proto) (->symbol proto)))
+    (('socketfile socketfile) (conf-set! '(db socketfile) (->none/str socketfile)))
     (('addr addr) (conf-set! '(db addr) addr))
     (('name name) (conf-set! '(db name) name))
-    (('socket sock) (conf-set! '(db sock) (string->symbol sock)))
     (('username username) (conf-set! '(db username) username))
     (('passwd passwd) (conf-set! '(db passwd) passwd))
     (('engine engine) (conf-set! '(db engine) engine))
@@ -150,7 +149,6 @@
     (('nginx nginx) (conf-set! '(server nginx) (->bool nginx)))
     (('charset charset) (conf-set! '(server charset) charset))
     (`(syspage path ,path) (conf-set! '(server syspage path) path))
-    (('workers workers) (conf-set! '(server workers) (->integer workers)))
     (('backlog backlog) (conf-set! '(server backlog) (->integer backlog)))
     (('wqlen wqlen) (conf-set! '(server wqlen) (->integer wqlen)))
     (('trigger trigger) (conf-set! '(server trigger) (string->symbol trigger)))
@@ -236,40 +234,48 @@
 
 (define (init-inner-database-item)
   (define dbd (get-conf '(db dbd)))
-  (define port (get-conf '(db port)))
+  (define proto (get-conf '(db proto)))
   (define addr (get-conf '(db addr)))
-  (define sock (and=> (get-conf '(db sock)) (lambda (x) (not (eq? x 'disable)))))
-  (define name (get-conf '(db name)))
+  (define sock (and=> (get-conf '(db socketfile)) (lambda (x) (not (eq? x 'disable)))))
+  (define dbname (get-conf '(db name)))
   (define username (get-conf '(db username)))
   (define passwd (get-conf '(db passwd)))
 
   (cond
-   ((or (and port addr sock)
-        (and port sock)
-        (and addr sock))
+   ((or (and (eq? proto 'tcp) sock) ; tcp with socketfile is impossible
+        (and (eq? proto 'socketfile) (not sock))) ; socketfile without socketfile
     (error init-inner-database-item
-           (format #f "Conf: either addr:port or sock mode! port=~a, addr=~a, sock=~a"
-                   port addr sock)))
+           (format #f "Conf: either addr:port or sock mode! addr=~a, sock=~a" addr sock)))
    ((eq? dbd 'sqlite3) ; sqlite3 needs only dbname
-    (conf-set! 'database `(sqlite3 ,username ,passwd ,name)))
-   ((and addr port) ; addr:port mode
-    (conf-set! 'database `(,dbd ,username ,passwd ,name (port ,addr ,port))))
-   ((and (eq? dbd 'mysql) sock) ; mysql has socket file mode
-    (conf-set! 'database `(mysql ,username ,passwd ,name (socketfile ,sock))))
+    (conf-set! 'database `(sqlite3 ,username ,passwd ,dbname)))
+   ((eq? proto 'tcp) ; addr:port mode
+    (conf-set! 'database `(,dbd ,username ,passwd ,dbname (tcp ,addr))))
+   ((eq? proto 'socketfile) ; socket file mode
+    (conf-set! 'database `(,dbd ,username ,passwd ,dbname (socketfile ,sock))))
    (else (error init-inner-database-item "Fatal: Invalid database config"))))
 
 (define (init-inner-config-items)
   (and (get-conf 'use-db?) (init-inner-database-item)))
 
-(define (init-database-config dbd user passwd dbname)
+(define (init-database-config dbd user passwd db-name db-addr db-proto)
+  (define (default-addr)
+    (case dbd
+      ((mysql) "localhost:3306")
+      ((postgresql) "localhost:5432")
+      ((sqlite3) #f)
+      (else (error init-database-config "GNU Artanis doesn't support this DBD: " dbd))))
   ;; if dbd is not specified, it's mysql in default.
   (conf-set! '(db dbd) (or dbd (get-conf '(db dbd)) 'mysql))
   ;; if username is not specified, it's root in default.
   (conf-set! '(db username) (or user (get-conf '(db username))"root"))
   ;; if passwd is not specified, it's null in default.
   (conf-set! '(db passwd) (or passwd (get-conf '(db passwd)) ""))
-  ;; if dbname is not specified. it's artanis in default.
-  (conf-set! '(db name) (or dbname (get-conf '(db name)) "artanis"))
+  ;; if db-name is not specified, it's artanis in default.
+  (conf-set! '(db name) (or db-name (get-conf '(db name)) "artanis"))
+  ;; if db-addr is not specified, it's default address of DB respectivly.
+  (conf-set! '(db addr) (or db-addr (get-conf '(db addr)) (default-addr)))
+  ;; if db-proto is not specified, it's tcp in default.
+  (conf-set! '(db proto) (or db-proto (get-conf '(db proto)) 'tcp))
   ;; start to init database
   (init-inner-database-item))
 
