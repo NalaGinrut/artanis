@@ -21,7 +21,8 @@
   #:use-module (artanis utils)
   #:use-module (artanis config)
   #:use-module (artanis server)
-  #:use-module (artanis route) 
+  #:use-module (artanis route)
+  #:use-module (artanis ssql)
   #:use-module (artanis env)
   #:autoload (dbi dbi) (dbi-open dbi-query dbi-get_status dbi-close dbi-get_row)
   #:use-module (ice-9 match)
@@ -54,13 +55,13 @@
   ;; mysql provides two modes, addr:port or socketfile
   ;; the default values:
   ;; port: 3306, addr: localhost, dbname: artanis
-  (fields dbname port addr socketfile))
+  (fields dbname addr socketfile))
 
 (define (->mysql mysql)
   (match mysql
-    (($ <mysql> ($ <db> _ username passwd) dbname port addr #f)
-     (format #f "~a:~a::tcp:~a:~a" username passwd addr port))
-    (($ <mysql> ($ <db> _ username passwd) dbname #f #f socketfile)
+    (($ <mysql> ($ <db> _ username passwd) dbname addr #f)
+     (format #f "~a:~a::tcp:~a" username passwd addr))
+    (($ <mysql> ($ <db> _ username passwd) dbname #f socketfile)
      (format #f "~a:~a::socket:~a" username passwd socketfile))
     (else (error 'mysql "Wrong connection config!" mysql))))
 
@@ -78,13 +79,14 @@
 
 (define-record-type <postgresql>
   (parent <db>)
-  ;; postgresql need addr:port to open
-  (fields dbname port addr))
+  (fields dbname addr socketfile))
 
 (define (->postgresql postgresql)
   (match postgresql
-    (($ <postgresql> ($ <db> _ username passwd) dbname port addr)
-     (format #f "~a:~a::tcp:~a:~a" username passwd addr port))
+    (($ <postgresql> ($ <db> _ username passwd) dbname addr #f)
+     (format #f "~a:~a:~a:tcp:~a" username passwd dbname addr))
+    (($ <postgresql> ($ <db> _ username passwd) dbname #f socketfile)
+     (format #f "~a:~a:~a:socket:~a" username passwd dbname socketfile))
     (else (error 'postgresql "Wrong connection config!" postgresql))))
 
 ;; NOTE:
@@ -121,10 +123,12 @@
   (case-lambda* 
    ((dbd str) (%do-connect dbd str))
    ((dbd #:key (db-name "artanis") (db-username "root") (db-passwd "")
-         (proto "tcp") (host "localhost") (port 3306))
+         (addr "localhost:3306") (proto 'tcp))
     (let ((str (case dbd
-                 ((mysql) (format #f "~a:~a::~a:~a:~a" db-username db-passwd proto host port))
-                 ((postgresql) (format #f "~a:~a::tcp:~a:~a" db-username db-passwd host port))
+                 ((mysql) (format #f "~a:~a:~a:~a:~a"
+                                  db-username db-passwd db-name proto addr))
+                 ((postgresql) (format #f "~a:~a:~a:~a:~a"
+                                       db-username db-passwd db-name proto addr))
                  ((sqlite3) (format #f "~a" db-name)))))
       (%do-connect dbd str)))))
 
@@ -137,13 +141,15 @@
     ;; (get-conf 'database) should contain username passwd and connection method
     (match db
       (('mysql username passwd dbname ('socketfile socketfile))
-       (make-<mysql> username passwd dbname #f #f socketfile))
-      (('mysql username passwd dbname ('port addr port))
-       (make-<mysql> username passwd dbname port addr #f))
+       (make-<mysql> username passwd dbname #f socketfile))
+      (('mysql username passwd dbname ('tcp addr))
+       (make-<mysql> username passwd dbname addr #f))
       (('sqlite3 username passwd dbname)
        (make-<sqlite3> username passwd dbname))
-      (('postgresql username passwd dbname ('port addr port))
-       (make-<postgresql> username passwd dbname port addr))
+      (('postgresql username passwd dbname ('tcp addr))
+       (make-<postgresql> username passwd dbname addr))
+      (('postgresql username passwd dbname ('socketfile sock))
+       (make-<postgresql> username passwd dbname #f sock))
       (else (error new-DB "Something is wrong, invalid db!" db)))))
 
 (define (create-new-DB-conn)
@@ -151,23 +157,20 @@
     (when (not (db-conn-success? conn))
       (error init-connection-pool "Database connect failed: "
              (db-conn-failed-reason conn)))
+    (DB-query conn (->sql use (get-conf '(db name))))
     conn))
 
 (define (get-conn-from-pool)
-  (define worker (current-worker))
   (if *conn-pool*
-      (let ((conn-queue (vector-ref *conn-pool* worker)))
-        (if (queue-empty? conn-queue)
-            (create-new-DB-conn)
-            (queue-out! conn-queue)))
+      (if (queue-empty? *conn-pool*)
+          (create-new-DB-conn)
+          (queue-out! *conn-pool*))
       (error get-conn-from-pool "Seems the *conn-pool* wasn't well initialized!"
              *conn-pool*)))
 
 (define (recycle-DB-conn conn)
-  (define worker (current-worker))
   (if *conn-pool*
-      (let ((conn-queue (vector-ref *conn-pool* worker)))
-        (queue-in! conn-queue conn))
+      (queue-in! *conn-pool* conn)
       (error recycle-DB-conn "Seems the *conn-pool* wasn't well initialized!"
              *conn-pool*)))
 
@@ -182,21 +185,15 @@
 
 (define (init-connection-pool)
   (display "connection pools are initilizing...")
-  (let* ((pool-size (get-conf '(server workers)))
-         (wqlen (get-conf '(server wqlen)))
-         (vec (make-vector pool-size)))
+  (let ((wqlen (get-conf '(server wqlen))))
     (set! *conn-pool*
-          (vector-map
-           (lambda (_ e)
-             (let ((dbconns
-                    (map
-                     (lambda (_) (create-new-DB-conn))
-                     (iota wqlen))))
-               (list->queue dbconns)))
-           vec))
+          (let ((dbconns
+                 (map
+                  (lambda (_) (create-new-DB-conn))
+                  (iota wqlen))))
+            (list->queue dbconns)))
     (display "DB pool init ok!\n")
-    (format #t "Now there's ~a connections pool~:p, each contains ~a conns.~%"
-            pool-size wqlen)))
+    (format #t "Now the size of connection pool is ~a.~%" wqlen)))
 
 ;; ---------------------conn operations-------------------------------
 ;; Actually, it's not `open', but get a conn from pool.
@@ -227,7 +224,7 @@
       (format (current-error-port) "SQL: ~a~%" sql)
       (if check?
           (format (current-error-port) "DB-query check failed: ~a" (db-conn-failed-reason conn))
-          (throw 'artanis-err 500 DB-query "failed: " (db-conn-failed-reason conn))))
+          (throw 'artanis-err 500 DB-query "failed reason: `~a'~%" (db-conn-failed-reason conn))))
     conn)))
 
 ;; NOTE: actually it'll never close the connection, just recycle it.
