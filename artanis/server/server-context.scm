@@ -33,11 +33,11 @@
             ragnarok-server?
             ragnarok-server-epfd
             ragnarok-server-listen-socket
-            ragnarok-server-work-tables ; get all work-tables
+            ragnarok-server-work-table ; get work-table
             ragnarok-server-ready-queue
             ragnarok-server-event-set
             ragnarok-server-services
-            current-work-table ; get work-table from the current worker
+            current-work-table ; get work-table from specified server
 
             new-ready-queue
             ready-queue?
@@ -107,7 +107,7 @@
   (fields
    epfd
    listen-socket
-   work-tables ; a table list contains continuations
+   work-table  ; a table contains continuations
    ready-queue ; a queue contains connect socket
    event-set
    services))  ; a table to hold all redirectors (int -> redirector)
@@ -134,8 +134,7 @@
   (queue-length (unbox-type rq)))
 
 (define (current-work-table server)
-  (list-ref (ragnarok-server-work-tables server)
-            (current-worker)))
+  (ragnarok-server-work-table server))
 
 ;; A table contains continuations
 (define-record-type work-table

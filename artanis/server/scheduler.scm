@@ -75,16 +75,9 @@
 
 ;; clean task from work-table
 (define (close-current-task! server client)
-  (define-syntax-rule (do-clean-task wt)
-    (remove-from-work-table! wt client))
   ;; NOTE: current task is the head of work-table
   (DEBUG "close task ~a~%" (client-sockport client))
-  (let ((wt (current-work-table server))
-        (workers (get-conf '(server workers))))
-    (cond
-     ((= 1 workers) (do-clean-task wt))
-     ((> workers 1) (schedule-if-locked (work-table-mutex wt) (do-clean-task wt)))
-     (else (throw 'artanis-err 500 "Invalid (server workers) !" workers)))))
+  (remove-from-work-table! (current-work-table server) client))
 
 (define customized-scheduler #f)
 

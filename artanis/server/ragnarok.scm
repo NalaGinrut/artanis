@@ -64,12 +64,9 @@
     (DEBUG "Listen socket is ~a~%" sock)
     sock))
 
-(define (generate-work-tables)
-  (define (new-work-table)
-    (make-work-table (make-hash-table) (make-mutex)))
-  (let ((n (get-conf '(server workers))))
-    (DEBUG "generating ~a work-tables~%" n)
-    (map (lambda (i) (new-work-table)) (iota n))))
+(define (generate-work-table)
+  (DEBUG "generating work-table~%")
+  (make-work-table (make-hash-table) (make-mutex)))
 
 (define *error-event* (logior EPOLLRDHUP EPOLLHUP))
 (define *read-event* EPOLLIN)
@@ -97,7 +94,7 @@
          (epfd (epoll-create1 0))
          (services (make-hash-table))
          (ready-q (new-ready-queue))
-         (wt (generate-work-tables)))
+         (wt (generate-work-table)))
     (DEBUG "Prepare for regnarok-open~%")
     (epoll-ctl epfd EPOLL_CTL_ADD listen-fd listen-event)
     (DEBUG "Added listenning port to epoll~%")
@@ -282,6 +279,7 @@
                               (else
                                (DEBUG "Client ~a keep alive~%" (client-sockport client))
                                (break-task)
+                               (DEBUG "Continue from keep-alive connection!~%")
                                (kont)))))))))
              (conn (client-sockport client))
              (prio #t) ; TODO: we don't have prio yet
