@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016
+;;  Copyright (C) 2013,2014,2015,2016,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -38,7 +38,7 @@
     (let ((ost (stat ofile))
           (cst (stat cfile)))
       (> (stat:mtime ost) (stat:mtime cst))))
-  (let ((cfile (format #f "~a/tmp/cache/tpl/~a" (current-toplevel) file)))
+  (let ((cfile (format #f "~a/tmp/cache/tpl/~a" (proper-toplevel) file)))
     (and (file-exists? cfile)
          (cache-is-old? cfile file)
          (cat file #f))))
@@ -48,7 +48,7 @@
 
 (define (cache-the-file expr ofile)
   (let* ((cdir (format #f "~a/tmp/cache/tpl/~a/"
-                       (current-toplevel) (dirname ofile)))
+                       (proper-toplevel) (dirname ofile)))
          (cfile (string-append cdir (basename ofile) ".cache")))
     (when (not (file-exists? cdir))
           (DEBUG "Create cache directory ~a~%" cdir)
