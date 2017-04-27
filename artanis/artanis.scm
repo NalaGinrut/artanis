@@ -264,24 +264,6 @@
    (else (format (artanis-current-output)
                  "[WARN] You're not in application folder, the file motoring is disabled!~%"))))
 
-(define (try-to-use-db)
-  (let ((db (get-conf '(db name)))
-        (conn (get-conn-from-pool)))
-    (case (get-conf '(db dbd))
-      ((mysql)
-       (let ((sql (->sql create database if not exists db)))
-         (DB-query conn sql)))
-      ((postgresql)
-       (let ((check-sql (->sql select 'schema_name from
-                               'information_schema.schemata
-                               (where #:schema_name db)))
-             (create-sql (->sql create database db)))
-         (DB-query conn check-sql)
-         (when (not (db-conn-success? conn))
-               (DB-query conn create-sql))))
-      ((sqlite3) #t) ; sqlite3, do nothing.
-      (else (error "Unsupported DBD" (get-conf '(db dbd)))))))
-
 ;; Invalid use-db? must be (dbd username passwd) or #f
 (define* (run #:key (host #f) (port #f) (debug #f) (use-db? #f) (db-proto #f)
               (dbd #f) (db-username #f) (db-passwd #f) (db-name #f) (db-addr #f))
@@ -308,7 +290,6 @@
     (display "User wants to use Database, initializing...\n")
     (init-database-config dbd db-username db-passwd db-name db-addr db-proto)
     (init-DB)
-    (try-to-use-db)
     (display "DB init done!\n")
     (when (eq? 'db (get-conf '(session backend)))
           (session-init)
