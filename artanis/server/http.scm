@@ -29,7 +29,7 @@
                                  bytevector-length make-bytevector))
   #:export (new-http-protocol))
 
-(define (clean-current-conn-fd server client)
+(define (clean-current-conn-fd server client peer-shutdonw?)
   (let ((conn (client-sockport client))
         (conn-fd (client-sockport-decriptor client))
         (epfd (ragnarok-server-epfd server)))
@@ -46,20 +46,21 @@
     ;;       Then try to send all the rest data.
     ;; NOTE: We can't just close it here, if we do so, then we've lost the information
     ;;       to get fd from port which is the key to remove task from work-table. 
-    (shutdown conn 1)
-    (force-output conn)))
+    (when (not peer-shutdonw?)
+      (shutdown conn 1)
+      (force-output conn))))
 
 ;; NOTE: Close operation must follow these steps:
 ;; 1. remove fd from epoll event
 ;; 2. close fd
 ;; 3. abort to the main-loop
-(define (%%raw-close-connection server client)
+(define* (%%raw-close-connection server client #:optional (peer-shutdonw? #f))
   (DEBUG "clean current client ~a is closed: ~a~%" (client-sockport client)
          (port-closed? (client-sockport client)))
-  (clean-current-conn-fd server client)
+  (clean-current-conn-fd server client peer-shutdonw?)
   ;; ((@@ (artanis server ragnarok) print-work-table) server)
   ;; clean from work-table
-  (close-current-task! server client))
+  (close-current-task! server client peer-shutdonw?))
 
 ;; NOTE: HTTP service is established by default, so it's unecessary to do any
 ;;       openning work.
@@ -149,7 +150,7 @@
 ;; Check if the client in the redirectors table:
 ;; 1. In the table, just scheduled for next time.
 ;; 2. Not in the table, just close the connection.
-(::define (http-close server client)
+(::define (http-close server client #:key (peer-shutdonw? #f))
   (:anno: (ragnarok-server ragnarok-client) -> ANY)
   (DEBUG "http close ~a~%" (client-sockport client))
   (cond
@@ -166,7 +167,7 @@
            (break-task))))
    (else
     (DEBUG "do close connection~%")
-    (%%raw-close-connection server client))))
+    (%%raw-close-connection server client peer-shutdonw?))))
 
 (define (new-http-protocol)
   (make-ragnarok-protocol 'http http-open http-read http-write http-close))

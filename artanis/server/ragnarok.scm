@@ -155,7 +155,6 @@
         (events (ragnarok-server-event-set server))
         (timeout (get-conf '(server polltimeout)))
         (rq (ragnarok-server-ready-queue server)))
-    (display "gogogo\n")
     (for-each
      (lambda (e)
        (DEBUG "Checking event ~a~%" e)
@@ -170,7 +169,8 @@
                   (ragnarok-close
                    proto
                    server
-                   (restore-working-client (current-work-table server) (car e)))
+                   (restore-working-client (current-work-table server) (car e))
+                   #:peer-shutdonw? #t)
                   (DEBUG "Closed ~a~%" e)
                   #f))
                (else
@@ -446,7 +446,7 @@
 
 ;; NOTE: The parameters will be lost when exception raised here, so we can't
 ;;       use any of current-task/server/client/proto in this function.
-(::define (ragnarok-close proto server client)
-  (:anno: (ragnarok-protocol ragnarok-server ragnarok-client) -> ANY)
+(::define (ragnarok-close proto server client #:key (peer-shutdonw? #f))
+  (:anno: (ragnarok-protocol ragnarok-server ragnarok-client boolean) -> ANY)
   (DEBUG "ragnarok-close ~a~%" (client-ip client))
-  ((ragnarok-protocol-close proto) server client))
+  ((ragnarok-protocol-close proto) server client peer-shutdonw?))
