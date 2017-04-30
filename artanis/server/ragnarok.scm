@@ -144,6 +144,15 @@
 (::define (fill-ready-queue-from-service proto server)
   ;; should be client list but we don't check internally.
   (:anno: (ragnarok-protocol ragnarok-server) -> ready-queue)
+  (define (accept-them-all listen-socket)
+    (let lp ((ret '()))
+      (let ((fd (catch #t
+                  (lambda ()
+                    (accept listen-socket))
+                  (lambda e #f))))
+        (if fd
+            (lp (cons (new-ragnarok-client fd) ret))
+            ret))))
   (define (is-listenning-fd? e)
     (DEBUG "listenning-port? ~a~%" e)
     (let ((listen-socket (ragnarok-server-listen-socket server)))
@@ -162,7 +171,7 @@
               (cond
                ((is-listenning-fd? e)
                 (DEBUG "New connection ~a~%" e)
-                (new-ragnarok-client (accept (ragnarok-server-listen-socket server))))
+                (accept-them-all (ragnarok-server-listen-socket server)))
                ((is-peer-shutdown? e)
                 (DEBUG "Peer shutdown ~a~%" e)
                 (parameterize ((must-close-connection? #t))
@@ -177,7 +186,10 @@
                 (DEBUG "Restore working client ~a~%" e)
                 (pk "restore client"(restore-working-client (current-work-table server) (car e)))))))
          (cond
-          (client
+          ((list? client)
+           (DEBUG "New coming connections: ~a~%" (length client))
+           (for-each (lambda (c) (ready-queue-in! rq c)) client))
+          ((ragnarok-client? client)
            (DEBUG "start~%")
            (DEBUG "now get client ~a~%" (client-ip client))
            (DEBUG "end~%")
