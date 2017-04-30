@@ -170,7 +170,7 @@
                    proto
                    server
                    (restore-working-client (current-work-table server) (car e))
-                   #:peer-shutdown? #t)
+                   #t)
                   (DEBUG "Closed ~a~%" e)
                   #f))
                (else
@@ -274,7 +274,7 @@
                              (ragnarok-write proto server client response body)
                              (cond
                               ((not (keep-alive? response))
-                               (ragnarok-close proto server client)
+                               (ragnarok-close proto server client #f)
                                (values))
                               (else
                                (DEBUG "Client ~a keep alive~%" (client-sockport client))
@@ -366,7 +366,7 @@
            ;; NOTE: The parameters will be lost when exception raised here, so we can't
            ;;       use any of current-task/server/client/proto in the exception handler
            (DEBUG "Prepare to close connection ~a~%" (client-ip client))
-           (ragnarok-close http server client)))
+           (ragnarok-close http server client #f)))
         (DEBUG "main-loop again~%")
         (main-loop (get-one-request-from-clients http server))))))
 
@@ -446,7 +446,7 @@
 
 ;; NOTE: The parameters will be lost when exception raised here, so we can't
 ;;       use any of current-task/server/client/proto in this function.
-(::define (ragnarok-close proto server client #:key (peer-shutdown? #f))
+(::define (ragnarok-close proto server client peer-shutdown?)
   (:anno: (ragnarok-protocol ragnarok-server ragnarok-client boolean) -> ANY)
   (DEBUG "ragnarok-close ~a~%" (client-ip client))
   ((ragnarok-protocol-close proto) server client peer-shutdown?))

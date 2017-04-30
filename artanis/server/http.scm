@@ -54,7 +54,7 @@
 ;; 1. remove fd from epoll event
 ;; 2. close fd
 ;; 3. abort to the main-loop
-(define* (%%raw-close-connection server client #:optional (peer-shutdown? #f))
+(define (%%raw-close-connection server client peer-shutdown?)
   (DEBUG "clean current client ~a is closed: ~a~%" (client-sockport client)
          (port-closed? (client-sockport client)))
   (clean-current-conn-fd server client peer-shutdown?)
@@ -150,8 +150,8 @@
 ;; Check if the client in the redirectors table:
 ;; 1. In the table, just scheduled for next time.
 ;; 2. Not in the table, just close the connection.
-(::define (http-close server client #:key (peer-shutdown? #f))
-  (:anno: (ragnarok-server ragnarok-client) -> ANY)
+(::define (http-close server client peer-shutdown?)
+  (:anno: (ragnarok-server ragnarok-client boolean) -> ANY)
   (DEBUG "http close ~a~%" (client-sockport client))
   (cond
    ((and (not (must-close-connection?))
