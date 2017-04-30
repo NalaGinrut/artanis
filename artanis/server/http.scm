@@ -88,7 +88,8 @@
    (cond
     ((eof-object? (peek-char port))
      (DEBUG "Encountered EOF, closing ~a~%" (client-sockport client))
-     (%%raw-close-connection server client #f))
+     ;; Close it as peer-shutdown
+     (%%raw-close-connection server client #t))
     (else
      (with-throw-handler
       #t
