@@ -102,7 +102,7 @@
     ('close
      ;; NOTE: This will close task by removing task from the work-table.
      ;;       The related socket port should be closed before here.
-     (close-current-task! server client))
+     (close-current-task! server client #t))
     (else
      (if customized-scheduler
          (customized-scheduler cmd)
