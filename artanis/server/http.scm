@@ -88,7 +88,7 @@
    (cond
     ((eof-object? (peek-char port))
      (DEBUG "Encountered EOF, closing ~a~%" (client-sockport client))
-     (%%raw-close-connection server client))
+     (%%raw-close-connection server client #f))
     (else
      (with-throw-handler
       #t
@@ -116,7 +116,7 @@
          (else
           ;; General 400 error
           (bad-request 400 port)))
-        (%%raw-close-connection server client)))))))
+        (%%raw-close-connection server client #f)))))))
 
 (::define (http-write server client response body)
   (:anno: (ragnarok-server ragnarok-client <response> ANY) -> ANY)
