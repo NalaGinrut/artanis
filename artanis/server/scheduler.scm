@@ -27,6 +27,7 @@
             schedule-with-command
             break-task
             close-task
+            simply-quit
             schedule-if-locked
             close-current-task!))
 
@@ -46,6 +47,9 @@
 
 (define (close-task)
   (schedule-with-command 'close))
+
+(define (simply-quit)
+  (schedule-with-command 'simply-quit))
 
 (define-syntax-rule (schedule-if-locked mutex body ...)
   (let lp ()
@@ -103,6 +107,7 @@
      ;; NOTE: This will close task by removing task from the work-table.
      ;;       The related socket port should be closed before here.
      (close-current-task! server client #t))
+    ('simply-quit #t)
     (else
      (if customized-scheduler
          (customized-scheduler cmd)

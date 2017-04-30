@@ -89,7 +89,8 @@
     ((eof-object? (peek-char port))
      (DEBUG "Encountered EOF, closing ~a~%" (client-sockport client))
      ;; Close it as peer-shutdown
-     (%%raw-close-connection server client #t))
+     (%%raw-close-connection server client #t)
+     (simply-quit))
     (else
      (with-throw-handler
       #t
@@ -117,11 +118,17 @@
          (else
           ;; General 400 error
           (bad-request 400 port)))
-        (%%raw-close-connection server client #f)))))))
+        (%%raw-close-connection server client #f)
+        (simply-quit)))))))
 
-(::define (http-write server client response body)
-  (:anno: (ragnarok-server ragnarok-client <response> ANY) -> ANY)
+(::define (http-write server client response body method-is-head?)
+  (:anno: (ragnarok-server ragnarok-client <response> ANY boolean) -> ANY)
   (cond
+   (method-is-head?
+    (DEBUG "Method is HEAD, so don't write body~%")
+    (force-output (response-port (write-response response (client-sockport client))))
+    (%%raw-close-connection server client #t)
+    (simply-quit))
    ((get-the-redirector-of-websocket server client)
     ;; If there's a redirector has been registered by the client, then it means
     ;; the client enabled a special websocket-based protocol other than
@@ -134,7 +141,7 @@
            (DEBUG "Just suspended...~%")
            ((redirector-writer redirector) redirector)
            (break-task)
-           (http-write server client response body))))
+           (http-write server client response body #f))))
    (else
     (let* ((res (write-response response (client-sockport client)))
            (port (response-port res)))  ; return the continued port
@@ -168,7 +175,8 @@
            (break-task))))
    (else
     (DEBUG "do close connection~%")
-    (%%raw-close-connection server client peer-shutdown?))))
+    (%%raw-close-connection server client peer-shutdown?)
+    (simply-quit))))
 
 (define (new-http-protocol)
   (make-ragnarok-protocol 'http http-open http-read http-write http-close))

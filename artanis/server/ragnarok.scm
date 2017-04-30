@@ -283,11 +283,11 @@
                              ;;       compatible with the continuation of Guile built-in
                              ;;       server, although it's useless in Ragnarok.
                              (DEBUG "Ragnarok: write client~%")
-                             (ragnarok-write proto server client response body)
+                             (ragnarok-write proto server client response body
+                                             (eq? 'HEAD (request-method request)))
                              (cond
                               ((not (keep-alive? response))
-                               (ragnarok-close proto server client #f)
-                               (values))
+                               (ragnarok-close proto server client #f))
                               (else
                                (DEBUG "Client ~a keep alive~%" (client-sockport client))
                                (break-task)
@@ -448,13 +448,13 @@
   (DEBUG "ragnarok-read ~a~%" (client-ip client))
   ((ragnarok-protocol-read proto) server client))
 
-(::define (ragnarok-write proto server client response body)
+(::define (ragnarok-write proto server client response body method-is-head?)
   ;; FIXME:
   ;; Since body could be string/bv, and we haven't supported multi-types yet,
   ;; then we just use ANY type here to ingore the body type.
-  (:anno: (ragnarok-protocol ragnarok-server ragnarok-client <response> ANY) -> ANY)
+  (:anno: (ragnarok-protocol ragnarok-server ragnarok-client <response> ANY boolean) -> ANY)
   (DEBUG "ragnarok-write ~a~%" (client-ip client))
-  ((ragnarok-protocol-write proto) server client response body))
+  ((ragnarok-protocol-write proto) server client response body method-is-head?))
 
 ;; NOTE: The parameters will be lost when exception raised here, so we can't
 ;;       use any of current-task/server/client/proto in this function.
