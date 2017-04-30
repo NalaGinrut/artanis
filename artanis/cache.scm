@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015
+;;  Copyright (C) 2014,2015,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -206,6 +206,7 @@
 
 ;; NOTE: the ETag of static file is time based, not content based
 (define (try-to-cache-static-file rc file status max-age)
+  (DEBUG "try-to-cache-static-file ~a for ~a~%" file max-age)
   (cond
    ((cacheable-request? (rc-req rc))
     ;; TODO: checkout last-modified for expires
@@ -216,9 +217,10 @@
    (else (emit-static-file-without-cache file))))
 
 (define (->maxage maxage)
-  (display maxage)
-  (match maxage
-    ((? integer? m) m)
-    (((? integer? m)) m)
-    (() (get-conf '(cache maxage)))
-    (else (throw 'artanis-err "->maxage: Invalid maxage!" maxage))))
+  (let ((m (match maxage
+             ((? integer? m) m)
+             (((? integer? m)) m)
+             (() (get-conf '(cache maxage)))
+             (else (throw 'artanis-err "->maxage: Invalid maxage!" maxage)))))
+    (DEBUG "Cache maxage is ~a~%" m)
+    m))
