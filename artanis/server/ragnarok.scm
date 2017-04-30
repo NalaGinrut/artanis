@@ -170,7 +170,7 @@
                    proto
                    server
                    (restore-working-client (current-work-table server) (car e))
-                   #:peer-shutdonw? #t)
+                   #:peer-shutdown? #t)
                   (DEBUG "Closed ~a~%" e)
                   #f))
                (else
@@ -446,7 +446,7 @@
 
 ;; NOTE: The parameters will be lost when exception raised here, so we can't
 ;;       use any of current-task/server/client/proto in this function.
-(::define (ragnarok-close proto server client #:key (peer-shutdonw? #f))
+(::define (ragnarok-close proto server client #:key (peer-shutdown? #f))
   (:anno: (ragnarok-protocol ragnarok-server ragnarok-client boolean) -> ANY)
   (DEBUG "ragnarok-close ~a~%" (client-ip client))
-  ((ragnarok-protocol-close proto) server client peer-shutdonw?))
+  ((ragnarok-protocol-close proto) server client peer-shutdown?))

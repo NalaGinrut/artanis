@@ -74,10 +74,10 @@
     (DEBUG "Save ok~%")))
 
 ;; clean task from work-table
-(define* (close-current-task! server client #:optional (peer-shutdonw? #f))
+(define* (close-current-task! server client #:optional (peer-shutdown? #f))
   ;; NOTE: current task is the head of work-table
   (DEBUG "close task ~a~%" (client-sockport client))
-  (remove-from-work-table! (current-work-table server) client peer-shutdonw?))
+  (remove-from-work-table! (current-work-table server) client peer-shutdown?))
 
 (define customized-scheduler #f)
 

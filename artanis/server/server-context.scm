@@ -252,11 +252,11 @@
   (sockaddr:port (client-details c)))
 
 ;; work-table -> ragnarok-client -> ANY
-(::define (remove-from-work-table! wt client peer-shutdonw?)
+(::define (remove-from-work-table! wt client peer-shutdown?)
   (:anno: (work-table ragnarok-client boolean) -> ANY)
   (DEBUG "Removed task ~a~%" (client-sockport client))
   (hashv-remove! (work-table-content wt) (client-sockport-decriptor client))
-  (when (not peer-shutdonw?)
+  (when (not peer-shutdown?)
     (close (client-sockport client))))
 
 ;; work-table -> ragnarok-client -> task -> ANY
