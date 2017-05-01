@@ -44,13 +44,13 @@
                throw-auth-needed
                tpl->html
                redirect-to
-               generate-response-with-file
-               emit-response-with-file
                tpl->response
                reject-method
                response-error-emit
                run-after-request!
                run-before-response!
+               emit-response-with-file
+               static-page-emitter
 
                ;; oht module
                get
@@ -163,8 +163,7 @@
 
                ;; version
                artanis-version)
-  #:export (static-page-emitter
-            result-ref
+  #:export (result-ref
             init-server
             form-tag
             label-tag
@@ -176,10 +175,6 @@
 (define* (result-ref alst key #:key (decode? #t))
   (and=> (assoc-ref alst key) (if decode? uri-decode identity)))
 
-;; When you don't want to use cache, use static-page-emitter.
-(define (static-page-emitter rc)
-  (emit-response-with-file (static-filename (rc-path rc))))
-
 (define (default-route-init statics cache-statics? exclude)
   ;; avoid a common warn
   (get "/" #:cache #t (lambda () "no index.html but it works!"))
@@ -190,8 +185,7 @@
 
 (define (check-invalid-config)
   (when (and (not (linux-version>=? "4.5")) (get-conf '(server multi)))
-    (error "It's required to have Linux-4.5+ to enable server.multi feature!"))
-  )
+    (error "It's required to have Linux-4.5+ to enable server.multi feature!")))
 
 ;; make sure to call init-server at the beginning
 (define* (init-server #:key (statics '(png jpg jpeg ico html js css))

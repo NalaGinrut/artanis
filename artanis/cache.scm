@@ -194,27 +194,32 @@
           (try-to-cache-dynamic-content rc body etag opts))))
    (else body)))
 
-(define-syntax-rule (emit-static-file-with-cache file etag status max-age)
+(define-syntax-rule (emit-static-file-with-cache file out etag status max-age)
   (emit-response-with-file
    file
+   out
    `((cache-control . ,(list status (cons 'max-age max-age)))
      ,@(if (null? etag) '() `((ETag . ,etag))))))
 
-(define-syntax-rule (emit-static-file-without-cache file)
+(define-syntax-rule (emit-static-file-without-cache file out)
   (let ((headers `((cache-control . (no-cache no-store)))))
-    (emit-response-with-file file headers)))
+    (emit-response-with-file file out headers)))
 
 ;; NOTE: the ETag of static file is time based, not content based
 (define (try-to-cache-static-file rc file status max-age)
   (DEBUG "try-to-cache-static-file ~a for ~a~%" file max-age)
   (cond
+   ((not (file-exists? file))
+    (throw 'artanis-err 404 try-to-cache-static-file
+           "Cache: static file `~a' doesn't exist!" file))
    ((cacheable-request? (rc-req rc))
     ;; TODO: checkout last-modified for expires
-    (let ((etag (generate-ETag file)))
+    (let ((etag (generate-ETag file))
+          (out (request-port (rc-req rc))))
       (if (If-None-Match-hit? rc etag)
           (emit-HTTP-304) ; cache hit
-          (emit-static-file-with-cache file etag status max-age))))
-   (else (emit-static-file-without-cache file))))
+          (emit-static-file-with-cache file out etag status max-age))))
+   (else (emit-static-file-without-cache file (request-port (rc-req rc))))))
 
 (define (->maxage maxage)
   (let ((m (match maxage

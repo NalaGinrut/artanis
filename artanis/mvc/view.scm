@@ -61,9 +61,10 @@
 (define (load-app-views)
   (get "/pub/:type/:static"
    (lambda (rc)
-     (emit-response-with-file
-      (format #f "pub/~a/~a" (params rc "type") (params rc "static")))))
+     (DEBUG "pub/~a/~a" (params rc "type") (params rc "static"))
+     (static-page-emitter rc)))
+
   (get "/pub/:static"
-   (lambda (rc)
-     (emit-response-with-file
-      (format #f "pub/~a" (params rc "static"))))))
+    (lambda (rc)
+      (DEBUG "pub/~a" (params rc "static"))
+      (static-page-emitter rc))))
