@@ -50,7 +50,7 @@
             build-response write-response get-local-time string->md5 unsafe-random
             uri-decode response-version response-code response-connection
             response-port write-response-body read-request request-uri request-method
-            request-content-length request-port read-request-body
+            request-content-length request-port read-request-body response-content-length
             get-file-ext get-global-date get-local-date string-substitute
             nfx static-filename remote-info seconds-now local-time-stamp
             parse-date write-date make-expires export-all-from-module!
@@ -80,7 +80,8 @@
             call-with-sigint define-box-type make-box-type unbox-type
             ::define did-not-specify-parameter WARN-TEXT ERROR-TEXT REASON-TEXT
             NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr request-path
-            keep-alive? procedure-name->string proper-toplevel)
+            keep-alive? procedure-name->string proper-toplevel gen-content-length
+            make-file-sender file-sender? file-sender-size file-sender-thunk)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -96,7 +97,6 @@
 (define uri-decode (@ (web uri) uri-decode))
 (define parse-date (@@ (web http) parse-date))
 (define write-date (@@ (web http) write-date))
-(define sanitize-response (@ (web server) sanitize-response))
 (define build-response (@ (web response) build-response))
 (define write-response (@ (web response) write-response))
 (define response-version (@ (web response) response-version))
@@ -104,6 +104,7 @@
 (define response-connection (@ (web response) response-connection))
 (define response-port (@ (web response) response-port))
 (define write-response-body (@ (web response) write-response-body))
+(define response-content-length (@ (web response) response-content-length))
 (define read-request (@ (web request) read-request))
 (define read-request-body (@ (web request) read-request-body))
 (define request-uri (@ (web request) request-uri))
@@ -1198,3 +1199,16 @@
 
 (define-syntax-rule (proper-toplevel)
   (or (current-toplevel) ""))
+
+(define-record-type file-sender
+  (fields size thunk))
+
+(define (gen-content-length body)
+  (let ((get-length (lambda ()
+                      (cond
+                       ((string? body) (string-length body))
+                       ((bytevector? body) (bytevector-length body))
+                       ((file-sender? body) (file-sender-size body))
+                       (else (throw 'artanis-err 500 gen-content-length
+                                    "Invalid body ~a" body))))))
+    `(content-length . ,(if body (get-length) 0))))
