@@ -38,8 +38,9 @@
   #:use-module ((srfi srfi-1) #:select (fold))
   #:use-module (system repl error-handling)
   #:use-module (srfi srfi-9)
-  #:use-module (ice-9 threads)
+  #:use-module (srfi srfi-9 gnu)
   #:use-module (ice-9 suspendable-ports)
+  #:use-module (ice-9 iconv)
   #:use-module (rnrs bytevectors)
   #:export (establish-http-gateway
             get-task-breaker
@@ -198,7 +199,7 @@
            (DEBUG "The client ~a was shutdown~%" e)))))
      (pk "epoll-wait"(epoll-wait epfd events timeout)))))
 
-(define (handle-request handler request body)
+(define (handle-request handler request request-body)
   (define (request-error-handler k . e)
     ;; NOTE: We don't have to do any work here but just throw 500 exception.
     ;;       When this handler is called, it must hit the pass-keys, which
@@ -212,19 +213,12 @@
            (with-stack-and-prompt
             (lambda ()
               (DEBUG "prepare the handler~%")
-              (handler request body))))
-       (lambda (response body)
-         (call-with-values
-             (lambda ()
-               (DEBUG "Ragnarok: In handler~%")
-               ;; TODO: optimize sanitize-response to be faster
-               (sanitize-response request response body))
-           (lambda (response body)
-             (DEBUG "Ragnarok: Sanitized~%")
-             ;; NOTE: we return '() as the state here to keep it compatible with
-             ;;       the continuation of Guile built-in server, although it's
-             ;;       useless in Ragnarok.
-             (values response body '()))))))
+              (handler request request-body))))
+       (lambda (response response-body)
+         ;; NOTE: we return '() as the state here to keep it compatible with
+         ;;       the continuation of Guile built-in server, although it's
+         ;;       useless in Ragnarok.
+         (values response response-body '()))))
    ;; pass-keys should be the keys which will not be described in details, since
    ;; the server developers doesn't care about them. If exception key hits pass-keys,
    ;; post-error handler will be called.
@@ -449,9 +443,6 @@
   ((ragnarok-protocol-read proto) server client))
 
 (::define (ragnarok-write proto server client response body method-is-head?)
-  ;; FIXME:
-  ;; Since body could be string/bv, and we haven't supported multi-types yet,
-  ;; then we just use ANY type here to ingore the body type.
   (:anno: (ragnarok-protocol ragnarok-server ragnarok-client <response> ANY boolean) -> ANY)
   (DEBUG "ragnarok-write ~a~%" (client-ip client))
   ((ragnarok-protocol-write proto) server client response body method-is-head?))

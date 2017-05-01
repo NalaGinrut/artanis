@@ -26,7 +26,8 @@
   #:use-module (artanis server epoll)
   #:use-module (artanis server scheduler)
   #:use-module ((rnrs) #:select (put-bytevector bytevector? get-bytevector-n!
-                                 bytevector-length make-bytevector))
+                                                bytevector-length make-bytevector))
+  #:use-module (ice-9 iconv)
   #:export (new-http-protocol))
 
 (define (clean-current-conn-fd server client peer-shutdown?)
@@ -128,6 +129,8 @@
     (DEBUG "Method is HEAD, so don't write body~%")
     (force-output (response-port (write-response response (client-sockport client))))
     (%%raw-close-connection server client #t)
+    ;; NOTE: simply-quit here will be more efficient to avoid useless keep-alive connection
+    ;;       and just drop the rest steps.
     (simply-quit))
    ((get-the-redirector-of-websocket server client)
     ;; If there's a redirector has been registered by the client, then it means
@@ -142,16 +145,21 @@
            ((redirector-writer redirector) redirector)
            (break-task)
            (http-write server client response body #f))))
+   ((string? body)
+    (http-write server client response
+                (string->bytevector body (get-conf '(server charset)))
+                method-is-head?))
    (else
     (let* ((res (write-response response (client-sockport client)))
            (port (response-port res)))  ; return the continued port
       ;; send body to regular HTTP client
       (cond
-       ((not body)) ; pass
+       ((not body) 'no-body) ; pass
        ((bytevector? body)
         (write-response-body res body)
         (force-output port))
-       ((thunk? body) (body))
+       ((file-sender? body)
+        ((file-sender-thunk body)))
        (else
         (throw 'artanis-err 500 "1: Expected a bytevector for body" body)))))))
 
@@ -175,8 +183,9 @@
            (break-task))))
    (else
     (DEBUG "do close connection~%")
-    (%%raw-close-connection server client peer-shutdown?)
-    (simply-quit))))
+    ;; NOTE: Don't use simply-quit here, since there's no valid installed prompt
+    ;;       to be aborted from now on.
+    (%%raw-close-connection server client peer-shutdown?))))
 
 (define (new-http-protocol)
   (make-ragnarok-protocol 'http http-open http-read http-write http-close))

@@ -36,13 +36,13 @@
             throw-auth-needed
             tpl->html
             redirect-to
-            generate-response-with-file
-            emit-response-with-file
             tpl->response
             reject-method
             response-error-emit
             server-handler
-            init-hook))
+            init-hook
+            emit-response-with-file
+            static-page-emitter))
 
 ;; the params will be searched in binding-list first, then search from qstr
 ;; TODO: qstr should be independent from rules binding.
@@ -117,6 +117,7 @@
        (build-response #:code status
                        #:headers `((server . ,(get-conf '(server info)))
                                    (last-modified . ,mtime)
+                                   ,(gen-content-length body)
                                    ,@pre-headers 
                                    ,@(generate-cookies (rc-set-cookie rc))))
        ;; NOTE: For inner-server, sanitize-response will handle 'HEAD method
@@ -184,35 +185,6 @@
   (run-after-request-hooks request request-body)
   (work-with-request request request-body))
 
-;; proc must return the content-in-bytevector
-(define (generate-response-with-file filename proc)
-  (if (file-exists? filename)
-      (let* ((st (stat filename))
-             ;; NOTE: we use ctime for last-modified time
-             (mtime (make-time time-utc (stat:ctime st) (stat:ctimensec st)))
-             (port (open-input-file filename))
-             (mime (guess-mime filename)))
-        (values mtime 200 (proc port) mime))
-      (throw 'artanis-err 404 generate-response-with-file
-             "Static file `~a' doesn't exist!~%" filename)))
-
-;; emit static file with no cache(ETag)
-(define* (emit-response-with-file filename #:optional (headers '()))
-  (define (gen-sfile-cache)
-    (list 'public (cons 'max-age (get-conf '(cache maxage)))))
-  (call-with-values
-      (lambda ()
-        (generate-response-with-file filename (lambda (p) (bv-cat p #f))))
-    (lambda (mtime status bv mime)
-      (cond
-       ((= status 200) 
-        (response-emit bv #:status status 
-                       #:headers `((content-type . ,(list mime))
-                                   (cache-control . ,(gen-sfile-cache))
-                                   ,@headers)
-                       #:mtime mtime))
-       (else (response-emit bv #:status status))))))
-
 (define-syntax-rule (tpl->response sxml/file ...)
   (let ((html (tpl->html sxml/file ...)))
     (if html
@@ -239,3 +211,43 @@
 
 (define (reject-method method)
   (throw 'artanis-err 405 "Method is not allowed" method))
+
+;; proc must return the content-in-bytevector
+(define (generate-response-with-file filename file-sender)
+  (if (file-exists? filename)
+      (let* ((st (stat filename))
+             ;; NOTE: we use ctime for last-modified time
+             (mtime (make-time time-utc (stat:ctime st) (stat:ctimensec st)))
+             (mime (guess-mime filename)))
+        (values mtime 200 file-sender mime))
+      (throw 'artanis-err 404 generate-response-with-file
+             "Static file `~a' doesn't exist!~%" filename)))
+
+;; emit static file with no cache(ETag)
+(define* (emit-response-with-file filename out #:optional (headers '()))
+  (call-with-values
+      (lambda ()
+        (let* ((in (open-input-file filename))
+               (size (stat:size (stat filename))))
+         (generate-response-with-file
+          filename
+          (make-file-sender
+           size
+           (lambda ()
+             ;; TODO: support trunked length requesting for continously downloading
+             (sendfile out in size)
+             (force-output out)
+             (close in))))))
+    (lambda (mtime status body mime)
+      (cond
+       ((= status 200)
+        (response-emit body #:status status
+                       #:headers `((content-type . ,(list mime))
+                                   ,@headers)
+                       #:mtime mtime))
+       (else (response-emit body #:status status))))))
+
+;; When you don't want to use cache, use static-page-emitter.
+(define (static-page-emitter rc)
+  (emit-response-with-file (static-filename (rc-path rc))
+                           (request-port (rc-req rc))))
