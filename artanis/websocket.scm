@@ -91,7 +91,7 @@
          (res (build-response #:code 101 #:headers `((Sec-WebSocket-Accept . ,acpt)
                                                      (Upgrade . "websocket")
                                                      (Connection . "Upgrade")))))
-    (values res "")))
+    (values res "" 'ok)))
 
 ;; frame header "\x81" (1000 0001 in binary)
 (define *ws-frame-header* #\201)
