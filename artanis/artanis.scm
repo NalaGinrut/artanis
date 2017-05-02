@@ -271,7 +271,7 @@
                      (and=> (string-length body)
                             (lambda (len) (if (> len 100) 100 len))))))
      (((@ (rnrs bytevectors) bytevector?) body) "Body is bytevectors!")
-     (else (throw 'artanis-err 500 "->proper-body-display: Invalid body type!" body))))
+     (else (throw 'artanis-err 500 ->proper-body-display "Invalid body type!" body))))
   (when (check-if-not-run-init-server)
     (error "Sorry, but you have to run (init-server) in the begining of you main program!"))
   (and host (conf-set! '(host addr) host))
@@ -294,7 +294,8 @@
            (error "Session with DB backend init failed because you didn't enable DB!")))
     (else
      (session-init)
-     (format #t "Session with ~:@(~a~) backend init done!~%" (get-conf '(session backend)))))
+     (format #t "Session with ~:@(~a~) backend init done!~%"
+             (get-conf '(session backend)))))
   (run-hook *before-run-hook*)
   (format #t "~a~%" (current-myhost))
   (format #t "Anytime you want to Quit just try Ctrl+C, thanks!~%")
