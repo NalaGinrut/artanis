@@ -185,15 +185,13 @@
                   #f))
                (else
                 (DEBUG "Restore working client ~a~%" e)
-                (pk "restore client"(restore-working-client (current-work-table server) (car e)))))))
+                (restore-working-client (current-work-table server) (car e))))))
          (cond
           ((list? client)
            (DEBUG "New coming connections: ~a~%" (length client))
            (for-each (lambda (c) (ready-queue-in! rq c)) client))
           ((ragnarok-client? client)
-           (DEBUG "start~%")
-           (DEBUG "now get client ~a~%" (client-ip client))
-           (DEBUG "end~%")
+           (DEBUG "Restored client ~a~%" (client-ip client))
            (ready-queue-in! rq client))
           (else
            (DEBUG "The client ~a was shutdown~%" e)))))
@@ -204,21 +202,14 @@
     ;; NOTE: We don't have to do any work here but just throw 500 exception.
     ;;       When this handler is called, it must hit the pass-keys, which
     ;;       should be silient and throw 500.
-    (values (build-response #:code 500) #f '()))
+    (throw 'artanis-err 500 handle-request "Internal ERROR ~a ~a!" k e))
   (DEBUG "handle request~%")
   (call-with-error-handling
    (lambda ()
-     (call-with-values
-         (lambda ()
-           (with-stack-and-prompt
-            (lambda ()
-              (DEBUG "prepare the handler~%")
-              (handler request request-body))))
-       (lambda (response response-body)
-         ;; NOTE: we return '() as the state here to keep it compatible with
-         ;;       the continuation of Guile built-in server, although it's
-         ;;       useless in Ragnarok.
-         (values response response-body '()))))
+     (with-stack-and-prompt
+      (lambda ()
+        (DEBUG "prepare the handler~%")
+        (handler request request-body))))
    ;; pass-keys should be the keys which will not be described in details, since
    ;; the server developers doesn't care about them. If exception key hits pass-keys,
    ;; post-error handler will be called.
@@ -237,7 +228,7 @@
    (= (port->fdes listen-socket) (client-sockport-decriptor client))))
 
 (define (register-connecting-socket epfd conn-port)
-  (DEBUG "AAAAAAAA: register ~a as RW event~%" conn-port)
+  (DEBUG "Register ~a as RW event~%" conn-port)
   (epoll-ctl epfd EPOLL_CTL_ADD (port->fdes conn-port)
              (make-epoll-event (port->fdes conn-port) (gen-rw-event))
              #:keep-alive? #t)
@@ -262,8 +253,7 @@
     ;; new task with this new connecting socket.
     (letrec ((epfd (ragnarok-server-epfd server))
              (kont (lambda ()
-                     (DEBUG "Ragnarok: new task from ~a <-> ~a ~%"
-                            (client-sockport client) (client-sockport (current-client)))
+                     (DEBUG "Ragnarok: new task from ~a~%" (client-sockport client))
                      (call-with-values
                          (lambda ()
                            (DEBUG "Ragnarok: start to read client ~a~%" client)
@@ -272,7 +262,7 @@
                          (call-with-values
                              (lambda ()
                                (handle-request handler request body))
-                           (lambda (response body _)
+                           (lambda (response body request-status)
                              ;; NOTE: We provide the 3rd parameter here to keep it
                              ;;       compatible with the continuation of Guile built-in
                              ;;       server, although it's useless in Ragnarok.
@@ -280,7 +270,8 @@
                              (ragnarok-write proto server client response body
                                              (eq? 'HEAD (request-method request)))
                              (cond
-                              ((not (keep-alive? response))
+                              ((or (eq? request-status 'exception)
+                                   (not (keep-alive? response)))
                                (ragnarok-close proto server client #f))
                               (else
                                (DEBUG "Client ~a keep alive~%" (client-sockport client))
@@ -357,7 +348,8 @@
     ;;           in serve-one-request.
     (DEBUG "Prepare for main-loop~%")
     (when (not http)
-      (throw 'artanis-err 500 "BUG: There should be `http' protocol at least!"))
+      (throw 'artanis-err 500 ragnarok-http-gateway-run
+             "BUG: There should be `http' protocol at least!"))
     (let main-loop((client (get-one-request-from-clients http server)))
       (let ((proto-name (detect-client-protocol client)))
         (DEBUG "Enter main-loop, protocol is ~a~%" proto-name)
