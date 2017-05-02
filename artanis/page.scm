@@ -27,6 +27,7 @@
   #:use-module (artanis db)
   #:use-module (artanis route)
   #:use-module (artanis websocket)
+  #:use-module (artanis server http)
   #:use-module (srfi srfi-19)
   #:use-module (web uri)
   #:use-module (web http)
@@ -79,7 +80,8 @@
                      #:headers `((server . ,(get-conf '(server info)))
                                  (last-modified . ,mtime)
                                  (content-type . (text/html (charset . ,charset)))))
-     (syspage-show (status->page status)))))
+     (syspage-show (status->page status))
+     'exception)))
 
 (define (rc-conn-recycle rc body)
   (and=> (rc-conn rc) DB-close))
@@ -122,8 +124,10 @@
                                    ,@(generate-cookies (rc-set-cookie rc))))
        ;; NOTE: For inner-server, sanitize-response will handle 'HEAD method
        ;;       though rc-method is 'GET when request-method is 'HEAD,
-       ;;       sanitize-response only checks method from request
-       body))))
+       ;;       sanitize-response only checks method from request.
+       body
+       ;; NOTE: return the status while handling the request.
+       'ok))))
 
 (define (format-status-page status request)
   (format (current-error-port) "[EXCEPTION] ~a is abnormal request, status: ~a, "
@@ -148,13 +152,15 @@
          (format port "<~a>~%" (WARN-TEXT (current-filename)))
          (when subr (format port "In procedure ~a :~%"
                             (WARN-TEXT (procedure-name->string subr))))
-         (apply format port (REASON-TEXT msg) args))
+         (apply format port (REASON-TEXT msg) args)
+         (newline port))
         (((? integer? status) (? procedure? subr) (? string? msg) . args)
          (format port "HTTP ~a~%" (STATUS-TEXT status))
          (format port "<~a>~%" (WARN-TEXT (current-filename)))
          (when subr (format port "In procedure ~a :~%"
                             (WARN-TEXT (procedure-name->string subr))))
          (apply format port (REASON-TEXT msg) args)
+         (newline port)
          (format-status-page status request))
         (else
          (format port "~a - ~a~%"
