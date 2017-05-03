@@ -156,12 +156,13 @@
     (('bufsize bufsize) (conf-set! '(server bufsize) (->integer bufsize)))
     (('impl impl) (conf-set! '(server impl) (string->symbol impl)))
     (('multi multi) (conf-set! '(server multi) (->bool multi)))
+    (('engine engine) (conf-set! '(server engine) (->symbol engine)))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 
 (define (parse-namespace-host item)
   (match item
     (('name name) (conf-set! '(host name) name))
-    (('family family) (conf-set! '(host family) family))
+    (('family family) (conf-set! '(host family) (->symbol family)))
     (('addr addr) (conf-set! '(host addr) addr))
     (('port port) (conf-set! '(host port) (->integer port)))
     (else (error parse-namespace-host "Config: Invalid item" item))))
