@@ -1206,9 +1206,12 @@
 (define (gen-content-length body)
   (let ((get-length (lambda ()
                       (cond
-                       ((string? body) (string-length body))
                        ((bytevector? body) (bytevector-length body))
                        ((file-sender? body) (file-sender-size body))
+                       ((string? body)
+                        (throw 'artanis-err 500 gen-content-length
+                               "BUG: body should have been converted to bytevector! ~a"
+                               body))
                        (else (throw 'artanis-err 500 gen-content-length
                                     "Invalid body ~a" body))))))
     `(content-length . ,(if body (get-length) 0))))

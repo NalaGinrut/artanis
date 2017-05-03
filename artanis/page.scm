@@ -32,6 +32,8 @@
   #:use-module (web uri)
   #:use-module (web http)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 iconv)
+  #:use-module ((rnrs) #:select (bytevector-length bytevector?))
   #:export (params
             response-emit
             throw-auth-needed
@@ -104,6 +106,11 @@
   (init-before-response-hook))
 
 (define (handler-render handler rc)
+  (define (->bytevector body)
+    (cond
+     ((bytevector? body) body)
+     ((string? body) (string->bytevector body (get-conf '(server charset))))
+     (else body))) ; just let it be checked by http-write
   (call-with-values
       (lambda ()
         (if (thunk? handler) 
@@ -112,22 +119,23 @@
     (lambda* (body #:key (pre-headers (prepare-headers '()))
                    (status 200) 
                    (mtime (generate-modify-time (current-time))))
-      (run-before-response-hooks rc body)
-      (let ((type (assq-ref pre-headers 'content-type)))
-        (and type (log status (car type) (rc-req rc))))
-      (values
-       (build-response #:code status
-                       #:headers `((server . ,(get-conf '(server info)))
-                                   (last-modified . ,mtime)
-                                   ,(gen-content-length body)
-                                   ,@pre-headers 
-                                   ,@(generate-cookies (rc-set-cookie rc))))
-       ;; NOTE: For inner-server, sanitize-response will handle 'HEAD method
-       ;;       though rc-method is 'GET when request-method is 'HEAD,
-       ;;       sanitize-response only checks method from request.
-       body
-       ;; NOTE: return the status while handling the request.
-       'ok))))
+      (let ((reformed-body (->bytevector body)))
+        (run-before-response-hooks rc body)
+        (let ((type (assq-ref pre-headers 'content-type)))
+          (and type (log status (car type) (rc-req rc))))
+        (values
+         (build-response #:code status
+                         #:headers `((server . ,(get-conf '(server info)))
+                                     (last-modified . ,mtime)
+                                     ,(gen-content-length reformed-body)
+                                     ,@pre-headers 
+                                     ,@(generate-cookies (rc-set-cookie rc))))
+         ;; NOTE: For inner-server, sanitize-response will handle 'HEAD method
+         ;;       though rc-method is 'GET when request-method is 'HEAD,
+         ;;       sanitize-response only checks method from request.
+         reformed-body
+         ;; NOTE: return the status while handling the request.
+         'ok)))))
 
 (define (format-status-page status request)
   (format (current-error-port) "[EXCEPTION] ~a is abnormal request, status: ~a, "

@@ -26,8 +26,7 @@
   #:use-module (artanis server epoll)
   #:use-module (artanis server scheduler)
   #:use-module ((rnrs) #:select (put-bytevector bytevector? get-bytevector-n!
-                                                bytevector-length make-bytevector))
-  #:use-module (ice-9 iconv)
+                                 bytevector-length make-bytevector))
   #:export (new-http-protocol))
 
 (define (clean-current-conn-fd server client peer-shutdown?)
@@ -48,7 +47,7 @@
     ;; NOTE: We can't just close it here, if we do so, then we've lost the information
     ;;       to get fd from port which is the key to remove task from work-table. 
     (when (not peer-shutdown?)
-      (shutdown conn 1)
+      (shutdown conn 0)
       (force-output conn))))
 
 ;; NOTE: Close operation must follow these steps:
@@ -145,10 +144,6 @@
            ((redirector-writer redirector) redirector)
            (break-task)
            (http-write server client response body #f))))
-   ((string? body)
-    (http-write server client response
-                (string->bytevector body (get-conf '(server charset)))
-                method-is-head?))
    (else
     (let* ((res (write-response response (client-sockport client)))
            (port (response-port res)))  ; return the continued port
