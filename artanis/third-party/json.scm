@@ -58,7 +58,7 @@
 (define (validate-json jstr)
   (if (every (lambda (checker) (checker jstr)) *checker-list*)
       jstr
-      (throw 'artanis-err 500 "JSON safe check didn't pass!" jstr)))
+      (throw 'artanis-err 500 validate-json "JSON safe check didn't pass!" jstr)))
 
 ;; NOTE: I'll let you specify the regexp for validating your own JSONP in case
 ;;       the default regexp is not enough for you, but AT YOUR OWN RISK!!!
@@ -70,5 +70,6 @@
     (if (irregex-match jsonp-regexp jsonp)
         (format #f "~a(~a)" jsonp (validate-json (scm->json-string sxml)))
         ;; if jsonp contains a non-word character, this could be an XSS attack.
-        (throw 'artanis-err 400 "Invalid JSONP, possibly be an XSS attack!" jsonp)))
+        (throw 'artanis-err 400 ->json-string
+               "Invalid JSONP, possibly be an XSS attack!" jsonp)))
    (else ((if securty-check? validate-json identity) (scm->json-string sxml)))))
