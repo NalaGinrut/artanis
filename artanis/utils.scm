@@ -1162,14 +1162,14 @@
   (case (get-conf '(server trigger))
     ((edge) (@ (artanis server epoll) EPOLLET))
     ((level) 0)
-    (else (throw 'artanis-err 500 "Invalid (server trigger)!"
+    (else (throw 'artanis-err 500 get-trigger "Invalid (server trigger)!"
                  (get-conf '(server trigger))))))
 
 (define (get-family)
   (case (get-conf '(host family))
     ((ipv4) AF_INET)
     ((ipv6) AF_INET6)
-    (else (throw 'artanis-err 500 "Invalid (host family)!"
+    (else (throw 'artanis-err 500 get-family "Invalid (host family)!"
                  (get-conf '(host family))))))
         
 (define (get-addr)
