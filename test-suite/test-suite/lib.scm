@@ -616,14 +616,14 @@
 
 ;;; The complete list of possible test results.
 (define result-tags
-  '((pass        "\x1b[32mPASS\x1b[0m"        "\x1b[32mpasses:\x1b[0m                 ")
+  '((pass        "\x1b[33mPASS\x1b[0m"        "\x1b[33mpasses:\x1b[0m                 ")
     (fail        "\x1b[31mFAIL\x1b[0m"        "\x1b[31mfailures:\x1b[0m               ")
     (upass       "UPASS"       "unexpected passes:      ")
     (xfail       "XFAIL"       "expected failures:      ")
     (unresolved  "UNRESOLVED"  "unresolved test cases:  ")
     (untested    "UNTESTED"    "untested test cases:    ")
     (unsupported "UNSUPPORTED" "unsupported test cases: ")
-    (error       "ERROR"       "errors:                 ")))
+    (error       "\x1b[31mERROR\x1b[0m"       "errors:                 ")))
 
 ;;; The list of important test results.
 (define important-result-tags
