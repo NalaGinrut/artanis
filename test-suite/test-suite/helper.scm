@@ -1,6 +1,6 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
 ;;  === Test helper functions ===
-;;  Copyright (C) 2015
+;;  Copyright (C) 2015,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -19,8 +19,6 @@
   #:use-module (artanis utils)
   #:use-module (artanis artanis)
   #:use-module (artanis page)
-  #:use-module (web request)
-  #:use-module (web response)
   #:use-module (ice-9 receive)
   #:use-module (srfi srfi-1)
   #:use-module ((rnrs) #:select (bytevector? bytevector=? get-string-all
@@ -33,6 +31,9 @@
             test-from-request
             responses-equal?
             upload-file-verify))
+
+(define response-reason-phrase (@ (web response) response-reason-phrase))
+(define response-headers (@ (web response) response-headers))
 
 (define *unified-modify-time* ((@ (srfi srfi-19) current-time)))
 (define *unified-modify-time-header*
@@ -58,7 +59,7 @@
          (err (if debug (current-error-port) null)))
     (parameterize ((current-output-port out)
                    (current-error-port err))
-      (receive (res b) (server-handler rq body)
+      (receive (res b _) (server-handler rq body)
                ((@@ (web server) sanitize-response) rq res b)))))
 
 (define (headers-equal? h1 h2)
