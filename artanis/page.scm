@@ -230,7 +230,7 @@
 (define* (emit-response-with-file filename out #:optional (headers '()))
   (when (not (file-exists? filename))
     (throw 'artanis-err 404 emit-response-with-file
-           "Static file `~a' doesn't exist!~%" filename))
+           "Static file `~a' doesn't exist!" filename))
   (call-with-values
       (lambda ()
         (let* ((in (open-input-file filename))
