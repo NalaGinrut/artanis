@@ -343,6 +343,7 @@
       (else (throw 'artanis-err 500 websocket-maker "Invalid type!" type))))
   (this-rule-enabled-websocket! rule)
   (lambda (rc . args)
+    (error "Artanis hasn't been ready for websocket yet!")
     ;; TODO: parsing command and apply call-with-websocket-channel
     #t))
 
