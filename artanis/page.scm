@@ -220,17 +220,17 @@
 
 ;; proc must return the content-in-bytevector
 (define (generate-response-with-file filename file-sender)
-  (if (file-exists? filename)
-      (let* ((st (stat filename))
-             ;; NOTE: we use ctime for last-modified time
-             (mtime (make-time time-utc (stat:ctime st) (stat:ctimensec st)))
-             (mime (guess-mime filename)))
-        (values mtime 200 file-sender mime))
-      (throw 'artanis-err 404 generate-response-with-file
-             "Static file `~a' doesn't exist!~%" filename)))
+  (let* ((st (stat filename))
+         ;; NOTE: we use ctime for last-modified time
+         (mtime (make-time time-utc (stat:ctime st) (stat:ctimensec st)))
+         (mime (guess-mime filename)))
+    (values mtime 200 file-sender mime)))
 
 ;; emit static file with no cache(ETag)
 (define* (emit-response-with-file filename out #:optional (headers '()))
+  (when (not (file-exists? filename))
+    (throw 'artanis-err 404 emit-response-with-file
+           "Static file `~a' doesn't exist!~%" filename))
   (call-with-values
       (lambda ()
         (let* ((in (open-input-file filename))
