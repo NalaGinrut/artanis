@@ -45,7 +45,8 @@
                 #:select (get-bytevector-all utf8->string put-bytevector
                           bytevector-u8-ref string->utf8 bytevector-length
                           make-bytevector bytevector-s32-native-ref bytevector?
-                          define-record-type record-rtd record-accessor))
+                          define-record-type record-rtd record-accessor
+                          get-string-all))
   #:export (regexp-split hash-keys cat bv-cat get-global-time sanitize-response
             build-response write-response get-local-time string->md5 unsafe-random
             uri-decode response-version response-code response-connection
@@ -81,7 +82,8 @@
             ::define did-not-specify-parameter WARN-TEXT ERROR-TEXT REASON-TEXT
             NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr request-path
             keep-alive? procedure-name->string proper-toplevel gen-content-length
-            make-file-sender file-sender? file-sender-size file-sender-thunk)
+            make-file-sender file-sender? file-sender-size file-sender-thunk
+            get-string-all-with-detected-charset)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -1215,3 +1217,9 @@
                        (else (throw 'artanis-err 500 gen-content-length
                                     "Invalid body ~a" body))))))
     `(content-length . ,(if body (get-length) 0))))
+
+(define (get-string-all-with-detected-charset filename)
+  (call-with-input-file filename
+    (lambda (port)
+      (set-port-encoding! port (get-conf '(server charset)))
+      (get-string-all port))))
