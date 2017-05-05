@@ -115,9 +115,7 @@
     (if h (h rc args ...) values)))
 
 (define-syntax-rule (auth-enabled? rc)
-  (begin
-    (format #t "adfa~%")
-    (hash-ref (get-oht rc) #:auth)))
+  (hash-ref (get-oht rc) #:auth))
 ;; --------------------------------------------------------------
 ;; oht handlers
 
@@ -145,7 +143,8 @@
         ('all (DB-get-all-rows r))
         ('top (DB-get-top-row r))
         ((? positive? n) (DB-get-n-rows r n))
-        (else (throw 'artanis-err 500 "raw-sql: Invalid mode!" mode))))))
+        (else (throw 'artanis-err 500 raw-sql-maker
+                     "Invalid mode!" mode))))))
 
 ;; for #:cache
 (define (cache-maker pattern rule keys)
@@ -168,7 +167,8 @@
        (try-to-cache-static-file rc file 'private maxage)))
     ((or (? boolean? opts) (? list? opts))
      (lambda (rc body) (try-to-cache-body rc body opts)))
-    (else (throw 'artanis-err "cache-maker: invalid pattern!" pattern))))
+    (else (throw 'artanis-err 500 cache-maker
+                 "Invalid pattern!" pattern))))
 
 ;; for #:cookies
 ;; NOTE: Support cookies customization, which let users define special cookies.
@@ -182,7 +182,7 @@
   (define ckl '())
   (define (cget ck)
     (or (assoc-ref ckl ck)
-        (throw 'artansi-err 500 "Undefined cookie name" ck)))
+        (throw 'artansi-err 500 cget "Undefined cookie name" ck)))
   (define (cset! ck k v)
     (and=> (cget ck) (cut %cookie-set! <> k v)))
   (define (cref ck k)
@@ -209,7 +209,8 @@
      (set! %cookie-ref getter)
      (set! %cookie-modify modifier)
      (init-cookies names))
-    (else (throw 'artansi-err 500 "cookies-maker: Invalid mode while init!" mode)))
+    (else (throw 'artansi-err 500 cookies-maker
+                 "Invalid mode while init!" mode)))
   (lambda (rc op)
     (case op
       ((set) cset!)
@@ -217,7 +218,8 @@
       ((setattr) setattr)
       ((update) update)
       ((remove) remove)
-      (else (throw 'artanis-err 500 "cookies-maker: Invalid operation!" op)))))
+      (else (throw 'artanis-err 500 cookies-maker
+                   "Invalid operation!" op)))))
 
 ;; for #:mime
 (define (mime-maker type rule keys)
@@ -229,7 +231,7 @@
      ((xml) (lambda (args) (-> sxml->xml-string args)))
      ((csv) (lambda (args) (-> sxml->csv-string args)))
      ((sxml) (lambda (args) (values (object->string (car args)) #:pre-headers headers)))
-     (else (throw 'artanis-err 500 "mime-maker: Invalid type!" type))))
+     (else (throw 'artanis-err 500 mime-maker "Invalid type!" type))))
   (lambda (rc . args) (gen-mime args)))
 
 ;; for #:session
@@ -246,7 +248,7 @@
       ((or #t 'spawn) %spawn)
       (`(spawn ,sid) (lambda (rc) (%spawn rc #:idname sid)))
       (`(spawn ,sid ,proc) (lambda (rc) (%spawn rc #:idname sid #:proc proc)))
-      (else (throw 'artanis-err 500 "session-maker: Invalid config mode" mode))))
+      (else (throw 'artanis-err 500 session-maker "Invalid config mode" mode))))
   (define (check-it rc idname)
     (let ((sid (cookie-ref (rc-cookie rc) idname)))
       (and=> (session-restore (or sid ""))
@@ -260,7 +262,7 @@
       (`(check-and-spawn ,sid)
        (or (check-it rc sid) (spawn-handler rc)))
       ('spawn (spawn-handler rc))
-      (else (throw 'artanis-err 500 "session-maker: Invalid call cmd" cmd)))))
+      (else (throw 'artanis-err 500 session-maker "Invalid call cmd" cmd)))))
 
 (define (from-post-maker mode rule keys)
   (define* (post->qstr-table rc #:optional (safe? #f))
@@ -290,8 +292,8 @@
       (`(success ,mfds ,slist ,flist) (success-ret mfds slist flist))
       ('none (no-file-ret))
       (else
-       (throw 'artanis-err 500
-              "store-the-bv: Impossible status! please report bug!"))))
+       (throw 'artanis-err 500 store-the-bv
+              "Impossible status! please report bug!"))))
   (define (post-ref plst key) (and=> (assoc-ref plst key) car))
   (define (post-handler rc)
     (match mode
@@ -300,7 +302,7 @@
       ((or 'bv 'bytevector) (rc-body rc))
       ;; upload operation, indeed
       (('store rest ...) (apply store-the-bv rc rest))
-      (else (throw 'artanis-err 500 "post-handler: Invalid mode!" mode))))
+      (else (throw 'artanis-err 500 post-handler "Invalid mode!" mode))))
   (define (get-values-from-post pl . keys)
     (apply
      values
@@ -313,7 +315,7 @@
       ('(get) (post-handler rc))
       (('get-vals keys ...) (apply get-values-from-post (post-handler rc) keys))
       ('(store) (post-handler rc))
-      (else (throw 'artanis-err 500 "from-post-maker: Invalid cmd!" cmd)))))
+      (else (throw 'artanis-err 500 from-post-maker "Invalid cmd!" cmd)))))
 
 ;; for #:websocket
 ;; 
