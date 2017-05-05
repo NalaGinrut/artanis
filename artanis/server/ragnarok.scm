@@ -195,7 +195,7 @@
            (ready-queue-in! rq client))
           (else
            (DEBUG "The client ~a was shutdown~%" e)))))
-     (pk "epoll-wait"(epoll-wait epfd events timeout)))))
+     (epoll-wait epfd events timeout))))
 
 (define (handle-request handler request request-body)
   (define (request-error-handler k . e)
