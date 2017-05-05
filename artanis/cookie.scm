@@ -135,16 +135,10 @@
     (cookie-nvp! cookie (assoc-set! nvp name value))))
 
 (define (cookie-ref cookie name)
-  (and (not (null? cookie))
-       (let lp((ck (car cookie)))
-         (cond
-          ((null? ck) #f)
-          (else
-           (let* ((nvp (cookie-nvp ck))
-                  (v (assoc-ref nvp name)))
-             (if v
-                 (car v)
-                 (lp (cdr cookie)))))))))
+  (when (not (cookie? cookie))
+    (throw 'artanis-err 500 cookie-ref "BUG: Invalid cookie!" cookie))
+  (let ((nvp (cookie-nvp cookie)))
+    (assoc-ref nvp name)))
 
 (define (cookie-delete! cookie name)
   (let ((nvp (cookie-nvp cookie)))
