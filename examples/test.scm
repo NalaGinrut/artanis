@@ -151,7 +151,7 @@
 (get "/cookie" #:cookies '(names cc)
   (lambda (rc)
     (:cookies-set! rc 'cc "sid" "123321")
-    "ok"))
+    (:cookies-ref rc 'cc "sid")))
 
 ;; 14
 (get "/cookie/:expires" #:cookies '(names cc)
