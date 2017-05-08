@@ -185,7 +185,7 @@
 
 (define (check-invalid-config)
   (when (and (not (linux-version>=? "3.10")) (get-conf '(server multi)))
-    (error "It's required to have Linux-4.5+ to enable server.multi feature!")))
+    (error "It's required to have Linux-3.10+ to enable server.multi feature!")))
 
 ;; make sure to call init-server at the beginning
 (define* (init-server #:key (statics '(png jpg jpeg ico html js css))
