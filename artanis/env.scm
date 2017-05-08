@@ -153,9 +153,43 @@
 (define (%system-arch)
   (vector-ref (uname) 4))
 
+;; Simple version strings comparator.
+;; It is not performance-friendly, but since it is to be used once
+;;  -- not so critical.
+;; It can compare complex version strings like
+;;  linux-4.0.74-special-build-1a and linux-4.0.74-special-build-1b
+;; And, of course, can compare the following:
+;; 3.9 and 3.10
+;; or 4.5 and 4.11
+(define (version>=? s1 s2)
+  (let ((sm1 (string-match "[0-9]+" s1))
+        (sm2 (string-match "[0-9]+" s2)))
+    ;; if one of the strings doesn't contain numeric values 
+    ;;  compare as usual strings
+    (if (or (not sm1) (not sm2)) (string>=? s1 s2)
+      ;; otherwise -- compare prefixes, then numeric parts,
+      ;; then, recursively, suffixes.
+      (let ((mp1 (match:prefix sm1))
+            (mp2 (match:prefix sm2))
+            (ms1 (match:substring sm1))
+            (ms2 (match:substring sm2)))
+        (cond
+          ((string>? mp1 mp2) #t)
+          ((string<? mp1 mp2) #f)
+          ((> (string->number ms1) (string->number ms2)) #t)
+          ((< (string->number ms1) (string->number ms2)) #f)
+          (else
+            (version>=? (match:suffix sm1) (match:suffix sm2))))))))
+
 (define (kernel-version>=? vstr)
-  (string>=? (%kernel-version) vstr))
+  (version>=? (%kernel-version) vstr))
 
 (define (linux-version>=? vstr)
   (and (string=? (%os-kernel) "Linux")
        (kernel-version>=? vstr)))
+
+
+;; TODO: check uname here and provide features
+;; either 'epoll or 'kqueue to use in cond-expand inside ragnarok
+;;  to select proper module for event-queue implementation.
+;; 

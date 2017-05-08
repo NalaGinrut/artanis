@@ -184,8 +184,8 @@
         (get srule static-page-emitter))))
 
 (define (check-invalid-config)
-  (when (and (not (linux-version>=? "3.10")) (get-conf '(server multi)))
-    (error "It's required to have Linux-3.10+ to enable server.multi feature!")))
+  (when (and (not (linux-version>=? "3.9")) (get-conf '(server multi)))
+    (error "It's required to have Linux-3.9+ to enable server.multi feature!")))
 
 ;; make sure to call init-server at the beginning
 (define* (init-server #:key (statics '(png jpg jpeg ico html js css))
