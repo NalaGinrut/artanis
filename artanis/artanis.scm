@@ -184,7 +184,7 @@
         (get srule static-page-emitter))))
 
 (define (check-invalid-config)
-  (when (and (not (linux-version>=? "4.5")) (get-conf '(server multi)))
+  (when (and (not (linux-version>=? "3.10")) (get-conf '(server multi)))
     (error "It's required to have Linux-4.5+ to enable server.multi feature!")))
 
 ;; make sure to call init-server at the beginning
