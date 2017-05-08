@@ -147,7 +147,7 @@
       (('sqlite3 username passwd dbname)
        (make-<sqlite3> username passwd dbname))
       (('postgresql username passwd dbname ('tcp addr))
-       (make-<postgresql> username passwd dbname addr))
+       (make-<postgresql> username passwd dbname addr #f))
       (('postgresql username passwd dbname ('socketfile sock))
        (make-<postgresql> username passwd dbname #f sock))
       (else (error new-DB "Something is wrong, invalid db!" db)))))
