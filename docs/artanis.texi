@@ -1,7 +1,7 @@
 \input texinfo    @c -*- texinfo -*-
 @c %**start of header
 @setfilename artanis.texi
-@settitle 
+@settitle GNU Artanis web-framework Manual
 @documentencoding UTF-8
 @documentlanguage en
 @syncodeindex pg cp
@@ -17,7 +17,7 @@
 
 @ifnottex
 @node Top
-@top 
+@top GNU Artanis web-framework Manual
 @end ifnottex
 
 @menu
@@ -39,6 +39,7 @@
 * Cookies::
 * Authentication::
 * Cache::
+* Ragnarok server core::
 * Utils::
 * Debug mode::
 * Appendix A GNU Free Documentation License::
@@ -51,15 +52,10 @@ Introduction
 * Conventions used in this manual::
 * No warranty::
 
-
-
-
 Installation
 
 * For users::
 * For contributors::
-
-
 
 Configuration
 
@@ -71,8 +67,6 @@ Configuration
 * Cache config::
 * Debug config::
 
-
-
 Hello World
 
 * Use Guile REPL and verify GNU Artanis installation::
@@ -82,16 +76,12 @@ Hello World
 * Regex in URL remapping::
 * Database operating::
 
-
-
 Basic in Scheme
 
 * For newbies::
 * For Pythonistas::
 * For Rubyist::
 * For deep learners::
-
-
 
 Basic in GNU Artanis
 
@@ -102,8 +92,6 @@ Basic in GNU Artanis
 * Running server::
 * Working with Nginx::
 
-
-
 The Art command line
 
 * art create::
@@ -111,14 +99,10 @@ The Art command line
 * art migrate::
 * art work::
 
-
-
 MVC
 
 * Controllers/Views::
 * Models::
-
-
 
 URL remapping
 
@@ -126,8 +110,6 @@ URL remapping
 * URL handling::
 * Get parameters from URL::
 * Redirect link::
-
-
 
 Layouts and Rendering in GNU Artanis
 
@@ -138,8 +120,6 @@ Layouts and Rendering in GNU Artanis
 * Embedded Templating::
 * SXML Templating::
 
-
-
 Database
 
 * Migration::
@@ -147,9 +127,6 @@ Database
 * SSQL (experimental)::
 * FPRM (experimental)::
 * SQL Mapping (experimental)::
-
-
-
 
 FPRM (experimental)
 
@@ -161,7 +138,6 @@ FPRM (experimental)
 * Drop a table::
 * Check existence of table::
 * Get schema of a table::
-
 MIME
 
 * JSON::
@@ -169,16 +145,10 @@ MIME
 * XML::
 * SXML::
 
-
-
 Upload files
 
 * Receive upload from client::
 * Send upload to Server::
-
-
-
-
 
 Authentication
 
@@ -186,31 +156,33 @@ Authentication
 * Basic Authentication::
 * Common Authentication::
 
-
-
 Cache
 
 * On web caching::
 * Cache APIs::
 
+Ragnarok server core
 
+* Introduction: Introductionx. 
+* Principle::
+* Features::
+* APIs::
 
 Utils
 
 * String Template::
 * Random Number Generator::
-* Encryption::
+* Cryptographic hash functions::
 * Stack & Queue::
+* Useful string operation::
 @end detailmenu
 @end menu
-
-xcxc#+TITLE: GNU Artanis web-framework Manual
 
 @node Introduction
 @chapter Introduction
 
 @example
-Copyright (C)  2015  Mu Lei known as NalaGinrut.
+Copyright (C)  2017  Mu Lei known as NalaGinrut.
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3
 or any later version published by the Free Software Foundation;
@@ -231,7 +203,6 @@ Guile is also an interpreter and compiler for other dynamic programming language
 
 @uref{http://en.wikipedia.org/wiki/Scheme_%28programming_language%29,Scheme} is a functional programming language and one of the two main dialects of the programming language @uref{http://en.wikipedia.org/wiki/Lisp_(programming_language),Lisp}.
 Scheme follows a minimalist design philosophy specifying a small standard core with powerful tools for language extension.
-
 @menu
 * Conventions used in this manual::
 * No warranty::
@@ -254,8 +225,8 @@ We distribute software in the hope that it will be useful, but without any warra
 @node License
 @chapter License
 
-GNU Artanis is @uref{http://www.gnu.org/philosophy/free-sw.html,Free Software}. GNU Artanis is under the terms of the GNU Lesser General Public License version 3 or later.
-See the files COPYING.LESSER and COPYING in toplevel of source code.
+GNU Artanis is @uref{http://www.gnu.org/philosophy/free-sw.html,Free Software}. GNU Artanis is under the terms of the GNU Public License and GNU Lesser General Public License version 3 or later.
+See the files COPYING and COPYING.LESSER in toplevel of source code.
 
 This manual is published under the terms of the @uref{http://www.gnu.org/copyleft/fdl.html,GNU Free Documentation License} 1.3 or later.
 
@@ -272,40 +243,15 @@ This manual is published under the terms of the @uref{http://www.gnu.org/copylef
 @node For users
 @section For users
 
-@strong{Install GNU Guile-2.0.11 or higher version:}
+@strong{Install GNU Guile-2.2.2 or higher version:}
 
-@itemize
-@item
-Debian/Ubuntu users
-@end itemize
-@example
-sudo apt-get install guile-2.0-dev guile-2.0
-@end example
+Since GNU Artanis-0.2, the GNU Guile-2.2+ is required because of the @uref{https://www.gnu.org/software/guile/manual/html_node/Non_002dBlocking-I_002fO.html,suspendable-ports}, which is the key to implement asynchronous
+non-blocking server core in GNU Guile.
 
-@itemize
-@item
-SUSE/openSUSE users
-@end itemize
 @example
-sudo zypper install guile guile-devel
-@end example
-
-@itemize
-@item
-RedHat/Fedora
-@end itemize
-@example
-sudo dnf install guile guile-devel
-@end example
-
-@itemize
-@item
-For LFS(Linux From Scratch) Guru
-@end itemize
-@example
-wget -c ftp://ftp.gnu.org/gnu/guile/guile-2.0.11.tar.gz
-tar xvzf guile-2.0.11.tar.gz
-cd guile-2.0.11 && ./configure && make #(NOTE: this may take very long time even looks like halting)
+wget -c ftp://ftp.gnu.org/gnu/guile/guile-2.2.2.tar.xz
+tar xvf guile-2.2.2.tar.xz
+cd guile-2.2.2 && ./configure && make #(NOTE: this may take very long time even looks like halting)
 sudo make install
 @end example
 
@@ -315,12 +261,12 @@ I would NOT recommend you trying to compile/install Guile from Git repo, since i
 
 @itemize
 @item
-guile-dbi-2.1.5 @strong{[Optional]}
+guile-dbi-2.1.6 @strong{[Optional]}
 @end itemize
 @example
-wget -c http://download.gna.org/guile-dbi/guile-dbi-2.1.5.tar.gz
-tar xvzf guile-dbi-2.1.5.tar.gz
-cd guile-dbi-2.1.5 && ./configure && make
+wget -c http://download.gna.org/guile-dbi/guile-dbi-2.1.6.tar.gz
+tar xvzf guile-dbi-2.1.6.tar.gz
+cd guile-dbi-2.1.6 && ./configure && make
 sudo make install
 @end example
 
@@ -329,17 +275,17 @@ sudo make install
 guile-dbd @strong{[Optional]}. The dbd plugins connect to an actual database server.
 @end itemize
 @example
-wget -c http://download.gna.org/guile-dbi/guile-dbd-mysql-2.1.4.tar.gz
-tar xvzf guile-dbd-mysql-2.1.4.tar.gz
-cd guile-dbd-mysql-2.1.4 && ./configure && make
+wget -c http://download.gna.org/guile-dbi/guile-dbd-mysql-2.1.6.tar.gz
+tar xvzf guile-dbd-mysql-2.1.6.tar.gz
+cd guile-dbd-mysql-2.1.6 && ./configure && make
 sudo make install
 @end example
-MySQL is used for the examples in this manual. You may find dbd plugins for other databases at [BROKEN LINK: nil]. The installation process is identical.
+MySQL is used for the examples in this manual. You may find dbd plugins for other databases at @uref{http://download.gna.org/guile-dbi,here}. The installation process is identical.
 
 @strong{Install the latest GNU Artanis:}
 
 @example
-wget -c http://alpha.gnu.org/gnu/artanis/artanis-latest.tar.bz2
+wget -c http://ftp.gnu.org/gnu/artanis/artanis-latest.tar.bz2
 tar xvjf artanis-latest.tar.bz2
 cd artanis-latest && ./configure && make
 sudo make install
@@ -348,13 +294,13 @@ sudo make install
 @node For contributors
 @section For contributors
 
-First of all, thank you for contributing! You may clone the main git repository, or the mirror on GitHub: 
+First of all, thank you for contributing! You may clone the main git repository, or the mirror on GitLab: 
 
 @example
 git clone git://git.savannah.gnu.org/artanis.git
 
-# mirror on Github
-git clone git@@github.com:NalaGinrut/artanis.git
+# mirror on GitLab
+git clone https://gitlab.com/NalaGinrut/artanis.git
 @end example
 
 @node Configuration
@@ -364,12 +310,18 @@ A configuration file is required when Artanis is run for the first time.
 
 @itemize
 @item
-If you're using minimum mode, say, no application folder. The configure file must be named @verb{~/etc/artanis/artanis.conf~}.
-
-@item
-If you're using application folder, the configure file @verb{~conf/artanis.conf~} will be generated automatically for you.
+If you're using minimum mode, say, all code are in a script file without application folder.
+The configure file must be named #+BEGIN_SRC conf
 @end itemize
+/etc/artanis/artanis.conf
+#+END_SRC.
 
+@itemize
+@item
+If you're using application folder, the configure file #+BEGIN_SRC conf
+@end itemize
+conf/artanis.conf
+#+END_SRC will be generated automatically for you.
 @menu
 * Database config::
 * Server config::
@@ -400,11 +352,12 @@ What database server should be used, depends on the database installed on your m
 @end itemize
 
 @example
-db.port = <integer>
+db.proto = tcp | socketfile
 @end example
 @itemize
 @item
-Port number specified by the database server, depends on the specific database. Please read the manual of the database server you chosen.
+The protocol for connecting the databse. If you use tcp then a socket port must be specified in the address, and if you choose socketfile,
+then you should specify the unix socket file which has been configured by the databases.
 @end itemize
 
 @example
@@ -412,15 +365,15 @@ db.addr = <string>
 @end example
 @itemize
 @item
-The address of the database server, @strong{@emph{localhost}} in default. 
+The address of the database server, for example, in default MariaDB, the address should be @strong{@emph{localhost:3306}}.
 @end itemize
 
 @example
-db.socket = enable | disable
+db.socketfile = <string>
 @end example
 @itemize
 @item
-If you configured the database server to listen on a socket rather than to load a database file (say, sqlite3), then please enable it. You may need to read the database manual.
+If you configured the database server to be connected with an unix socket file, then you should fill this field with the file name.
 @end itemize
 
 @example
@@ -454,8 +407,10 @@ db.engine = <string>
 @item
 The engine of the database server.
 @item
-@strong{@emph{NOTE:}} for sqlite3, you have to set it to nothing, say @verb{~db.engine = ~}. If you remove this item at all, it'll be @strong{@emph{InnoDB}} in default!
+@strong{@emph{NOTE:}} for sqlite3, you have to set it to nothing, say #+BEGIN_SRC conf
 @end itemize
+db.engine = 
+#+END_SRC. If you remove this item at all, it'll be @strong{@emph{InnoDB}} in default!
 
 @node Server config
 @section Server config
@@ -505,45 +460,98 @@ Backlog of the socket.
 @end itemize
 
 @example
-server.workers = <integer>
-@end example
-@itemize
-@item
-The number of works in Artanis server core.
-@item
-@emph{@strong{Note:}} This item won't work before Artanis-0.2. So just ignore it.
-@end itemize
-
-@example
 server.wqlen = <integer>
 @end example
 @itemize
 @item
 The length of the work queue in Artanis server.
 @item
-@emph{@strong{Note:}} This item won't work before Artanis-0.2. So just ignore it.
+@emph{@strong{Note:}} Added since Artanis-0.2.
 @end itemize
 
 @example
-server.trigger = <string>
+server.trigger = edge | level
 @end example
 @itemize
 @item
-The trigger mode of Epoll.
+The trigger mode of epoll.
 @item
-@emph{@strong{Note:}} This item won't work before Artanis-0.2. So just ignore it.
+@emph{@strong{Note:}} Added since Artanis-0.2.
+@end itemize
+
+@example
+server.engine = ragnarok | guile | <customized engine>
+@end example
+@itemize
+@item
+The server core which is used for holding high concurrent connections. Artanis has a strong server core named @ref{Ragnarok server core,Ragnarok,}
+  which is based on @uref{https://en.wikipedia.org/wiki/Delimited_continuation,delimited continuations} to provide asynchronous non-blocking high concurrent serving.
+@item
+You may choose guile inner server which is weak, but sometimes you may under an operating system lacking of key features
+to run Raganrok, for example, maybe there's no epoll.
+@item
+@emph{@strong{Note:}} Added since Artanis-0.2.
+@end itemize
+
+@example
+server.polltimeout = <integer>
+@end example
+@itemize
+@item
+The the timeout for each event polling round, in miliseconds.
+@item
+The default value is 500 miliseconds.
+@item
+@emph{@strong{Note:}} Added since Artanis-0.2.
+@end itemize
+
+@example
+server.bufsize = <integer>
+@end example
+@itemize
+@item
+The buffer size of the connecting socket. In @ref{Ragnarok server core,Ragnarok}, the request handling will be scheduled when the
+socket buffer is full. This item effects the performance of socket I/O largely. Usually, if you're handling
+massive small requests, it's better to set the buffer size small; but if you're providing kind of downloading
+or uploading service, it's better to set it larger. But the large buffer size will increase the latency of
+unserved requests. Please read @ref{Ragnarok server core,Ragnarok} chapter to learn the design principle, which will be helpful for you
+to decide how to tweak.
+@item
+The default value is 12288, say, 12KB.
+@item
+@emph{@strong{Note:}} Added since Artanis-0.2.
+@end itemize
+
+
+@example
+server.multi = <boolean>
+@end example
+@itemize
+@item
+This is the most significant feature for @ref{Ragnarok server core,Ragnarok}. Please remember that @strong{there's no any threads in GNU Artanis}.
+All the tasks are based on @uref{https://en.wikipedia.org/wiki/Delimited_continuation,delimited continuations}, this kind of design is the so-called @uref{https://en.wikipedia.org/wiki/Green_threads,Green Threads.} 
+Then how to take advantage of multi-cores? Fortunately, GNU/Linux has introduced a feature named @uref{https://lwn.net/Articles/542629/,SO_REUSEPORT} since 3.9. 
+This feature let us start multiple Artanis instances listenning on the same socket port. When requests come, the
+Linux kernel will do necessary lock and allocation work for us to dispatch requests to these Artanis instances.
+This makes GNU Artanis provide performance and stateless perfectly.
+@item
+The default value is true.
+@item
+@emph{@strong{Note:}} Added since Artanis-0.2, GNU/Linux-3.9+ is required.
 @end itemize
 
 @node Host config
 @section Host config
 
 @example
-host.name = enable | disable
+host.name = enable | disable | <boolean>
 @end example
 @itemize
 @item
-If disabled, you have to set the address to IP, say, @verb{~host.addr = 127.0.0.1~}.
+If disabled, you have to set the address to IP, say, #+BEGIN_SRC conf
 @end itemize
+host.addr = 127.0.0.1
+#+END_SRC.
 
 @example
 host.addr = <URL> | <IP>
@@ -558,7 +566,7 @@ host.port = <integer>
 @end example
 @itemize
 @item
-The listen port of your hosting site.
+The listenning port of your hosting site.
 @end itemize
 
 @example
@@ -566,15 +574,14 @@ host.family = ipv4 | ipv6
 @end example
 @itemize
 @item
-Specify the connection family, it's useless before Artanis-0.2.
+Specify the protocol family
 @item
-Please just ignore it now.
+Added since Artanis-0.2.
 @end itemize
 
 @node Session config
 @section Session config
 
-@emph{@strong{Session config may not work fine, since the session module hasn't done well yet. You have to use `simple' engine at present. And do not modify anything below.}}
 @example
 session.path = <PATH>
 @end example
@@ -584,26 +591,34 @@ Specify the session files path. It depends on the session engine.
 @end itemize
 
 @example
-session.engine = simple | db | redis | <certain-third-party>
+session.engine = simple | db | file | <third-party-engine>
 @end example
 @itemize
 @item
 Specify session engine.
 @item
-@emph{@strong{Note:}} Keep it `simple' unless this note removed away someday!
+@strong{simple} uses hash table for memcache.
+@item
+@strong{db} uses RDBMS for storing sessions.
+@item
+@strong{file} stores session information into text files.
 @end itemize
 
 @node Upload config
 @section Upload config
 
 @example
-upload.types = <string>
+upload.types = <item-list>
 @end example
 @itemize
 @item
-Specify allowed upload file type, say, @verb{~upload.types = jpg,png,gif~}.
+Specify allowed upload file type, say, #+BEGIN_SRC conf
+@end itemize
+upload.types = jpg,png,gif
+#+END_SRC.
+@itemize
 @item
-@emph{@strong{Note:}} This item is useless before Artanis-0.2.
+@emph{@strong{Note:}} Added since Artanis-0.2.
 @end itemize
 
 @example
@@ -612,6 +627,16 @@ upload.path = <PATH>
 @itemize
 @item
 The path to put the uploaded files.
+@end itemize
+
+@example
+upload.size = <interger>
+@end example
+@itemize
+@item
+The size limitation of uploaded file in bytes.
+@item
+@emph{@strong{Note:}} Added since Artanis-0.2
 @end itemize
 
 @node Cache config
@@ -637,7 +662,7 @@ debug.monitor = <PATHs>
 @item
 The paths need to be monitored in debug-mode. This will take advantage of `inotify' in GNU/Linux kernel.
 @item
-@emph{@strong{Note:}} We may support GNU/Hurd as well, by its file monitor mechanism, in the future.
+@emph{@strong{Note:}} We may support GNU/Hurd as well, with its file monitor mechanism, in the future.
 @end itemize
 
 @node Hello World
@@ -659,8 +684,8 @@ If you are already familiar with Guile, you may skip this section.
 
 Type `guile' in your console to enter the Guile REPL. You should see the following text displayed on your screen:
 @example
-GNU Guile 2.0.11
-Copyright (C) 1995-2014 Free Software Foundation, Inc.
+GNU Guile 2.2.2
+Copyright (C) 1995-2017 Free Software Foundation, Inc.
 
 Guile comes with ABSOLUTELY NO WARRANTY; for details type `,show w'.
 This program is free software, and you are welcome to redistribute it
@@ -692,7 +717,7 @@ Run this code in your console:
 guile -c "(use-modules (artanis artanis))(init-server)(run)"
 ## You'll see this screen:
 Anytime you want to Quit just try Ctrl+C, thanks!
-http://0.0.0.0:3000
+http://127.0.0.1:3000
 @end example
 
 Assuming there's a file named "index.html" in the current path. Now you may try @uref{http://localhost:3000/index.html} in your browser.
@@ -710,7 +735,7 @@ Type these code in Guile REPL:
 
 Now you can visit @uref{http://localhost:8080/hello} with your browser, and see the result.
 
-@emph{If you encounter "[EXCEPTION] /favicon.ico is abnormal request", please ignore it.}
+@emph{If you encounter "[EXCEPTION] /favicon.ico is abnormal request", please just ignore it.}
 
 Let me explain these code.
 
@@ -722,11 +747,10 @@ Let me explain these code.
 
 @itemize
 @item
-@emph{line 2:} The first argument @emph{get} is GNU Artanis API corresponding to GET method in HTTP protocol. The second argument "/hello" is the URL rule to register. The Third argument is the handler which will be triggered if the registered URL rule is hit.
-@end itemize
+@emph{line 2:} The first argument @emph{get} is GNU Artanis API corresponding to GET method in HTTP protocol.
+The second argument "/hello" is the URL rule to register.
+The Third argument is the handler which will be triggered if the registered URL rule is hit.
 
-
-@itemize
 @item
 @emph{line 3:} Run GNU Artanis server, and listening socket port 8080.
 @end itemize
@@ -749,8 +773,12 @@ Now you can try @uref{http://localhost:8080/hello/artanis} in your browser.
 There're two differences:
 @itemize
 @item
-1. The special rule, "@verb{~/hello/:who~}", @emph{:who} means you can use @emph{params} to reference the value of this section of URL with the key "who". @verb{~(params rc "who")~} is the way for that.
+1. The special rule, "@verb{~/hello/:who~}", @emph{:who} means you can use @emph{params} to reference the value of this section of URL with the key "who". #+BEGIN_SRC scheme
+@end itemize
+(params rc "who")
+#+END_SRC is the way for that.
 
+@itemize
 @item
 2. You may notice that the handler defined as an anonymous function with @emph{lambda} has one argument @emph{rc}. It means @emph{route context} which preserve all the related context information. Many GNU Artanis APIs need it, say, @emph{params}.
 @end itemize
@@ -766,7 +794,7 @@ You can use regex in the URL rule.
 (get "/.+\\.(png|gif|jpeg)" static-page-emitter)
 @end example
 
-@emph{static-page-emitter} is an GNU Artanis API which emits a static file like images to the client.
+@emph{static-page-emitter} is an GNU Artanis API which emits a static file (images, data files) to the client.
 
 @node Database operating
 @section Database operating
@@ -815,7 +843,7 @@ The second argument of @emph{mtable} is the name of the table as you guess. Plea
 
 @itemize
 @item
-'create command returns a function too, which also accepts an argument as a command. Here, we use 'valid? command to check if the table has been created successfully.
+@emph{*'create*} command returns a function too, which also accepts an argument as a command. Here, we use @emph{*'valid?*} command to check if the table has been created successfully.
 @end itemize
 
 Here's just simple introduction. You may read the DB section in this manual for detail describing. 
@@ -837,13 +865,18 @@ Now, try @uref{http://localhost:8080/dbtest} in your browser.
 Here're some explains:
 @itemize
 @item
-The keyword-value pair @verb{~#:conn #t~} means applying for a DB connection from connection-pool. Then you can use @verb{~(:conn rc)~} to get the allocated connection for DB operations.
+The keyword-value pair #+BEGIN_SRC scheme
 @end itemize
-
+#:conn #t
+#+END_SRC means applying for a DB connection from connection-pool.
+  Then you can use #+BEGIN_SRC scheme
+(:conn rc)
+#+END_SRC to get the allocated connection for DB operations.
 
 @itemize
 @item
-Finally, the handler needs to return a string as the HTTP response body, so we have to use Guile API @emph{object->string} to convert the query result to string, for this naive example case.
+Finally, the handler needs to return a string as the HTTP response body, so we have to use Guile API @emph{object->string} to
+convert the query result to string, for this naive example case.
 @end itemize
 
 @emph{Exercise: Return a beautiful table in HTML rather than using object->string.}
@@ -862,7 +895,6 @@ supporting only a handful of predefined syntactic forms and procedures. Scheme i
 it still derives its power from a small set of key concepts. Early implementations of the language were interpreter-based and slow, but
 Guile Scheme is trying to implement sophisticated compiler that generate better optimized code, and even a plan for AOT compiler generated
 native code in the future.
-
 @menu
 * For newbies::
 * For Pythonistas::
@@ -960,11 +992,17 @@ It's better to use (init-server) to init GNU Artanis.
 @example
 (init-server #:statics '(png jpg jpeg ico html js css) #:cache-statics? #f #:exclude '())
 @end example
-@verb{~#:statics~} specifies the static files with the extension file. GNU Artanis is based on URL remapping, so this keyword let you avoid to handle each static file types. In default, it covers the most static file types. So you may ignore it usually.
+#+BEGIN_SRC scheme
+#:statics
+#+END_SRC specifies the static files with the extension file. GNU Artanis is based on URL remapping, so this keyword let you avoid to handle each static file types. In default, it covers the most static file types. So you may ignore it usually.
 
-@verb{~#:cache-statics?~} indicates if the static files should be cached.
+#+BEGIN_SRC scheme
+#:cache-statics?
+#+END_SRC indicates if the static files should be cached.
 
-@verb{~#:exclude~} specifies the types should be excluded. This is useful when you want to generate image files dynamically. Even JavaScript/CSS could be generated dynamically, depends your design.
+#+BEGIN_SRC scheme
+#:exclude
+#+END_SRC specifies the types should be excluded. This is useful when you want to generate image files dynamically. Even JavaScript/CSS could be generated dynamically, depends your design.
 
 @node Registering handler of HTTP methods
 @section Registering handler of HTTP methods
@@ -980,13 +1018,15 @@ Please read @ref{URL handling,URL handling}.
 
 @strong{body} is the response body, it can be bytevector or literal string (in HTML).
 
-@verb{~#:status~} is HTTP status, 200 in default, which means OK.
-
-@verb{~#:headers~} let you specify customized HTTP headers. The headers must follow certain format, you have to read about the @uref{http://www.gnu.org/software/guile/manual/html_node/HTTP-Headers.html#Response-Headers,Response Headers}.
-
-@verb{~#:mtime~} specifies the modify time in the response. GNU Artanis will generate it for you if you just ignore it.
-
 @example
+#:status
+#+END_SRC is HTTP status, 200 in default, which means OK.
+
+src_scheme[:exports code]@{#:headers@} let you specify customized HTTP headers. The headers must follow certain format, you have to read about the [[http://www.gnu.org/software/guile/manual/html_node/HTTP-Headers.html#Response-Headers][Response Headers]].
+
+src_scheme[:exports code]@{#:mtime@} specifies the modify time in the response. GNU Artanis will generate it for you if you just ignore it.
+
+#+begin_src scheme
 (emit-response-with-file filename [headers <- '()])
 @end example
 
@@ -1006,21 +1046,37 @@ Please read @ref{URL handling,URL handling}.
 
 But you can specify them as will.
 
-@verb{~#:host~} specify the hostname.
+#+BEGIN_SRC scheme
+#:host
+#+END_SRC specify the hostname.
 
-@verb{~#:port~} specify the socket port of the server.
+#+BEGIN_SRC scheme
+#:port
+#+END_SRC specify the socket port of the server.
 
-@verb{~#:debug~} set #t if you want to enable debug mode. Maybe verbose.
+#+BEGIN_SRC scheme
+#:debug
+#+END_SRC set #t if you want to enable debug mode. Maybe verbose.
 
-@verb{~#:use-db?~} set #t if you want to use DB, and GNU Artanis will init DB config for you.
+#+BEGIN_SRC scheme
+#:use-db?
+#+END_SRC set #t if you want to use DB, and GNU Artanis will init DB config for you.
 
-@verb{~#:dbd~} choose dbd, there're three supported dbd: mysql, postgresql, and sqlite3.
+#+BEGIN_SRC scheme
+#:dbd
+#+END_SRC choose dbd, there're three supported dbd: mysql, postgresql, and sqlite3.
 
-@verb{~#:db-username~} specify the username of your DB server.
+#+BEGIN_SRC scheme
+#:db-username
+#+END_SRC specify the username of your DB server.
 
-@verb{~#:db-passwd~} the DB password.
+#+BEGIN_SRC scheme
+#:db-passwd
+#+END_SRC the DB password.
 
-@verb{~#:db-name~} specify DB name.
+#+BEGIN_SRC scheme
+#:db-name
+#+END_SRC specify DB name.
 
 @node Working with Nginx
 @section Working with Nginx
@@ -1054,7 +1110,6 @@ And run GNU Artanis:
 @chapter The Art command line
 
 GNU Artanis provides @strong{art} command line tool to save users' time.
-
 @menu
 * art create::
 * art draw::
@@ -1158,7 +1213,6 @@ user interfaces.
 It divides a given software application into three interconnected parts, so as to
 separate internal representations of information from the ways that information is
 presented to or accepted from the user.
-
 @menu
 * Controllers/Views::
 * Models::
@@ -1204,7 +1258,9 @@ For example, the controller @emph{article} generate @emph{show} method handler a
   ))
 @end example
 Of course, it depends on you whether to use these template. If you want to use @emph{view template}, just
-uncomment the last line @verb{~(view-render "show")~}.
+uncomment the last line #+BEGIN_SRC scheme
+(view-render "show")
+#+END_SRC.
 
 For more detail about template in Views, please see @ref{Layouts and Rendering in GNU Artanis,Layouts and Rendering in GNU Artanis}.
 
@@ -1319,9 +1375,15 @@ Templating provides a way to mix programming code into HTML.
 
 If you're familiar with Django, which implemented a DSL(Domain Specific Language) to express presentation rather than program logic. You may realize that the templating of GNU Artanis has different philosophy.
 
-In templating of GNU Artanis, it's simply embedded Scheme code into HTML. Why? Because of the philosophy of FP(Functional Programming), everything could be a function. So obviously, @verb{~(filesizeformat size)~} is enough for understanding, and it's just simple function calling in prefix-notation. There's no need to implement DSL like @verb{~size|filesizeformat~} to increase the complexity of code. Let alone the syntax is very different from Python.
+In templating of GNU Artanis, it's simply embedded Scheme code into HTML. Why? Because of the philosophy of FP(Functional Programming), everything could be a function. So obviously, #+BEGIN_SRC scheme
+(filesizeformat size)
+#+END_SRC is enough for understanding, and it's just simple function calling in prefix-notation. There's no need to implement DSL like #+BEGIN_SRC python
+size|filesizeformat
+#+END_SRC to increase the complexity of code. Let alone the syntax is very different from Python.
 
-The syntax like @verb{~size|filesizeformat~} is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme(functional programming), and the paradigm of Python(imperative programming).
+The syntax like #+BEGIN_SRC python
+size|filesizeformat
+#+END_SRC is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme(functional programming), and the paradigm of Python(imperative programming).
 
 The philosophy of GNU Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce the unnecessary complexities. @uref{http://en.wikipedia.org/wiki/KISS_principle,KISS}.
 
@@ -1390,7 +1452,9 @@ In this case, make sure to put my.tpl to the same path with your GNU Artanis cod
 
 Because @strong{external-var} is defined outside the file "my.tpl", and it's bound in @emph{let} with 123, you have to pass (the-environment). Or the template render will blame that it can't find variable named @strong{external-var}.
 
-If you don't have any external var needs to be referenced, just use @verb{~(tpl->response "file.tpl")~} is fine.
+If you don't have any external var needs to be referenced, just use #+BEGIN_SRC scheme
+(tpl->response "file.tpl")
+#+END_SRC is fine.
 
 Then see @uref{http://localhost:3000/test} in your browser.
 
@@ -1407,7 +1471,9 @@ The benefit of SXML is to take advantage of quasiquote in Scheme. If you no litt
 (tpl->response '(html (body (p (@@ (id "content")) "hello world"))))
 @end example
 
-You would get a html string @verb{~"<html><body><p id=\"content\">hello world</p></body></html>"~}.
+You would get a html string #+BEGIN_SRC scheme
+"<html><body><p id=\"content\">hello world</p></body></html>"
+#+END_SRC.
 
 Let's see an example of quasiquote:
 
@@ -1583,7 +1649,6 @@ For example:
 FPRM stands for Functional Programming Relational Mapping. It's a new word I invented. But it's not new concept. FP here indicates @strong{stateless}. 
 
 @emph{FPRM is still experimental and work-in-progress.}
-
 @menu
 * Connect to DB server::
 * Map DB table::
@@ -1622,32 +1687,42 @@ FPRM stands for Functional Programming Relational Mapping. It's a new word I inv
 
 @itemize
 @item
-@verb{~#:db-name~} specifies the DB name.
+#+BEGIN_SRC scheme
 @end itemize
+#:db-name
+#+END_SRC specifies the DB name.
 
 
 @itemize
 @item
-@verb{~#:db-username~} specifies the DB username.
+#+BEGIN_SRC scheme
 @end itemize
+#:db-username
+#+END_SRC specifies the DB username.
 
 
 @itemize
 @item
-@verb{~#:proto~} specifies the socket protocol, which is related to DB server you chosen.
+#+BEGIN_SRC scheme
 @end itemize
+#:proto
+#+END_SRC specifies the socket protocol, which is related to DB server you chosen.
 
 
 @itemize
 @item
-@verb{~#:host~} specifies the host name.
+#+BEGIN_SRC scheme
 @end itemize
+#:host
+#+END_SRC specifies the host name.
 
 
 @itemize
 @item
-@verb{~#:port~} specifies the socket port.
+#+BEGIN_SRC scheme
 @end itemize
+#:port
+#+END_SRC specifies the socket port.
 
 @node Map DB table
 @subsection Map DB table
@@ -1705,26 +1780,32 @@ map-table-from-DB returns a function, we named it @strong{m} here for explaining
 
 @itemize
 @item
-@verb{~#:if-exists?~} has two kinds of possible options:
+#+BEGIN_SRC scheme
+@end itemize
+#:if-exists?
+#+END_SRC has two kinds of possible options:
 @itemize
 @item
 '@strong{overwrite} or '@strong{drop} means overwriting the existed table if possible.
 @item
 '@strong{ignore} means ignore the table when there's an existed one.
 @end itemize
-@end itemize
 
 
 @itemize
 @item
-@verb{~#:primary-keys~} specifies the primary keys in the created table.
+#+BEGIN_SRC scheme
 @end itemize
+#:primary-keys
+#+END_SRC specifies the primary keys in the created table.
 
 
 @itemize
 @item
-@verb{~#:engine~} specifies the engine, depends on the dbd you chosen.
+#+BEGIN_SRC scheme
 @end itemize
+#:engine
+#+END_SRC specifies the engine, depends on the dbd you chosen.
 
 @node Get columns from table
 @subsection Get columns from table
@@ -1735,14 +1816,18 @@ map-table-from-DB returns a function, we named it @strong{m} here for explaining
 
 @itemize
 @item
-@verb{~#:column~} is the columns list you wanted.
+#+BEGIN_SRC scheme
 @end itemize
+#:column
+#+END_SRC is the columns list you wanted.
 
 
 @itemize
 @item
-@verb{~#:functions~} is built-in functions calling, e.g:
+#+BEGIN_SRC scheme
 @end itemize
+#:functions
+#+END_SRC is built-in functions calling, e.g:
 @example
 #:functions '((count Persons.Lastname))
 @end example
@@ -1750,7 +1835,10 @@ map-table-from-DB returns a function, we named it @strong{m} here for explaining
 
 @itemize
 @item
-@verb{~#:ret~} specifies how to return the result, there're three options:
+#+BEGIN_SRC scheme
+@end itemize
+#:ret
+#+END_SRC specifies how to return the result, there're three options:
 @itemize
 @item
 'all for returning all results
@@ -1759,19 +1847,22 @@ map-table-from-DB returns a function, we named it @strong{m} here for explaining
 @item
 integer (larger than 0), you specify the number.
 @end itemize
-@end itemize
 
 
 @itemize
 @item
-@verb{~#:group-by~} used in conjunction with the aggregate functions to group the result-set by one or more columns.
+#+BEGIN_SRC scheme
 @end itemize
+#:group-by
+#+END_SRC used in conjunction with the aggregate functions to group the result-set by one or more columns.
 
 
 @itemize
 @item
-@verb{~#:order-by~} used to sort the result-set by one or more columns.
+#+BEGIN_SRC scheme
 @end itemize
+#:order-by
+#+END_SRC used to sort the result-set by one or more columns.
 
 
 For example, to get Lastname and City column, and return the first result.
@@ -1832,12 +1923,13 @@ To be continued @dots{}
 @node MIME
 @chapter MIME
 
-@verb{~#:mime~} method is used to return the proper MIME type in the HTTP response.
 @example
+#:mime
+#+END_SRC method is used to return the proper MIME type in the HTTP response.
+#+BEGIN_SRC scheme
 #:mime type ; for registering type
 (:mime rc body) ; for emit the reponse with the proper MIME
 @end example
-
 @menu
 * JSON::
 * CSV::
@@ -1870,9 +1962,13 @@ For example:
 ;;                     "book1" : "The interpreter and structure of Artanis"@}@}
 @end example
 
-@verb{~scm->json~} will print the result directly.
+#+BEGIN_SRC scheme
+scm->json
+#+END_SRC will print the result directly.
 
-If you need to format JSON as a string to return to clients, please use @verb{~scm->json-string~}.
+If you need to format JSON as a string to return to clients, please use #+BEGIN_SRC scheme
+scm->json-string
+#+END_SRC. 
 
 @node CSV
 @section CSV
@@ -1908,7 +2004,6 @@ You can use SXML to replace XML for exchanging data format. This way saves some 
 @chapter Upload files
 
 If you want to deal with uploading files, store-uploaded-files would be you friend.
-
 @menu
 * Receive upload from client::
 * Send upload to Server::
@@ -1929,13 +2024,21 @@ If you want to deal with uploading files, store-uploaded-files would be you frie
 
 @strong{rc} is the route-context.
 
-@verb{~#:path~} is specified path to put uploaded files.
+#+BEGIN_SRC scheme
+#:path
+#+END_SRC is specified path to put uploaded files.
 
-@verb{~#:uid~} is new UID for uploaded files, #f means don't change the default UID.
+#+BEGIN_SRC scheme
+#:uid
+#+END_SRC is new UID for uploaded files, #f means don't change the default UID.
 
-@verb{~#:gid~} specifies new GID.
+#+BEGIN_SRC scheme
+#:gid
+#+END_SRC specifies new GID.
 
-@verb{~#:simple-ret?~} specifies the mode of return:
+#+BEGIN_SRC scheme
+#:simple-ret?
+#+END_SRC specifies the mode of return:
 @itemize
 @item
 if #t, there're only two possible return value, 'success for success, 'none for nothing has been done.
@@ -1943,11 +2046,17 @@ if #t, there're only two possible return value, 'success for success, 'none for 
 if #f, and while it's successful, it returns a list to show more details: (success size-list filename-list).
 @end itemize
 
-@verb{~#:mode~} chmod files to mode.
+#+BEGIN_SRC scheme
+#:mode
+#+END_SRC chmod files to mode.
 
-@verb{~#:path-mode~} chmod upload path to mode.
+#+BEGIN_SRC scheme
+#:path-mode
+#+END_SRC chmod upload path to mode.
 
-@verb{~#:sync~} sync while storing files.
+#+BEGIN_SRC scheme
+#:sync
+#+END_SRC sync while storing files.
 
 @node Send upload to Server
 @section Send upload to Server
@@ -1972,7 +2081,9 @@ scheme://[user:password@@]domain:port/path?query_string#fragment_id
 @node Sessions
 @chapter Sessions
 
-You have to use @verb{~#:session mode~} while you defining URL rule handler.
+You have to use #+BEGIN_SRC scheme
+#:session mode
+#+END_SRC while you defining URL rule handler.
 @example
 (post "/auth" #:session mode
   (lambda (rc) ...))
@@ -2014,7 +2125,9 @@ And the APIs of session is :session
 @node Cookies
 @chapter Cookies
 
-You have to use @verb{~#:cookies mode~} while you defining URL rule handler.
+You have to use #+BEGIN_SRC scheme
+#:cookies mode
+#+END_SRC while you defining URL rule handler.
 @example
 (get "/certain-rule" #:cookies mode
   (lambda (rc) ...))
@@ -2041,7 +2154,9 @@ And the APIs:
 (:cookies-update! rc) ; cookies operations won't work unless you update it
 @end example
 
-@strong{NOTE}: You don't have to call @verb{~:cookies-update!~} yourself, since it'll be called automatically by the hook before response.
+@strong{NOTE}: You don't have to call #+BEGIN_SRC scheme
+:cookies-update!
+#+END_SRC yourself, since it'll be called automatically by the hook before response.
 
 For example:
 @example
@@ -2078,7 +2193,9 @@ curl --head localhost:3000/cookie/120
 
 GNU Artanis provides flexible mechanism for authentication.
 
-You have to use @verb{~#:auth mode~} while you defining URL rule handler.
+You have to use #+BEGIN_SRC scheme
+#:auth mode
+#+END_SRC while you defining URL rule handler.
 @example
 (get "/certain-rule" #:auth mode
   (lambda (rc) ...))
@@ -2124,16 +2241,24 @@ Let's see a simple example:
         (throw-auth-needed))))
 @end example
 
-You have to define your own checker with the anonymous function @verb{~(lambda (rc u p) ...)~}. #t for succeed, #f for failed.
+You have to define your own checker with the anonymous function #+BEGIN_SRC scheme
+(lambda (rc u p) @dots{})
+#+END_SRC. #t for succeed, #f for failed.
 
 APIs:
 
 @itemize
 @item
-@verb{~(:auth rc)~} will check if Basic Authentication succeeded, #f for failed.
-@item
-@verb{~(throw-auth-needed)~} is a useful helper function to ask for auth in client side.
+#+BEGIN_SRC scheme
 @end itemize
+(:auth rc)
+#+END_SRC will check if Basic Authentication succeeded, #f for failed.
+@itemize
+@item
+#+BEGIN_SRC scheme
+@end itemize
+(throw-auth-needed)
+#+END_SRC is a useful helper function to ask for auth in client side.
 
 @node Common Authentication
 @section Common Authentication
@@ -2176,29 +2301,55 @@ cache in GNU Artanis.
 @node Cache APIs
 @section Cache APIs
 
-You have to use @verb{~#:cache mode~} while you defining URL rule handler.
+You have to use #+BEGIN_SRC scheme
+#:cache mode
+#+END_SRC while you defining URL rule handler.
 @example
 (get "/certain-rule" #:cache mode
   (lambda (rc) ...))
 @end example
 
-@strong{@emph{NOTE}}: the default value of maxage is defined by cache.maxage in @verb{~/etc/artanis/artanis.conf~}. The default value is 3600 seconds.
+@strong{@emph{NOTE}}: the default value of maxage is defined by cache.maxage in #+BEGIN_SRC scheme
+/etc/artanis/artanis.conf
+#+END_SRC. The default value is 3600 seconds.
 
 @strong{mode} could be:
 @itemize
 @item
-@verb{~#t~} for enabling caching the page.
-@item
-@verb{~#f~} for disabling caching the page explicitly. It's default to not cache.
-@item
-@verb{~('static [maxage <- 3600])~} This mode must be used for static files, which means the URL rule must be a real path to a static file.
-@item
-@verb{~(filename [maxage <- 3600])~} Specify a static file to cache. This is useful when you don't want to reveal actual path of the static file, but use a fake URL for it.
-@item
-@verb{~('public filename [maxage <- 3600])~} Allow proxies cache the content of specified static file. If HTTP authentication is required, responses are automatically private.
-@item
-@verb{~('private filename [maxage <- 3600])~} Not-Allow proxies cache the content of specified static file.
+#+BEGIN_SRC scheme
 @end itemize
+#t
+#+END_SRC for enabling caching the page.
+@itemize
+@item
+#+BEGIN_SRC scheme
+@end itemize
+#f
+#+END_SRC for disabling caching the page explicitly. It's default to not cache.
+@itemize
+@item
+#+BEGIN_SRC scheme
+@end itemize
+('static [maxage <- 3600])
+#+END_SRC This mode must be used for static files, which means the URL rule must be a real path to a static file.
+@itemize
+@item
+#+BEGIN_SRC scheme
+@end itemize
+(filename [maxage <- 3600])
+#+END_SRC Specify a static file to cache. This is useful when you don't want to reveal actual path of the static file, but use a fake URL for it.
+@itemize
+@item
+#+BEGIN_SRC scheme
+@end itemize
+('public filename [maxage <- 3600])
+#+END_SRC Allow proxies cache the content of specified static file. If HTTP authentication is required, responses are automatically private.
+@itemize
+@item
+#+BEGIN_SRC scheme
+@end itemize
+('private filename [maxage <- 3600])
+#+END_SRC Not-Allow proxies cache the content of specified static file.
 
 Let's see the simplest cache test (for dynamic content):
 @example
@@ -2214,7 +2365,9 @@ If you want to cache a static file, and permit proxies cache the content:
     (:cache rc)))
 @end example
 
-But, if your current URL rule is used for authentication (once you use @verb{~#:auth~}), the cache will be changed to @strong{private} even if you specify @strong{public}.
+But, if your current URL rule is used for authentication (once you use #+BEGIN_SRC scheme
+#:auth
+#+END_SRC), the cache will be changed to @strong{private} even if you specify @strong{public}.
 @example
 (get "/pauth"
   #:auth `(basic ,(lambda (rc u p) (and (string=? u "nala") (string=? p "123"))))
@@ -2222,16 +2375,75 @@ But, if your current URL rule is used for authentication (once you use @verb{~#:
   (lambda (rc) (:cache rc)))
 @end example
 
+@node Ragnarok server core
+@chapter Ragnarok server core
+
+@menu
+* Introduction: Introductionx. 
+* Principle::
+* Features::
+* APIs::
+@end menu
+
+@node Introductionx
+@section Introduction
+
+Since 0.2, GNU Artanis has a strong server core for high concurrent. It is named Ragnarok.
+In the philosophy of design in GNU Artanis, everything inclined to be flexible and customizable.
+So the server core is customizable, if someone thought Ragnarok is not good enough.
+
+Ragnarok doesn't use any popular library for handling events (libev/libuv etc @dots{}).
+It's a brand new server core based on epoll and @uref{https://en.wikipedia.org/wiki/Delimited_continuation,delimited continuations}.  
+
+@node Principle
+@section Principle
+
+The basic principle of Ragnarok is co-routine. And these co-routines are implemented with @uref{https://en.wikipedia.org/wiki/Delimited_continuation,delimited continuations}.
+Actually, there's no kernel controlled threads (say, pthread) in Ragnarok. All the tasks are scheduled by
+an userland scheduler, and the task is nothing but just a special continuation. The difference between it and
+regular full continuation is that it could be delimited for fine granularity rather than capture the whole stack.
+
+For reaserchers, there's a paper published on ICFP Schemeworkshop2016 to explain the principle and the design of GNU Artanis.
+@uref{https://github.com/NalaGinrut/artanis/raw/gh-pages/research/scheme16/art2016.pdf,Multi-purpose web framework design based on websockets over HTTP Gateway}.
+
+(to be continued @dots{}) 
+
+@node Features
+@section Features
+
+In Artanis, the request handling could be scheduled when the socket buffer is full (depends on server.bufsize).
+And let other request's handler run. Just like the scheduling of OS but it's in the userland.
+
+So if it's the buffer issue when scheduling, then there's no way to flush before break since we can't tell if the
+scheduling caused by buffering or blocking.
+
+Ragnarok takes advantage of #+BEGIN_SRC conf
+SO_REUSEPORT
+#+END_SRC introduced since GNU/Linux 3.9 to provde a feature
+named #+BEGIN_SRC conf
+server.multi
+#+END_SRC which could be enabled in config. This feature allows users to start several
+Artanis instances which are all listenning on the same port to take advantage of multi cores. And the events are
+dispatched by the Linux kernel.
+
+(to be continued @dots{})
+
+@node APIs
+@section APIs
+
+You may use these APIs for customizing your own server core.
+(to be continued @dots{})
+
 @node Utils
 @chapter Utils
 
-@strong{The functions introduced here need to import (artanis utils) module.}
-
+@strong{The functions introduced here requires to import (artanis utils) module.}
 @menu
 * String Template::
 * Random Number Generator::
-* Encryption::
+* Cryptographic hash functions::
 * Stack & Queue::
+* Useful string operation::
 @end menu
 
 @node String Template
@@ -2271,8 +2483,8 @@ Get random number string from @verb{~/dev/urandom~}.
 (get-random-from-dev #:length 8 #:uppercase #f)
 @end example
 
-@node Encryption
-@section Encryption
+@node Cryptographic hash functions
+@section Cryptographic hash functions
 
 @example
 ;; hash a string with MD5
@@ -2304,12 +2516,37 @@ GNU Artanis provides simple interfaces for stack & queue:
 (queue-empty? q)
 @end example
 
+@node Useful string operation
+@section Useful string operation
+
+If you want to get all contents in string from a file,
+then don't use #+BEGIN_SRC conf
+get-string-all
+#+END_SRC imported from rnrs. Because it
+will not detect the correct charset from locale, and this may cause the length different
+from the actual length. Although GNU Artanis can handle the length issue properly, you
+should use #+BEGIN_SRC conf
+get-string-all-with-detected-charset
+#+END_SRC once you need
+to do the similar thing. If you don't care about the contents but just want to get the
+contents anyway, it's better to use #+BEGIN_SRC conf
+get-bytevector-all
+#+END_SRC imported
+from rnrs.
+@example
+(get-string-all-with-detected-charset filename)
+@end example
+
 @node Debug mode
 @chapter Debug mode
 
 GNU Artanis provides debug-mode for more convenient debug. You may enable it easy.
 
-For the simplest way, pass @verb{~#:debug #t~} when calling @verb{~run~} function:
+For the simplest way, pass #+BEGIN_SRC scheme
+#:debug #t
+#+END_SRC when calling #+BEGIN_SRC scheme
+run
+#+END_SRC function:
 @example
 (run #:debug #t)
 @end example
@@ -2464,20 +2701,21 @@ ADDENDUM: How to use this License for your documents
 
 To use this License in a document you have written, include a copy of the License in the document and put the following copyright and license notices just after the title page:
 
-Copyright (C)  year  your name.
-Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.3
-or any later version published by the Free Software Foundation;
-with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
-Texts.  A copy of the license is included in the section entitled ``GNU
-Free Documentation License''.
+  Copyright (C)  year  your name.
+  Permission is granted to copy, distribute and/or modify this document
+  under the terms of the GNU Free Documentation License, Version 1.3
+  or any later version published by the Free Software Foundation;
+  with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
+  Texts.  A copy of the license is included in the section entitled ``GNU
+  Free Documentation License''.
 If you have Invariant Sections, Front-Cover Texts and Back-Cover Texts, replace the “with…Texts.” line with this:
 
-with the Invariant Sections being list their titles, with
-the Front-Cover Texts being list, and with the Back-Cover Texts
-being list.
+    with the Invariant Sections being list their titles, with
+    the Front-Cover Texts being list, and with the Back-Cover Texts
+    being list.
 If you have Invariant Sections without Cover Texts, or some other combination of the three, merge those two alternatives to suit the situation.
 
 If your document contains nontrivial examples of program code, we recommend releasing these examples in parallel under your choice of free software license, such as the GNU General Public License, to permit their use in free software.
 
+@c Emacs 24.5.1 (Org mode 8.2.10)
 @bye
