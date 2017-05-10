@@ -92,7 +92,7 @@ MySQL is used for the examples in this manual. You may find dbd plugins for othe
 *Install the latest GNU Artanis:*
 
 #+begin_src null
-wget -c http://alpha.gnu.org/gnu/artanis/artanis-latest.tar.bz2
+wget -c http://ftp.gnu.org/gnu/artanis/artanis-latest.tar.bz2
 tar xvjf artanis-latest.tar.bz2
 cd artanis-latest && ./configure && make
 sudo make install
@@ -221,7 +221,7 @@ server.polltimeout = <integer>
 server.bufsize = <integer>
 #+END_SRC
 + The buffer size of the connecting socket. In [[Ragnarok server core][Ragnarok]], the request handling will be scheduled when the
-  socket buffer is full. This item effects the performance of socket I/O largly. Usually, if you're handling
+  socket buffer is full. This item effects the performance of socket I/O largely. Usually, if you're handling
   massive small requests, it's better to set the buffer size small; but if you're providing kind of downloading
   or uploading service, it's better to set it larger. But the large buffer size will increase the latency of
   unserved requests. Please read [[Ragnarok server core][Ragnarok]] chapter to learn the design principle, which will be helpful for you
@@ -235,16 +235,16 @@ server.multi = <boolean>
 #+END_SRC
 + This is the most significant feature for [[Ragnarok server core][Ragnarok]]. Please remember that *there's no any threads in GNU Artanis*.
   All the tasks are based on [[https://en.wikipedia.org/wiki/Delimited_continuation][delimited continuations]], this kind of design is the so-called [[https://en.wikipedia.org/wiki/Green_threads][Green Threads.]] 
-  Then how to take advantage of multi-cores? Fortunately, Linux has introduced a feature named [[https://lwn.net/Articles/542629/][SO_REUSEPORT]] since 3.9. 
+  Then how to take advantage of multi-cores? Fortunately, GNU/Linux has introduced a feature named [[https://lwn.net/Articles/542629/][SO_REUSEPORT]] since 3.9. 
   This feature let us start multiple Artanis instances listenning on the same socket port. When requests come, the
   Linux kernel will do necessary lock and allocation work for us to dispatch requests to these Artanis instances.
   This makes GNU Artanis provide performance and stateless perfectly.
 + The default value is true.
-+ /*Note:*/ Added since Artanis-0.2, Linux-3.9+ is required.
++ /*Note:*/ Added since Artanis-0.2, GNU/Linux-3.9+ is required.
 
 ** Host config
 #+BEGIN_SRC conf
-host.name = enable | disable
+host.name = enable | disable | <boolean>
 #+END_SRC
 + If disabled, you have to set the address to IP, say, src_conf[:exports code]{host.addr = 127.0.0.1}.
 
@@ -256,36 +256,46 @@ host.addr = <URL> | <IP>
 #+BEGIN_SRC conf
 host.port = <integer>
 #+END_SRC
-+ The listen port of your hosting site.
++ The listenning port of your hosting site.
 
 #+BEGIN_SRC conf
 host.family = ipv4 | ipv6
 #+END_SRC
-+ Specify the connection family, it's useless before Artanis-0.2.
-+ Please just ignore it now.
++ Specify the protocol family
++ Added since Artanis-0.2.
 ** Session config
-/*Session config may not work fine, since the session module hasn't done well yet. You have to use `simple' engine at present. And do not modify anything below.*/
+
 #+BEGIN_SRC conf
 session.path = <PATH>
 #+END_SRC
 + Specify the session files path. It depends on the session engine.
 
 #+BEGIN_SRC conf
-session.engine = simple | db | redis | <certain-third-party>
+session.engine = simple | db | file | <third-party-engine>
 #+END_SRC
 + Specify session engine.
-+ /*Note:*/ Keep it `simple' unless this note removed away someday!
++ *simple* uses hash table for memcache.
++ *db* uses RDBMS for storing sessions.
++ *file* stores session information into text files.
+
 ** Upload config
 #+BEGIN_SRC conf
-upload.types = <string>
+upload.types = <item-list>
 #+END_SRC
 + Specify allowed upload file type, say, src_conf[:exports code]{upload.types = jpg,png,gif}.
-+ /*Note:*/ This item is useless before Artanis-0.2.
++ /*Note:*/ Added since Artanis-0.2.
 
 #+BEGIN_SRC conf
 upload.path = <PATH>
 #+END_SRC
 + The path to put the uploaded files.
+
+#+BEGIN_SRC conf
+upload.size = <interger>
+#+END_SRC
++ The size limitation of uploaded file in bytes.
++ /*Note:*/ Added since Artanis-0.2
+
 ** Cache config 
 #+BEGIN_SRC conf
 cache.maxage = <integer>
@@ -297,15 +307,15 @@ cache.maxage = <integer>
 debug.monitor = <PATHs>
 #+END_SRC
 + The paths need to be monitored in debug-mode. This will take advantage of `inotify' in GNU/Linux kernel.
-+ /*Note:*/ We may support GNU/Hurd as well, by its file monitor mechanism, in the future.
++ /*Note:*/ We may support GNU/Hurd as well, with its file monitor mechanism, in the future.
 * Hello World
 ** Use Guile REPL and verify GNU Artanis installation
 If you are already familiar with Guile, you may skip this section.
 
 Type `guile' in your console to enter the Guile REPL. You should see the following text displayed on your screen:
 #+begin_src null
-GNU Guile 2.0.11
-Copyright (C) 1995-2014 Free Software Foundation, Inc.
+GNU Guile 2.2.2
+Copyright (C) 1995-2017 Free Software Foundation, Inc.
 
 Guile comes with ABSOLUTELY NO WARRANTY; for details type `,show w'.
 This program is free software, and you are welcome to redistribute it
@@ -334,7 +344,7 @@ Run this code in your console:
 guile -c "(use-modules (artanis artanis))(init-server)(run)"
 ## You'll see this screen:
 Anytime you want to Quit just try Ctrl+C, thanks!
-http://0.0.0.0:3000
+http://127.0.0.1:3000
 #+end_src
 
 Assuming there's a file named "index.html" in the current path. Now you may try http://localhost:3000/index.html in your browser.
@@ -349,15 +359,16 @@ Type these code in Guile REPL:
 
 Now you can visit http://localhost:8080/hello with your browser, and see the result.
 
-/If you encounter "[EXCEPTION] /favicon.ico is abnormal request", please ignore it./
+/If you encounter "[EXCEPTION] /favicon.ico is abnormal request", please just ignore it./
 
 Let me explain these code.
 
 + /line 1:/ Load GNU Artanis module, (artanis artanis) is the name.
 
 
-+ /line 2:/ The first argument /get/ is GNU Artanis API corresponding to GET method in HTTP protocol. The second argument "/hello" is the URL rule to register. The Third argument is the handler which will be triggered if the registered URL rule is hit.
-
++ /line 2:/ The first argument /get/ is GNU Artanis API corresponding to GET method in HTTP protocol.
+  The second argument "/hello" is the URL rule to register.
+  The Third argument is the handler which will be triggered if the registered URL rule is hit.
 
 + /line 3:/ Run GNU Artanis server, and listening socket port 8080.
 
@@ -386,7 +397,7 @@ You can use regex in the URL rule.
 (get "/.+\\.(png|gif|jpeg)" static-page-emitter)
 #+end_src
 
-/static-page-emitter/ is an GNU Artanis API which emits a static file like images to the client.
+/static-page-emitter/ is an GNU Artanis API which emits a static file (images, data files) to the client.
 ** Database operating
 GNU Artanis supports mysql/postgresql/sqlite3, we use mysql as a example here.
 
@@ -418,7 +429,7 @@ You can use DB without running a server.
 + The second argument of /mtable/ is the name of the table as you guess. Please note that it's case sensitive. But the columns name could be case insensitive.
 
 
-+ 'create command returns a function too, which also accepts an argument as a command. Here, we use 'valid? command to check if the table has been created successfully.
++ /*'create*/ command returns a function too, which also accepts an argument as a command. Here, we use /*'valid?*/ command to check if the table has been created successfully.
 
 Here's just simple introduction. You may read the DB section in this manual for detail describing. 
 
@@ -437,10 +448,11 @@ Of course, you can use DB in your web application.
 Now, try http://localhost:8080/dbtest in your browser.
 
 Here're some explains:
-+ The keyword-value pair src_scheme[:exports code]{#:conn #t} means applying for a DB connection from connection-pool. Then you can use src_scheme[:exports code]{(:conn rc)} to get the allocated connection for DB operations.
++ The keyword-value pair src_scheme[:exports code]{#:conn #t} means applying for a DB connection from connection-pool.
+  Then you can use src_scheme[:exports code]{(:conn rc)} to get the allocated connection for DB operations.
 
-
-+ Finally, the handler needs to return a string as the HTTP response body, so we have to use Guile API /object->string/ to convert the query result to string, for this naive example case.
++ Finally, the handler needs to return a string as the HTTP response body, so we have to use Guile API /object->string/ to
+  convert the query result to string, for this naive example case.
 
 /Exercise: Return a beautiful table in HTML rather than using object->string./
 * Basic in Scheme
@@ -1401,12 +1413,42 @@ But, if your current URL rule is used for authentication (once you use src_schem
   (lambda (rc) (:cache rc)))
 #+end_src
 * Ragnarok server core
+** Introduction
+Since 0.2, GNU Artanis has a strong server core for high concurrent. It is named Ragnarok.
+In the philosophy of design in GNU Artanis, everything inclined to be flexible and customizable.
+So the server core is customizable, if someone thought Ragnarok is not good enough.
 
+Ragnarok doesn't use any popular library for handling events (libev/libuv etc ...).
+It's a brand new server core based on epoll and [[https://en.wikipedia.org/wiki/Delimited_continuation][delimited continuations]].  
+
+** Principle
+The basic principle of Ragnarok is co-routine. And these co-routines are implemented with [[https://en.wikipedia.org/wiki/Delimited_continuation][delimited continuations]].
+Actually, there's no kernel controlled threads (say, pthread) in Ragnarok. All the tasks are scheduled by
+an userland scheduler, and the task is nothing but just a special continuation. The difference between it and
+regular full continuation is that it could be delimited for fine granularity rather than capture the whole stack.
+
+For reaserchers, there's a paper published on ICFP Schemeworkshop2016 to explain the principle and the design of GNU Artanis.
+[[https://github.com/NalaGinrut/artanis/raw/gh-pages/research/scheme16/art2016.pdf][Multi-purpose web framework design based on websockets over HTTP Gateway]].
+
+(to be continued ...) 
+
+** Features
 In Artanis, the request handling could be scheduled when the socket buffer is full (depends on server.bufsize).
 And let other request's handler run. Just like the scheduling of OS but it's in the userland.
 
 So if it's the buffer issue when scheduling, then there's no way to flush before break since we can't tell if the
 scheduling caused by buffering or blocking.
+
+Ragnarok takes advantage of src_conf[:exports code]{SO_REUSEPORT} introduced since GNU/Linux 3.9 to provde a feature
+named src_conf[:exports code]{server.multi} which could be enabled in config. This feature allows users to start several
+Artanis instances which are all listenning on the same port to take advantage of multi cores. And the events are
+dispatched by the Linux kernel.
+
+(to be continued ...)
+
+** APIs
+You may use these APIs for customizing your own server core.
+(to be continued ...)
 * Utils
  *The functions introduced here requires to import (artanis utils) module.*
 ** String Template
@@ -1436,7 +1478,7 @@ Get random number string from =/dev/urandom=.
 #+begin_src scheme
 (get-random-from-dev #:length 8 #:uppercase #f)
 #+end_src
-** Encryption
+** Cryptographic hash functions
 #+begin_src scheme
 ;; hash a string with MD5
 (string->md5 str)
@@ -1462,6 +1504,18 @@ GNU Artanis provides simple interfaces for stack & queue:
 (queue-tail q)
 (queue-remove! q key)
 (queue-empty? q)
+#+end_src
+** Useful string operation
+If you want to get all contents in string from a file,
+then don't use src_conf[:exports code]{get-string-all} imported from rnrs. Because it
+will not detect the correct charset from locale, and this may cause the length different
+from the actual length. Although GNU Artanis can handle the length issue properly, you
+should use src_conf[:exports code]{get-string-all-with-detected-charset} once you need
+to do the similar thing. If you don't care about the contents but just want to get the
+contents anyway, it's better to use src_conf[:exports code]{get-bytevector-all} imported
+from rnrs.
+#+begin_src scheme
+(get-string-all-with-detected-charset filename)
 #+end_src
 * Debug mode
 GNU Artanis provides debug-mode for more convenient debug. You may enable it easy.
