@@ -30,7 +30,7 @@ use strict;
 
 use Getopt::Long;
 use Digest::MD5;
-use Digest::SHA1;
+use Digest::SHA;
 use POSIX qw(strftime);
 
 (my $ME = $0) =~ s|.*/||;
@@ -164,7 +164,7 @@ sub print_checksums (@)
           my $dig =
             ($meth eq 'md5'
              ? Digest::MD5->new->addfile(*IN)->hexdigest
-             : Digest::SHA1->new->addfile(*IN)->hexdigest);
+             : Digest::SHA->new->addfile(*IN)->hexdigest);
           close IN;
           print "$dig  $f\n";
         }

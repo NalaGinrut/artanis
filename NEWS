@@ -37,4 +37,9 @@ Changes in 0.1.2
   Fixed several bugs.
   Updated manual.
 
-  
+Changes in 0.2
+* Notable changes
+  Brand new server core Ragnarok based on delimited continuations.
+  Good multi-core support.
+  Efficient static file uploading and downloading.
+  Fixed many bugs.

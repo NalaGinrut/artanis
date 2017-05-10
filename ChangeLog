@@ -1,6 +1,1001 @@
+2017-05-10  Nala Ginrut  <nalaginrut@gmail.com>
+
+	prepare for 0.2
+
+	updated docs for 0.2
+
+	update Makefile.in for stable releasing
+
+	fixed (artanis config) to use cooked value for default value
+
+2017-05-09  Nala Ginrut  <mulei@gnu.org>
+
+	Merge branch 'master' into 'master'
+	Added proper version-strings comparison function
+	
+	See merge request !74
+
+2017-05-08  Nikita  <yagel.x@gmail.com>
+
+	Added proper version-strings comparison function
+
+2017-05-08  Nala Ginrut  <mulei@gnu.org>
+
+	Merge branch 'master' into 'master'
+	fixed postgresql tcp connection setting
+	
+	See merge request !73
+
+2017-05-08  Nikita  <yagel.x@gmail.com>
+
+	fixed version string for error report
+
+	fixed postgresql tcp connection setting
+
+2017-05-05  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated example/test.scm for testing cookie-ref
+
+	fixed: cookie-ref should be applied on just one cookie
+
+	remove redundant debug info
+
+	added get-string-all-with-detected-charset
+
+	fixed error printing in (artanis oht)
+
+2017-05-03  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed json testing
+
+	fixed: make test helper function compatible with new server interface
+
+	fixed color printing in tests
+
+	fixed: throw exception properly while handling json
+
+	fixed: wrong content-length counting, the body should be converted to bytevector first
+	* modified:   artanis/page.scm
+	* modified:   artanis/server/http.scm
+	* modified:   artanis/utils.scm
+
+	avoid use use websocket before it works
+
+	fixed typo in (artanis page)
+
+	fixed error msg throwing in get-trigger and get-family
+
+	fixed: some items in config has wrong type
+
+	fixed: check file existence when emitting the static file without cache
+
+2017-05-02  Nala Ginrut  <nalaginrut@gmail.com>
+
+	close connection when the request encoutners exception
+
+	exceptions handler should return 3rd value as request-status
+
+	fixed typo
+
+	websocket handler should return the 3rd value as request-status
+
+	Use sendfile for static files downloading
+	* modified:   artanis/page.scm
+	* modified:   artanis/server/http.scm
+	* modified:   artanis/server/ragnarok.scm
+
+	added gen-content-length
+
+	fixed static page caching
+	* modified:   artanis/artanis.scm
+	* modified:   artanis/cache.scm
+	* modified:   artanis/mvc/view.scm
+
+2017-05-01  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed HEAD method requesting
+
+	fixed static files caching
+
+	fixed to accept all events when listen socket has event
+
+	fixed to properly close while reading request
+
+	fixed close trap in scheduler for new interface
+
+	fixed %%raw-close-connection for new interface
+
+	modified ragnarok-close interface to pass peer-shutdown? directly
+
+	::define don't support define* anymore since it's over complicated
+
+2017-04-30  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed typo
+
+	fixed: avoid to shutdown/close socket when the peer has already been shutdown
+
+	::define supports keywords and optional args
+
+2017-04-27  Nala Ginrut  <nalaginrut@gmail.com>
+
+	do not create database for user automatically
+
+2017-04-26  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated configure for version
+
+	updated etc/artanis/artanis.conf
+
+	get rif of wokers
+	* modified:   artanis/server/ragnarok.scm
+	* modified:   artanis/server/scheduler.scm
+	* modified:   artanis/server/server-context.scm
+
+	added proper-toplevel to detect toplevel path properly
+
+	fixed: generate invalid path when it's not in application folder
+
+	update year in (artanis route)
+
+	get rid of workers for threading since we have better design now
+
+	fixed DB configuration
+
+	fixed DB config for init, removed (server worker) for better design
+
+	fixed DB init and using when start artanis
+
+	fixed etc/artanis installation path
+
+	update example/blogdb.mysql to prevent recreate database
+
+	update example/upload.scm
+
+2017-04-24  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed: failed to catch 404 exception while client requires an icon file
+	* modified:   artanis/page.scm:
+	              Artanis now has a new way to handle exception, it's a mistake
+	              to forget to update the new approach while handling 404 in
+	              static files. This cause Ragnarok crash when the client requires
+	              favicon.ico. This fix is relate to #75.
+
+	update to new exception approach in init-rule-handler-and-keys!
+
+	fixed typo in (artanis server aio)
+
+	fixed: printing bug while throw exception page
+
+2017-04-21  Nala Ginrut  <nalaginrut@gmail.com>
+
+	close the connection gracefully
+
+	updated TODO, the new server core is done
+
+	updated BUGS
+
+	ignore pipe error in the beginning
+
+	fixed typo in (artanis inotify)
+
+	fixed %epoll-wait should return errno
+
+	update to new pointer->procedure interface to handle errno properly
+	* modified:   artanis/inotify.scm
+	* modified:   artanis/server/epoll.scm
+		update to new pointer->procedure interface to handle errno properly.
+
+	* modified:   artanis/utils.scm: Removed obsoleted `errno' handle.
+
+2017-04-20  Nala Ginrut  <nalaginrut@gmail.com>
+
+	support server.multi in Ragnarok to support multi Artanis instances listenning to the same port
+
+	use read-request-body to read large upload file without break since we support server.multi now
+
+	re-export read-request-body and added comments to keep-alive?
+
+	remove server.sbs, added server.multi for taking advantage of multi-cores
+
+	check OS version for specific feature while init server
+
+2017-04-19  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update .travis.yml for guile-2.2.0
+
+2017-04-18  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update BUGS
+
+	fixed: non-blocking uploading with schedule
+
+	added EPOLLEXCLUSIVE to (artanis server epoll)
+
+	fixed: wrong error msg printing
+
+	set default server.sbs to 10 for better performance
+
+	update copyright year in (artanis artanis)
+
+2017-04-17  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed: now ragnarok treat continuable task well
+
+	reuse the old 'task' to hold saved task
+
+	'kont' and 'client' in 'task' record-type should be mutable
+
+	use shutdown to close connections is more proplerly
+
+2017-04-15  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed: wrong parameters referencing
+
+	update (artanis server http)
+
+	update (artanis server ragnarok)
+
+	updated (artanis server http)
+
+	updated (artanis server server-context)
+
+	updated (artanis server scheduler)
+
+	update (artanis websocket)
+
+	move keep-alive? to (artanis utils)
+
+	updated (artanis server aio)
+
+	added #:keep-alive? to epoll-ctl
+
+2017-04-14  Nala Ginrut  <nalaginrut@gmail.com>
+
+	force to schedule after server.sbs has been read to avoid blocking while uploading large file
+
+	re-export request-content-length and request-port in (artanis utils)
+
+	added server.sbs and upload.size to config
+
+2017-04-13  Nala Ginrut  <nalaginrut@gmail.com>
+
+	ragnarok works!
+
+	fixed typo in (artanis server http)
+
+	fixed: wrong type anno in add-a-task-to-work-table!
+
+2017-04-12  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed: improperly unboxing while using work-table
+
+	fixed: wrong logic when calling customized scheduler
+
+	make sure Ragnarok's continuation is compatible with Guile built-in server
+
+	fixed: wrong types naming in (artanis server http)
+
+	fixed: wrong logic to detect if a connection has websocket
+
+	re-export request-uri, request-method in (artanis utils)
+
+	remove redundant modules in (artanis page)
+
+	fixed: wrong logic to init file monitoring
+
+	fixed: wrong default value of debug.monitor item
+
+	fixed: wrong logic to init file monitoring when debug mode is enabled
+
+	re-export read-request-body in (artanis utils)
+
+	fixed: type checking failed when typs is ANY
+
+	fixed wrong parameterize staging before http-read
+
+2017-04-11  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed many bugs in (artanis server ragnarok)
+
+	fixed infinit loop bug in (artanis server server-context)
+
+	re-export response/request stuffs from (artanis utils)
+
+	remove redundant module importing from (artanis server http)
+
+2017-04-10  Nala Ginrut  <nalaginrut@gmail.com>
+
+	solved several bugs and added DEBUG info in (ragnarok server ragnarok)
+
+	change make-protocol to make-ragnarok-protocol in (artanis server http)
+
+	change record-type 'proto' to 'ragnarok-protocol' for consistent
+
+	added comments in (artanis websocket)
+
+	remove whitespaces in (artanis db)
+
+	run (init-server-core) in (init-server) rather than while 'art work'
+
+	fixed wrong detection for record-type in type-checking machenism
+
+	fixed infinite loop while create new ready-queue
+
+2017-03-31  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Fixed wrong module name (ragnarok server epoll)
+	* modified:   artanis/utils.scm
+
+	slightly changed log description
+	* modified:   artanis/db.scm
+
+	fixed wrong engine loader function
+	* modified:   artanis/server/ragnarok.scm
+
+2017-03-30  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed wrong usage of vector-map
+
+	fixed wrong params in detect-if-connecting-websocket
+
+2017-03-29  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added more comments in (artanis server ragnarok)
+
+	rename to close-current-task! for indicating side-effect
+
+	rename get-the-redirector-of-protocol to get-the-redirector-of-websocket
+	* modified:   artanis/server/server-context.scm
+	* modified:   artanis/websocket.scm
+
+	update (artanis utils)
+
+	Fixed inconsistence about redirector of websocket mechanism
+	* modified:   artanis/oht.scm: import (artanis websocket)
+	* modified:   artanis/server/http.scm: fixed some inconsistences
+
+	change get-conn-from-pool to unary
+
+2017-03-09  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed websocket.scm to not complain while compiling
+
+2017-03-08  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated HTTP protocol methods
+	* modified:   server/http.scm:
+	              http-read shouldn't return client which is unecessary.
+	              http-write return #f as body when it's websocket.
+	              All methods are defined with type annotation.
+
+	ragnarok-read shouldn't return client which will be redundant
+
+	remove useless define-protocol
+
+2017-02-28  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added http-write and tweaked http-close
+
+	fixed a logical checking bug in ragnarok
+
+	update scheduler for closing connection
+
+	added client-ip
+
+	update :websocket in oht.scm
+
+	added must-close-connection? parameter
+
+2017-02-24  Nala Ginrut  <nalaginrut@gmail.com>
+
+	implement http-open, http-close
+
+	delay actualy clean work to protocol-close
+
+2017-02-23  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added detect-if-connecting-websocket
+
+	upated TODO
+
+2017-01-04  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Changed design of *conn-pool*
+
+	Added comments to *conn-pool* for new design
+
+	added comments to artanis/route.scm
+
+2017-01-03  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update server-context.scm
+
+	finish detect-if-connecting-websocket
+
+	fixed bug in epoll.scm
+
+2016-12-31  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated README
+
+2016-12-26  Nala Ginrut  <nalaginrut@gmail.com>
+
+	call schedule-if-locked when trying to release a task
+
+	added schedule-if-locked
+
+2016-12-09  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Updated utils.scm
+	* modified:   artanis/utils.scm
+	         Fixed misc typos
+	         Added: sanitize-response
+	                build-response
+
+	move some parameters from ragnarok.scm to server-context.scm
+	* modified:   artanis/server/server-context.scm
+	         Added: the-null-task
+	                current-task
+	                current-proto
+	                current-server
+	                current-client
+
+	move some functions from ragnarok.scm to scheduler.scm
+	* modified:   artanis/server/scheduler.scm
+	         Added schedule-with-command
+	               break-task
+	               close-task
+
+	update ragnarok.scm to compile without warnings
+
+	re-export correctly in server.scm
+
+	fixed typo in page.scm
+
+	fixed typo in oht.scm
+
+	move aio.scm to server/ directory
+
+2016-12-07  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added comments in (artanis route)
+
+	update TODO
+
+	updated ragnarok.scm
+
+	import (ice-9 threads) in server-context.scm and fixed typo
+
+	fixed typos in utils.scm
+
+	updated (artanis server epoll)
+
+	fixed typo in (artanis page)
+
+	aio.scm works
+
+	fixed bug in Makefile.in
+
+2016-12-06  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Fixed #70 :from-post always returns last result
+
+2016-12-05  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Changed something in server-context.scm
+	* modified:   artanis/server/server-context.scm
+	          Added restore-working-client
+	          Rename task-conn to task-client
+
+	updated ragnarok.scm
+
+	added new module (artanis aio)
+
+2016-11-26  Nala Ginrut  <nalaginrut@gmail.com>
+
+	run detect-if-connecting-websocket hook before handler requests
+
+	Added ready-queue as box-type
+	* modified:   artanis/server/server-context.scm
+	          Added new-ready-queue
+	                ready-queue?
+	                ready-queue-empty?
+	                ready-queue-in!
+	                ready-queue-out!
+
+	added comments in env.scm
+
+	update ragnarok
+
+2016-11-25  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added boolean to box-type
+
+2016-11-19  Nala Ginrut  <nalaginrut@gmail.com>
+
+	re-throw the exception if Artanis error handler failed to parse the exception mode
+
+	updated scheduler
+
+	updated ragnarok
+
+	avoid to open *null-device* frequently
+
+	update and export redirector record type
+	* modified:   artanis/server/server-context.scm
+	          Exported make-redirector
+	                   redirector?
+	                   redirector-type
+	                   redirector-content
+	                   redirector-count
+	                   redirector-mutex
+	                   register-redirector!
+	                   get-the-redirector-of-protocol
+
+2016-11-15  Nala Ginrut  <nalaginrut@gmail.com>
+
+	misc update in server/ragnarok.scm
+
+	Updated server/server-context.scm
+	* modified:   artanis/server/server-context.scm
+	              Added: add-a-task-to-work-table!
+	                     get-task-from-work-table
+	                     specified-proto?
+	                     register-proto!
+
+	added helper functions to utils.scm
+	* modified:   artanis/utils.scm
+	              Added get-trigger
+	                    get-family
+	                    get-addr
+	                    break-task
+	                    close-task
+
+	changed default (server bufsize) to 12288
+
+2016-11-12  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added comments for :websocket
+
+	udpdate ragnarok
+
+	reexport protocol-service-open
+
+	added redirectors
+	* modified:   artanis/server/server-context.scm
+	          A redirector is used for recording the remote port and related attributes.
+	          It is an instance to connect client and remote services.
+
+	update README for requesting a logo contribution
+
+	added protocols directory when creating app
+	* modified:   artanis/commands/create.scm
+	          Added `protocols' directory when running 'art create'.
+	          This directory is used to store protocol parser and handlers.
+
+	added :websocket and optimized :session and :mime
+	* modified:   artanis/oht.scm
+	          Added :websocket, it's unfinished.
+	          Optimized :session and :mime to avoid parsing command
+	          each time calling.
+
+2016-11-07  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated ragnarok.scm
+	* modified:   artanis/server/ragnarok.scm
+	          - Added type checking for:
+	            ragnarok-close
+	            ragnarok-write
+	            ragnarok-read
+
+	          - Refactored serve-one-request and added type checking.
+
+	          - rename get-request-from-client to get-clients-from-service
+	          - get-clients-from-clients will return a list boxed to ragnarok-client
+
+	change make-ragnarok-client to function for map operation
+
+	added comments to ::define
+
+	update .gitignore
+
+	use png instead of svn to show proper ico
+
+	Added 'Jan Wedekind' to THANKS
+
+	optimized to reduce configure processing
+
+2016-11-05  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Updated README to show expressive icons
+
+2016-11-04  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added colorized string helper functions
+	* modified:   artanis/utils.scm
+	              Added: WARN-TEXT
+	                     ERROR-TEXT
+	                     REASON-TEXT
+	                     NOTIFY-TEXT
+	                     STATUS-TEXT
+
+	Use new exception handler for better errmsg printing
+	* modified:   artanis/artanis.scm
+	* modified:   artanis/page.scm
+	              Removed old artanis-err exception handler and use
+	              new one.
+
+2016-11-02  Nala Ginrut  <nalaginrut@gmail.com>
+
+	set artanis-error-printer to artanis-err in init step
+
+	added artanis-error-printer
+
+2016-11-01  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added schedule-task
+	* modified:   artanis/server.scm
+	              New exported interface `schedule-task',
+	              which will be set while initializing server-core.
+
+	big update for server/ragnarok.scm
+
+	import (artanis server) in artanis.scm
+
+	detect more types in detect-type-name
+	* modified:   artanis/utils.scm
+	              Be able to detect `procedure' and `thunk'
+
+2016-10-31  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated configure
+
+	updated SECURITY_WARNING
+
+	updated server/ragnarok.scm
+
+	updated server/scheduler.scm
+
+	added ragnarok-engine as record-type
+
+	move current-worker to env.scm
+
+	changed server.impl to server.engine
+
+	added did-not-specify-parameter
+
+2016-10-26  Nala Ginrut  <nalaginrut@gmail.com>
+
+	tweaked something in dynamic type checking tiny framework
+
+	added dynamic type checking in debug mode
+
+2016-10-20  Nala Ginrut  <nalaginrut@gmail.com>
+
+	tiny changes
+
+	added dynamic type checking tools in utils
+
+2016-10-03  Adonay Felipe Nogueira  <adfeno@openmailbox.org>
+
+	Fix forced path usage involving $(DESTDIR).
+	Bug introduced by commit `6fe766afd14d24fbe394a4bb8273e02cc79f6608`.
+
+	Use $(PREFIX) when DESTDIR isn't defined (except for $(MOD_PATH) and $(MOD_TARGET_PATH)).
+
+2016-09-27  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed typo in README
+
+	added NOTICE to README
+
+	fixed wrong URLs in README
+
+	update README
+
+2016-09-19  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update configure stuff
+
+	added server/http.scm
+
+	added some comments to server/server-context.scm
+
+	import (artanis utils) in tpl.parser.scm
+
+	remove meaningless comment
+
+	fixed to insert values table after verification
+
+	fixed to convert proper type of the config items
+
+	import (artanis server ragnarok) in artanis.scm
+
+	fixe Makefile.in to sort mod-file properly
+
+2016-06-03  Nala Ginrut  <nalaginrut@gmail.com>
+
+	establish http gateway when start artanis server
+
+	init-server-core in work commannd
+
+	update artanis/server.scm
+
+	added protocol table in env
+
+	added new server core named ragnarok
+
+	added scheduler module for server core
+
+	added server-context module
+
+	added epoll module
+
+	add new items in config
+
+	fixed comments in sql-mapping.scm
+
+	updated docs
+
+	updated TODO
+
+2016-05-04  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added misc files
+
+	add m4 directory
+
+	tweaked 'art work' command for lib loading
+
+	added lib drawing
+
+	added command syntax in tpl
+
+2016-05-03  Nala Ginrut  <nalaginrut@gmail.com>
+
+	make-string-template shouldn't throw error when no value.
+	* modified:   artanis/utils.scm: make-string-template should use
+	              "" as default value rather than throw exception.
+		      Close #65.
+
+2016-04-16  Mu Lei  <NalaGinrut@gmail.com>
+
+	Merge pull request #64 from HtwoO/master
+	Change file permission of show-cmds.sh from 755 to 644
+
+2016-04-12  Fonzie Huang  <hxf.prc+web@gmail.com>
+
+	Change file permission of show-cmds.sh which is istalled in /etc from 755 to 644
+
+2016-03-02  Nala Ginrut  <nalaginrut@gmail.com>
+
+	optimized route parsing with precompiled irregex string
+
+	fixed wrong optimizing calling of irregex in utils
+
+	fixed wrong optimizing calling of irregex in json
+
+	fixed wrong optimizing calling of irregex in MVC/model
+
+	fixed wrong optimizing calling of irregex in debug
+
+	fixed wrong optimizing calling of irregex in CMD/migrate
+
+	don't use monitor in minimal mode
+
+2016-02-10  Nala Ginrut  <nalaginrut@gmail.com>
+
+	prepare for 0.1.2
+
+	updated manual
+
+	updated NEWS
+
+	fixed comments in tpl.scm
+
+	updated year in .HEAD
+
+	updated TODO
+
+	added tpl caching
+
+	update MVC/controller to support tpl caching
+
+	updated years in page.scm
+
+	slitly tweaked create.scm
+
+	use true/false to replace enable/disable for boolean
+
+	rename page-show to syspage-show
+
+	slitly tweaked session.scm
+
+	added DEBUG function
+
+2016-02-04  Nala Ginrut  <nalaginrut@gmail.com>
+
+	session backend FILE works
+
+	added exclude-dbd helper function
+
+	move Boolean type from generic to postgresql
+
+	session backend DB works
+
+	added new case to ssql
+
+	fixed make-table-getter to generate correct SQL
+
+	don't specify dbname when trying to connect DB
+
+	rename session-backend-set\! to change-session-backend\!
+
+	fixed session-maker to use null-string when sid is #f
+
+	rename (session engine) to (session backend)
+
+	create dbname if non-exists and use it
+
+2016-02-03  Nala Ginrut  <nalaginrut@gmail.com>
+
+	done session DB backend
+
+	init session management when run server
+
+	rewrite session management module
+
+	added current-session-backend
+
+2016-01-19  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated THANKS
+
+2016-01-18  Mu Lei  <NalaGinrut@gmail.com>
+
+	Merge pull request #60 from pksadiq/master
+	view: Fix HTML comment tag
+
+2016-01-18  Mohammed Sadik  <sadiq@sadiqpk.org>
+
+	view: Fix HTML comment
+	HTML comments should begin with `<!--' and end
+	with `-->'
+
+2016-01-14  Mu Lei  <NalaGinrut@gmail.com>
+
+	Merge pull request #57 from pksadiq/master
+	Makefile: Fix make install if .bashrc is missing
+
+2016-01-14  Mohammed Sadik  <sadiq@sadiqpk.org>
+
+	Makefile: Fix make install if .bashrc is missing
+	Not every system has /etc/bash.bashrc. So conditionally
+	include the file.
+
+2016-01-13  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Updated THANKS
+
+2016-01-13  Mu Lei  <NalaGinrut@gmail.com>
+
+	Merge pull request #55 from contrapunctus-1/readme-fixes
+	Various spelling and grammar fixes in README
+
+2016-01-12  Kashish Sharma  <music.kashish@gmail.com>
+
+	Spelling and grammar - missed some spots
+
+	Various spelling and grammar fixes
+
+2016-01-11  Nala Ginrut  <nalaginrut@gmail.com>
+
+	Update README for 'how to contribute'
+
+	updated .travis.yml
+
+2016-01-02  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed PREV_VER in Makefile.in
+
+	remove redudant help function c/struct-sizeof
+
+2015-12-29  Nala Ginrut  <nalaginrut@gmail.com>
+
+	prepare for releasing v0.1.1
+
+	updated docs/artanis.texi
+
+	updated THANKS, thanks @vince-refiti
+
+2015-12-24  Nala Ginrut  <nalaginrut@gmail.com>
+
+	debug-mode works
+
+	fixed make-inotify-watching-loop to work properly
+
+	added new config item (debug monitor)
+
+2015-12-22  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed Makefile.in to make sure *.scm list is determined for security
+
+	export necessary symbols in inotify.scm
+
+	fixed typo in debug.scm
+
+	import (artanis debug) in artanis.scm
+
+2015-12-21  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added file monitoring for debug mode
+
+	added debug module for debug mode
+
+	added more inotify helper functions
+
+2015-12-17  Nala Ginrut  <nalaginrut@gmail.com>
+
+	inotify works
+
+	fixed c/struct-sizeof
+
+2015-12-14  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added inotify module
+
+	added errno in utils
+
+2015-12-03  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added "make clean-obj" to clean compiled objects for some issues
+
+2015-11-26  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update version number in configure
+
+	fixed local eval bug in MVC/controller
+
+	fixed typo in tpl.scm
+
+	fixed typo in SECURITY_WARNING
+
+2015-11-16  Nala Ginrut  <nalaginrut@gmail.com>
+
+	updated THANKS
+
+2015-11-16  Mu Lei  <NalaGinrut@gmail.com>
+
+	Merge pull request #54 from stefanhusmann/master
+	introduce DESTDIR in Makefile.in for packagers
+
+2015-11-16  Stefan Husmann  <stefan-husmann@t-online.de>
+
+	fix for the case DESTDIR is empty
+
+2015-11-13  Stefan Husmann  <stefan-husmann@t-online.de>
+
+	create path for info file
+
+	fix typo
+
+	add DESTDIR to INFO_PATH
+
+2015-11-12  Stefan Husmann  <stefan-husmann@t-online.de>
+
+	introduce DESTDIR in Makefile.in for packagers
+
+2015-11-10  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed typo in SECURITY_WARNING
+
 2015-11-07  Nala Ginrut  <nalaginrut@gmail.com>
 
 	last step for v0.1.0
+	* modified:   ChangeLog
+	* modified:   Makefile.in
+	* modified:   NEWS
 
 	prepare for releasing v0.1.0
 
@@ -654,8 +1649,6 @@
 
 	generate correct server-info from version.scm
 
-2015-02-26  Nala Ginrut  <nalaginrut@gmail.com>
-
 	generate proper MIME for JSON and JSONP
 	* artanis/oht.scm
 	* artanis/mime.scm
@@ -1295,8 +2288,6 @@
 	   Removed: error fields
 	   Modified: upload types
 
-2014-08-07  Nala Ginrut  <nalaginrut@gmail.com>
-
 	update config.scm and db.scm
 	* modified:   config.scm
 
@@ -1307,8 +2298,6 @@
 	* modified:   db.scm
 	   Exported: <connection>?
 	   Added: connect-db
-
-2014-08-07  Nala Ginrut  <nalaginrut@gmail.com>
 
 	export <connection>?
 
@@ -1554,8 +2543,6 @@
 
 	fix default uid and gid
 
-2014-05-09  Nala Ginrut  <nalaginrut@gmail.com>
-
 	Fixed upload bug
 	* modified:   artanis/upload.scm:
 	  Fixed: The attatched file will be cut the first line of code, the
@@ -1780,8 +2767,6 @@
 	re-commit for upload fix
 	* artanis/upload.scm: fix some bugs, now upload works for text & binary
 	* artanis/utils.scm(checkout-the-path): fix checkout-the-path
-
-2013-08-22  Nala Ginrut  <nalaginrut@gmail.com>
 
 	upload is done and added example of upload
 	* artanis/upload.scm: fix some bugs, now upload works for text & binary
@@ -2151,8 +3136,6 @@
 	modified:   artanis/utils.scm
 	new file:   favicon.ico
 
-2013-02-05  Nala Ginrut  <nalaginrut@gmail.com>
-
 	Add last-modified time, and fixed 'favicon.ico' fetch.
 	* Add: last-modified time
 	* Fixed: 'favicon.ico' fetch
@@ -2164,8 +3147,6 @@
 	modified:   test.scm
 
 	new file:   BUGS
-
-2013-02-05  Nala Ginrut  <nalaginrut@gmail.com>
 
 	ADD: site enable/disabe
 

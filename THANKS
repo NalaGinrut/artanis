@@ -15,3 +15,5 @@ Thanks these guys who gave me help:
   Fixed many typos and grammar errors in the manual.
 * Jan Wedekind <jan@wedesoft.de>
   Optimized autogen and configure to make the configuring faster.
+* Nikita <yagel.x@gmail.com>
+  Reported and helped to fixed many bugs in Ragnarok.
