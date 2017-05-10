@@ -43,7 +43,7 @@
 ;;       `->list' anywhere.
 (define (default-conf-values)
   `(;; for DB namespace
-    ((db enable) false)
+    ((db enable) #f)
     ((db dbd) mysql)
     ((db proto) 'tcp)
     ((db addr) "localhost:3306")
@@ -55,7 +55,7 @@
 
     ;; for server namespace
     ((server info) ,artanis-version)
-    ((server nginx) false)
+    ((server nginx) #f)
     ((server charset) "utf-8")
     ;; FIXME: use local pages
     ((server syspage path) "/etc/artanis/pages")
@@ -66,12 +66,11 @@
     ((server polltimeout) 500) ; in miliseconds
     ;; From "HOP, A Fast Server for the Diffuse Web", Serrano.
     ((server bufsize) 12288) ; in Bytes
-    ;; NOTE: Only for Linux-4.5+
-    ;;       Two kernel features are necessary:
-    ;;       EPOLLEXCLUSIVE (since 3.9)
-    ;;       SO_REUSEPORT (since 4.5)
+    ;; NOTE: Only for Linux-3.9+
+    ;;       One kernel features is necessary:
+    ;;       SO_REUSEPORT (since 3.9)
     ;;       Allows mutiple servers to listen to the same socket port, say 8080.
-    ((server multi) true)
+    ((server multi) #t)
 
     ;; for host namespace
     ((host name) #f)
@@ -87,8 +86,7 @@
     ;; for upload namespace
     ((upload types) (jpg png gif))
     ((upload path) "upload")
-    ((upload size) 100000000000 #;"5M"
-     )
+    ((upload size) 5242880) ; 5M
 
     ;; for mail namespace
     ;; ((mail sender) "/usr/sbin/sendmail")
@@ -97,7 +95,7 @@
     ((cache maxage) 3600) ; in seconds
 
     ;; for debug mode
-    ((debug monitor) '()))) ; user specified monitoring paths
+    ((debug monitor) ()))) ; user specified monitoring paths
 
 ;; Init all fields with default values
 (for-each (lambda (x) (conf-set! (car x) (cadr x))) (default-conf-values))
