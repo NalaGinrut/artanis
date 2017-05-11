@@ -10,7 +10,7 @@ LDFLAGS := @GUILE_LDFLAGS@ -fPIC -shared
 SHELL := /bin/bash
 RELEASE_TYPE := stable
 PREV_VER := 0.1.2
-GPG_KEY := EE78E925
+GPG_KEY := F53B4C5695B5E4D56093432484696772846A0058
 BOOT_TOOLS := autoconf,guile
 URL_DIR := "http://ftp.gnu.org/gnu/artanis/"
 INCLUDES := -I$(TOP)
@@ -97,7 +97,7 @@ release.bz2: $(TARBALL_NAME).tar.bz2
 
 upload: release.gz release.bz2
 	$(V) $(GUILE) -c '(exit (if (string=? "yes I am crazy" (getpass "Are you sure? ")) 0 233))' && \
-	$(GNUPLOAD) --to $(RELEASE_TYPE).gnu.org:artanis \
+	$(GNUPLOAD) --to ftp.gnu.org:artanis \
 	--symlink-regex \
 	artanis-$(VERSION).tar.gz artanis-$(VERSION).tar.bz2
 
@@ -123,6 +123,7 @@ clean:
 	-rm -fr $(OBJ) autom4te.cache
 	-rm -f *.log build.err.* *.info
 	-rm -f $(MOD)/version.scm
+	-rm -f artanis-$(VERSION)*
 	find . -name "*~" -exec rm {} \;
 
 clean-tarball:
