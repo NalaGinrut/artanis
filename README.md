@@ -79,9 +79,9 @@ http://gnu.org/software/artanis/manual
   In my opinion, bug reports are the most significant contributions. Please don't hesitate to report in a proper way for me to reproduce.
 
   Please read the manual carefully, and ask questions to know more about GNU Artanis. The preferred way to discuss internals of Artanis is to send
-  mail to artanis@gnu.org because it's good for archive. And you could discuss the bugs in issues for better tracking than mails.
+  mail to [artanis@gnu.org](https://lists.gnu.org/mailman/listinfo/artanis) because it's good for archive. And you could discuss the bugs in issues for better tracking than mails.
 
-  I'll write articles about GNU Artanis occasionally on my blog: nalaginrut.com
+  I'll write articles about GNU Artanis occasionally on my blog: http://nalaginrut.com
 
   GNU Artanis is aiming for product quality, since it's going to be used in a real product. So we need the contributions in good quality.
   The tiny or obvious fixes will be more likely to be applied. But bigger contributions will be under strict review and discussion.
@@ -89,7 +89,7 @@ http://gnu.org/software/artanis/manual
   Artwork and document writing is important contributions too and great appreciated in GNU Artanis community. So does advocating on your blogs, wikis,
   and webcasting tutorials. They're good ways to help GNU Artanis to form a community.
 
-  If you're using GNU Artanis in product or own purpose, please share your experiences. GNU Artanis wants to build a friendly community to help
+  If you're using GNU Artanis in your project, please share your experiences. GNU Artanis wants to build a friendly community to help
   people know more about free software and help functional programming to be used in industry.
 
 ## Thanks for testing!
