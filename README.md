@@ -40,14 +40,19 @@ some cool experiences!
 * Very lightweight - easy to hack and learn for newbies.
 * Support JSON/CSV/XML/SXML.
 * A complete web-server implementation, including an error page handler.
-* Aims to be a highly concurrent and performant server in the future.
+* High concurrent async non-blocking server core based on delimited continuations.
 * Has a Sinatra-like style route, hence the name "Artanis" ;-)
 * Supported databases (through guile-dbi): MySQL/SQLite/PostgreSQL.
 * Nice and easy web cache control.
 * Efficient HTML template parsing.
+* Efficient static file downloading/uploading.
 
 ## Manual:
 http://gnu.org/software/artanis/manual
+
+## Research paper:
+* ICFP Schemeworkshop 2016
+  [Multi-purpose web-framework design based on websockets over HTTP Gateway](https://gitlab.com/NalaGinrut/artanis/raw/gh-pages/research/scheme16/art2016.pdf)
 
 ## How to contribute:
 
@@ -69,9 +74,23 @@ http://gnu.org/software/artanis/manual
 
 * Contributing to the Artanis framework -
 
-  Thank you very much for contributing! However, Artanis is still in Beta, which means the architecture design is prone to major changes.
+  Thank you very much for contributing!
 
-  So at the moment we accept only tiny or obvious fixes - please **do not** make big changes, they won't be accepted!
+  In my opinion, bug reports are the most significant contributions. Please don't hesitate to report in a proper way for me to reproduce.
+
+  Please read the manual carefully, and ask questions to know more about GNU Artanis. The preferred way to discuss internals of Artanis is to send
+  mail to artanis@gnu.org because it's good for archive. And you could discuss the bugs in issues for better tracking than mails.
+
+  I'll write articles about GNU Artanis occasionally on my blog: nalaginrut.com
+
+  GNU Artanis is aiming for product quality, since it's going to be used in a real product. So we need the contributions in good quality.
+  The tiny or obvious fixes will be more likely to be applied. But bigger contributions will be under strict review and discussion.
+
+  Artwork and document writing is important contributions too and great appreciated in GNU Artanis community. So does advocating on your blogs, wikis,
+  and webcasting tutorials. They're good ways to help GNU Artanis to form a community.
+
+  If you're using GNU Artanis in product or own purpose, please share your experiences. GNU Artanis wants to build a friendly community to help
+  people know more about free software and help functional programming to be used in industry.
 
 ## Thanks for testing!
 * Fedora release 20 (Heisenbug)
