@@ -298,7 +298,7 @@
              (get-conf '(session backend)))))
   (run-hook *before-run-hook*)
   (format #t "~a~%" (current-myhost))
-  (format #t "Anytime you want to Quit just try Ctrl+C, thanks!~%")
+  (format #t "Anytime you want to quit just try Ctrl+C, thanks!~%")
   (let ((handler (if debug
                      (lambda (r b)
                        (format #t "[Request] ~a~%[Body] ~a~%" r (->proper-body-display b))
