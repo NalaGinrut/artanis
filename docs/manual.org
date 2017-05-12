@@ -344,7 +344,7 @@ Run this code in your console:
 #+begin_src bash
 guile -c "(use-modules (artanis artanis))(init-server)(run)"
 ## You'll see this screen:
-Anytime you want to Quit just try Ctrl+C, thanks!
+Anytime you want to quit just try Ctrl+C, thanks!
 http://127.0.0.1:3000
 #+end_src
 
@@ -358,22 +358,22 @@ Type these code in Guile REPL:
 (run #:port 8080)
 #+end_src
 
-Now you can visit http://localhost:8080/hello with your browser, and see the result.
+Now you can visit http://localhost:8080/hello with your browser, and (hopefully) see the result.
 
-/If you encounter "[EXCEPTION] /favicon.ico is abnormal request", please just ignore it./
+/If you encounter "[EXCEPTION] /favicon.ico is abnormal request", please just ignore that warning./
 
-Let me explain these code.
+Let me explain the code:
 
 + /line 1:/ Load GNU Artanis module, (artanis artanis) is the name.
 
 
-+ /line 2:/ The first argument /get/ is GNU Artanis API corresponding to GET method in HTTP protocol.
-  The second argument "/hello" is the URL rule to register.
-  The Third argument is the handler which will be triggered if the registered URL rule is hit.
++ /line 2:/ The first argument /get/ is GNU Artanis' API correspondence to the GET method of the HTTP protocol.
+  The second argument "/hello" is the URL rule to register showing in the address line of e.g. firefox.
+  The third argument is the handler which will be triggered if the registered URL rule is hit.
 
-+ /line 3:/ Run GNU Artanis server, and listening socket port 8080.
++ /line 3:/ Run the GNU Artanis web server, and listen on socket port 8080.
 
-You may type Ctrl+C to quit the server according to the hint from your screen.
+You may type Ctrl+C to quit and stop the server, see also the message printed on the screen accordingly.
 ** More complex URL remapping
 Try this code:
 #+begin_src scheme
@@ -387,12 +387,12 @@ Try this code:
 
 Now you can try http://localhost:8080/hello/artanis in your browser.
 
-There're two differences:
+There are two differences:
 + 1. The special rule, "=/hello/:who=", /:who/ means you can use /params/ to reference the value of this section of URL with the key "who". src_scheme[:exports code]{(params rc "who")} is the way for that.
 
-+ 2. You may notice that the handler defined as an anonymous function with /lambda/ has one argument /rc/. It means /route context/ which preserve all the related context information. Many GNU Artanis APIs need it, say, /params/.
++ 2. You may have noticed that the handler is being defined as an anonymous function with /lambda/ has one argument /rc/. It means /route context/ which preserves all the related context information. Many GNU Artanis APIs need it, e.g.  /params/.
 
-And /format/ is a Scheme lib function. It is similar to /sprintf/ in C language, which outputs with a formatted pattern.
+And /format/ is a Scheme lib function. It is similar to /sprintf/ in the C language, which outputs text with a formatted pattern.
 The second argument #f (means FALSE) indicates that returning the result as string type rather than printing out.
 ** Regex in URL remapping
 You can use regex in the URL rule.
@@ -433,7 +433,7 @@ You can use DB without running a server.
 + /mtable/ is a function which accepts the first argument as a command, say 'create is a command to create a new table; 'set command is used to insert/update the table; 'get command for fetch the values of specified columns.
 
 
-+ The second argument of /mtable/ is the name of the table as you guess. Please note that it's case sensitive. But the columns name could be case insensitive.
++ The second argument of /mtable/ is the name of the table as you guess. Please note that it is case sensitive. But the column name could be case insensitive.
 
 
 + /*'create*/ command returns a function too, which also accepts an argument as a command. Here, we use /*'valid?*/ command to check if the table has been created successfully.
@@ -452,9 +452,9 @@ Of course, you can use DB in your web application.
      #:db-name "your_db_name" #:db-passwd "your_passwd" #:port 8080)
 #+end_src
 
-Now, try http://localhost:8080/dbtest in your browser.
+Now, try loading http://localhost:8080/dbtest in your browser.
 
-Here're some explains:
+Here are some explanations:
 + The keyword-value pair src_scheme[:exports code]{#:conn #t} means applying for a DB connection from connection-pool.
   Then you can use src_scheme[:exports code]{(:conn rc)} to get the allocated connection for DB operations.
 
@@ -462,11 +462,11 @@ Here're some explains:
   convert the query result to string, for this naive example case.
 
 /Exercise: Return a beautiful table in HTML rather than using object->string./
-* Basic in Scheme
+* Basics of Scheme
 This chapter introduces some useful documents to help you understand Scheme language well.
 Feel free to come back here if you have any problem with Scheme syntax.
 
-If any possible, read them again and again.
+If expedient, read the section repeatedly.
 
 Scheme was introduced in 1975 by Gerald J. Sussman and Guy L. Steele Jr. and was the first dialect of Lisp to fully support lexical scoping,
 first-class procedures, and continuations. In its earliest form it was a small language intended primarily for research and teaching,
@@ -477,9 +477,9 @@ native code in the future.
 
 ** For newbies
 
-If you're not familiar with Guile Scheme, here's a simplest tutorial for you.
+If you're not familiar with Scheme and Guile in particular, here is a simple tutorial for you.
 
-If you know basics of Scheme language, please skip this section.
+If you already know the basics of the Scheme language, please feel free to skip this section.
 
 I would recommend newbies to type/paste the code in Guile REPL following the guide in tutorial: 
 [[http://web-artanis.com/scheme.html][Learn Scheme in 15 minutes]]
@@ -491,7 +491,7 @@ Please don't spend too much time on these tutorials, the purpose is to let newbi
 
 ** For Pythonistas
 
-These are good articles for Pythoners:
+These are good pythonic articles for Pythoners:
 
 1. [[http://draketo.de/proj/guile-basics/][Guile basics from the perspective of a Pythonista]]
 2. [[http://draketo.de/proj/py2guile][Going from Python to Guile Scheme]]
@@ -508,11 +508,11 @@ These two books are very good for learning Scheme seriously:
 1. [[http://www.scheme.com/tspl4/][The Scheme Programming Language]]
 2. [[http://mitpress.mit.edu/sicp/][Structure and Interpretation of Computer Programs(SICP)]]
 
-Please don't read them if you just want to use GNU Artanis to build your web application/site in few minutes.
+Please don't bother reading them if you simply want to use GNU Artanis to build your web application/site in few minutes.
 
-If you really want to try these books seriously, please ignore GNU Artanis before you done them.
+And if you really want to try to work these books seriously, please ignore GNU Artanis before you are done with them.
 
-But once you've done them *carefully*, you may want to write a new GNU Artanis all by yourself.
+But once you're done reading them *carefully*, you may want to write a new GNU Artanis all by yourself!
 
 Hold your horses. ;-)
 * Basic in GNU Artanis
@@ -747,16 +747,16 @@ For other DB operation, please read [[FPRM (experimental)][FPRM]].
 URL remapping is used to modify a web URL's appearance to provide short, pretty or fancy, search engine friendly URLs. 
 It's largely used in modern WAF(web application framework) to provide RESTful web APIs.
 ** URL handling
-According to RFC2616, there're GET, POST, PUT, PATCH and DELETE methods. You may register handler for specified URL rule to these methods.
+According to RFC2616, there are GET, POST, PUT, PATCH and DELETE methods. You may register handler for specified URL rule to these methods.
 
-/There would be HEAD method, but in GNU Artanis, HEAD method is handled by the server, users can't use it./
+/There would be a HEAD method, but in GNU Artanis, the HEAD method is handled by the server, so users can not use it./
 
 The usage:
 #+begin_src scheme
 (method rule handler)
 #+end_src
 
-And the handler could be two types, depends on your need:
+And the handler could be one of two types, depending on your needs:
 #+begin_src scheme
 (lambda ()
   ...
@@ -803,7 +803,7 @@ If you're familiar with Django, which implemented a DSL(Domain Specific Language
 
 In templating of GNU Artanis, it's simply embedded Scheme code into HTML. Why? Because of the philosophy of FP(Functional Programming), everything could be a function. So obviously, src_scheme[:exports code]{(filesizeformat size)} is enough for understanding, and it's just simple function calling in prefix-notation. There's no need to implement DSL like src_python[:exports code]{size|filesizeformat} to increase the complexity of code. Let alone the syntax is very different from Python.
 
-The syntax like src_python[:exports code]{size|filesizeformat} is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme(functional programming), and the paradigm of Python(imperative programming).
+The syntax like src_python[:exports code]{size|filesizeformat} is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme (functional programming), and the paradigm of Python (imperative programming).
 
 The philosophy of GNU Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce the unnecessary complexities. [[http://en.wikipedia.org/wiki/KISS_principle][KISS]].
 ** Templating for Rubyists
@@ -849,7 +849,7 @@ Write a tpl file named "my.tpl":
 </html>
 #+end_src
 
-Of course, the ext filename ".tpl" is trivial, you may name it whatever you like.
+The filename extension ".tpl" - for template - is arbitrary, you can name it whatever you like.
 
 #+begin_src scheme
 (get "/test"
@@ -972,9 +972,9 @@ And here're some known ways for trying to solve the problems of ORM:
 + 6. */Integration of relational concepts into frameworks/*. Well, harder than 5, but worth to try.
 
 
-+ 7. */Stateless/*. This is the critical hit to complexity and unreliability.
++ 7. */Stateless/*. This is the critical hit to counter complexity and unreliability.
 
-Basically, GNU Artanis has no ORM yet, and maybe never. GNU Artanis is trying to experiment new ways to solve the problems of ORM.
+Basically, GNU Artanis has no ORM yet, and maybe never will. GNU Artanis is trying to experiment new ways to solve the problems of ORM.
 
 GNU Artanis provides three ways to complete this mission. All of them, are *experimental* at present.
 
@@ -1295,7 +1295,7 @@ And the APIs:
 (:cookies-update! rc) ; cookies operations won't work unless you update it
 #+end_src
 
-*NOTE*: You don't have to call src_scheme[:exports code]{:cookies-update!} yourself, since it'll be called automatically by the hook before response.
+*NOTE*: You don't have to call src_scheme[:exports code]{:cookies-update!} yourself, since it will be called automatically by the hook before the response.
 
 For example:
 #+begin_src scheme
@@ -1342,7 +1342,7 @@ HTTP Basic authentication (BA) implementation is the simplest technique for enfo
 
 The BA mechanism provides no confidentiality protection for the transmitted credentials. They are merely encoded with Base64 in transit, but not encrypted or hashed in any way. Basic Authentication is, therefore, typically used over HTTPS.
 
-/*GNU Artanis doesn't support HTTPS at present, it's planned to support it in the future.*/
+/*GNU Artanis doesn't support HTTPS at present, it is planned to support it in the future.*/
 
 Let's see a simple example:
 #+begin_src scheme
@@ -1360,7 +1360,7 @@ APIs:
 + src_scheme[:exports code]{(:auth rc)} will check if Basic Authentication succeeded, #f for failed.
 + src_scheme[:exports code]{(throw-auth-needed)} is a useful helper function to ask for auth in client side.
 ** Common Authentication
-Actually, there're various authentication methods could be used by developers. Most of them are sort of tricky hacks. Here, we only introduce the most common way.
+Actually, there are multiple authentication methods that can be used by developers. Most of them are sort of tricky hacks. Here we only introduce the most common way.
 
 The most common and relative safe way for authentication is to use POST method. And check username and passwd from a table in DB.
  
@@ -1379,8 +1379,8 @@ Here is a simple example:
 *NOTE: The passwd will be encrypted by default algorithm.*
 * Cache
 ** On web caching
-Web caching is very important nowadays. This section raises a discussion on proper web
-caching. It couldn't be guide for product. But may help you to understand how to use
+Web caching is very important nowadays. This section discusses proper web
+caching. It is not a full product guide document, but may help to understand how to 
 cache in GNU Artanis.
 
 (to be continued...)
@@ -1424,9 +1424,9 @@ But, if your current URL rule is used for authentication (once you use src_schem
 #+end_src
 * Ragnarok server core
 ** Introduction
-Since 0.2, GNU Artanis has a strong server core for high concurrent. It is named Ragnarok.
-In the philosophy of design in GNU Artanis, everything inclined to be flexible and customizable.
-So the server core is customizable, if someone thought Ragnarok is not good enough.
+Since 0.2, GNU Artanis has a strong server core for high concurrency. It is named Ragnarok.
+In the philosophy of the design of GNU Artanis, everything is meant to be flexible and customizable.
+So the server core is customizable, in case someone thought Ragnarok is not good enough yet.
 
 Ragnarok doesn't use any popular library for handling events (libev/libuv etc ...).
 It's a brand new server core based on epoll and [[https://en.wikipedia.org/wiki/Delimited_continuation][delimited continuations]].  
@@ -1437,7 +1437,7 @@ Actually, there's no kernel controlled threads (say, pthread) in Ragnarok. All t
 an userland scheduler, and the task is nothing but just a special continuation. The difference between it and
 regular full continuation is that it could be delimited for fine granularity rather than capture the whole stack.
 
-For reaserchers, there's a paper published on ICFP Schemeworkshop2016 to explain the principle and the design of GNU Artanis.
+For reaserchers, there is a paper published on ICFP Schemeworkshop2016 to explain the principle and the design of GNU Artanis.
 [[https://github.com/NalaGinrut/artanis/raw/gh-pages/research/scheme16/art2016.pdf][Multi-purpose web framework design based on websockets over HTTP Gateway]].
 
 (to be continued ...) 
@@ -1546,7 +1546,7 @@ art work -g
 When you enabled debug-mode, the Model and Controller modules written by you will be reloaded automatically
 on the fly.
 
-If */not/*, you have to Ctrl+C to quit GNU Artanis server and start it again. This saves your time.
+If */not/*, you have to press Ctrl+C to quit GNU Artanis server and start it again. This saves time.
 
 And you may add paths to monitor certain files (for an instance, JSON as config file to be reloaded on the fly)
 if you want to be notified when they're changed. Just put
