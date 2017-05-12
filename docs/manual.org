@@ -161,6 +161,7 @@ db.engine = <string>
 #+END_SRC
 + The engine of the database server.
 + */NOTE:/* for sqlite3, you have to set it to nothing, say src_conf[:exports code]{db.engine = }. If you remove this item at all, it'll be */InnoDB/* in default!
+
 ** Server config
 #+BEGIN_SRC conf
 server.info = <string>
@@ -376,6 +377,8 @@ You may type Ctrl+C to quit the server according to the hint from your screen.
 ** More complex URL remapping
 Try this code:
 #+begin_src scheme
+(use-modules (artanis artanis))
+(init-server)
 (get "/hello/:who"
   (lambda (rc)
     (format #f "<p>hello ~a</p> " (params rc "who"))))
@@ -394,7 +397,10 @@ The second argument #f (means FALSE) indicates that returning the result as stri
 ** Regex in URL remapping
 You can use regex in the URL rule.
 #+begin_src scheme
+(use-modules (artanis artanis))
+(init-server)
 (get "/.+\\.(png|gif|jpeg)" static-page-emitter)
+(run #:port 8080)
 #+end_src
 
 /static-page-emitter/ is an GNU Artanis API which emits a static file (images, data files) to the client.
@@ -407,6 +413,7 @@ Please ensure that your DB service was started before you try.
 You can use DB without running a server.
 #+begin_src scheme
 (use-module (artanis artanis))
+(init-server)
 (define conn (connect-db 'mysql #:db-username "your_db_username"
                          #:db-name "your_db_name" #:db-passwd "your_passwd"))
 (define mtable (map-table-from-DB conn))
@@ -870,9 +877,12 @@ The benefit of SXML is to take advantage of quasiquote in Scheme. If you no litt
 (tpl->response '(html (body (p (@ (id "content")) "hello world"))))
 #+end_src
 
-You would get a html string src_scheme[:exports code]{"<html><body><p id=\"content\">hello world</p></body></html>"}.
+You would get a html string:
+#+begin_src html
+<html><body><p id="content">hello world</p></body></html>
+#+end_src
 
-Let's see an example of quasiquote:
+Sometimes you may need quasiquote to reference a variable, for example:
 
 #+begin_src scheme
 (let ((content "hello world"))
