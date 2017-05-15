@@ -409,10 +409,10 @@ GNU Artanis supports mysql/postgresql/sqlite3, we use mysql as a example here.
 
 Please ensure that your DB service was started before you try.
 
-*/If you encountered any problems, please check your config of DB first./* 
-You can use DB without running a server.
+*/If you encounter any problems, please check your config of DB first./* 
+You can use a DB (such as mysql) with GUI tools such as "adminer" prior and independent of running an web-server, e.g. artanis-based.
 #+begin_src scheme
-(use-module (artanis artanis))
+(use-modules (artanis artanis))
 (init-server)
 (define conn (connect-db 'mysql #:db-username "your_db_username"
                          #:db-name "your_db_name" #:db-passwd "your_passwd"))
