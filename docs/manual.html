@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2017-05-13 Sat 04:00 -->
+<!-- 2017-05-15 Mon 14:17 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>GNU Artanis web-framework Manual</title>
@@ -234,163 +234,163 @@ for the JavaScript code in this tag.
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents">
 <ul>
-<li><a href="#orge4f1f9a">1. Introduction</a>
+<li><a href="#orgcbbea7d">1. Introduction</a>
 <ul>
-<li><a href="#orgce217ec">1.1. Conventions used in this manual</a></li>
-<li><a href="#orgcc6ede0">1.2. No warranty</a></li>
+<li><a href="#org86af330">1.1. Conventions used in this manual</a></li>
+<li><a href="#org89f179a">1.2. No warranty</a></li>
 </ul>
 </li>
-<li><a href="#org3fa17d4">2. License</a></li>
-<li><a href="#org6aa6c86">3. Installation</a>
+<li><a href="#orgf72052a">2. License</a></li>
+<li><a href="#org6fc293d">3. Installation</a>
 <ul>
-<li><a href="#orgdca001e">3.1. For users</a></li>
-<li><a href="#orgac5bd1e">3.2. For contributors</a></li>
+<li><a href="#org75b7f72">3.1. For users</a></li>
+<li><a href="#org9bcb21b">3.2. For contributors</a></li>
 </ul>
 </li>
-<li><a href="#org6c65430">4. Configuration</a>
+<li><a href="#orgd009a63">4. Configuration</a>
 <ul>
-<li><a href="#org84fe0bc">4.1. Database config</a></li>
-<li><a href="#org4c884bc">4.2. Server config</a></li>
-<li><a href="#org695ac03">4.3. Host config</a></li>
-<li><a href="#orgc35ff2a">4.4. Session config</a></li>
-<li><a href="#orgf325400">4.5. Upload config</a></li>
-<li><a href="#orgfd82d03">4.6. Cache config</a></li>
-<li><a href="#org21f1e1c">4.7. Debug config</a></li>
+<li><a href="#org6805c3d">4.1. Database config</a></li>
+<li><a href="#org29ecc6a">4.2. Server config</a></li>
+<li><a href="#orgb4b80f6">4.3. Host config</a></li>
+<li><a href="#org6fe6e54">4.4. Session config</a></li>
+<li><a href="#orgf96fc5c">4.5. Upload config</a></li>
+<li><a href="#org26e4895">4.6. Cache config</a></li>
+<li><a href="#orgf19be01">4.7. Debug config</a></li>
 </ul>
 </li>
-<li><a href="#orgc0bbf4a">5. Hello World</a>
+<li><a href="#org8bf1016">5. Hello World</a>
 <ul>
-<li><a href="#org4dcac42">5.1. Use Guile REPL and verify GNU Artanis installation</a></li>
-<li><a href="#org7a1b10d">5.2. Simple HTTP server</a></li>
-<li><a href="#org1b8e902">5.3. Try simple URL remapping</a></li>
-<li><a href="#org9a84c02">5.4. More complex URL remapping</a></li>
-<li><a href="#org3554348">5.5. Regex in URL remapping</a></li>
-<li><a href="#org7e1f4ef">5.6. Database operating</a></li>
+<li><a href="#org3fdd725">5.1. Use Guile REPL and verify GNU Artanis installation</a></li>
+<li><a href="#org9d50a50">5.2. Simple HTTP server</a></li>
+<li><a href="#org88d9b7a">5.3. Try simple URL remapping</a></li>
+<li><a href="#org1fea2bb">5.4. More complex URL remapping</a></li>
+<li><a href="#orgba83f1c">5.5. Regex in URL remapping</a></li>
+<li><a href="#org9b0a2ab">5.6. Database operating</a></li>
 </ul>
 </li>
-<li><a href="#org16ad61b">6. Basic in Scheme</a>
+<li><a href="#org834f957">6. Basics of Scheme</a>
 <ul>
-<li><a href="#org5190e31">6.1. For newbies</a></li>
-<li><a href="#org679c194">6.2. For Pythonistas</a></li>
-<li><a href="#orgf18c196">6.3. For Rubyist</a></li>
-<li><a href="#org09d5353">6.4. For deep learners</a></li>
+<li><a href="#org812c1fd">6.1. For newbies</a></li>
+<li><a href="#org50a69f1">6.2. For Pythonistas</a></li>
+<li><a href="#org7be1573">6.3. For Rubyist</a></li>
+<li><a href="#org2300fd8">6.4. For deep learners</a></li>
 </ul>
 </li>
-<li><a href="#orgc5446d0">7. Basic in GNU Artanis</a>
+<li><a href="#org736bd27">7. Basic in GNU Artanis</a>
 <ul>
-<li><a href="#orgd750358">7.1. How to run a site with GNU Artanis</a></li>
-<li><a href="#orgba91b2b">7.2. Initialization</a></li>
-<li><a href="#org6293bfe">7.3. Registering handler of HTTP methods</a></li>
-<li><a href="#org64e5be7">7.4. Emit Response</a></li>
-<li><a href="#orgfd92dfc">7.5. Running server</a></li>
-<li><a href="#org5985cde">7.6. Working with Nginx</a></li>
+<li><a href="#org80e65e3">7.1. How to run a site with GNU Artanis</a></li>
+<li><a href="#org7f86990">7.2. Initialization</a></li>
+<li><a href="#org59c4cd3">7.3. Registering handler of HTTP methods</a></li>
+<li><a href="#orgb18132c">7.4. Emit Response</a></li>
+<li><a href="#orga9dbf6f">7.5. Running server</a></li>
+<li><a href="#org87298f5">7.6. Working with Nginx</a></li>
 </ul>
 </li>
-<li><a href="#orgb4970eb">8. The Art command line</a>
+<li><a href="#orgcef4bfb">8. The Art command line</a>
 <ul>
-<li><a href="#org6a22c34">8.1. art create</a></li>
-<li><a href="#org2c554c7">8.2. art draw</a></li>
-<li><a href="#org91d3354">8.3. art migrate</a></li>
-<li><a href="#org7f61e02">8.4. art work</a></li>
+<li><a href="#orgecc39f5">8.1. art create</a></li>
+<li><a href="#org5622243">8.2. art draw</a></li>
+<li><a href="#orgcc09935">8.3. art migrate</a></li>
+<li><a href="#org12dec72">8.4. art work</a></li>
 </ul>
 </li>
-<li><a href="#org338842b">9. MVC</a>
+<li><a href="#orgc41a453">9. MVC</a>
 <ul>
-<li><a href="#org4637705">9.1. Controllers/Views</a></li>
-<li><a href="#org584cc1a">9.2. Models</a></li>
+<li><a href="#org305b424">9.1. Controllers/Views</a></li>
+<li><a href="#org342915b">9.2. Models</a></li>
 </ul>
 </li>
-<li><a href="#orgaeeacf8">10. URL remapping</a>
+<li><a href="#org4b3177b">10. URL remapping</a>
 <ul>
-<li><a href="#orgabf59c4">10.1. Introduction to URL remapping</a></li>
-<li><a href="#orga0f3373">10.2. URL handling</a></li>
-<li><a href="#orgea5f9b0">10.3. Get parameters from URL</a></li>
-<li><a href="#org637710e">10.4. Redirect link</a></li>
+<li><a href="#org29a194b">10.1. Introduction to URL remapping</a></li>
+<li><a href="#org4dea390">10.2. URL handling</a></li>
+<li><a href="#org36dc6e7">10.3. Get parameters from URL</a></li>
+<li><a href="#org116f532">10.4. Redirect link</a></li>
 </ul>
 </li>
-<li><a href="#orgcf3ac76">11. Layouts and Rendering in GNU Artanis</a>
+<li><a href="#orgac4ab15">11. Layouts and Rendering in GNU Artanis</a>
 <ul>
-<li><a href="#orgf66008b">11.1. Templating</a></li>
-<li><a href="#org141cac7">11.2. Templating for Pythoners</a></li>
-<li><a href="#org8254c0e">11.3. Templating for Rubyists</a></li>
-<li><a href="#org0fd31d2">11.4. Templating APIs</a></li>
-<li><a href="#org3eceb17">11.5. Embedded Templating</a></li>
-<li><a href="#org68a8ece">11.6. SXML Templating</a></li>
+<li><a href="#org2196776">11.1. Templating</a></li>
+<li><a href="#org67ec2b9">11.2. Templating for Pythoners</a></li>
+<li><a href="#orgc7b5d50">11.3. Templating for Rubyists</a></li>
+<li><a href="#orgd0c4dbb">11.4. Templating APIs</a></li>
+<li><a href="#org44ae5c5">11.5. Embedded Templating</a></li>
+<li><a href="#orge634e93">11.6. SXML Templating</a></li>
 </ul>
 </li>
-<li><a href="#org46996a7">12. Database</a>
+<li><a href="#orga5c0de4">12. Database</a>
 <ul>
-<li><a href="#org225936e">12.1. Migration</a></li>
-<li><a href="#orgb676360">12.2. ORM problem</a></li>
-<li><a href="#org36abc65">12.3. SSQL (experimental)</a></li>
-<li><a href="#org513329f">12.4. FPRM (experimental)</a>
+<li><a href="#orgf8c9482">12.1. Migration</a></li>
+<li><a href="#org44659be">12.2. ORM problem</a></li>
+<li><a href="#org328b970">12.3. SSQL (experimental)</a></li>
+<li><a href="#org896b1f7">12.4. FPRM (experimental)</a>
 <ul>
-<li><a href="#orgd32e445">12.4.1. Connect to DB server</a></li>
-<li><a href="#org709d8ba">12.4.2. Map DB table</a></li>
-<li><a href="#org493b1b8">12.4.3. Create table</a></li>
-<li><a href="#org7c5e1ef">12.4.4. Get columns from table</a></li>
-<li><a href="#orgba1f0db">12.4.5. Set values to table</a></li>
-<li><a href="#org556bad3">12.4.6. Drop a table</a></li>
-<li><a href="#org6b69604">12.4.7. Check existence of table</a></li>
-<li><a href="#orgc5f62ac">12.4.8. Get schema of a table</a></li>
+<li><a href="#org9453ffb">12.4.1. Connect to DB server</a></li>
+<li><a href="#orgaafc219">12.4.2. Map DB table</a></li>
+<li><a href="#org4940638">12.4.3. Create table</a></li>
+<li><a href="#orgbf4c984">12.4.4. Get columns from table</a></li>
+<li><a href="#org75b67d7">12.4.5. Set values to table</a></li>
+<li><a href="#org3878bbc">12.4.6. Drop a table</a></li>
+<li><a href="#orgb63e497">12.4.7. Check existence of table</a></li>
+<li><a href="#org54258b3">12.4.8. Get schema of a table</a></li>
 </ul>
 </li>
-<li><a href="#org96105d6">12.5. SQL Mapping (experimental)</a></li>
+<li><a href="#org42fde31">12.5. SQL Mapping (experimental)</a></li>
 </ul>
 </li>
-<li><a href="#org3eff518">13. MIME</a>
+<li><a href="#org2ac3ae5">13. MIME</a>
 <ul>
-<li><a href="#orgde56b40">13.1. JSON</a></li>
-<li><a href="#orgc1d5c68">13.2. CSV</a></li>
-<li><a href="#orgf3144db">13.3. XML</a></li>
-<li><a href="#org043e6a2">13.4. SXML</a></li>
+<li><a href="#org0926083">13.1. JSON</a></li>
+<li><a href="#org3840f10">13.2. CSV</a></li>
+<li><a href="#org0cdb1e4">13.3. XML</a></li>
+<li><a href="#org4b3cd55">13.4. SXML</a></li>
 </ul>
 </li>
-<li><a href="#org16c1f26">14. Upload files</a>
+<li><a href="#orga2914be">14. Upload files</a>
 <ul>
-<li><a href="#org602697d">14.1. Receive upload from client</a></li>
-<li><a href="#org60245dc">14.2. Send upload to Server</a></li>
+<li><a href="#org95abe32">14.1. Receive upload from client</a></li>
+<li><a href="#orgf46696d">14.2. Send upload to Server</a></li>
 </ul>
 </li>
-<li><a href="#orgf28d89f">15. Sessions</a></li>
-<li><a href="#orgfe25cf6">16. Cookies</a></li>
-<li><a href="#orgc4adfc9">17. Authentication</a>
+<li><a href="#org320bc0d">15. Sessions</a></li>
+<li><a href="#orgbd85548">16. Cookies</a></li>
+<li><a href="#orgdf9150f">17. Authentication</a>
 <ul>
-<li><a href="#orgecf0d85">17.1. Init Authentication</a></li>
-<li><a href="#org225e85b">17.2. Basic Authentication</a></li>
-<li><a href="#orgd66ed04">17.3. Common Authentication</a></li>
+<li><a href="#orgebd961f">17.1. Init Authentication</a></li>
+<li><a href="#orgceb680c">17.2. Basic Authentication</a></li>
+<li><a href="#org0125d6c">17.3. Common Authentication</a></li>
 </ul>
 </li>
-<li><a href="#org6ceb0d9">18. Cache</a>
+<li><a href="#org9162ff6">18. Cache</a>
 <ul>
-<li><a href="#orgde249ff">18.1. On web caching</a></li>
-<li><a href="#org86286a7">18.2. Cache APIs</a></li>
+<li><a href="#org7fd420f">18.1. On web caching</a></li>
+<li><a href="#org9a9fc4e">18.2. Cache APIs</a></li>
 </ul>
 </li>
-<li><a href="#orgfa32203">19. Ragnarok server core</a>
+<li><a href="#org154a657">19. Ragnarok server core</a>
 <ul>
-<li><a href="#org4ae408b">19.1. Introduction</a></li>
-<li><a href="#orgdea8460">19.2. Principle</a></li>
-<li><a href="#orgd3c35f7">19.3. Features</a></li>
-<li><a href="#orgb5afc49">19.4. APIs</a></li>
+<li><a href="#org0dcb8ff">19.1. Introduction</a></li>
+<li><a href="#org2d47564">19.2. Principle</a></li>
+<li><a href="#org4a81e26">19.3. Features</a></li>
+<li><a href="#org13d872d">19.4. APIs</a></li>
 </ul>
 </li>
-<li><a href="#org6fd8080">20. Utils</a>
+<li><a href="#org700287b">20. Utils</a>
 <ul>
-<li><a href="#orgd3667b7">20.1. String Template</a></li>
-<li><a href="#org8e7164b">20.2. Random Number Generator</a></li>
-<li><a href="#orga0aaa1d">20.3. Cryptographic hash functions</a></li>
-<li><a href="#orgebef420">20.4. Stack &amp; Queue</a></li>
-<li><a href="#org74eb102">20.5. Useful string operation</a></li>
+<li><a href="#orgcd07945">20.1. String Template</a></li>
+<li><a href="#org5e810d8">20.2. Random Number Generator</a></li>
+<li><a href="#orge61c4c2">20.3. Cryptographic hash functions</a></li>
+<li><a href="#org129bc21">20.4. Stack &amp; Queue</a></li>
+<li><a href="#orgd8027b3">20.5. Useful string operation</a></li>
 </ul>
 </li>
-<li><a href="#org7b4ed3b">21. Debug mode</a></li>
-<li><a href="#org8f22507">22. Appendix A GNU Free Documentation License</a></li>
+<li><a href="#orgf67d9f7">21. Debug mode</a></li>
+<li><a href="#org725c208">22. Appendix A GNU Free Documentation License</a></li>
 </ul>
 </div>
 </div>
-<div id="outline-container-orge4f1f9a" class="outline-2">
-<h2 id="orge4f1f9a"><span class="section-number-2">1</span> Introduction</h2>
+<div id="outline-container-orgcbbea7d" class="outline-2">
+<h2 id="orgcbbea7d"><span class="section-number-2">1</span> Introduction</h2>
 <div class="outline-text-2" id="text-1">
 <div class="org-src-container">
 <pre class="src src-nil">Copyright (C)  2017  Mu Lei known as NalaGinrut.
@@ -424,8 +424,8 @@ Guile is also an interpreter and compiler for other dynamic programming language
 Scheme follows a minimalist design philosophy specifying a small standard core with powerful tools for language extension.
 </p>
 </div>
-<div id="outline-container-orgce217ec" class="outline-3">
-<h3 id="orgce217ec"><span class="section-number-3">1.1</span> Conventions used in this manual</h3>
+<div id="outline-container-org86af330" class="outline-3">
+<h3 id="org86af330"><span class="section-number-3">1.1</span> Conventions used in this manual</h3>
 <div class="outline-text-3" id="text-1-1">
 <p>
 In this manual the following syntax is used to demonstrate the use of the API:
@@ -435,12 +435,12 @@ In this manual the following syntax is used to demonstrate the use of the API:
 </pre>
 </div>
 <p>
-If you are new to Scheme, it is recommended that you read the <a href="#org16ad61b">Basic in Scheme</a> chapter first.
+If you are new to Scheme, it is recommended that you read the [BROKEN LINK: nil] chapter first.
 </p>
 </div>
 </div>
-<div id="outline-container-orgcc6ede0" class="outline-3">
-<h3 id="orgcc6ede0"><span class="section-number-3">1.2</span> No warranty</h3>
+<div id="outline-container-org89f179a" class="outline-3">
+<h3 id="org89f179a"><span class="section-number-3">1.2</span> No warranty</h3>
 <div class="outline-text-3" id="text-1-2">
 <p>
 We distribute software in the hope that it will be useful, but without any warranty. No author or distributor of this software accepts responsibility to anyone for the consequences of using it or for whether it serves any particular purpose or works at all, unless they say so in writing. This is exactly the same warranty that proprietary software companies offer: none.
@@ -448,8 +448,8 @@ We distribute software in the hope that it will be useful, but without any warra
 </div>
 </div>
 </div>
-<div id="outline-container-org3fa17d4" class="outline-2">
-<h2 id="org3fa17d4"><span class="section-number-2">2</span> License</h2>
+<div id="outline-container-orgf72052a" class="outline-2">
+<h2 id="orgf72052a"><span class="section-number-2">2</span> License</h2>
 <div class="outline-text-2" id="text-2">
 <p>
 GNU Artanis is <a href="http://www.gnu.org/philosophy/free-sw.html">Free Software</a>. GNU Artanis is under the terms of the GNU Public License and GNU Lesser General Public License version 3 or later.
@@ -465,11 +465,11 @@ This manual is published under the terms of the <a href="http://www.gnu.org/copy
 </p>
 </div>
 </div>
-<div id="outline-container-org6aa6c86" class="outline-2">
-<h2 id="org6aa6c86"><span class="section-number-2">3</span> Installation</h2>
+<div id="outline-container-org6fc293d" class="outline-2">
+<h2 id="org6fc293d"><span class="section-number-2">3</span> Installation</h2>
 <div class="outline-text-2" id="text-3">
-</div><div id="outline-container-orgdca001e" class="outline-3">
-<h3 id="orgdca001e"><span class="section-number-3">3.1</span> For users</h3>
+</div><div id="outline-container-org75b7f72" class="outline-3">
+<h3 id="org75b7f72"><span class="section-number-3">3.1</span> For users</h3>
 <div class="outline-text-3" id="text-3-1">
 <p>
 <b>Install GNU Guile-2.2.2 or higher version:</b>
@@ -535,8 +535,8 @@ sudo make install
 </div>
 </div>
 
-<div id="outline-container-orgac5bd1e" class="outline-3">
-<h3 id="orgac5bd1e"><span class="section-number-3">3.2</span> For contributors</h3>
+<div id="outline-container-org9bcb21b" class="outline-3">
+<h3 id="org9bcb21b"><span class="section-number-3">3.2</span> For contributors</h3>
 <div class="outline-text-3" id="text-3-2">
 <p>
 First of all, thank you for contributing! You may clone the main git repository, or the mirror on GitLab: 
@@ -552,8 +552,8 @@ git clone https://gitlab.com/NalaGinrut/artanis.git
 </div>
 </div>
 </div>
-<div id="outline-container-org6c65430" class="outline-2">
-<h2 id="org6c65430"><span class="section-number-2">4</span> Configuration</h2>
+<div id="outline-container-orgd009a63" class="outline-2">
+<h2 id="orgd009a63"><span class="section-number-2">4</span> Configuration</h2>
 <div class="outline-text-2" id="text-4">
 <p>
 A configuration file is required when Artanis is run for the first time.
@@ -566,15 +566,16 @@ The configure file must be named <code class="src src-conf">/etc/artanis/artanis
 <li>If you're using application folder, the configure file <code class="src src-conf">conf/artanis.conf</code> will be generated automatically for you.</li>
 </ul>
 </div>
-<div id="outline-container-org84fe0bc" class="outline-3">
-<h3 id="org84fe0bc"><span class="section-number-3">4.1</span> Database config</h3>
+<div id="outline-container-org6805c3d" class="outline-3">
+<h3 id="org6805c3d"><span class="section-number-3">4.1</span> Database config</h3>
 <div class="outline-text-3" id="text-4-1">
 <div class="org-src-container">
-<pre class="src src-conf"><span style="color: #00ff00;">db.enable</span> = enable | disable
+<pre class="src src-conf"><span style="color: #00ff00;">db.enable</span> = &lt;boolean&gt;
 </pre>
 </div>
 <ul class="org-ul">
 <li>Whether to use database, if disabled, the database won't be initialized in the beginning, which saves memory and boot time.</li>
+<li>Some users may want to use GNU Artanis without configuring any databases, so please set it to false to avoid error.</li>
 </ul>
 
 <div class="org-src-container">
@@ -583,6 +584,7 @@ The configure file must be named <code class="src src-conf">/etc/artanis/artanis
 </div>
 <ul class="org-ul">
 <li>What database server should be used, depends on the database installed on your machine.</li>
+<li>NOTE: If you use MariaDB then you should set it to mysql as well.</li>
 </ul>
 
 <div class="org-src-container">
@@ -645,8 +647,8 @@ then you should specify the unix socket file which has been configured by the da
 </div>
 </div>
 
-<div id="outline-container-org4c884bc" class="outline-3">
-<h3 id="org4c884bc"><span class="section-number-3">4.2</span> Server config</h3>
+<div id="outline-container-org29ecc6a" class="outline-3">
+<h3 id="org29ecc6a"><span class="section-number-3">4.2</span> Server config</h3>
 <div class="outline-text-3" id="text-4-2">
 <div class="org-src-container">
 <pre class="src src-conf"><span style="color: #00ff00;">server.info</span> = &lt;string&gt;
@@ -713,7 +715,7 @@ then you should specify the unix socket file which has been configured by the da
 </pre>
 </div>
 <ul class="org-ul">
-<li>The server core which is used for holding high concurrent connections. Artanis has a strong server core named <a href="#orgfa32203">Ragnarok,</a>
+<li>The server core which is used for holding high concurrent connections. Artanis has a strong server core named <a href="#org154a657">Ragnarok,</a>
 which is based on <a href="https://en.wikipedia.org/wiki/Delimited_continuation">delimited continuations</a> to provide asynchronous non-blocking high concurrent serving.</li>
 <li>You may choose guile inner server which is weak, but sometimes you may under an operating system lacking of key features
 to run Raganrok, for example, maybe there's no epoll.</li>
@@ -735,11 +737,11 @@ to run Raganrok, for example, maybe there's no epoll.</li>
 </pre>
 </div>
 <ul class="org-ul">
-<li>The buffer size of the connecting socket. In <a href="#orgfa32203">Ragnarok</a>, the request handling will be scheduled when the
+<li>The buffer size of the connecting socket. In <a href="#org154a657">Ragnarok</a>, the request handling will be scheduled when the
 socket buffer is full. This item effects the performance of socket I/O largely. Usually, if you're handling
 massive small requests, it's better to set the buffer size small; but if you're providing kind of downloading
 or uploading service, it's better to set it larger. But the large buffer size will increase the latency of
-unserved requests. Please read <a href="#orgfa32203">Ragnarok</a> chapter to learn the design principle, which will be helpful for you
+unserved requests. Please read <a href="#org154a657">Ragnarok</a> chapter to learn the design principle, which will be helpful for you
 to decide how to tweak.</li>
 <li>The default value is 12288, say, 12KB.</li>
 <li><i><b>Note:</b></i> Added since Artanis-0.2.</li>
@@ -751,7 +753,7 @@ to decide how to tweak.</li>
 </pre>
 </div>
 <ul class="org-ul">
-<li>This is the most significant feature for <a href="#orgfa32203">Ragnarok</a>. Please remember that <b>there's no any threads in GNU Artanis</b>.
+<li>This is the most significant feature for <a href="#org154a657">Ragnarok</a>. Please remember that <b>there's no any threads in GNU Artanis</b>.
 All the tasks are based on <a href="https://en.wikipedia.org/wiki/Delimited_continuation">delimited continuations</a>, this kind of design is the so-called <a href="https://en.wikipedia.org/wiki/Green_threads">Green Threads.</a> 
 Then how to take advantage of multi-cores? Fortunately, GNU/Linux has introduced a feature named <a href="https://lwn.net/Articles/542629/">SO_REUSEPORT</a> since 3.9. 
 This feature let us start multiple Artanis instances listenning on the same socket port. When requests come, the
@@ -763,8 +765,8 @@ This makes GNU Artanis provide performance and stateless perfectly.</li>
 </div>
 </div>
 
-<div id="outline-container-org695ac03" class="outline-3">
-<h3 id="org695ac03"><span class="section-number-3">4.3</span> Host config</h3>
+<div id="outline-container-orgb4b80f6" class="outline-3">
+<h3 id="orgb4b80f6"><span class="section-number-3">4.3</span> Host config</h3>
 <div class="outline-text-3" id="text-4-3">
 <div class="org-src-container">
 <pre class="src src-conf"><span style="color: #00ff00;">host.name</span> = enable | disable | &lt;boolean&gt;
@@ -800,8 +802,8 @@ This makes GNU Artanis provide performance and stateless perfectly.</li>
 </ul>
 </div>
 </div>
-<div id="outline-container-orgc35ff2a" class="outline-3">
-<h3 id="orgc35ff2a"><span class="section-number-3">4.4</span> Session config</h3>
+<div id="outline-container-org6fe6e54" class="outline-3">
+<h3 id="org6fe6e54"><span class="section-number-3">4.4</span> Session config</h3>
 <div class="outline-text-3" id="text-4-4">
 <div class="org-src-container">
 <pre class="src src-conf"><span style="color: #00ff00;">session.path</span> = &lt;PATH&gt;
@@ -824,8 +826,8 @@ This makes GNU Artanis provide performance and stateless perfectly.</li>
 </div>
 </div>
 
-<div id="outline-container-orgf325400" class="outline-3">
-<h3 id="orgf325400"><span class="section-number-3">4.5</span> Upload config</h3>
+<div id="outline-container-orgf96fc5c" class="outline-3">
+<h3 id="orgf96fc5c"><span class="section-number-3">4.5</span> Upload config</h3>
 <div class="outline-text-3" id="text-4-5">
 <div class="org-src-container">
 <pre class="src src-conf"><span style="color: #00ff00;">upload.types</span> = &lt;item-list&gt;
@@ -855,8 +857,8 @@ This makes GNU Artanis provide performance and stateless perfectly.</li>
 </div>
 </div>
 
-<div id="outline-container-orgfd82d03" class="outline-3">
-<h3 id="orgfd82d03"><span class="section-number-3">4.6</span> Cache config</h3>
+<div id="outline-container-org26e4895" class="outline-3">
+<h3 id="org26e4895"><span class="section-number-3">4.6</span> Cache config</h3>
 <div class="outline-text-3" id="text-4-6">
 <div class="org-src-container">
 <pre class="src src-conf"><span style="color: #00ff00;">cache.maxage</span> = &lt;integer&gt;
@@ -864,12 +866,12 @@ This makes GNU Artanis provide performance and stateless perfectly.</li>
 </div>
 <ul class="org-ul">
 <li>The maximum age of cached page in seconds.</li>
-<li>This is the global maxage of any cache. If you want to specify maxage for certain page, please read <a href="#org6ceb0d9">Cache</a>.</li>
+<li>This is the global maxage of any cache. If you want to specify maxage for certain page, please read <a href="#org9162ff6">Cache</a>.</li>
 </ul>
 </div>
 </div>
-<div id="outline-container-org21f1e1c" class="outline-3">
-<h3 id="org21f1e1c"><span class="section-number-3">4.7</span> Debug config</h3>
+<div id="outline-container-orgf19be01" class="outline-3">
+<h3 id="orgf19be01"><span class="section-number-3">4.7</span> Debug config</h3>
 <div class="outline-text-3" id="text-4-7">
 <div class="org-src-container">
 <pre class="src src-conf"><span style="color: #00ff00;">debug.monitor</span> = &lt;PATHs&gt;
@@ -882,11 +884,11 @@ This makes GNU Artanis provide performance and stateless perfectly.</li>
 </div>
 </div>
 </div>
-<div id="outline-container-orgc0bbf4a" class="outline-2">
-<h2 id="orgc0bbf4a"><span class="section-number-2">5</span> Hello World</h2>
+<div id="outline-container-org8bf1016" class="outline-2">
+<h2 id="org8bf1016"><span class="section-number-2">5</span> Hello World</h2>
 <div class="outline-text-2" id="text-5">
-</div><div id="outline-container-org4dcac42" class="outline-3">
-<h3 id="org4dcac42"><span class="section-number-3">5.1</span> Use Guile REPL and verify GNU Artanis installation</h3>
+</div><div id="outline-container-org3fdd725" class="outline-3">
+<h3 id="org3fdd725"><span class="section-number-3">5.1</span> Use Guile REPL and verify GNU Artanis installation</h3>
 <div class="outline-text-3" id="text-5-1">
 <p>
 If you are already familiar with Guile, you may skip this section.
@@ -931,8 +933,8 @@ The expected output should be similar to this:
 </div>
 </div>
 </div>
-<div id="outline-container-org7a1b10d" class="outline-3">
-<h3 id="org7a1b10d"><span class="section-number-3">5.2</span> Simple HTTP server</h3>
+<div id="outline-container-org9d50a50" class="outline-3">
+<h3 id="org9d50a50"><span class="section-number-3">5.2</span> Simple HTTP server</h3>
 <div class="outline-text-3" id="text-5-2">
 <p>
 Run this code in your console:
@@ -940,7 +942,7 @@ Run this code in your console:
 <div class="org-src-container">
 <pre class="src src-bash">guile -c <span style="color: #ff0000;">"(use-modules (artanis artanis))(init-server)(run)"</span>
 <span style="color: #66cdaa;">## </span><span style="color: #66cdaa;">You'll see this screen:</span>
-Anytime you want to Quit just try Ctrl+C, thanks!
+Anytime you want to quit just try Ctrl+C, thanks!
 http://127.0.0.1:3000
 </pre>
 </div>
@@ -951,8 +953,8 @@ It's simple to fetch static file with the path in URL: <a href="http://localhost
 </p>
 </div>
 </div>
-<div id="outline-container-org1b8e902" class="outline-3">
-<h3 id="org1b8e902"><span class="section-number-3">5.3</span> Try simple URL remapping</h3>
+<div id="outline-container-org88d9b7a" class="outline-3">
+<h3 id="org88d9b7a"><span class="section-number-3">5.3</span> Try simple URL remapping</h3>
 <div class="outline-text-3" id="text-5-3">
 <p>
 Type these code in Guile REPL:
@@ -965,15 +967,15 @@ Type these code in Guile REPL:
 </div>
 
 <p>
-Now you can visit <a href="http://localhost:8080/hello">http://localhost:8080/hello</a> with your browser, and see the result.
+Now you can visit <a href="http://localhost:8080/hello">http://localhost:8080/hello</a> with your browser, and (hopefully) see the result.
 </p>
 
 <p>
-<i>If you encounter "[EXCEPTION] /favicon.ico is abnormal request", please just ignore it.</i>
+<i>If you encounter "[EXCEPTION] /favicon.ico is abnormal request", please just ignore that warning.</i>
 </p>
 
 <p>
-Let me explain these code.
+Let me explain the code:
 </p>
 
 <ul class="org-ul">
@@ -982,20 +984,20 @@ Let me explain these code.
 
 
 <ul class="org-ul">
-<li><i>line 2:</i> The first argument <i>get</i> is GNU Artanis API corresponding to GET method in HTTP protocol.
-The second argument "/hello" is the URL rule to register.
-The Third argument is the handler which will be triggered if the registered URL rule is hit.</li>
+<li><i>line 2:</i> The first argument <i>get</i> is GNU Artanis' API correspondence to the GET method of the HTTP protocol.
+The second argument "/hello" is the URL rule to register showing in the address line of e.g. firefox.
+The third argument is the handler which will be triggered if the registered URL rule is hit.</li>
 
-<li><i>line 3:</i> Run GNU Artanis server, and listening socket port 8080.</li>
+<li><i>line 3:</i> Run the GNU Artanis web server, and listen on socket port 8080.</li>
 </ul>
 
 <p>
-You may type Ctrl+C to quit the server according to the hint from your screen.
+You may type Ctrl+C to quit and stop the server, see also the message printed on the screen accordingly.
 </p>
 </div>
 </div>
-<div id="outline-container-org9a84c02" class="outline-3">
-<h3 id="org9a84c02"><span class="section-number-3">5.4</span> More complex URL remapping</h3>
+<div id="outline-container-org1fea2bb" class="outline-3">
+<h3 id="org1fea2bb"><span class="section-number-3">5.4</span> More complex URL remapping</h3>
 <div class="outline-text-3" id="text-5-4">
 <p>
 Try this code:
@@ -1015,22 +1017,22 @@ Now you can try <a href="http://localhost:8080/hello/artanis">http://localhost:8
 </p>
 
 <p>
-There're two differences:
+There are two differences:
 </p>
 <ul class="org-ul">
 <li>1. The special rule, "<code>/hello/:who</code>", <i>:who</i> means you can use <i>params</i> to reference the value of this section of URL with the key "who". <code class="src src-scheme">(params rc "who")</code> is the way for that.</li>
 
-<li>2. You may notice that the handler defined as an anonymous function with <i>lambda</i> has one argument <i>rc</i>. It means <i>route context</i> which preserve all the related context information. Many GNU Artanis APIs need it, say, <i>params</i>.</li>
+<li>2. You may have noticed that the handler is being defined as an anonymous function with <i>lambda</i> has one argument <i>rc</i>. It means <i>route context</i> which preserves all the related context information. Many GNU Artanis APIs need it, e.g.  <i>params</i>.</li>
 </ul>
 
 <p>
-And <i>format</i> is a Scheme lib function. It is similar to <i>sprintf</i> in C language, which outputs with a formatted pattern.
+And <i>format</i> is a Scheme lib function. It is similar to <i>sprintf</i> in the C language, which outputs text with a formatted pattern.
 The second argument #f (means FALSE) indicates that returning the result as string type rather than printing out.
 </p>
 </div>
 </div>
-<div id="outline-container-org3554348" class="outline-3">
-<h3 id="org3554348"><span class="section-number-3">5.5</span> Regex in URL remapping</h3>
+<div id="outline-container-orgba83f1c" class="outline-3">
+<h3 id="orgba83f1c"><span class="section-number-3">5.5</span> Regex in URL remapping</h3>
 <div class="outline-text-3" id="text-5-5">
 <p>
 You can use regex in the URL rule.
@@ -1048,8 +1050,8 @@ You can use regex in the URL rule.
 </p>
 </div>
 </div>
-<div id="outline-container-org7e1f4ef" class="outline-3">
-<h3 id="org7e1f4ef"><span class="section-number-3">5.6</span> Database operating</h3>
+<div id="outline-container-org9b0a2ab" class="outline-3">
+<h3 id="org9b0a2ab"><span class="section-number-3">5.6</span> Database operating</h3>
 <div class="outline-text-3" id="text-5-6">
 <p>
 GNU Artanis supports mysql/postgresql/sqlite3, we use mysql as a example here.
@@ -1060,11 +1062,14 @@ Please ensure that your DB service was started before you try.
 </p>
 
 <p>
-<b><i>If you encountered any problems, please check your config of DB first.</i></b> 
-You can use DB without running a server.
+<b><i>If you encounter any problems, please check your config of DB first.</i></b> 
+</p>
+
+<p>
+You can use a DB (such as mysql) with GUI tools such as "adminer" prior and independent of running an web-server, e.g. artanis-based.
 </p>
 <div class="org-src-container">
-<pre class="src src-scheme">(use-module (artanis artanis))
+<pre class="src src-scheme">(use-modules (artanis artanis))
 (init-server)
 (<span style="color: #4169e1;">define</span> <span style="color: #ffd700;">conn</span> (connect-db 'mysql <span style="color: #40e0d0;">#:db-username</span> <span style="color: #ff0000;">"your_db_username"</span>
                          <span style="color: #40e0d0;">#:db-name</span> <span style="color: #ff0000;">"your_db_name"</span> <span style="color: #40e0d0;">#:db-passwd</span> <span style="color: #ff0000;">"your_passwd"</span>))
@@ -1093,7 +1098,7 @@ You can use DB without running a server.
 
 
 <ul class="org-ul">
-<li>The second argument of <i>mtable</i> is the name of the table as you guess. Please note that it's case sensitive. But the columns name could be case insensitive.</li>
+<li>The second argument of <i>mtable</i> is the name of the table as you guess. Please note that it is case sensitive. But the column name could be case insensitive.</li>
 </ul>
 
 
@@ -1121,11 +1126,11 @@ Of course, you can use DB in your web application.
 </div>
 
 <p>
-Now, try <a href="http://localhost:8080/dbtest">http://localhost:8080/dbtest</a> in your browser.
+Now, try loading <a href="http://localhost:8080/dbtest">http://localhost:8080/dbtest</a> in your browser.
 </p>
 
 <p>
-Here're some explains:
+Here are some explanations:
 </p>
 <ul class="org-ul">
 <li>The keyword-value pair <code class="src src-scheme">#:conn #t</code> means applying for a DB connection from connection-pool.
@@ -1141,8 +1146,8 @@ convert the query result to string, for this naive example case.</li>
 </div>
 </div>
 </div>
-<div id="outline-container-org16ad61b" class="outline-2">
-<h2 id="org16ad61b"><span class="section-number-2">6</span> Basic in Scheme</h2>
+<div id="outline-container-org834f957" class="outline-2">
+<h2 id="org834f957"><span class="section-number-2">6</span> Basics of Scheme</h2>
 <div class="outline-text-2" id="text-6">
 <p>
 This chapter introduces some useful documents to help you understand Scheme language well.
@@ -1150,7 +1155,7 @@ Feel free to come back here if you have any problem with Scheme syntax.
 </p>
 
 <p>
-If any possible, read them again and again.
+If expedient, read the section repeatedly.
 </p>
 
 <p>
@@ -1163,15 +1168,15 @@ native code in the future.
 </p>
 </div>
 
-<div id="outline-container-org5190e31" class="outline-3">
-<h3 id="org5190e31"><span class="section-number-3">6.1</span> For newbies</h3>
+<div id="outline-container-org812c1fd" class="outline-3">
+<h3 id="org812c1fd"><span class="section-number-3">6.1</span> For newbies</h3>
 <div class="outline-text-3" id="text-6-1">
 <p>
-If you're not familiar with Guile Scheme, here's a simplest tutorial for you.
+If you're not familiar with Scheme and Guile in particular, here is a simple tutorial for you.
 </p>
 
 <p>
-If you know basics of Scheme language, please skip this section.
+If you already know the basics of the Scheme language, please feel free to skip this section.
 </p>
 
 <p>
@@ -1190,11 +1195,11 @@ Please don't spend too much time on these tutorials, the purpose is to let newbi
 </div>
 </div>
 
-<div id="outline-container-org679c194" class="outline-3">
-<h3 id="org679c194"><span class="section-number-3">6.2</span> For Pythonistas</h3>
+<div id="outline-container-org50a69f1" class="outline-3">
+<h3 id="org50a69f1"><span class="section-number-3">6.2</span> For Pythonistas</h3>
 <div class="outline-text-3" id="text-6-2">
 <p>
-These are good articles for Pythoners:
+These are good pythonic articles for Pythoners:
 </p>
 
 <ol class="org-ol">
@@ -1208,8 +1213,8 @@ Still, please don't spend too much time on them, the purpose is to let newbies g
 </div>
 </div>
 
-<div id="outline-container-orgf18c196" class="outline-3">
-<h3 id="orgf18c196"><span class="section-number-3">6.3</span> For Rubyist</h3>
+<div id="outline-container-org7be1573" class="outline-3">
+<h3 id="org7be1573"><span class="section-number-3">6.3</span> For Rubyist</h3>
 <div class="outline-text-3" id="text-6-3">
 <p>
 Here's a great article for Rubyist to learn Scheme:
@@ -1219,8 +1224,8 @@ Here's a great article for Rubyist to learn Scheme:
 </ol>
 </div>
 </div>
-<div id="outline-container-org09d5353" class="outline-3">
-<h3 id="org09d5353"><span class="section-number-3">6.4</span> For deep learners</h3>
+<div id="outline-container-org2300fd8" class="outline-3">
+<h3 id="org2300fd8"><span class="section-number-3">6.4</span> For deep learners</h3>
 <div class="outline-text-3" id="text-6-4">
 <p>
 These two books are very good for learning Scheme seriously:
@@ -1232,15 +1237,15 @@ These two books are very good for learning Scheme seriously:
 </ol>
 
 <p>
-Please don't read them if you just want to use GNU Artanis to build your web application/site in few minutes.
+Please don't bother reading them if you simply want to use GNU Artanis to build your web application/site in few minutes.
 </p>
 
 <p>
-If you really want to try these books seriously, please ignore GNU Artanis before you done them.
+And if you really want to try to work these books seriously, please ignore GNU Artanis before you are done with them.
 </p>
 
 <p>
-But once you've done them <b>carefully</b>, you may want to write a new GNU Artanis all by yourself.
+But once you're done reading them <b>carefully</b>, you may want to write a new GNU Artanis all by yourself!
 </p>
 
 <p>
@@ -1249,11 +1254,11 @@ Hold your horses. ;-)
 </div>
 </div>
 </div>
-<div id="outline-container-orgc5446d0" class="outline-2">
-<h2 id="orgc5446d0"><span class="section-number-2">7</span> Basic in GNU Artanis</h2>
+<div id="outline-container-org736bd27" class="outline-2">
+<h2 id="org736bd27"><span class="section-number-2">7</span> Basic in GNU Artanis</h2>
 <div class="outline-text-2" id="text-7">
-</div><div id="outline-container-orgd750358" class="outline-3">
-<h3 id="orgd750358"><span class="section-number-3">7.1</span> How to run a site with GNU Artanis</h3>
+</div><div id="outline-container-org80e65e3" class="outline-3">
+<h3 id="org80e65e3"><span class="section-number-3">7.1</span> How to run a site with GNU Artanis</h3>
 <div class="outline-text-3" id="text-7-1">
 <p>
 This is the simplest case to run a site:
@@ -1269,16 +1274,18 @@ This is the simplest case to run a site:
 </div>
 </div>
 </div>
-<div id="outline-container-orgba91b2b" class="outline-3">
-<h3 id="orgba91b2b"><span class="section-number-3">7.2</span> Initialization</h3>
+<div id="outline-container-org7f86990" class="outline-3">
+<h3 id="org7f86990"><span class="section-number-3">7.2</span> Initialization</h3>
 <div class="outline-text-3" id="text-7-2">
 <p>
 It's better to use (init-server) to init GNU Artanis.
 </p>
 <div class="org-src-container">
-<pre class="src src-scheme">(init-server <span style="color: #40e0d0;">#:statics</span> '(png jpg jpeg ico html js css) <span style="color: #40e0d0;">#:cache-statics?</span> #f <span style="color: #40e0d0;">#:exclude</span> '())
+<pre class="src src-scheme">(init-server <span style="color: #40e0d0;">#:statics</span> '(png jpg jpeg ico html js css)
+             <span style="color: #40e0d0;">#:cache-statics?</span> #f <span style="color: #40e0d0;">#:exclude</span> '())
 </pre>
 </div>
+
 <p>
 <code class="src src-scheme">#:statics</code> specifies the static files with the extension file. GNU Artanis is based on URL remapping, so this keyword let you avoid to handle each static file types. In default, it covers the most static file types. So you may ignore it usually.
 </p>
@@ -1292,16 +1299,16 @@ It's better to use (init-server) to init GNU Artanis.
 </p>
 </div>
 </div>
-<div id="outline-container-org6293bfe" class="outline-3">
-<h3 id="org6293bfe"><span class="section-number-3">7.3</span> Registering handler of HTTP methods</h3>
+<div id="outline-container-org59c4cd3" class="outline-3">
+<h3 id="org59c4cd3"><span class="section-number-3">7.3</span> Registering handler of HTTP methods</h3>
 <div class="outline-text-3" id="text-7-3">
 <p>
-Please read <a href="#orga0f3373">URL handling</a>.
+Please read <a href="#org4dea390">URL handling</a>.
 </p>
 </div>
 </div>
-<div id="outline-container-org64e5be7" class="outline-3">
-<h3 id="org64e5be7"><span class="section-number-3">7.4</span> Emit Response</h3>
+<div id="outline-container-orgb18132c" class="outline-3">
+<h3 id="orgb18132c"><span class="section-number-3">7.4</span> Emit Response</h3>
 <div class="outline-text-3" id="text-7-4">
 <div class="org-src-container">
 <pre class="src src-scheme">(response-emit body <span style="color: #40e0d0;">#:status</span> 200 <span style="color: #40e0d0;">#:headers</span> '() <span style="color: #40e0d0;">#:mtime</span> (current-time))
@@ -1339,8 +1346,8 @@ Please read <a href="#orga0f3373">URL handling</a>.
 </div>
 </div>
 
-<div id="outline-container-orgfd92dfc" class="outline-3">
-<h3 id="orgfd92dfc"><span class="section-number-3">7.5</span> Running server</h3>
+<div id="outline-container-orga9dbf6f" class="outline-3">
+<h3 id="orga9dbf6f"><span class="section-number-3">7.5</span> Running server</h3>
 <div class="outline-text-3" id="text-7-5">
 <div class="org-src-container">
 <pre class="src src-scheme">(run <span style="color: #40e0d0;">#:host</span> #f <span style="color: #40e0d0;">#:port</span> #f <span style="color: #40e0d0;">#:debug</span> #f <span style="color: #40e0d0;">#:use-db?</span> #f
@@ -1389,15 +1396,16 @@ But you can specify them as will.
 </p>
 </div>
 </div>
-<div id="outline-container-org5985cde" class="outline-3">
-<h3 id="org5985cde"><span class="section-number-3">7.6</span> Working with Nginx</h3>
+<div id="outline-container-org87298f5" class="outline-3">
+<h3 id="org87298f5"><span class="section-number-3">7.6</span> Working with Nginx</h3>
 <div class="outline-text-3" id="text-7-6">
 <p>
 You may try GNU Artanis+Nginx with so-called reverse proxy. 
 </p>
 
 <p>
-<b><i>I would recommend you use Nginx as the front server, since GNU Artanis hasn't done its own async server-core which will be based on delimited-continuations. The current server has some caveats, in spite of the performance, you may suffer from slow-header-ddos if you use GNU Artanis to serv you site directly. But it's fine when you use Nginx in front of GNU Artanis.</i></b>
+<b><i>Although GNU Artanis has good server core, I would recommend you use Nginx as the front server. In addition to the performance,
+ GNU Artanis hasn't prepared for many security things. But if you use Ngxin with reverse-proxy, then it'll be easier to be safer.</i></b>
 </p>
 
 <p>
@@ -1432,15 +1440,15 @@ And run GNU Artanis:
 </div>
 </div>
 </div>
-<div id="outline-container-orgb4970eb" class="outline-2">
-<h2 id="orgb4970eb"><span class="section-number-2">8</span> The Art command line</h2>
+<div id="outline-container-orgcef4bfb" class="outline-2">
+<h2 id="orgcef4bfb"><span class="section-number-2">8</span> The Art command line</h2>
 <div class="outline-text-2" id="text-8">
 <p>
 GNU Artanis provides <b>art</b> command line tool to save users' time.
 </p>
 </div>
-<div id="outline-container-org6a22c34" class="outline-3">
-<h3 id="org6a22c34"><span class="section-number-3">8.1</span> art create</h3>
+<div id="outline-container-orgecc39f5" class="outline-3">
+<h3 id="orgecc39f5"><span class="section-number-3">8.1</span> art create</h3>
 <div class="outline-text-3" id="text-8-1">
 <p>
 If you want to set up your site/app within an application folder, and take
@@ -1454,8 +1462,8 @@ folder first.
 </div>
 </div>
 </div>
-<div id="outline-container-org2c554c7" class="outline-3">
-<h3 id="org2c554c7"><span class="section-number-3">8.2</span> art draw</h3>
+<div id="outline-container-org5622243" class="outline-3">
+<h3 id="org5622243"><span class="section-number-3">8.2</span> art draw</h3>
 <div class="outline-text-3" id="text-8-2">
 <p>
 This command will generate the specified component:
@@ -1483,12 +1491,12 @@ Example:
 </div>
 
 <p>
-Please see <a href="#org338842b">MVC</a> to learn more about how to use these components.
+Please see <a href="#orgc41a453">MVC</a> to learn more about how to use these components.
 </p>
 </div>
 </div>
-<div id="outline-container-org91d3354" class="outline-3">
-<h3 id="org91d3354"><span class="section-number-3">8.3</span> art migrate</h3>
+<div id="outline-container-orgcc09935" class="outline-3">
+<h3 id="orgcc09935"><span class="section-number-3">8.3</span> art migrate</h3>
 <div class="outline-text-3" id="text-8-3">
 <p>
 Migrate is used for Database migration.
@@ -1506,12 +1514,12 @@ OPTIONS:
 </pre>
 </div>
 <p>
-Please see <a href="#org225936e">Migration</a> for more detail.
+Please see <a href="#orgf8c9482">Migration</a> for more detail.
 </p>
 </div>
 </div>
-<div id="outline-container-org7f61e02" class="outline-3">
-<h3 id="org7f61e02"><span class="section-number-3">8.4</span> art work</h3>
+<div id="outline-container-org12dec72" class="outline-3">
+<h3 id="org12dec72"><span class="section-number-3">8.4</span> art work</h3>
 <div class="outline-text-3" id="text-8-4">
 <p>
 This command is used to start the server to run your site in the application folder:
@@ -1541,15 +1549,15 @@ Options:
   -g, [--debug]                  # Debug mode
                                    Default: disable
   -s, [--server=SERVER]          # Specify server core
-                                   Default: inner (Guile built-in server)
+                                   Default: Ragnarok (New server core since 0.2)
   --help                         # Show this screen
 </pre>
 </div>
 </div>
 </div>
 </div>
-<div id="outline-container-org338842b" class="outline-2">
-<h2 id="org338842b"><span class="section-number-2">9</span> MVC</h2>
+<div id="outline-container-orgc41a453" class="outline-2">
+<h2 id="orgc41a453"><span class="section-number-2">9</span> MVC</h2>
 <div class="outline-text-2" id="text-9">
 <p>
 MVC is Model-Views-Controller, the most classic architectural pattern for implementing
@@ -1559,8 +1567,8 @@ separate internal representations of information from the ways that information 
 presented to or accepted from the user.
 </p>
 </div>
-<div id="outline-container-org4637705" class="outline-3">
-<h3 id="org4637705"><span class="section-number-3">9.1</span> Controllers/Views</h3>
+<div id="outline-container-org305b424" class="outline-3">
+<h3 id="org305b424"><span class="section-number-3">9.1</span> Controllers/Views</h3>
 <div class="outline-text-3" id="text-9-1">
 <p>
 When you run it to generate a controller named <i>article</i>:
@@ -1618,23 +1626,23 @@ uncomment the last line <code class="src src-scheme">(view-render "show")</code>
 </p>
 
 <p>
-For more detail about template in Views, please see <a href="#orgcf3ac76">Layouts and Rendering in GNU Artanis</a>.
+For more detail about template in Views, please see <a href="#orgac4ab15">Layouts and Rendering in GNU Artanis</a>.
 </p>
 </div>
 </div>
-<div id="outline-container-org584cc1a" class="outline-3">
-<h3 id="org584cc1a"><span class="section-number-3">9.2</span> Models</h3>
+<div id="outline-container-org342915b" class="outline-3">
+<h3 id="org342915b"><span class="section-number-3">9.2</span> Models</h3>
 <div class="outline-text-3" id="text-9-2">
 <p>
 Models contains operations of database.
 </p>
 
 <p>
-For modifying tables, you should read <a href="#org225936e">Migration</a>.
+For modifying tables, you should read <a href="#orgf8c9482">Migration</a>.
 </p>
 
 <p>
-For other DB operation, please read <a href="#org513329f">FPRM</a>.
+For other DB operation, please read <a href="#org896b1f7">FPRM</a>.
 </p>
 
 <p>
@@ -1643,11 +1651,11 @@ For other DB operation, please read <a href="#org513329f">FPRM</a>.
 </div>
 </div>
 </div>
-<div id="outline-container-orgaeeacf8" class="outline-2">
-<h2 id="orgaeeacf8"><span class="section-number-2">10</span> URL remapping</h2>
+<div id="outline-container-org4b3177b" class="outline-2">
+<h2 id="org4b3177b"><span class="section-number-2">10</span> URL remapping</h2>
 <div class="outline-text-2" id="text-10">
-</div><div id="outline-container-orgabf59c4" class="outline-3">
-<h3 id="orgabf59c4"><span class="section-number-3">10.1</span> Introduction to URL remapping</h3>
+</div><div id="outline-container-org29a194b" class="outline-3">
+<h3 id="org29a194b"><span class="section-number-3">10.1</span> Introduction to URL remapping</h3>
 <div class="outline-text-3" id="text-10-1">
 <p>
 URL remapping is used to modify a web URL's appearance to provide short, pretty or fancy, search engine friendly URLs. 
@@ -1655,15 +1663,15 @@ It's largely used in modern WAF(web application framework) to provide RESTful we
 </p>
 </div>
 </div>
-<div id="outline-container-orga0f3373" class="outline-3">
-<h3 id="orga0f3373"><span class="section-number-3">10.2</span> URL handling</h3>
+<div id="outline-container-org4dea390" class="outline-3">
+<h3 id="org4dea390"><span class="section-number-3">10.2</span> URL handling</h3>
 <div class="outline-text-3" id="text-10-2">
 <p>
-According to RFC2616, there're GET, POST, PUT, PATCH and DELETE methods. You may register handler for specified URL rule to these methods.
+According to RFC2616, there are GET, POST, PUT, PATCH and DELETE methods. You may register handler for specified URL rule to these methods.
 </p>
 
 <p>
-<i>There would be HEAD method, but in GNU Artanis, HEAD method is handled by the server, users can't use it.</i>
+<i>There would be a HEAD method, but in GNU Artanis, the HEAD method is handled by the server, so users can not use it.</i>
 </p>
 
 <p>
@@ -1675,7 +1683,7 @@ The usage:
 </div>
 
 <p>
-And the handler could be two types, depends on your need:
+And the handler could be one of two types, depending on your needs:
 </p>
 <div class="org-src-container">
 <pre class="src src-scheme">(<span style="color: #4169e1;">lambda</span> ()
@@ -1695,7 +1703,7 @@ And the handler could be two types, depends on your need:
 <ul class="org-ul">
 <li>1. literal string as the returned response body</li>
 
-<li>2. See <a href="#org64e5be7">Emit Response</a></li>
+<li>2. See <a href="#orgb18132c">Emit Response</a></li>
 </ul>
 
 <div class="org-src-container">
@@ -1712,8 +1720,8 @@ For POST method:
 </div>
 </div>
 </div>
-<div id="outline-container-orgea5f9b0" class="outline-3">
-<h3 id="orgea5f9b0"><span class="section-number-3">10.3</span> Get parameters from URL</h3>
+<div id="outline-container-org36dc6e7" class="outline-3">
+<h3 id="org36dc6e7"><span class="section-number-3">10.3</span> Get parameters from URL</h3>
 <div class="outline-text-3" id="text-10-3">
 <div class="org-src-container">
 <pre class="src src-scheme">(params rc name)
@@ -1723,8 +1731,8 @@ For POST method:
 </div>
 </div>
 </div>
-<div id="outline-container-org637710e" class="outline-3">
-<h3 id="org637710e"><span class="section-number-3">10.4</span> Redirect link</h3>
+<div id="outline-container-org116f532" class="outline-3">
+<h3 id="org116f532"><span class="section-number-3">10.4</span> Redirect link</h3>
 <div class="outline-text-3" id="text-10-4">
 <div class="org-src-container">
 <pre class="src src-scheme">(redirect-to rc path <span style="color: #40e0d0;">#:status</span> 301
@@ -1737,19 +1745,19 @@ For POST method:
 </div>
 </div>
 </div>
-<div id="outline-container-orgcf3ac76" class="outline-2">
-<h2 id="orgcf3ac76"><span class="section-number-2">11</span> Layouts and Rendering in GNU Artanis</h2>
+<div id="outline-container-orgac4ab15" class="outline-2">
+<h2 id="orgac4ab15"><span class="section-number-2">11</span> Layouts and Rendering in GNU Artanis</h2>
 <div class="outline-text-2" id="text-11">
-</div><div id="outline-container-orgf66008b" class="outline-3">
-<h3 id="orgf66008b"><span class="section-number-3">11.1</span> Templating</h3>
+</div><div id="outline-container-org2196776" class="outline-3">
+<h3 id="org2196776"><span class="section-number-3">11.1</span> Templating</h3>
 <div class="outline-text-3" id="text-11-1">
 <p>
 Templating provides a way to mix programming code into HTML.
 </p>
 </div>
 </div>
-<div id="outline-container-org141cac7" class="outline-3">
-<h3 id="org141cac7"><span class="section-number-3">11.2</span> Templating for Pythoners</h3>
+<div id="outline-container-org67ec2b9" class="outline-3">
+<h3 id="org67ec2b9"><span class="section-number-3">11.2</span> Templating for Pythoners</h3>
 <div class="outline-text-3" id="text-11-2">
 <p>
 If you're familiar with Django, which implemented a DSL(Domain Specific Language) to express presentation rather than program logic. You may realize that the templating of GNU Artanis has different philosophy.
@@ -1760,7 +1768,7 @@ In templating of GNU Artanis, it's simply embedded Scheme code into HTML. Why? B
 </p>
 
 <p>
-The syntax like <code class="src src-python">size|filesizeformat</code> is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme(functional programming), and the paradigm of Python(imperative programming).
+The syntax like <code class="src src-python">size|filesizeformat</code> is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme (functional programming), and the paradigm of Python (imperative programming).
 </p>
 
 <p>
@@ -1768,8 +1776,8 @@ The philosophy of GNU Artanis templating is to bring it into correspondence with
 </p>
 </div>
 </div>
-<div id="outline-container-org8254c0e" class="outline-3">
-<h3 id="org8254c0e"><span class="section-number-3">11.3</span> Templating for Rubyists</h3>
+<div id="outline-container-orgc7b5d50" class="outline-3">
+<h3 id="orgc7b5d50"><span class="section-number-3">11.3</span> Templating for Rubyists</h3>
 <div class="outline-text-3" id="text-11-3">
 <p>
 Templating in GNU Artanis looks very similar to Rails.
@@ -1798,8 +1806,8 @@ And the same function in GNU Artanis code:
 </div>
 </div>
 </div>
-<div id="outline-container-org0fd31d2" class="outline-3">
-<h3 id="org0fd31d2"><span class="section-number-3">11.4</span> Templating APIs</h3>
+<div id="outline-container-orgd0c4dbb" class="outline-3">
+<h3 id="orgd0c4dbb"><span class="section-number-3">11.4</span> Templating APIs</h3>
 <div class="outline-text-3" id="text-11-4">
 <div class="org-src-container">
 <pre class="src src-scheme">(tpl-&gt;response filename/sxml [environment &lt;- (the-environment)] [escape? &lt;- #f])
@@ -1825,8 +1833,8 @@ There're two kinds of different templating:
 </p>
 </div>
 </div>
-<div id="outline-container-org3eceb17" class="outline-3">
-<h3 id="org3eceb17"><span class="section-number-3">11.5</span> Embedded Templating</h3>
+<div id="outline-container-org44ae5c5" class="outline-3">
+<h3 id="org44ae5c5"><span class="section-number-3">11.5</span> Embedded Templating</h3>
 <div class="outline-text-3" id="text-11-5">
 <p>
 Example:
@@ -1842,7 +1850,7 @@ Write a tpl file named "my.tpl":
 </div>
 
 <p>
-Of course, the ext filename ".tpl" is trivial, you may name it whatever you like.
+The filename extension ".tpl" - for template - is arbitrary, you can name it whatever you like.
 </p>
 
 <div class="org-src-container">
@@ -1871,8 +1879,8 @@ Then see <a href="http://localhost:3000/test">http://localhost:3000/test</a> in 
 </p>
 </div>
 </div>
-<div id="outline-container-org68a8ece" class="outline-3">
-<h3 id="org68a8ece"><span class="section-number-3">11.6</span> SXML Templating</h3>
+<div id="outline-container-orge634e93" class="outline-3">
+<h3 id="orge634e93"><span class="section-number-3">11.6</span> SXML Templating</h3>
 <div class="outline-text-3" id="text-11-6">
 <p>
 <a href="http://en.wikipedia.org/wiki/SXML">SXML</a> is an alternative syntax for writing XML data, using the form of S-expressions.
@@ -1912,11 +1920,11 @@ Sometimes you may need quasiquote to reference a variable, for example:
 </div>
 </div>
 
-<div id="outline-container-org46996a7" class="outline-2">
-<h2 id="org46996a7"><span class="section-number-2">12</span> Database</h2>
+<div id="outline-container-orga5c0de4" class="outline-2">
+<h2 id="orga5c0de4"><span class="section-number-2">12</span> Database</h2>
 <div class="outline-text-2" id="text-12">
-</div><div id="outline-container-org225936e" class="outline-3">
-<h3 id="org225936e"><span class="section-number-3">12.1</span> Migration</h3>
+</div><div id="outline-container-orgf8c9482" class="outline-3">
+<h3 id="orgf8c9482"><span class="section-number-3">12.1</span> Migration</h3>
 <div class="outline-text-3" id="text-12-1">
 <p>
 Migration provides a way do complicated modification of tables in database automatically.
@@ -1988,8 +1996,8 @@ Obviously, the table <i>person</i> will be dropped.
 </p>
 </div>
 </div>
-<div id="outline-container-orgb676360" class="outline-3">
-<h3 id="orgb676360"><span class="section-number-3">12.2</span> ORM problem</h3>
+<div id="outline-container-org44659be" class="outline-3">
+<h3 id="org44659be"><span class="section-number-3">12.2</span> ORM problem</h3>
 <div class="outline-text-3" id="text-12-2">
 <p>
 ORM stands for Object Relational Mapping, which is a popular approach to handle relational DB nowadays, in OOP.
@@ -2049,11 +2057,11 @@ And here're some known ways for trying to solve the problems of ORM:
 
 
 <ul class="org-ul">
-<li>7. <b><i>Stateless</i></b>. This is the critical hit to complexity and unreliability.</li>
+<li>7. <b><i>Stateless</i></b>. This is the critical hit to counter complexity and unreliability.</li>
 </ul>
 
 <p>
-Basically, GNU Artanis has no ORM yet, and maybe never. GNU Artanis is trying to experiment new ways to solve the problems of ORM.
+Basically, GNU Artanis has no ORM yet, and maybe never will. GNU Artanis is trying to experiment new ways to solve the problems of ORM.
 </p>
 
 <p>
@@ -2069,8 +2077,8 @@ GNU Artanis provides three ways to complete this mission. All of them, are <b>ex
 </ul>
 </div>
 </div>
-<div id="outline-container-org36abc65" class="outline-3">
-<h3 id="org36abc65"><span class="section-number-3">12.3</span> SSQL (experimental)</h3>
+<div id="outline-container-org328b970" class="outline-3">
+<h3 id="org328b970"><span class="section-number-3">12.3</span> SSQL (experimental)</h3>
 <div class="outline-text-3" id="text-12-3">
 <p>
 The concept of SSQL is very easy. Write SQL in S-expr. 
@@ -2098,8 +2106,8 @@ For example:
 </div>
 </div>
 </div>
-<div id="outline-container-org513329f" class="outline-3">
-<h3 id="org513329f"><span class="section-number-3">12.4</span> FPRM (experimental)</h3>
+<div id="outline-container-org896b1f7" class="outline-3">
+<h3 id="org896b1f7"><span class="section-number-3">12.4</span> FPRM (experimental)</h3>
 <div class="outline-text-3" id="text-12-4">
 <p>
 FPRM stands for Functional Programming Relational Mapping. It's a new word I invented. But it's not new concept. FP here indicates <b>stateless</b>. 
@@ -2109,15 +2117,16 @@ FPRM stands for Functional Programming Relational Mapping. It's a new word I inv
 <i>FPRM is still experimental and work-in-progress.</i>
 </p>
 </div>
-<div id="outline-container-orgd32e445" class="outline-4">
-<h4 id="orgd32e445"><span class="section-number-4">12.4.1</span> Connect to DB server</h4>
+<div id="outline-container-org9453ffb" class="outline-4">
+<h4 id="org9453ffb"><span class="section-number-4">12.4.1</span> Connect to DB server</h4>
 <div class="outline-text-4" id="text-12-4-1">
 <div class="org-src-container">
 <pre class="src src-scheme"><span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">usage 1:</span>
 (connect-db dbd init-str)
 
 <span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">usage 2:</span>
-(connect-db dbd <span style="color: #40e0d0;">#:db-name</span> <span style="color: #ff0000;">"artanis"</span> <span style="color: #40e0d0;">#:db-username</span> <span style="color: #ff0000;">"root"</span> <span style="color: #40e0d0;">#:db-passwd</span> <span style="color: #ff0000;">""</span> <span style="color: #40e0d0;">#:proto</span> <span style="color: #ff0000;">"tcp"</span> <span style="color: #40e0d0;">#:host</span> <span style="color: #ff0000;">"localhost"</span> <span style="color: #40e0d0;">#:port</span> 3306)
+(connect-db dbd <span style="color: #40e0d0;">#:db-name</span> <span style="color: #ff0000;">"artanis"</span> <span style="color: #40e0d0;">#:db-username</span> <span style="color: #ff0000;">"root"</span> <span style="color: #40e0d0;">#:db-passwd</span> <span style="color: #ff0000;">""</span>
+                <span style="color: #40e0d0;">#:proto</span> <span style="color: #ff0000;">"tcp"</span> <span style="color: #40e0d0;">#:host</span> <span style="color: #ff0000;">"localhost"</span> <span style="color: #40e0d0;">#:port</span> 3306)
 </pre>
 </div>
 
@@ -2159,8 +2168,8 @@ FPRM stands for Functional Programming Relational Mapping. It's a new word I inv
 </ul>
 </div>
 </div>
-<div id="outline-container-org709d8ba" class="outline-4">
-<h4 id="org709d8ba"><span class="section-number-4">12.4.2</span> Map DB table</h4>
+<div id="outline-container-orgaafc219" class="outline-4">
+<h4 id="orgaafc219"><span class="section-number-4">12.4.2</span> Map DB table</h4>
 <div class="outline-text-4" id="text-12-4-2">
 <p>
 This step will generate an new instance (as a closure) mapped to database table or view.
@@ -2184,7 +2193,7 @@ These two points may decrease the power of FPRM, but our main philosophy in GNU 
 
 <p>
 That means we're not going to develop a complicated ORM in GNU Artanis, but a promising way to interact with SQL easily.
-This is what <a href="#org96105d6">SQL Mapping</a> provided. FPRM aims to reduce states &amp; complexity to provide reliability, and SQL-Mapping will provide a convenient way
+This is what <a href="#org42fde31">SQL Mapping</a> provided. FPRM aims to reduce states &amp; complexity to provide reliability, and SQL-Mapping will provide a convenient way
 to handle complex SQL for better performance and security (from SQL-Injection). 
 </p>
 
@@ -2202,8 +2211,8 @@ map-table-from-DB returns a function, we named it <b>m</b> here for explaining.
 </p>
 </div>
 </div>
-<div id="outline-container-org493b1b8" class="outline-4">
-<h4 id="org493b1b8"><span class="section-number-4">12.4.3</span> Create table</h4>
+<div id="outline-container-org4940638" class="outline-4">
+<h4 id="org4940638"><span class="section-number-4">12.4.3</span> Create table</h4>
 <div class="outline-text-4" id="text-12-4-3">
 <div class="org-src-container">
 <pre class="src src-scheme">(m 'create table-name defs <span style="color: #40e0d0;">#:if-exists?</span> #f <span style="color: #40e0d0;">#:primary-keys</span> '() <span style="color: #40e0d0;">#:engine</span> #f)
@@ -2243,11 +2252,12 @@ map-table-from-DB returns a function, we named it <b>m</b> here for explaining.
 </ul>
 </div>
 </div>
-<div id="outline-container-org7c5e1ef" class="outline-4">
-<h4 id="org7c5e1ef"><span class="section-number-4">12.4.4</span> Get columns from table</h4>
+<div id="outline-container-orgbf4c984" class="outline-4">
+<h4 id="orgbf4c984"><span class="section-number-4">12.4.4</span> Get columns from table</h4>
 <div class="outline-text-4" id="text-12-4-4">
 <div class="org-src-container">
-<pre class="src src-scheme">(m 'get table-name <span style="color: #40e0d0;">#:columns</span> '(*) <span style="color: #40e0d0;">#:functions</span> '() <span style="color: #40e0d0;">#:ret</span> 'all <span style="color: #40e0d0;">#:group-by</span> #f <span style="color: #40e0d0;">#:order-by</span> #f)
+<pre class="src src-scheme">(m 'get table-name <span style="color: #40e0d0;">#:columns</span> '(*) <span style="color: #40e0d0;">#:functions</span> '() <span style="color: #40e0d0;">#:ret</span> 'all
+                   <span style="color: #40e0d0;">#:group-by</span> #f <span style="color: #40e0d0;">#:order-by</span> #f)
 </pre>
 </div>
 
@@ -2294,8 +2304,8 @@ For example, to get Lastname and City column, and return the first result.
 </div>
 </div>
 </div>
-<div id="outline-container-orgba1f0db" class="outline-4">
-<h4 id="orgba1f0db"><span class="section-number-4">12.4.5</span> Set values to table</h4>
+<div id="outline-container-org75b67d7" class="outline-4">
+<h4 id="org75b67d7"><span class="section-number-4">12.4.5</span> Set values to table</h4>
 <div class="outline-text-4" id="text-12-4-5">
 <div class="org-src-container">
 <pre class="src src-scheme">(m 'set table-name . kargs)
@@ -2316,8 +2326,8 @@ For example:
 </div>
 </div>
 
-<div id="outline-container-org556bad3" class="outline-4">
-<h4 id="org556bad3"><span class="section-number-4">12.4.6</span> Drop a table</h4>
+<div id="outline-container-org3878bbc" class="outline-4">
+<h4 id="org3878bbc"><span class="section-number-4">12.4.6</span> Drop a table</h4>
 <div class="outline-text-4" id="text-12-4-6">
 <div class="org-src-container">
 <pre class="src src-scheme">(m 'drop table-name)
@@ -2325,8 +2335,8 @@ For example:
 </div>
 </div>
 </div>
-<div id="outline-container-org6b69604" class="outline-4">
-<h4 id="org6b69604"><span class="section-number-4">12.4.7</span> Check existence of table</h4>
+<div id="outline-container-orgb63e497" class="outline-4">
+<h4 id="orgb63e497"><span class="section-number-4">12.4.7</span> Check existence of table</h4>
 <div class="outline-text-4" id="text-12-4-7">
 <div class="org-src-container">
 <pre class="src src-scheme"><span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">case sensitive</span>
@@ -2345,8 +2355,8 @@ For example:
 </div>
 </div>
 </div>
-<div id="outline-container-orgc5f62ac" class="outline-4">
-<h4 id="orgc5f62ac"><span class="section-number-4">12.4.8</span> Get schema of a table</h4>
+<div id="outline-container-org54258b3" class="outline-4">
+<h4 id="org54258b3"><span class="section-number-4">12.4.8</span> Get schema of a table</h4>
 <div class="outline-text-4" id="text-12-4-8">
 <div class="org-src-container">
 <pre class="src src-scheme">(m 'schema table-name)
@@ -2359,8 +2369,8 @@ For example:
 </div>
 </div>
 </div>
-<div id="outline-container-org96105d6" class="outline-3">
-<h3 id="org96105d6"><span class="section-number-3">12.5</span> SQL Mapping (experimental)</h3>
+<div id="outline-container-org42fde31" class="outline-3">
+<h3 id="org42fde31"><span class="section-number-3">12.5</span> SQL Mapping (experimental)</h3>
 <div class="outline-text-3" id="text-12-5">
 <p>
 To be continued &#x2026;
@@ -2368,8 +2378,8 @@ To be continued &#x2026;
 </div>
 </div>
 </div>
-<div id="outline-container-org3eff518" class="outline-2">
-<h2 id="org3eff518"><span class="section-number-2">13</span> MIME</h2>
+<div id="outline-container-org2ac3ae5" class="outline-2">
+<h2 id="org2ac3ae5"><span class="section-number-2">13</span> MIME</h2>
 <div class="outline-text-2" id="text-13">
 <p>
 <code class="src src-scheme">#:mime</code> method is used to return the proper MIME type in the HTTP response.
@@ -2380,8 +2390,8 @@ To be continued &#x2026;
 </pre>
 </div>
 </div>
-<div id="outline-container-orgde56b40" class="outline-3">
-<h3 id="orgde56b40"><span class="section-number-3">13.1</span> JSON</h3>
+<div id="outline-container-org0926083" class="outline-3">
+<h3 id="org0926083"><span class="section-number-3">13.1</span> JSON</h3>
 <div class="outline-text-3" id="text-13-1">
 <p>
 GNU Artanis integrated the third-party module <a href="https://github.com/aconchillo/guile-json">guile-json</a>. 
@@ -2401,8 +2411,10 @@ For example:
 <div class="org-src-container">
 <pre class="src src-scheme">(<span style="color: #4169e1;">define</span> <span style="color: #ffd700;">my-json</span>
   (json (object (<span style="color: #ff0000;">"name"</span> <span style="color: #ff0000;">"nala"</span>) (<span style="color: #ff0000;">"age"</span> 15)
-                (<span style="color: #ff0000;">"read_list"</span> (object (<span style="color: #ff0000;">"book1"</span> <span style="color: #ff0000;">"The interpreter and structure of Artanis"</span>)
-                                     (<span style="color: #ff0000;">"book2"</span> <span style="color: #ff0000;">"The art of Artanis programming"</span>))))))
+                (<span style="color: #ff0000;">"read_list"</span>
+                 (object
+                  (<span style="color: #ff0000;">"book1"</span> <span style="color: #ff0000;">"The interpreter and structure of Artanis"</span>)
+                  (<span style="color: #ff0000;">"book2"</span> <span style="color: #ff0000;">"The art of Artanis programming"</span>))))))
 (scm-&gt;json my-json) <span style="color: #66cdaa;">; </span><span style="color: #66cdaa;">scm-&gt;json will print json</span>
 <span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">==&gt; {"name" : "nala",</span>
 <span style="color: #66cdaa;">;;      </span><span style="color: #66cdaa;">"age" : 15,</span>
@@ -2420,8 +2432,8 @@ If you need to format JSON as a string to return to clients, please use <code cl
 </p>
 </div>
 </div>
-<div id="outline-container-orgc1d5c68" class="outline-3">
-<h3 id="orgc1d5c68"><span class="section-number-3">13.2</span> CSV</h3>
+<div id="outline-container-org3840f10" class="outline-3">
+<h3 id="org3840f10"><span class="section-number-3">13.2</span> CSV</h3>
 <div class="outline-text-3" id="text-13-2">
 <p>
 GNU Artanis integrated the third-party module <a href="https://github.com/NalaGinrut/guile-csv">guile-csv</a>. You may use #:mime method to handle CSV:
@@ -2434,8 +2446,8 @@ GNU Artanis integrated the third-party module <a href="https://github.com/NalaGi
 </div>
 </div>
 </div>
-<div id="outline-container-orgf3144db" class="outline-3">
-<h3 id="orgf3144db"><span class="section-number-3">13.3</span> XML</h3>
+<div id="outline-container-org0cdb1e4" class="outline-3">
+<h3 id="org0cdb1e4"><span class="section-number-3">13.3</span> XML</h3>
 <div class="outline-text-3" id="text-13-3">
 <p>
 In Scheme, XML is handled with SXML. Another way is to use strings appending method.
@@ -2443,13 +2455,27 @@ In Scheme, XML is handled with SXML. Another way is to use strings appending met
 <div class="org-src-container">
 <pre class="src src-scheme">(get <span style="color: #ff0000;">"/xml"</span> <span style="color: #40e0d0;">#:mime</span> 'xml
   (<span style="color: #4169e1;">lambda</span> (rc)
-    (<span style="color: #40e0d0;">:mime</span> rc '(*TOP* (WEIGHT (@ (unit <span style="color: #ff0000;">"pound"</span>)) (NET (@ (certified <span style="color: #ff0000;">"certified"</span>)) <span style="color: #ff0000;">"67"</span>) (GROSS <span style="color: #ff0000;">"95"</span>))))))
+    (<span style="color: #40e0d0;">:mime</span> rc '(*TOP* (WEIGHT (@ (unit <span style="color: #ff0000;">"pound"</span>))
+                              (NET (@ (certified <span style="color: #ff0000;">"certified"</span>)) <span style="color: #ff0000;">"67"</span>)
+                              (GROSS <span style="color: #ff0000;">"95"</span>))))))
+</pre>
+</div>
+
+<p>
+The rendered result to the client will be:
+</p>
+<div class="org-src-container">
+<pre class="src src-xml">&lt;<span style="color: #ffd700;">WEIGHT</span> <span style="color: #00ff00;">unit</span>=<span style="color: #ff0000;">"</span><span style="color: #ff0000;">pound</span><span style="color: #ff0000;">"</span>&gt;
+ &lt;<span style="color: #ffd700;">NET</span> <span style="color: #00ff00;">certified</span>=<span style="color: #ff0000;">"</span><span style="color: #ff0000;">certified</span><span style="color: #ff0000;">"</span>&gt;67&lt;/<span style="color: #ffd700;">NET</span>&gt;
+ &lt;<span style="color: #ffd700;">GROSS</span>&gt;95&lt;/<span style="color: #ffd700;">GROSS</span>&gt;
+&lt;/<span style="color: #ffd700;">WEIGHT</span>&gt;
 </pre>
 </div>
 </div>
 </div>
-<div id="outline-container-org043e6a2" class="outline-3">
-<h3 id="org043e6a2"><span class="section-number-3">13.4</span> SXML</h3>
+
+<div id="outline-container-org4b3cd55" class="outline-3">
+<h3 id="org4b3cd55"><span class="section-number-3">13.4</span> SXML</h3>
 <div class="outline-text-3" id="text-13-4">
 <p>
 You can use SXML to replace XML for exchanging data format. This way saves some bandwidth.
@@ -2463,15 +2489,15 @@ You can use SXML to replace XML for exchanging data format. This way saves some 
 </div>
 </div>
 </div>
-<div id="outline-container-org16c1f26" class="outline-2">
-<h2 id="org16c1f26"><span class="section-number-2">14</span> Upload files</h2>
+<div id="outline-container-orga2914be" class="outline-2">
+<h2 id="orga2914be"><span class="section-number-2">14</span> Upload files</h2>
 <div class="outline-text-2" id="text-14">
 <p>
 If you want to deal with uploading files, store-uploaded-files would be you friend.
 </p>
 </div>
-<div id="outline-container-org602697d" class="outline-3">
-<h3 id="org602697d"><span class="section-number-3">14.1</span> Receive upload from client</h3>
+<div id="outline-container-org95abe32" class="outline-3">
+<h3 id="org95abe32"><span class="section-number-3">14.1</span> Receive upload from client</h3>
 <div class="outline-text-3" id="text-14-1">
 <div class="org-src-container">
 <pre class="src src-scheme">(store-uploaded-files rc <span style="color: #40e0d0;">#:path</span> (current-upload-path)
@@ -2521,8 +2547,8 @@ If you want to deal with uploading files, store-uploaded-files would be you frie
 </p>
 </div>
 </div>
-<div id="outline-container-org60245dc" class="outline-3">
-<h3 id="org60245dc"><span class="section-number-3">14.2</span> Send upload to Server</h3>
+<div id="outline-container-orgf46696d" class="outline-3">
+<h3 id="orgf46696d"><span class="section-number-3">14.2</span> Send upload to Server</h3>
 <div class="outline-text-3" id="text-14-2">
 <p>
 Although GNU Artanis is often used in server-side, we provide this function for users to upload files from client.
@@ -2552,8 +2578,8 @@ Although GNU Artanis is often used in server-side, we provide this function for 
 </div>
 </div>
 </div>
-<div id="outline-container-orgf28d89f" class="outline-2">
-<h2 id="orgf28d89f"><span class="section-number-2">15</span> Sessions</h2>
+<div id="outline-container-org320bc0d" class="outline-2">
+<h2 id="org320bc0d"><span class="section-number-2">15</span> Sessions</h2>
 <div class="outline-text-2" id="text-15">
 <p>
 You have to use <code class="src src-scheme">#:session mode</code> while you defining URL rule handler.
@@ -2595,8 +2621,8 @@ And the APIs of session is :session
 </ul>
 </div>
 </div>
-<div id="outline-container-orgfe25cf6" class="outline-2">
-<h2 id="orgfe25cf6"><span class="section-number-2">16</span> Cookies</h2>
+<div id="outline-container-orgbd85548" class="outline-2">
+<h2 id="orgbd85548"><span class="section-number-2">16</span> Cookies</h2>
 <div class="outline-text-2" id="text-16">
 <p>
 You have to use <code class="src src-scheme">#:cookies mode</code> while you defining URL rule handler.
@@ -2623,7 +2649,8 @@ And the APIs:
 
 (<span style="color: #40e0d0;">:cookies-ref</span> rc cookie-name key)
 
-(<span style="color: #40e0d0;">:cookies-setattr!</span> rc cookie-name <span style="color: #40e0d0;">#:expir</span> #f <span style="color: #40e0d0;">#:domain</span> #f <span style="color: #40e0d0;">#:path</span> #f <span style="color: #40e0d0;">#:secure</span> #f <span style="color: #40e0d0;">#:http-only</span> #f)
+(<span style="color: #40e0d0;">:cookies-setattr!</span> rc cookie-name <span style="color: #40e0d0;">#:expir</span> #f <span style="color: #40e0d0;">#:domain</span> #f
+                   <span style="color: #40e0d0;">#:path</span> #f <span style="color: #40e0d0;">#:secure</span> #f <span style="color: #40e0d0;">#:http-only</span> #f)
 
 (<span style="color: #40e0d0;">:cookies-remove!</span> rc key) <span style="color: #66cdaa;">; </span><span style="color: #66cdaa;">remove cookie from client</span>
 
@@ -2632,7 +2659,7 @@ And the APIs:
 </div>
 
 <p>
-<b>NOTE</b>: You don't have to call <code class="src src-scheme">:cookies-update!</code> yourself, since it'll be called automatically by the hook before response.
+<b>NOTE</b>: You don't have to call <code class="src src-scheme">:cookies-update!</code> yourself, since it will be called automatically by the hook before the response.
 </p>
 
 <p>
@@ -2663,11 +2690,11 @@ curl --head localhost:3000/cookie/120
 </div>
 </div>
 </div>
-<div id="outline-container-orgc4adfc9" class="outline-2">
-<h2 id="orgc4adfc9"><span class="section-number-2">17</span> Authentication</h2>
+<div id="outline-container-orgdf9150f" class="outline-2">
+<h2 id="orgdf9150f"><span class="section-number-2">17</span> Authentication</h2>
 <div class="outline-text-2" id="text-17">
-</div><div id="outline-container-orgecf0d85" class="outline-3">
-<h3 id="orgecf0d85"><span class="section-number-3">17.1</span> Init Authentication</h3>
+</div><div id="outline-container-orgebd961f" class="outline-3">
+<h3 id="orgebd961f"><span class="section-number-3">17.1</span> Init Authentication</h3>
 <div class="outline-text-3" id="text-17-1">
 <p>
 GNU Artanis provides flexible mechanism for authentication.
@@ -2686,7 +2713,7 @@ You have to use <code class="src src-scheme">#:auth mode</code> while you defini
 <b>mode</b> could be:
 </p>
 <ul class="org-ul">
-<li>SQL as <a href="#orgd3667b7">string template</a>. You may write your own customized SQL for fetching &amp; checking username and password.</li>
+<li>SQL as <a href="#orgcd07945">string template</a>. You may write your own customized SQL for fetching &amp; checking username and password.</li>
 <li>('basic (lambda (rc user passwd) &#x2026;)) init a Basic Authentication mode. <i>user</i> is submitted username, <i>passwd</i> is submitted password value.</li>
 <li>('table table-name username-field passwd-field) init a common Authentication mode. <b>The passwd will be encrypted by default algorithm</b>.</li>
 <li>('table table-name username-field passwd-field crypto-proc) similar to the above item, but encrypt passwd with crypto-proc.</li>
@@ -2702,26 +2729,33 @@ Available crypto-proc helper functions listed here:
 </ul>
 </div>
 </div>
-<div id="outline-container-org225e85b" class="outline-3">
-<h3 id="org225e85b"><span class="section-number-3">17.2</span> Basic Authentication</h3>
+<div id="outline-container-orgceb680c" class="outline-3">
+<h3 id="orgceb680c"><span class="section-number-3">17.2</span> Basic Authentication</h3>
 <div class="outline-text-3" id="text-17-2">
 <p>
-HTTP Basic authentication (BA) implementation is the simplest technique for enforcing access controls to web resources because it doesn't require cookies, session identifier and login pages. Rather, HTTP Basic authentication uses static, standard HTTP headers which means that no handshakes have to be done in anticipation.
+HTTP Basic authentication (BA) implementation is the simplest technique for enforcing access controls
+to web resources because it doesn't require cookies, session identifier and login pages. Rather, HTTP
+Basic authentication uses static, standard HTTP headers which means that no handshakes have to be done
+in anticipation.
 </p>
 
 <p>
-The BA mechanism provides no confidentiality protection for the transmitted credentials. They are merely encoded with Base64 in transit, but not encrypted or hashed in any way. Basic Authentication is, therefore, typically used over HTTPS.
+The BA mechanism provides no confidentiality protection for the transmitted credentials. They are merely
+encoded with Base64 in transit, but not encrypted or hashed in any way. Basic Authentication is, therefore,
+typically used over HTTPS.
 </p>
 
 <p>
-<i><b>GNU Artanis doesn't support HTTPS at present, it's planned to support it in the future.</b></i>
+<i><b>GNU Artanis doesn't support HTTPS at present, it is planned to support it in the future.</b></i>
 </p>
 
 <p>
 Let's see a simple example:
 </p>
 <div class="org-src-container">
-<pre class="src src-scheme">(get <span style="color: #ff0000;">"/bauth"</span> <span style="color: #40e0d0;">#:auth</span> `(basic ,(<span style="color: #4169e1;">lambda</span> (rc u p) (<span style="color: #4169e1;">and</span> (string=? u <span style="color: #ff0000;">"mmr"</span>) (string=? p <span style="color: #ff0000;">"123"</span>))))
+<pre class="src src-scheme">(get <span style="color: #ff0000;">"/bauth"</span> <span style="color: #40e0d0;">#:auth</span> `(basic ,(<span style="color: #4169e1;">lambda</span> (rc u p)
+                               (<span style="color: #4169e1;">and</span> (string=? u <span style="color: #ff0000;">"mmr"</span>)
+                                    (string=? p <span style="color: #ff0000;">"123"</span>))))
   (<span style="color: #4169e1;">lambda</span> (rc) 
     (<span style="color: #4169e1;">if</span> (<span style="color: #40e0d0;">:auth</span> rc)
         <span style="color: #ff0000;">"auth ok"</span>
@@ -2743,11 +2777,11 @@ APIs:
 </ul>
 </div>
 </div>
-<div id="outline-container-orgd66ed04" class="outline-3">
-<h3 id="orgd66ed04"><span class="section-number-3">17.3</span> Common Authentication</h3>
+<div id="outline-container-org0125d6c" class="outline-3">
+<h3 id="org0125d6c"><span class="section-number-3">17.3</span> Common Authentication</h3>
 <div class="outline-text-3" id="text-17-3">
 <p>
-Actually, there're various authentication methods could be used by developers. Most of them are sort of tricky hacks. Here, we only introduce the most common way.
+Actually, there are multiple authentication methods that can be used by developers. Most of them are sort of tricky hacks. Here we only introduce the most common way.
 </p>
 
 <p>
@@ -2775,15 +2809,15 @@ Here is a simple example:
 </div>
 </div>
 </div>
-<div id="outline-container-org6ceb0d9" class="outline-2">
-<h2 id="org6ceb0d9"><span class="section-number-2">18</span> Cache</h2>
+<div id="outline-container-org9162ff6" class="outline-2">
+<h2 id="org9162ff6"><span class="section-number-2">18</span> Cache</h2>
 <div class="outline-text-2" id="text-18">
-</div><div id="outline-container-orgde249ff" class="outline-3">
-<h3 id="orgde249ff"><span class="section-number-3">18.1</span> On web caching</h3>
+</div><div id="outline-container-org7fd420f" class="outline-3">
+<h3 id="org7fd420f"><span class="section-number-3">18.1</span> On web caching</h3>
 <div class="outline-text-3" id="text-18-1">
 <p>
-Web caching is very important nowadays. This section raises a discussion on proper web
-caching. It couldn't be guide for product. But may help you to understand how to use
+Web caching is very important nowadays. This section discusses proper web
+caching. It is not a full product guide document, but may help to understand how to 
 cache in GNU Artanis.
 </p>
 
@@ -2792,8 +2826,8 @@ cache in GNU Artanis.
 </p>
 </div>
 </div>
-<div id="outline-container-org86286a7" class="outline-3">
-<h3 id="org86286a7"><span class="section-number-3">18.2</span> Cache APIs</h3>
+<div id="outline-container-org9a9fc4e" class="outline-3">
+<h3 id="org9a9fc4e"><span class="section-number-3">18.2</span> Cache APIs</h3>
 <div class="outline-text-3" id="text-18-2">
 <p>
 You have to use <code class="src src-scheme">#:cache mode</code> while you defining URL rule handler.
@@ -2845,24 +2879,25 @@ But, if your current URL rule is used for authentication (once you use <code cla
 </p>
 <div class="org-src-container">
 <pre class="src src-scheme">(get <span style="color: #ff0000;">"/pauth"</span>
-  <span style="color: #40e0d0;">#:auth</span> `(basic ,(<span style="color: #4169e1;">lambda</span> (rc u p) (<span style="color: #4169e1;">and</span> (string=? u <span style="color: #ff0000;">"nala"</span>) (string=? p <span style="color: #ff0000;">"123"</span>))))
-  <span style="color: #40e0d0;">#:cache</span> '(public <span style="color: #ff0000;">"pub/some.html"</span>) <span style="color: #66cdaa;">; </span><span style="color: #66cdaa;">will be changed to 'private' automatically.</span>
+  <span style="color: #40e0d0;">#:auth</span> `(basic ,(<span style="color: #4169e1;">lambda</span> (rc u p) (<span style="color: #4169e1;">and</span> (string=? u <span style="color: #ff0000;">"nala"</span>)
+                                        (string=? p <span style="color: #ff0000;">"123"</span>))))
+  <span style="color: #40e0d0;">#:cache</span> '(public <span style="color: #ff0000;">"pub/some.html"</span>) <span style="color: #66cdaa;">; </span><span style="color: #66cdaa;">will be changed to 'private' forcely.</span>
   (<span style="color: #4169e1;">lambda</span> (rc) (<span style="color: #40e0d0;">:cache</span> rc)))
 </pre>
 </div>
 </div>
 </div>
 </div>
-<div id="outline-container-orgfa32203" class="outline-2">
-<h2 id="orgfa32203"><span class="section-number-2">19</span> Ragnarok server core</h2>
+<div id="outline-container-org154a657" class="outline-2">
+<h2 id="org154a657"><span class="section-number-2">19</span> Ragnarok server core</h2>
 <div class="outline-text-2" id="text-19">
-</div><div id="outline-container-org4ae408b" class="outline-3">
-<h3 id="org4ae408b"><span class="section-number-3">19.1</span> Introduction</h3>
+</div><div id="outline-container-org0dcb8ff" class="outline-3">
+<h3 id="org0dcb8ff"><span class="section-number-3">19.1</span> Introduction</h3>
 <div class="outline-text-3" id="text-19-1">
 <p>
-Since 0.2, GNU Artanis has a strong server core for high concurrent. It is named Ragnarok.
-In the philosophy of design in GNU Artanis, everything inclined to be flexible and customizable.
-So the server core is customizable, if someone thought Ragnarok is not good enough.
+Since 0.2, GNU Artanis has a strong server core for high concurrency. It is named Ragnarok.
+In the philosophy of the design of GNU Artanis, everything is meant to be flexible and customizable.
+So the server core is customizable, in case someone thought Ragnarok is not good enough yet.
 </p>
 
 <p>
@@ -2872,8 +2907,8 @@ It's a brand new server core based on epoll and <a href="https://en.wikipedia.or
 </div>
 </div>
 
-<div id="outline-container-orgdea8460" class="outline-3">
-<h3 id="orgdea8460"><span class="section-number-3">19.2</span> Principle</h3>
+<div id="outline-container-org2d47564" class="outline-3">
+<h3 id="org2d47564"><span class="section-number-3">19.2</span> Principle</h3>
 <div class="outline-text-3" id="text-19-2">
 <p>
 The basic principle of Ragnarok is co-routine. And these co-routines are implemented with <a href="https://en.wikipedia.org/wiki/Delimited_continuation">delimited continuations</a>.
@@ -2883,7 +2918,7 @@ regular full continuation is that it could be delimited for fine granularity rat
 </p>
 
 <p>
-For reaserchers, there's a paper published on ICFP Schemeworkshop2016 to explain the principle and the design of GNU Artanis.
+For reaserchers, there is a paper published on ICFP Schemeworkshop2016 to explain the principle and the design of GNU Artanis.
 <a href="https://github.com/NalaGinrut/artanis/raw/gh-pages/research/scheme16/art2016.pdf">Multi-purpose web framework design based on websockets over HTTP Gateway</a>.
 </p>
 
@@ -2893,8 +2928,8 @@ For reaserchers, there's a paper published on ICFP Schemeworkshop2016 to explain
 </div>
 </div>
 
-<div id="outline-container-orgd3c35f7" class="outline-3">
-<h3 id="orgd3c35f7"><span class="section-number-3">19.3</span> Features</h3>
+<div id="outline-container-org4a81e26" class="outline-3">
+<h3 id="org4a81e26"><span class="section-number-3">19.3</span> Features</h3>
 <div class="outline-text-3" id="text-19-3">
 <p>
 In Artanis, the request handling could be scheduled when the socket buffer is full (depends on server.bufsize).
@@ -2919,8 +2954,8 @@ dispatched by the Linux kernel.
 </div>
 </div>
 
-<div id="outline-container-orgb5afc49" class="outline-3">
-<h3 id="orgb5afc49"><span class="section-number-3">19.4</span> APIs</h3>
+<div id="outline-container-org13d872d" class="outline-3">
+<h3 id="org13d872d"><span class="section-number-3">19.4</span> APIs</h3>
 <div class="outline-text-3" id="text-19-4">
 <p>
 You may use these APIs for customizing your own server core.
@@ -2929,15 +2964,15 @@ You may use these APIs for customizing your own server core.
 </div>
 </div>
 </div>
-<div id="outline-container-org6fd8080" class="outline-2">
-<h2 id="org6fd8080"><span class="section-number-2">20</span> Utils</h2>
+<div id="outline-container-org700287b" class="outline-2">
+<h2 id="org700287b"><span class="section-number-2">20</span> Utils</h2>
 <div class="outline-text-2" id="text-20">
 <p>
 <b>The functions introduced here requires to import (artanis utils) module.</b>
 </p>
 </div>
-<div id="outline-container-orgd3667b7" class="outline-3">
-<h3 id="orgd3667b7"><span class="section-number-3">20.1</span> String Template</h3>
+<div id="outline-container-orgcd07945" class="outline-3">
+<h3 id="orgcd07945"><span class="section-number-3">20.1</span> String Template</h3>
 <div class="outline-text-3" id="text-20-1">
 <p>
 GNU Artanis provides Python3-like template strings:
@@ -2970,8 +3005,8 @@ For an example:
 </div>
 </div>
 </div>
-<div id="outline-container-org8e7164b" class="outline-3">
-<h3 id="org8e7164b"><span class="section-number-3">20.2</span> Random Number Generator</h3>
+<div id="outline-container-org5e810d8" class="outline-3">
+<h3 id="org5e810d8"><span class="section-number-3">20.2</span> Random Number Generator</h3>
 <div class="outline-text-3" id="text-20-2">
 <p>
 Get random number string from <code>/dev/urandom</code>.
@@ -2982,8 +3017,8 @@ Get random number string from <code>/dev/urandom</code>.
 </div>
 </div>
 </div>
-<div id="outline-container-orga0aaa1d" class="outline-3">
-<h3 id="orga0aaa1d"><span class="section-number-3">20.3</span> Cryptographic hash functions</h3>
+<div id="outline-container-orge61c4c2" class="outline-3">
+<h3 id="orge61c4c2"><span class="section-number-3">20.3</span> Cryptographic hash functions</h3>
 <div class="outline-text-3" id="text-20-3">
 <div class="org-src-container">
 <pre class="src src-scheme"><span style="color: #66cdaa;">;; </span><span style="color: #66cdaa;">hash a string with MD5</span>
@@ -2994,8 +3029,8 @@ Get random number string from <code>/dev/urandom</code>.
 </div>
 </div>
 </div>
-<div id="outline-container-orgebef420" class="outline-3">
-<h3 id="orgebef420"><span class="section-number-3">20.4</span> Stack &amp; Queue</h3>
+<div id="outline-container-org129bc21" class="outline-3">
+<h3 id="org129bc21"><span class="section-number-3">20.4</span> Stack &amp; Queue</h3>
 <div class="outline-text-3" id="text-20-4">
 <p>
 GNU Artanis provides simple interfaces for stack &amp; queue:
@@ -3021,8 +3056,8 @@ GNU Artanis provides simple interfaces for stack &amp; queue:
 </div>
 </div>
 </div>
-<div id="outline-container-org74eb102" class="outline-3">
-<h3 id="org74eb102"><span class="section-number-3">20.5</span> Useful string operation</h3>
+<div id="outline-container-orgd8027b3" class="outline-3">
+<h3 id="orgd8027b3"><span class="section-number-3">20.5</span> Useful string operation</h3>
 <div class="outline-text-3" id="text-20-5">
 <p>
 If you want to get all contents in string from a file,
@@ -3041,8 +3076,8 @@ from rnrs.
 </div>
 </div>
 </div>
-<div id="outline-container-org7b4ed3b" class="outline-2">
-<h2 id="org7b4ed3b"><span class="section-number-2">21</span> Debug mode</h2>
+<div id="outline-container-orgf67d9f7" class="outline-2">
+<h2 id="orgf67d9f7"><span class="section-number-2">21</span> Debug mode</h2>
 <div class="outline-text-2" id="text-21">
 <p>
 GNU Artanis provides debug-mode for more convenient debug. You may enable it easy.
@@ -3073,7 +3108,7 @@ on the fly.
 </p>
 
 <p>
-If <b><i>not</i></b>, you have to Ctrl+C to quit GNU Artanis server and start it again. This saves your time.
+If <b><i>not</i></b>, you have to press Ctrl+C to quit GNU Artanis server and start it again. This saves time.
 </p>
 
 <p>
@@ -3089,8 +3124,8 @@ the paths here:
 </div>
 
 
-<div id="outline-container-org8f22507" class="outline-2">
-<h2 id="org8f22507"><span class="section-number-2">22</span> Appendix A GNU Free Documentation License</h2>
+<div id="outline-container-org725c208" class="outline-2">
+<h2 id="org725c208"><span class="section-number-2">22</span> Appendix A GNU Free Documentation License</h2>
 <div class="outline-text-2" id="text-22">
 <p>
 Version 1.3, 3 November 2008
@@ -3341,7 +3376,7 @@ If your document contains nontrivial examples of program code, we recommend rele
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Mu Lei known as NalaGinrut</p>
-<p class="date">Created: 2017-05-13 Sat 04:00</p>
+<p class="date">Created: 2017-05-15 Mon 14:17</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
 </body>

@@ -116,14 +116,16 @@ A configuration file is required when Artanis is run for the first time.
 + If you're using application folder, the configure file src_conf[:exports code]{conf/artanis.conf} will be generated automatically for you.
 ** Database config 
 #+BEGIN_SRC conf
-db.enable = enable | disable
+db.enable = <boolean>
 #+END_SRC
 + Whether to use database, if disabled, the database won't be initialized in the beginning, which saves memory and boot time.
-
++ Some users may want to use GNU Artanis without configuring any databases, so please set it to false to avoid error.
+ 
 #+BEGIN_SRC conf
 db.dbd = mysql | postgresql | sqlite3
 #+END_SRC
 + What database server should be used, depends on the database installed on your machine.
++ NOTE: If you use MariaDB then you should set it to mysql as well.
 
 #+BEGIN_SRC conf
 db.proto = tcp | socketfile
@@ -410,6 +412,7 @@ GNU Artanis supports mysql/postgresql/sqlite3, we use mysql as a example here.
 Please ensure that your DB service was started before you try.
 
 */If you encounter any problems, please check your config of DB first./* 
+
 You can use a DB (such as mysql) with GUI tools such as "adminer" prior and independent of running an web-server, e.g. artanis-based.
 #+begin_src scheme
 (use-modules (artanis artanis))
@@ -529,8 +532,10 @@ This is the simplest case to run a site:
 ** Initialization
 It's better to use (init-server) to init GNU Artanis.
 #+begin_src scheme
-(init-server #:statics '(png jpg jpeg ico html js css) #:cache-statics? #f #:exclude '())
+(init-server #:statics '(png jpg jpeg ico html js css)
+             #:cache-statics? #f #:exclude '())
 #+end_src
+
 src_scheme[:exports code]{#:statics} specifies the static files with the extension file. GNU Artanis is based on URL remapping, so this keyword let you avoid to handle each static file types. In default, it covers the most static file types. So you may ignore it usually.
 
 src_scheme[:exports code]{#:cache-statics?} indicates if the static files should be cached.
@@ -587,7 +592,8 @@ src_scheme[:exports code]{#:db-name} specify DB name.
 ** Working with Nginx
 You may try GNU Artanis+Nginx with so-called reverse proxy. 
 
-*/I would recommend you use Nginx as the front server, since GNU Artanis hasn't done its own async server-core which will be based on delimited-continuations. The current server has some caveats, in spite of the performance, you may suffer from slow-header-ddos if you use GNU Artanis to serv you site directly. But it's fine when you use Nginx in front of GNU Artanis./*
+*/Although GNU Artanis has good server core, I would recommend you use Nginx as the front server. In addition to the performance,
+ GNU Artanis hasn't prepared for many security things. But if you use Ngxin with reverse-proxy, then it'll be easier to be safer./*
 
 For example, you may add these lines to your /etc/nginx/nginx.conf:
 
@@ -684,7 +690,7 @@ Options:
   -g, [--debug]                  # Debug mode
                                    Default: disable
   -s, [--server=SERVER]          # Specify server core
-                                   Default: inner (Guile built-in server)
+                                   Default: Ragnarok (New server core since 0.2)
   --help                         # Show this screen
 #+end_src
 * MVC
@@ -1010,7 +1016,8 @@ FPRM stands for Functional Programming Relational Mapping. It's a new word I inv
 (connect-db dbd init-str)
 
 ;; usage 2:
-(connect-db dbd #:db-name "artanis" #:db-username "root" #:db-passwd "" #:proto "tcp" #:host "localhost" #:port 3306) 
+(connect-db dbd #:db-name "artanis" #:db-username "root" #:db-passwd ""
+                #:proto "tcp" #:host "localhost" #:port 3306) 
 #+end_src
 
 + *dbd* is a string, could be "mysql", "postgresql", and "sqlite3".
@@ -1081,7 +1088,8 @@ map-table-from-DB returns a function, we named it *m* here for explaining.
 + src_scheme[:exports code]{#:engine} specifies the engine, depends on the dbd you chosen.
 *** Get columns from table
 #+begin_src scheme
-(m 'get table-name #:columns '(*) #:functions '() #:ret 'all #:group-by #f #:order-by #f)
+(m 'get table-name #:columns '(*) #:functions '() #:ret 'all
+                   #:group-by #f #:order-by #f)
 #+end_src
 
 + src_scheme[:exports code]{#:column} is the columns list you wanted.
@@ -1165,8 +1173,10 @@ For example:
 #+begin_src scheme
 (define my-json
   (json (object ("name" "nala") ("age" 15)
-                ("read_list" (object ("book1" "The interpreter and structure of Artanis")
-                                     ("book2" "The art of Artanis programming"))))))
+                ("read_list"
+                 (object
+                  ("book1" "The interpreter and structure of Artanis")
+                  ("book2" "The art of Artanis programming"))))))
 (scm->json my-json) ; scm->json will print json
 ;; ==> {"name" : "nala",
 ;;      "age" : 15,
@@ -1189,8 +1199,19 @@ In Scheme, XML is handled with SXML. Another way is to use strings appending met
 #+begin_src scheme
 (get "/xml" #:mime 'xml
   (lambda (rc)
-    (:mime rc '(*TOP* (WEIGHT (@ (unit "pound")) (NET (@ (certified "certified")) "67") (GROSS "95"))))))
+    (:mime rc '(*TOP* (WEIGHT (@ (unit "pound"))
+                              (NET (@ (certified "certified")) "67")
+                              (GROSS "95"))))))
 #+end_src
+
+The rendered result to the client will be:
+#+begin_src xml
+<WEIGHT unit="pound">
+ <NET certified="certified">67</NET>
+ <GROSS>95</GROSS>
+</WEIGHT>
+#+end_src
+
 ** SXML
 You can use SXML to replace XML for exchanging data format. This way saves some bandwidth.
 #+begin_src scheme
@@ -1288,7 +1309,8 @@ And the APIs:
 
 (:cookies-ref rc cookie-name key)
 
-(:cookies-setattr! rc cookie-name #:expir #f #:domain #f #:path #f #:secure #f #:http-only #f)
+(:cookies-setattr! rc cookie-name #:expir #f #:domain #f
+                   #:path #f #:secure #f #:http-only #f)
 
 (:cookies-remove! rc key) ; remove cookie from client
 
@@ -1338,15 +1360,22 @@ Available crypto-proc helper functions listed here:
 + (string->md5 str)
 + (string->sha-1 str)
 ** Basic Authentication
-HTTP Basic authentication (BA) implementation is the simplest technique for enforcing access controls to web resources because it doesn't require cookies, session identifier and login pages. Rather, HTTP Basic authentication uses static, standard HTTP headers which means that no handshakes have to be done in anticipation.
+HTTP Basic authentication (BA) implementation is the simplest technique for enforcing access controls
+to web resources because it doesn't require cookies, session identifier and login pages. Rather, HTTP
+Basic authentication uses static, standard HTTP headers which means that no handshakes have to be done
+in anticipation.
 
-The BA mechanism provides no confidentiality protection for the transmitted credentials. They are merely encoded with Base64 in transit, but not encrypted or hashed in any way. Basic Authentication is, therefore, typically used over HTTPS.
+The BA mechanism provides no confidentiality protection for the transmitted credentials. They are merely
+encoded with Base64 in transit, but not encrypted or hashed in any way. Basic Authentication is, therefore,
+typically used over HTTPS.
 
 /*GNU Artanis doesn't support HTTPS at present, it is planned to support it in the future.*/
 
 Let's see a simple example:
 #+begin_src scheme
-(get "/bauth" #:auth `(basic ,(lambda (rc u p) (and (string=? u "mmr") (string=? p "123"))))
+(get "/bauth" #:auth `(basic ,(lambda (rc u p)
+                               (and (string=? u "mmr")
+                                    (string=? p "123"))))
   (lambda (rc) 
     (if (:auth rc)
         "auth ok"
@@ -1418,8 +1447,9 @@ If you want to cache a static file, and permit proxies cache the content:
 But, if your current URL rule is used for authentication (once you use src_scheme[:exports code]{#:auth}), the cache will be changed to *private* even if you specify *public*.
 #+begin_src scheme
 (get "/pauth"
-  #:auth `(basic ,(lambda (rc u p) (and (string=? u "nala") (string=? p "123"))))
-  #:cache '(public "pub/some.html") ; will be changed to 'private' automatically.
+  #:auth `(basic ,(lambda (rc u p) (and (string=? u "nala")
+                                        (string=? p "123"))))
+  #:cache '(public "pub/some.html") ; will be changed to 'private' forcely.
   (lambda (rc) (:cache rc)))
 #+end_src
 * Ragnarok server core
