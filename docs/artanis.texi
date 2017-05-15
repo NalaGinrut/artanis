@@ -26,7 +26,7 @@
 * Installation::
 * Configuration::
 * Hello World::
-* Basic in Scheme::
+* Basics of Scheme::
 * Basic in GNU Artanis::
 * The Art command line::
 * MVC::
@@ -85,7 +85,7 @@ Hello World
 
 
 
-Basic in Scheme
+Basics of Scheme
 
 * For newbies::
 * For Pythonistas::
@@ -253,7 +253,7 @@ In this manual the following syntax is used to demonstrate the use of the API:
 @example
 (api-name arg1 arg2 #:key0 val0 ... [optional-arg1 <- default-value1] ...)
 @end example
-If you are new to Scheme, it is recommended that you read the @ref{Basic in Scheme,Basic in Scheme} chapter first.
+If you are new to Scheme, it is recommended that you read the [BROKEN LINK: nil] chapter first.
 
 @node No warranty
 @section No warranty
@@ -369,11 +369,13 @@ If you're using application folder, the configure file @verb{~conf/artanis.conf~
 @section Database config
 
 @example
-db.enable = enable | disable
+db.enable = <boolean>
 @end example
 @itemize
 @item
 Whether to use database, if disabled, the database won't be initialized in the beginning, which saves memory and boot time.
+@item
+Some users may want to use GNU Artanis without configuring any databases, so please set it to false to avoid error.
 @end itemize
 
 @example
@@ -382,6 +384,8 @@ db.dbd = mysql | postgresql | sqlite3
 @itemize
 @item
 What database server should be used, depends on the database installed on your machine.
+@item
+NOTE: If you use MariaDB then you should set it to mysql as well.
 @end itemize
 
 @example
@@ -741,7 +745,7 @@ Run this code in your console:
 @example
 guile -c "(use-modules (artanis artanis))(init-server)(run)"
 ## You'll see this screen:
-Anytime you want to Quit just try Ctrl+C, thanks!
+Anytime you want to quit just try Ctrl+C, thanks!
 http://127.0.0.1:3000
 @end example
 
@@ -758,11 +762,11 @@ Type these code in Guile REPL:
 (run #:port 8080)
 @end example
 
-Now you can visit @uref{http://localhost:8080/hello} with your browser, and see the result.
+Now you can visit @uref{http://localhost:8080/hello} with your browser, and (hopefully) see the result.
 
-@emph{If you encounter "[EXCEPTION] /favicon.ico is abnormal request", please just ignore it.}
+@emph{If you encounter "[EXCEPTION] /favicon.ico is abnormal request", please just ignore that warning.}
 
-Let me explain these code.
+Let me explain the code:
 
 @itemize
 @item
@@ -772,21 +776,23 @@ Let me explain these code.
 
 @itemize
 @item
-@emph{line 2:} The first argument @emph{get} is GNU Artanis API corresponding to GET method in HTTP protocol.
-The second argument "/hello" is the URL rule to register.
-The Third argument is the handler which will be triggered if the registered URL rule is hit.
+@emph{line 2:} The first argument @emph{get} is GNU Artanis' API correspondence to the GET method of the HTTP protocol.
+The second argument "/hello" is the URL rule to register showing in the address line of e.g. firefox.
+The third argument is the handler which will be triggered if the registered URL rule is hit.
 
 @item
-@emph{line 3:} Run GNU Artanis server, and listening socket port 8080.
+@emph{line 3:} Run the GNU Artanis web server, and listen on socket port 8080.
 @end itemize
 
-You may type Ctrl+C to quit the server according to the hint from your screen.
+You may type Ctrl+C to quit and stop the server, see also the message printed on the screen accordingly.
 
 @node More complex URL remapping
 @section More complex URL remapping
 
 Try this code:
 @example
+(use-modules (artanis artanis))
+(init-server)
 (get "/hello/:who"
   (lambda (rc)
     (format #f "<p>hello ~a</p> " (params rc "who"))))
@@ -795,16 +801,16 @@ Try this code:
 
 Now you can try @uref{http://localhost:8080/hello/artanis} in your browser.
 
-There're two differences:
+There are two differences:
 @itemize
 @item
 1. The special rule, "@verb{~/hello/:who~}", @emph{:who} means you can use @emph{params} to reference the value of this section of URL with the key "who". @verb{~(params rc "who")~} is the way for that.
 
 @item
-2. You may notice that the handler defined as an anonymous function with @emph{lambda} has one argument @emph{rc}. It means @emph{route context} which preserve all the related context information. Many GNU Artanis APIs need it, say, @emph{params}.
+2. You may have noticed that the handler is being defined as an anonymous function with @emph{lambda} has one argument @emph{rc}. It means @emph{route context} which preserves all the related context information. Many GNU Artanis APIs need it, e.g.  @emph{params}.
 @end itemize
 
-And @emph{format} is a Scheme lib function. It is similar to @emph{sprintf} in C language, which outputs with a formatted pattern.
+And @emph{format} is a Scheme lib function. It is similar to @emph{sprintf} in the C language, which outputs text with a formatted pattern.
 The second argument #f (means FALSE) indicates that returning the result as string type rather than printing out.
 
 @node Regex in URL remapping
@@ -812,7 +818,10 @@ The second argument #f (means FALSE) indicates that returning the result as stri
 
 You can use regex in the URL rule.
 @example
+(use-modules (artanis artanis))
+(init-server)
 (get "/.+\\.(png|gif|jpeg)" static-page-emitter)
+(run #:port 8080)
 @end example
 
 @emph{static-page-emitter} is an GNU Artanis API which emits a static file (images, data files) to the client.
@@ -824,10 +833,12 @@ GNU Artanis supports mysql/postgresql/sqlite3, we use mysql as a example here.
 
 Please ensure that your DB service was started before you try.
 
-@strong{@emph{If you encountered any problems, please check your config of DB first.}} 
-You can use DB without running a server.
+@strong{@emph{If you encounter any problems, please check your config of DB first.}} 
+
+You can use a DB (such as mysql) with GUI tools such as "adminer" prior and independent of running an web-server, e.g. artanis-based.
 @example
-(use-module (artanis artanis))
+(use-modules (artanis artanis))
+(init-server)
 (define conn (connect-db 'mysql #:db-username "your_db_username"
                          #:db-name "your_db_name" #:db-passwd "your_passwd"))
 (define mtable (map-table-from-DB conn))
@@ -858,7 +869,7 @@ And we can use @emph{mtable} to handle tables, you can get values from table wit
 
 @itemize
 @item
-The second argument of @emph{mtable} is the name of the table as you guess. Please note that it's case sensitive. But the columns name could be case insensitive.
+The second argument of @emph{mtable} is the name of the table as you guess. Please note that it is case sensitive. But the column name could be case insensitive.
 @end itemize
 
 
@@ -881,9 +892,9 @@ Of course, you can use DB in your web application.
      #:db-name "your_db_name" #:db-passwd "your_passwd" #:port 8080)
 @end example
 
-Now, try @uref{http://localhost:8080/dbtest} in your browser.
+Now, try loading @uref{http://localhost:8080/dbtest} in your browser.
 
-Here're some explains:
+Here are some explanations:
 @itemize
 @item
 The keyword-value pair @verb{~#:conn #t~} means applying for a DB connection from connection-pool.
@@ -896,13 +907,13 @@ convert the query result to string, for this naive example case.
 
 @emph{Exercise: Return a beautiful table in HTML rather than using object->string.}
 
-@node Basic in Scheme
-@chapter Basic in Scheme
+@node Basics of Scheme
+@chapter Basics of Scheme
 
 This chapter introduces some useful documents to help you understand Scheme language well.
 Feel free to come back here if you have any problem with Scheme syntax.
 
-If any possible, read them again and again.
+If expedient, read the section repeatedly.
 
 Scheme was introduced in 1975 by Gerald J. Sussman and Guy L. Steele Jr. and was the first dialect of Lisp to fully support lexical scoping,
 first-class procedures, and continuations. In its earliest form it was a small language intended primarily for research and teaching,
@@ -921,9 +932,9 @@ native code in the future.
 @node For newbies
 @section For newbies
 
-If you're not familiar with Guile Scheme, here's a simplest tutorial for you.
+If you're not familiar with Scheme and Guile in particular, here is a simple tutorial for you.
 
-If you know basics of Scheme language, please skip this section.
+If you already know the basics of the Scheme language, please feel free to skip this section.
 
 I would recommend newbies to type/paste the code in Guile REPL following the guide in tutorial: 
 @uref{http://web-artanis.com/scheme.html,Learn Scheme in 15 minutes}
@@ -936,7 +947,7 @@ Please don't spend too much time on these tutorials, the purpose is to let newbi
 @node For Pythonistas
 @section For Pythonistas
 
-These are good articles for Pythoners:
+These are good pythonic articles for Pythoners:
 
 @enumerate
 @item
@@ -968,11 +979,11 @@ These two books are very good for learning Scheme seriously:
 @uref{http://mitpress.mit.edu/sicp/,Structure and Interpretation of Computer Programs(SICP)}
 @end enumerate
 
-Please don't read them if you just want to use GNU Artanis to build your web application/site in few minutes.
+Please don't bother reading them if you simply want to use GNU Artanis to build your web application/site in few minutes.
 
-If you really want to try these books seriously, please ignore GNU Artanis before you done them.
+And if you really want to try to work these books seriously, please ignore GNU Artanis before you are done with them.
 
-But once you've done them @strong{carefully}, you may want to write a new GNU Artanis all by yourself.
+But once you're done reading them @strong{carefully}, you may want to write a new GNU Artanis all by yourself!
 
 Hold your horses. ;-)
 
@@ -1006,8 +1017,10 @@ This is the simplest case to run a site:
 
 It's better to use (init-server) to init GNU Artanis.
 @example
-(init-server #:statics '(png jpg jpeg ico html js css) #:cache-statics? #f #:exclude '())
+(init-server #:statics '(png jpg jpeg ico html js css)
+             #:cache-statics? #f #:exclude '())
 @end example
+
 @verb{~#:statics~} specifies the static files with the extension file. GNU Artanis is based on URL remapping, so this keyword let you avoid to handle each static file types. In default, it covers the most static file types. So you may ignore it usually.
 
 @verb{~#:cache-statics?~} indicates if the static files should be cached.
@@ -1075,7 +1088,8 @@ But you can specify them as will.
 
 You may try GNU Artanis+Nginx with so-called reverse proxy. 
 
-@strong{@emph{I would recommend you use Nginx as the front server, since GNU Artanis hasn't done its own async server-core which will be based on delimited-continuations. The current server has some caveats, in spite of the performance, you may suffer from slow-header-ddos if you use GNU Artanis to serv you site directly. But it's fine when you use Nginx in front of GNU Artanis.}}
+@strong{@emph{Although GNU Artanis has good server core, I would recommend you use Nginx as the front server. In addition to the performance,
+ GNU Artanis hasn't prepared for many security things. But if you use Ngxin with reverse-proxy, then it'll be easier to be safer.}}
 
 For example, you may add these lines to your /etc/nginx/nginx.conf:
 
@@ -1194,7 +1208,7 @@ Options:
   -g, [--debug]                  # Debug mode
                                    Default: disable
   -s, [--server=SERVER]          # Specify server core
-                                   Default: inner (Guile built-in server)
+                                   Default: Ragnarok (New server core since 0.2)
   --help                         # Show this screen
 @end example
 
@@ -1286,16 +1300,16 @@ It's largely used in modern WAF(web application framework) to provide RESTful we
 @node URL handling
 @section URL handling
 
-According to RFC2616, there're GET, POST, PUT, PATCH and DELETE methods. You may register handler for specified URL rule to these methods.
+According to RFC2616, there are GET, POST, PUT, PATCH and DELETE methods. You may register handler for specified URL rule to these methods.
 
-@emph{There would be HEAD method, but in GNU Artanis, HEAD method is handled by the server, users can't use it.}
+@emph{There would be a HEAD method, but in GNU Artanis, the HEAD method is handled by the server, so users can not use it.}
 
 The usage:
 @example
 (method rule handler)
 @end example
 
-And the handler could be two types, depends on your need:
+And the handler could be one of two types, depending on your needs:
 @example
 (lambda ()
   ...
@@ -1369,7 +1383,7 @@ If you're familiar with Django, which implemented a DSL(Domain Specific Language
 
 In templating of GNU Artanis, it's simply embedded Scheme code into HTML. Why? Because of the philosophy of FP(Functional Programming), everything could be a function. So obviously, @verb{~(filesizeformat size)~} is enough for understanding, and it's just simple function calling in prefix-notation. There's no need to implement DSL like @verb{~size|filesizeformat~} to increase the complexity of code. Let alone the syntax is very different from Python.
 
-The syntax like @verb{~size|filesizeformat~} is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme(functional programming), and the paradigm of Python(imperative programming).
+The syntax like @verb{~size|filesizeformat~} is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme (functional programming), and the paradigm of Python (imperative programming).
 
 The philosophy of GNU Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce the unnecessary complexities. @uref{http://en.wikipedia.org/wiki/KISS_principle,KISS}.
 
@@ -1424,7 +1438,7 @@ Write a tpl file named "my.tpl":
 </html>
 @end example
 
-Of course, the ext filename ".tpl" is trivial, you may name it whatever you like.
+The filename extension ".tpl" - for template - is arbitrary, you can name it whatever you like.
 
 @example
 (get "/test"
@@ -1590,10 +1604,10 @@ And here're some known ways for trying to solve the problems of ORM:
 
 @itemize
 @item
-7. @strong{@emph{Stateless}}. This is the critical hit to complexity and unreliability.
+7. @strong{@emph{Stateless}}. This is the critical hit to counter complexity and unreliability.
 @end itemize
 
-Basically, GNU Artanis has no ORM yet, and maybe never. GNU Artanis is trying to experiment new ways to solve the problems of ORM.
+Basically, GNU Artanis has no ORM yet, and maybe never will. GNU Artanis is trying to experiment new ways to solve the problems of ORM.
 
 GNU Artanis provides three ways to complete this mission. All of them, are @strong{experimental} at present.
 
@@ -1654,7 +1668,8 @@ FPRM stands for Functional Programming Relational Mapping. It's a new word I inv
 (connect-db dbd init-str)
 
 ;; usage 2:
-(connect-db dbd #:db-name "artanis" #:db-username "root" #:db-passwd "" #:proto "tcp" #:host "localhost" #:port 3306)
+(connect-db dbd #:db-name "artanis" #:db-username "root" #:db-passwd ""
+                #:proto "tcp" #:host "localhost" #:port 3306)
 @end example
 
 @itemize
@@ -1781,7 +1796,8 @@ map-table-from-DB returns a function, we named it @strong{m} here for explaining
 @subsection Get columns from table
 
 @example
-(m 'get table-name #:columns '(*) #:functions '() #:ret 'all #:group-by #f #:order-by #f)
+(m 'get table-name #:columns '(*) #:functions '() #:ret 'all
+                   #:group-by #f #:order-by #f)
 @end example
 
 @itemize
@@ -1912,8 +1928,10 @@ For example:
 @example
 (define my-json
   (json (object ("name" "nala") ("age" 15)
-                ("read_list" (object ("book1" "The interpreter and structure of Artanis")
-                                     ("book2" "The art of Artanis programming"))))))
+                ("read_list"
+                 (object
+                  ("book1" "The interpreter and structure of Artanis")
+                  ("book2" "The art of Artanis programming"))))))
 (scm->json my-json) ; scm->json will print json
 ;; ==> @{"name" : "nala",
 ;;      "age" : 15,
@@ -1942,7 +1960,17 @@ In Scheme, XML is handled with SXML. Another way is to use strings appending met
 @example
 (get "/xml" #:mime 'xml
   (lambda (rc)
-    (:mime rc '(*TOP* (WEIGHT (@@ (unit "pound")) (NET (@@ (certified "certified")) "67") (GROSS "95"))))))
+    (:mime rc '(*TOP* (WEIGHT (@@ (unit "pound"))
+                              (NET (@@ (certified "certified")) "67")
+                              (GROSS "95"))))))
+@end example
+
+The rendered result to the client will be:
+@example
+<WEIGHT unit="pound">
+ <NET certified="certified">67</NET>
+ <GROSS>95</GROSS>
+</WEIGHT>
 @end example
 
 @node SXML
@@ -2085,14 +2113,15 @@ And the APIs:
 
 (:cookies-ref rc cookie-name key)
 
-(:cookies-setattr! rc cookie-name #:expir #f #:domain #f #:path #f #:secure #f #:http-only #f)
+(:cookies-setattr! rc cookie-name #:expir #f #:domain #f
+                   #:path #f #:secure #f #:http-only #f)
 
 (:cookies-remove! rc key) ; remove cookie from client
 
 (:cookies-update! rc) ; cookies operations won't work unless you update it
 @end example
 
-@strong{NOTE}: You don't have to call @verb{~:cookies-update!~} yourself, since it'll be called automatically by the hook before response.
+@strong{NOTE}: You don't have to call @verb{~:cookies-update!~} yourself, since it will be called automatically by the hook before the response.
 
 For example:
 @example
@@ -2160,15 +2189,22 @@ Available crypto-proc helper functions listed here:
 @node Basic Authentication
 @section Basic Authentication
 
-HTTP Basic authentication (BA) implementation is the simplest technique for enforcing access controls to web resources because it doesn't require cookies, session identifier and login pages. Rather, HTTP Basic authentication uses static, standard HTTP headers which means that no handshakes have to be done in anticipation.
+HTTP Basic authentication (BA) implementation is the simplest technique for enforcing access controls
+to web resources because it doesn't require cookies, session identifier and login pages. Rather, HTTP
+Basic authentication uses static, standard HTTP headers which means that no handshakes have to be done
+in anticipation.
 
-The BA mechanism provides no confidentiality protection for the transmitted credentials. They are merely encoded with Base64 in transit, but not encrypted or hashed in any way. Basic Authentication is, therefore, typically used over HTTPS.
+The BA mechanism provides no confidentiality protection for the transmitted credentials. They are merely
+encoded with Base64 in transit, but not encrypted or hashed in any way. Basic Authentication is, therefore,
+typically used over HTTPS.
 
-@emph{@strong{GNU Artanis doesn't support HTTPS at present, it's planned to support it in the future.}}
+@emph{@strong{GNU Artanis doesn't support HTTPS at present, it is planned to support it in the future.}}
 
 Let's see a simple example:
 @example
-(get "/bauth" #:auth `(basic ,(lambda (rc u p) (and (string=? u "mmr") (string=? p "123"))))
+(get "/bauth" #:auth `(basic ,(lambda (rc u p)
+                               (and (string=? u "mmr")
+                                    (string=? p "123"))))
   (lambda (rc) 
     (if (:auth rc)
         "auth ok"
@@ -2189,7 +2225,7 @@ APIs:
 @node Common Authentication
 @section Common Authentication
 
-Actually, there're various authentication methods could be used by developers. Most of them are sort of tricky hacks. Here, we only introduce the most common way.
+Actually, there are multiple authentication methods that can be used by developers. Most of them are sort of tricky hacks. Here we only introduce the most common way.
 
 The most common and relative safe way for authentication is to use POST method. And check username and passwd from a table in DB.
 
@@ -2218,8 +2254,8 @@ Here is a simple example:
 @node On web caching
 @section On web caching
 
-Web caching is very important nowadays. This section raises a discussion on proper web
-caching. It couldn't be guide for product. But may help you to understand how to use
+Web caching is very important nowadays. This section discusses proper web
+caching. It is not a full product guide document, but may help to understand how to 
 cache in GNU Artanis.
 
 (to be continued@dots{})
@@ -2268,8 +2304,9 @@ If you want to cache a static file, and permit proxies cache the content:
 But, if your current URL rule is used for authentication (once you use @verb{~#:auth~}), the cache will be changed to @strong{private} even if you specify @strong{public}.
 @example
 (get "/pauth"
-  #:auth `(basic ,(lambda (rc u p) (and (string=? u "nala") (string=? p "123"))))
-  #:cache '(public "pub/some.html") ; will be changed to 'private' automatically.
+  #:auth `(basic ,(lambda (rc u p) (and (string=? u "nala")
+                                        (string=? p "123"))))
+  #:cache '(public "pub/some.html") ; will be changed to 'private' forcely.
   (lambda (rc) (:cache rc)))
 @end example
 
@@ -2286,9 +2323,9 @@ But, if your current URL rule is used for authentication (once you use @verb{~#:
 @node Introductionx
 @section Introduction
 
-Since 0.2, GNU Artanis has a strong server core for high concurrent. It is named Ragnarok.
-In the philosophy of design in GNU Artanis, everything inclined to be flexible and customizable.
-So the server core is customizable, if someone thought Ragnarok is not good enough.
+Since 0.2, GNU Artanis has a strong server core for high concurrency. It is named Ragnarok.
+In the philosophy of the design of GNU Artanis, everything is meant to be flexible and customizable.
+So the server core is customizable, in case someone thought Ragnarok is not good enough yet.
 
 Ragnarok doesn't use any popular library for handling events (libev/libuv etc @dots{}).
 It's a brand new server core based on epoll and @uref{https://en.wikipedia.org/wiki/Delimited_continuation,delimited continuations}.
@@ -2301,7 +2338,7 @@ Actually, there's no kernel controlled threads (say, pthread) in Ragnarok. All t
 an userland scheduler, and the task is nothing but just a special continuation. The difference between it and
 regular full continuation is that it could be delimited for fine granularity rather than capture the whole stack.
 
-For reaserchers, there's a paper published on ICFP Schemeworkshop2016 to explain the principle and the design of GNU Artanis.
+For reaserchers, there is a paper published on ICFP Schemeworkshop2016 to explain the principle and the design of GNU Artanis.
 @uref{https://github.com/NalaGinrut/artanis/raw/gh-pages/research/scheme16/art2016.pdf,Multi-purpose web framework design based on websockets over HTTP Gateway}.
 
 (to be continued @dots{})
@@ -2447,7 +2484,7 @@ art work -g
 When you enabled debug-mode, the Model and Controller modules written by you will be reloaded automatically
 on the fly.
 
-If @strong{@emph{not}}, you have to Ctrl+C to quit GNU Artanis server and start it again. This saves your time.
+If @strong{@emph{not}}, you have to press Ctrl+C to quit GNU Artanis server and start it again. This saves time.
 
 And you may add paths to monitor certain files (for an instance, JSON as config file to be reloaded on the fly)
 if you want to be notified when they're changed. Just put
