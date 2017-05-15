@@ -153,7 +153,7 @@ Options:
   -g, [--debug]                  # Debug mode
                                    Default: disable
   -s, [--server=SERVER]          # Specify server core
-                                   Default: inner (Guile built-in server)
+                                   Default: Ragnarok (New server core since 0.2)
   --help                         # Show this screen
 ")
 
