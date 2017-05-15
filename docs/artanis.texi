@@ -842,7 +842,10 @@ You can use a DB (such as mysql) with GUI tools such as "adminer" prior and inde
 (define conn (connect-db 'mysql #:db-username "your_db_username"
                          #:db-name "your_db_name" #:db-passwd "your_passwd"))
 (define mtable (map-table-from-DB conn))
-((mtable 'create 'Persons '((name varchar 10) (age integer) (email varchar 20))) 'valid?)
+((mtable 'create 'Persons '((name varchar 10)
+                            (age integer)
+                            (email varchar 20)))
+ 'valid?)
 ;; ==> #t
 (mtable 'set 'Persons #:name "nala" #:age 99 #:email "nala@@artanis.com")
 (mtable 'get 'Persons #:columns '(name email))
