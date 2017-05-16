@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015
+;;  Copyright (C) 2013,2014,2015,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -136,7 +136,7 @@
 
 (define (cookie-ref cookie name)
   (when (not (cookie? cookie))
-    (throw 'artanis-err 500 cookie-ref "BUG: Invalid cookie!" cookie))
+   (throw 'artanis-err 500 cookie-ref "BUG: Invalid cookie: ~a!" cookie))
   (let ((nvp (cookie-nvp cookie)))
     (assoc-ref nvp name)))
 
