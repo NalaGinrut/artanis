@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016
+;;  Copyright (C) 2013,2014,2015,2016,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -188,7 +188,7 @@
    ((backend:session-restore/simple sb sid)
     => (lambda (ss) (hash-set! ss k v)))
    (else
-    (throw 'artanis-err 500
+    (throw 'artanis-err 500 backend:session-restore/simple
      (format #f "Session id (~a) doesn't hit anything!~%" sid)))))
 
 (define (backend:session-ref/simple sb sid k)
@@ -196,7 +196,7 @@
    ((backend:session-restore/simple sb sid)
     => (lambda (ss) (hash-ref (hash-ref ss "data") k)))
    (else
-    (throw 'artanis-err 500
+    (throw 'artanis-err 500 backend:session-ref/simple
            (format #f "Session id (~a) doesn't hit anything!~%" sid)))))
 
 (define (new-session-backend/simple)
@@ -232,7 +232,7 @@
      ((file-is-directory? path)
       (DEBUG "Session path `~a' exists, keep it for existing sessions!~%" path))
      (else
-      (throw 'artanis-err 500
+      (throw 'artanis-err 500 backend:session-init/file
              (format #f "Session path `~a' conflict with an existed file!~%"
                      path))))))
 
