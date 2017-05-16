@@ -248,9 +248,9 @@
       ((or #t 'spawn) %spawn)
       (`(spawn ,sid) (lambda (rc) (%spawn rc #:idname sid)))
       (`(spawn ,sid ,proc) (lambda (rc) (%spawn rc #:idname sid #:proc proc)))
-      (else (throw 'artanis-err 500 session-maker "Invalid config mode" mode))))
+      (else (throw 'artanis-err 500 session-maker "Invalid config mode: ~a" mode))))
   (define (check-it rc idname)
-    (let ((sid (cookie-ref (rc-cookie rc) idname)))
+    (let ((sid (any (lambda (c) (cookie-ref c idname)) (rc-cookie rc))))
       (and=> (session-restore (or sid ""))
              (lambda (s) (session-from-correct-client? s rc)))))
   (lambda (rc cmd)
@@ -262,8 +262,9 @@
       (`(check-and-spawn ,sid)
        (or (check-it rc sid) (spawn-handler rc)))
       ('spawn (spawn-handler rc))
-      (else (throw 'artanis-err 500 session-maker "Invalid call cmd" cmd)))))
+      (else (throw 'artanis-err 500 session-maker "Invalid call cmd: ~a" cmd)))))
 
+;; for #:from-post
 (define (from-post-maker mode rule keys)
   (define* (post->qstr-table rc #:optional (safe? #f))
     (if (rc-body rc)
