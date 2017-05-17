@@ -127,7 +127,7 @@
                      (path #f) (domain #f)
                      (secure #f) (http-only #t))
   (let ((e (cond ((integer? expires) (make-expires expires))
-                 (else #f)))); else #f for no expires
+                 (else #f)))) ; else #f for no expires
     (make-cookie npv e domain path secure http-only)))
     
 (define (cookie-set! cookie name value)
