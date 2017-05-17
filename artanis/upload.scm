@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015
+;;  Copyright (C) 2013,2014,2015,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -238,7 +238,7 @@
         (let ((mfd (car mfdp))
               (data (cdr mfdp))) 
           (when (not (mfd? mfd))
-            (throw 'artanis-err 500 "mfds->body: Invalid <mfd> type!" mfd))
+            (throw 'artanis-err 500 mfds->body "Invalid <mfd> type: ~a!" mfd))
           (display (mfd-dispos mfd) port)
           (put-bv port data (mfd-begin mfd) (mfd-end mfd)))
         mfdsp)
@@ -267,7 +267,7 @@
   (define-syntax-rule (->file file)
     (if (file-exists? file)
         (call-with-input-file file get-bytevector-all)
-        (throw 'artanis-err 500 "This file doesn't exist!" file)))
+        (throw 'artanis-err 500 upload-files-to "This file `~a' doesn't exist!" file)))
   (define (->mfds pattern)
     (define-syntax-rule (-> w builder)
       (if w (map builder w) '()))
@@ -284,7 +284,7 @@
                  0
                  0
                  #f))
-      (else (throw 'artanis-err 500 "build-data-mfd: Invalid pattern"))))
+      (else (throw 'artanis-err 500 build-data-mfd "Invalid pattern: ~a~%" p))))
   (define (build-file-mfd p)
     (match p
       ((name filename)
@@ -300,7 +300,7 @@
       ((filename)
        ;; If name field is ingored, use "file" as its name in default.
        (build-file-mfd `("file" ,filename)))
-      (else (throw 'artanis-err 500 "build-file-mfd: Invalid pattern"))))
+      (else (throw 'artanis-err 500 build-file-mfd "Invalid pattern: ~a~%" p))))
   (let* ((mfdsp (->mfds pattern))
          (ct (format #f "multipart/form-data; boundary=~a" boundary))
          (body (mfds->body mfdsp boundary)))
