@@ -32,3 +32,7 @@
   This may help developers to find out the possible bug.
 
 * Optimize URL-remapping for better performance.
+
+* Add server.idletimeout to shutdown a keep-alive connection when it's in idle status for the seconds specified by timeout.
+  This would be helpful to avoid EADDRNOTAVAIL that occurs too much.
+  
