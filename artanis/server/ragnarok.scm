@@ -432,12 +432,20 @@
 (::define (ragnarok-read proto server client)
   (:anno: (ragnarok-protocol ragnarok-server ragnarok-client) -> ANY)
   (DEBUG "ragnarok-read ~a~%" (client-ip client))
-  ((ragnarok-protocol-read proto) server client))
+  (catch #t
+    (lambda ()
+      ((ragnarok-protocol-read proto) server client))
+    (lambda e
+      (break-task))))
 
 (::define (ragnarok-write proto server client response body method-is-head?)
   (:anno: (ragnarok-protocol ragnarok-server ragnarok-client <response> ANY boolean) -> ANY)
   (DEBUG "ragnarok-write ~a~%" (client-ip client))
-  ((ragnarok-protocol-write proto) server client response body method-is-head?))
+  (catch #t
+    (lambda ()
+      ((ragnarok-protocol-write proto) server client response body method-is-head?))
+    (lambda e
+      (break-task))))
 
 ;; NOTE: The parameters will be lost when exception raised here, so we can't
 ;;       use any of current-task/server/client/proto in this function.
