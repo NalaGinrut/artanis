@@ -140,6 +140,11 @@
        (format #t "~a  :  ~a~%" k (client-sockport (task-client v))))
      wt)))
 
+(define (no-available-port-to-allocate? e)
+  (and (eq? (car e) 'system-error)
+       (let ((errno (system-error-errno e)))
+         (= errno EADDRNOTAVAIL)))) ; no available port for connecting socket
+
 ;; NOTE: We will call `accept' if it's listenning socket. Logically, it's
 ;;       impossible to encounter listenning socket again while polling.
 (::define (fill-ready-queue-from-service proto server)
@@ -150,7 +155,16 @@
       (let ((fd (catch #t
                   (lambda ()
                     (accept listen-socket))
-                  (lambda e #f))))
+                  (lambda e
+                    (cond
+                     ((no-available-port-to-allocate? e)
+                      (format (artanis-current-output)
+                              "Ragnarok can't accept request. ~a~%"
+                              (strerror EADDRNOTAVAIL))
+                      #f)
+                     (else
+                      (DEBUG "Get ~a new connections.~%" (length ret))
+                      #f))))))
         (if fd
             (lp (cons (new-ragnarok-client fd) ret))
             ret))))
@@ -429,14 +443,46 @@
      (else (error establish-http-gateway
                   "Invalid `server.engine' in artanis.conf" (ragnarok-engine-name engine))))))
 
+(define (io-exception:peer-is-shutdown? e)
+  (and (eq? (car e) 'system-error)
+       (let ((errno (system-error-errno e)))
+         (or (= errno EPIPE) ; broken pipe
+             (= errno EIO) ; write to a closed socket
+             (= error ECONNRESET))))) ; shutdown by peer
+
+(define (io-exception:out-of-memory? e)
+  (and (eq? (car e) 'system-error)
+       (let ((errno (system-error-errno e)))
+         (or (= errno ENOMEM) ; no memory
+             (= error ENOBUFS))))) ; no buffer could be allocated
+
+(define (make-io-exception-handler type)
+  (lambda e
+    (DEBUG "ragnarok-~a exception: ~a~%" type e)
+    (cond
+     ((io-exception:peer-is-shutdown? e)
+      ;; NOTE: peer has been shutdown for reasons, we just let them be checked by epoll
+      ;;       in next round loop, and close the connection by Ragnarok.
+      (break-task))
+     ((io-exception:out-of-memory? e)
+      ;; NOTE: out of memory, and throw 503 to let client try again. We can't just schedule
+      ;;       for next round loop, since some data read from request would be lost because
+      ;;       of lack of memory. The safe way is to tell the client that server is busy
+      ;;       so try again.
+      ;; FIXME: Is it proper to call (gc) here?
+      (gc)
+      (throw 'artanis-err 503 "Ragnarok: we run out of RAMs!~%"))
+     (else
+      ;; not a exception should be handled here, re-throw it to the next level
+      (apply throw e)))))
+
 (::define (ragnarok-read proto server client)
   (:anno: (ragnarok-protocol ragnarok-server ragnarok-client) -> ANY)
   (DEBUG "ragnarok-read ~a~%" (client-ip client))
   (catch #t
     (lambda ()
       ((ragnarok-protocol-read proto) server client))
-    (lambda e
-      (break-task))))
+    (make-io-exception-handler 'read)))
 
 (::define (ragnarok-write proto server client response body method-is-head?)
   (:anno: (ragnarok-protocol ragnarok-server ragnarok-client <response> ANY boolean) -> ANY)
@@ -444,8 +490,7 @@
   (catch #t
     (lambda ()
       ((ragnarok-protocol-write proto) server client response body method-is-head?))
-    (lambda e
-      (break-task))))
+    (make-io-exception-handler 'write)))
 
 ;; NOTE: The parameters will be lost when exception raised here, so we can't
 ;;       use any of current-task/server/client/proto in this function.
