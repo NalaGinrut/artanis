@@ -36,6 +36,7 @@
   #:use-module (artanis websocket)
   #:use-module (artanis third-party json)
   #:use-module (artanis third-party csv)
+  #:use-module (artanis server scheduler)
   #:use-module (ice-9 regex) ; FIXME: should use irregex!
   #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)
@@ -302,7 +303,23 @@
       ('qstr-safe (post->qstr-table rc 'safe))
       ((or 'bv 'bytevector) (rc-body rc))
       ;; upload operation, indeed
-      (('store rest ...) (apply store-the-bv rc rest))
+      (('store rest ...)
+       (catch 'system-error
+         (lambda ()
+           (apply store-the-bv rc rest))
+         (lambda e
+           (cond
+            ((= (system-error-errno e) ENOMEM)
+             ;; NOTE: Out of memory, call (gc) and schedule, then try it again.
+             (gc)
+             (break-task)
+             (apply store-the-bv rc rest))
+            ((= (system-error-errno e) EIO)
+             ;; NOTE: The storage device disconnected, schedule then try it again.
+             (break-task)
+             (apply store-the-bv rc rest))
+            (else
+             (apply throw e))))))
       (else (throw 'artanis-err 500 post-handler "Invalid mode!" mode))))
   (define (get-values-from-post pl . keys)
     (apply
