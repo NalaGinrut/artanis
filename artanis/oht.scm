@@ -315,10 +315,11 @@
              (break-task)
              (apply store-the-bv rc rest))
             ((= (system-error-errno e) EIO)
-             ;; NOTE: The storage device disconnected, schedule then try it again.
+             ;; NOTE: The storage device was disconnected, schedule then try it again.
              (break-task)
              (apply store-the-bv rc rest))
             (else
+             ;; nothing noticed, re-throw it to next level.
              (apply throw e))))))
       (else (throw 'artanis-err 500 post-handler "Invalid mode!" mode))))
   (define (get-values-from-post pl . keys)
