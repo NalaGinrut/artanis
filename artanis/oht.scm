@@ -308,19 +308,25 @@
          (lambda ()
            (apply store-the-bv rc rest))
          (lambda e
-           (cond
-            ((= (system-error-errno e) ENOMEM)
-             ;; NOTE: Out of memory, call (gc) and schedule, then try it again.
-             (gc)
-             (break-task)
-             (apply store-the-bv rc rest))
-            ((= (system-error-errno e) EIO)
-             ;; NOTE: The storage device was disconnected, schedule then try it again.
-             (break-task)
-             (apply store-the-bv rc rest))
-            (else
-             ;; nothing noticed, re-throw it to next level.
-             (apply throw e))))))
+           (let ((errno (system-error-errno e)))
+             (cond
+              ((= errno ENOMEM)
+               ;; NOTE: Out of memory, call (gc) and throw 507
+               (format (artanis-current-output) "No memory! Run GC now!~%")
+               (gc)
+               (throw 'artanis-err 507 post-handler
+                      "Server is out of RAMs, please extend more RAMs!~%"))
+              ((= errno EIO)
+               ;; NOTE: The storage device was disconnected, just throw 507
+               (throw 'artanis-err 507 post-handler
+                      "Server is not available, maybe storage media was disconnected?~%"))
+              ((= errno ENOSPC)
+               ;; NOTE: no space for uploading, just throw 507
+               (throw 'artanis-err 507 post-handler
+                      "Server has insufficient storage space!~%"))
+              (else
+               ;; nothing noticed, re-throw it to next level.
+               (apply throw e)))))))
       (else (throw 'artanis-err 500 post-handler "Invalid mode!" mode))))
   (define (get-values-from-post pl . keys)
     (apply
