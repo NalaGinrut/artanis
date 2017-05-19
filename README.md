@@ -1,7 +1,7 @@
 [![GPLv3](https://img.shields.io/badge/License-GPLv3-blue.png)](https://www.gnu.org/copyleft/gpl.html)
 [![LGPLv3](https://img.shields.io/badge/License-LGPLv3-blue.png)](https://www.gnu.org/copyleft/lgpl.html)
-[![GNU Guile](https://img.shields.io/badge/Guile-2.1.3-yellow.png)](https://www.gnu.org/s/guile/)
-[![amd64](http://img.shields.io/badge/architecture-amd64-lightgrey.png)](https://en.wikipedia.org/wiki/X86-64)
+[![GNU Guile](https://img.shields.io/badge/Guile-2.2.2-yellow.png)](https://www.gnu.org/s/guile/)
+[![amd64](http://img.shields.io/badge/architecture-amd64-red.png)](https://en.wikipedia.org/wiki/X86-64)
 [![Travis CI](https://travis-ci.org/NalaGinrut/artanis.png)](https://travis-ci.org/NalaGinrut/artanis)
 
 GNU Artanis needs a logo, contribution is welcome!
