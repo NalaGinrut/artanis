@@ -1238,6 +1238,8 @@
                       (request #f))
   (case blame-who?
     ((client)
+     (when (not request)
+       (error "artanis-log: Fatal bug! Request shouldn't be #f here!~%"))
      (let* ((uri (request-uri request))
             (path (uri-path uri))
             (qstr (uri-query uri))
@@ -1250,7 +1252,7 @@
      (format port "[Response] status: ~a, MIME: ~a~%~%" status mime))
     (else (error "artanis-log: Fatal BUG here!"))))
 
-(define (render-sys-page blame-who? status . request)
+(define (render-sys-page blame-who? status request)
   (define-syntax-rule (status->page s)
     (format #f "~a.html" s))
   (artanis-log blame-who? status 'text/html #:request request)
@@ -1275,7 +1277,7 @@
 (define (format-status-page/server status)
   (format (current-error-port) "[SERVER ERROR] Internal error from server-side, ")
   (format (current-error-port) "rendering a ~a page for client ...~%" status)
-  (render-sys-page 'server status))
+  (render-sys-page 'server status #f))
 
 (define (exception-from-client request)
   (lambda (status)
