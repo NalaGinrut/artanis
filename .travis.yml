@@ -11,9 +11,9 @@ before_install:
   - time sudo apt-get -qq -y install automake autoconf libtool libmysqlclient-dev libmysqld-dev
 
 before_script:
-  - wget https://ftp.gnu.org/gnu/guile/guile-2.2.0.tar.gz
-  - tar xvzf guile-2.2.0.tar.gz
-  - cd guile-2.2.0
+  - wget https://ftp.gnu.org/gnu/guile/guile-2.2.2.tar.gz
+  - tar xvzf guile-2.2.2.tar.gz
+  - cd guile-2.2.2
   - ./configure --prefix=/usr && make
   - sudo make install
   - cd ..
