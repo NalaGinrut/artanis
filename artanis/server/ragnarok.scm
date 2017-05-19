@@ -332,8 +332,10 @@
     (throw 'artanis-err 500 serve-one-request "Can't be here!~%"))))
 
 (define (guile-builtin-server-run handler)
-  (apply (@ (web server) run-server) handler 'http
-         (list #:port (get-conf '(host port)))))
+  ((@ (web server) run-server)
+   handler
+   'http
+   (list #:port (get-conf '(host port)))))
 
 (define (get-one-request-from-clients proto server)
   (DEBUG "Prepare to get one request from clients, proto is ~a~%" proto)
@@ -371,7 +373,16 @@
          ;; handle C-c to break the server loop properly
          (lambda ()
            (DEBUG "Prepare to serve one request ~a~%" (client-sockport client))
-           (serve-one-request handler http server client)
+           (catch 'artanis-err
+             (lambda ()
+               (serve-one-request handler http server client))
+             (lambda e
+               (call-with-values
+                   (lambda ()
+                     (apply (make-unstop-exception-handler (exception-from-server)) e))
+                 (lambda (r b s)
+                   (ragnarok-write http server client r b #f)
+                   (ragnarok-close http server client #f)))))
            (DEBUG "Serve one done~%"))
          (lambda ()
            ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
@@ -463,6 +474,7 @@
      ((io-exception:peer-is-shutdown? e)
       ;; NOTE: peer has been shutdown for reasons, we just let them be checked by epoll
       ;;       in next round loop, and close the connection by Ragnarok.
+      (DEBUG "Peer is shutdown~%")
       (break-task))
      ((io-exception:out-of-memory? e)
       ;; NOTE: out of memory, and throw 503 to let client try again. We can't just schedule
@@ -471,8 +483,10 @@
       ;;       so try again.
       ;; FIXME: Is it proper to call (gc) here?
       (gc)
-      (throw 'artanis-err 503 "Ragnarok: we run out of RAMs!~%"))
+      (throw 'artanis-err 503 make-io-exception-handler
+             "Ragnarok-~a: we run out of RAMs!~%" type))
      (else
+      (DEBUG "Not an I/O exception, throw it to upper level~%")
       ;; not a exception should be handled here, re-throw it to the next level
       (apply throw e)))))
 
