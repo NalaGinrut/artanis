@@ -26,7 +26,8 @@
   #:use-module (artanis server epoll)
   #:use-module (artanis server scheduler)
   #:use-module ((rnrs) #:select (put-bytevector bytevector? get-bytevector-n!
-                                 bytevector-length make-bytevector))
+                                                bytevector-length make-bytevector))
+  #:use-module (ice-9 format)
   #:export (new-http-protocol))
 
 (define (clean-current-conn-fd server client peer-shutdown?)
@@ -80,7 +81,9 @@
           (port (request-port req)))
       (cond
        ((> content-length (get-conf '(upload size)))
-        (throw 'artanis-err 419 try-to-read-request-body "Entity is too large!"))
+        (DEBUG "Entity size is ~a, size limit is ~a~%"
+               content-length (get-conf '(upload size)))
+        (throw 'artanis-err 419 try-to-read-request-body "Entity is too large!~%"))
        ((zero? content-length) #f)
        (else (read-request-body req)))))
   (DEBUG "Enter http-read ~a~%" (client-sockport client))
@@ -92,34 +95,16 @@
      (%%raw-close-connection server client #t)
      (simply-quit))
     (else
-     (with-throw-handler
-      #t
-      ;; We use with-throw-handler here, it's different from catch which will
-      ;; unwind the stack. That means, if you use with-throw-handler, and when
-      ;; the exception occurs, the exception will throw to the innomost catch
-      ;; context after the error handler of with-throw-handler returns.
-      ;; This helps us to avoid unwind and re-throw exception.
-      (lambda ()
-        (let* ((req (read-request port))
-               (is-websock? (detect-if-connecting-websocket req #f))
-               (body (if is-websock?
-                         #f (try-to-read-request-body req))))
-          (when (and is-websock? (get-conf 'debug-mode))
-            (DEBUG "websocket mode!~%")
-            (let ((ip (client-ip client)))
-              (DEBUG "The websocket based client ~a is reading...~%" ip)
-              (DEBUG "Just return #f body according to Artanis convention~%")))
-            (values req body)))
-      (lambda (k . e)
-        (apply format (artanis-current-output) (cadr e) (cddr e))
-        (case k
-          ((artanis-err)
-           (bad-request (car e) port))
-         (else
-          ;; General 400 error
-          (bad-request 400 port)))
-        (%%raw-close-connection server client #f)
-        (simply-quit)))))))
+     (let* ((req (read-request port))
+            (is-websock? (detect-if-connecting-websocket req #f))
+            (body (if is-websock?
+                      #f (try-to-read-request-body req))))
+       (when (and is-websock? (get-conf 'debug-mode))
+         (DEBUG "websocket mode!~%")
+         (let ((ip (client-ip client)))
+           (DEBUG "The websocket based client ~a is reading...~%" ip)
+           (DEBUG "Just return #f body according to Artanis convention~%")))
+       (values req body))))))
 
 (::define (http-write server client response body method-is-head?)
   (:anno: (ragnarok-server ragnarok-client <response> ANY boolean) -> ANY)
