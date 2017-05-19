@@ -43,3 +43,17 @@ Changes in 0.2
   Good multi-core support.
   Efficient static file uploading and downloading.
   Fixed many bugs.
+
+Changes in 0.2.1
+* Notable changes
+  Make Ragnarok server core more robust.
+  Updated manual.
+  fixed argument passing bug when calling artanis-log.
+  fixed: catch exceptions before calling page handler and avoid to stop the server.
+  elaborated exception handling while uploading.
+  fixed many exceptions handling issues in Ragnarok.
+  fixed: catch I/O exceptions in reader and writer to close connection properly.
+  fixed: throw cookie for debug while encounter an invalid cookie.
+  fixed: search session id from cookies list in rc.
+  fixed exception throwing while spawning sessions.
+  

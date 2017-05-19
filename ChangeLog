@@ -1,4 +1,94 @@
+2017-05-19  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed argument passing bug when calling artanis-log
+
+	fixed: catch exceptions before calling page handler and avoid to stop the server
+
+	removed exception handling in http-read, should be handled outside
+
+	refactored exception system page renderring for both client and server caused error
+
+	added pages/419.html
+
+	update CI to use guile-2.2.2
+
+	updated README
+
+	elaborated exception handling while uploading
+
+2017-05-18  Nala Ginrut  <nalaginrut@gmail.com>
+
+	added more comments for uploading exception handling
+
+	update TODO
+
+	fixed: some exception handling while uploading
+
+	fixed many exceptions handling in Ragnarok
+	* modified:   artanis/server/ragnarok.scm:
+	              1. Accept new connection will check if there's available ports
+	              2. I/O in Ragnarok is fixed to handle more exceptional cases.
+
+	fixed indentation
+
+	fixed exception throw in (artanis upload)
+
+2017-05-17  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed: catch I/O exceptions in reader and writer to close connection properly
+
+2017-05-16  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed: throw cookie for debug while encounter an invalid cookie
+
+	fixed: search session id from cookies list in rc
+
+	fixed exception throwing in (artanis session)
+
+	only support 2.2+ from now on
+
+2017-05-15  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update docs/artanis/texi for indentation
+
+	update version for 0.2.1
+
+	disable database in default for newbies run example code in the manual easily
+
+	update the help of work command
+
+	update manual
+
+2017-05-13  Nala Ginrut  <nalaginrut@gmail.com>
+
+	fixed a typo
+
+2017-05-13  Nala Ginrut  <mulei@gnu.org>
+
+	Merge branch 'patch-1' into 'master'
+	minor changes, link
+	
+	See merge request !75
+
+2017-05-13  ff x  <firefox@firemail.cc>
+
+	minor changes, link
+
+2017-05-12  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update README
+
+	update README
+
+2017-05-11  Nala Ginrut  <nalaginrut@gmail.com>
+
+	update gpg key in Makefile.in
+
+	updated docs/artanis.texi for fixing code highlight issue
+
 2017-05-10  Nala Ginrut  <nalaginrut@gmail.com>
+
+	release 0.2
 
 	prepare for 0.2
 
