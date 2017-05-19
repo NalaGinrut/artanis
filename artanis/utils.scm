@@ -83,7 +83,8 @@
             NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr request-path
             keep-alive? procedure-name->string proper-toplevel gen-content-length
             make-file-sender file-sender? file-sender-size file-sender-thunk
-            get-string-all-with-detected-charset)
+            get-string-all-with-detected-charset make-unstop-exception-handler
+            artanis-log exception-from-client exception-from-server render-sys-page)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -1223,3 +1224,89 @@
     (lambda (port)
       (set-port-encoding! port (get-conf '(server charset)))
       (get-string-all port))))
+
+(define (syspage-show file)
+  (let ((local-syspage (format #f "~a/sys/pages/~a" (current-toplevel) file)))
+    (cond
+     ((file-exists? local-syspage)
+      (bv-cat local-syspage #f))
+     (else
+      (bv-cat (string-append (get-conf '(server syspage path)) "/" file) #f)))))
+
+;; ENHANCE: use colored output
+(define* (artanis-log blame-who? status mime #:key (port (current-error-port))
+                      (request #f))
+  (case blame-who?
+    ((client)
+     (let* ((uri (request-uri request))
+            (path (uri-path uri))
+            (qstr (uri-query uri))
+            (method (request-method request)))
+       (format port "[Remote] ~a @ ~a~%" (remote-info request) (local-time-stamp))
+       (format port "[Request] method: ~a, path: ~a, qeury: ~a~%" method path qstr)
+       (format port "[Response] status: ~a, MIME: ~a~%~%" status mime)))
+    ((server)
+     (format port "[Server] ~a @ ~a~%" (get-conf '(host addr)) (local-time-stamp))
+     (format port "[Response] status: ~a, MIME: ~a~%~%" status mime))
+    (else (error "artanis-log: Fatal BUG here!"))))
+
+(define (render-sys-page blame-who? status . request)
+  (define-syntax-rule (status->page s)
+    (format #f "~a.html" s))
+  (artanis-log blame-who? status 'text/html #:request request)
+  (let* ((charset (get-conf '(server charset)))
+         (mtime (generate-modify-time (current-time)))
+         (response
+          (build-response #:code status
+                          #:headers `((server . ,(get-conf '(server info)))
+                                      (last-modified . ,mtime)
+                                      (content-type . (text/html (charset . ,charset))))))
+         (body (syspage-show (status->page status))))
+    (if (eq? (get-conf '(server engine)) 'guile)
+        (values response body)
+        (values response body 'exception))))
+
+(define (format-status-page/client status request)
+  (format (current-error-port) "[EXCEPTION] ~a is abnormal request, status: ~a, "
+          (uri-path (request-uri request)) status)
+  (display "rendering a sys page for it...\n" (current-error-port)) 
+  (render-sys-page 'client status request))
+
+(define (format-status-page/server status)
+  (format (current-error-port) "[SERVER ERROR] Internal error from server-side, ")
+  (format (current-error-port) "rendering a ~a page for client ...~%" status)
+  (render-sys-page 'server status))
+
+(define (exception-from-client request)
+  (lambda (status)
+    (format-status-page/client status request)))
+
+(define (exception-from-server)
+  (lambda (status)
+    (format-status-page/server status)))
+
+(define (make-unstop-exception-handler syspage-generator)
+  (lambda (k . e)
+    (define port (current-error-port))
+    (format port (ERROR-TEXT "GNU Artanis encountered exception!~%"))
+    (match e
+      (((? procedure? subr) (? string? msg) . args)
+       (format port "<~a>~%" (WARN-TEXT (current-filename)))
+       (when subr (format port "In procedure ~a :~%"
+                          (WARN-TEXT (procedure-name->string subr))))
+       (apply format port (REASON-TEXT msg) args)
+       (newline port))
+      (((? integer? status) (? procedure? subr) (? string? msg) . args)
+       (format port "HTTP ~a~%" (STATUS-TEXT status))
+       (format port "<~a>~%" (WARN-TEXT (current-filename)))
+       (when subr (format port "In procedure ~a :~%"
+                          (WARN-TEXT (procedure-name->string subr))))
+       (apply format port (REASON-TEXT msg) args)
+       (newline port)
+       (syspage-generator status))
+      (else
+       (format port "~a - ~a~%"
+               (WARN-TEXT
+                "BUG: invalid exception format, but we throw it anyway!")
+               e)
+       (apply throw k e)))))

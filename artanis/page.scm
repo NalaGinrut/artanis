@@ -53,38 +53,6 @@
   (or (assoc-ref (rc-bt rc) key)
       (get-from-qstr rc key)))
 
-(define (syspage-show file)
-  (let ((local-syspage (format #f "~a/sys/pages/~a" (current-toplevel) file)))
-    (cond
-     ((file-exists? local-syspage)
-      (bv-cat local-syspage #f))
-     (else
-      (bv-cat (string-append (get-conf '(server syspage path)) "/" file) #f)))))
-
-;; ENHANCE: use colored output
-(define* (log status mime req #:optional (port (current-error-port)))
-  (let* ((uri (request-uri req))
-         (path (uri-path uri))
-         (qstr (uri-query uri))
-         (method (request-method req)))
-    (format port "[Remote] ~a @ ~a~%" (remote-info req) (local-time-stamp))
-    (format port "[Request] method: ~a, path: ~a, qeury: ~a~%" method path qstr)
-    (format port "[Response] status: ~a, MIME: ~a~%~%" status mime)))
-
-(define (render-sys-page status request)
-  (define-syntax-rule (status->page s)
-    (format #f "~a.html" s))
-  (log status 'text/html request)
-  (let ((charset (get-conf '(server charset)))
-        (mtime (generate-modify-time (current-time))))
-    (values
-     (build-response #:code status
-                     #:headers `((server . ,(get-conf '(server info)))
-                                 (last-modified . ,mtime)
-                                 (content-type . (text/html (charset . ,charset)))))
-     (syspage-show (status->page status))
-     'exception)))
-
 (define (rc-conn-recycle rc body)
   (and=> (rc-conn rc) DB-close))
 
@@ -119,29 +87,25 @@
     (lambda* (body #:key (pre-headers (prepare-headers '()))
                    (status 200) 
                    (mtime (generate-modify-time (current-time))))
-      (let ((reformed-body (->bytevector body)))
+      (let* ((reformed-body (->bytevector body))
+             (response
+              (build-response #:code status
+                              #:headers `((server . ,(get-conf '(server info)))
+                                          (last-modified . ,mtime)
+                                          ,(gen-content-length reformed-body)
+                                          ,@pre-headers 
+                                          ,@(generate-cookies (rc-set-cookie rc))))))
         (run-before-response-hooks rc body)
         (let ((type (assq-ref pre-headers 'content-type)))
-          (and type (log status (car type) (rc-req rc))))
-        (values
-         (build-response #:code status
-                         #:headers `((server . ,(get-conf '(server info)))
-                                     (last-modified . ,mtime)
-                                     ,(gen-content-length reformed-body)
-                                     ,@pre-headers 
-                                     ,@(generate-cookies (rc-set-cookie rc))))
-         ;; NOTE: For inner-server, sanitize-response will handle 'HEAD method
-         ;;       though rc-method is 'GET when request-method is 'HEAD,
-         ;;       sanitize-response only checks method from request.
-         reformed-body
-         ;; NOTE: return the status while handling the request.
-         'ok)))))
-
-(define (format-status-page status request)
-  (format (current-error-port) "[EXCEPTION] ~a is abnormal request, status: ~a, "
-          (uri-path (request-uri request)) status)
-  (display "rendering a sys page for it...\n" (current-error-port)) 
-  (render-sys-page status request))
+          (and type (artanis-log 'client status (car type) #:request (rc-req rc))))
+        ;; NOTE: For inner-server, sanitize-response will handle 'HEAD method
+        ;;       though rc-method is 'GET when request-method is 'HEAD,
+        ;;       sanitize-response only checks method from request.
+        (if (eq? (get-conf '(server engine)) 'guile)
+            (values response reformed-body)
+            (values response reformed-body
+                    ;; NOTE: return the status while handling the request.
+                    'ok))))))
 
 (define (work-with-request request body)
   ;;(DEBUG "work with request~%")
@@ -151,31 +115,8 @@
              (handler (rc-handler rc)))
         (if handler
             (handler-render handler rc)
-            (render-sys-page 404 rc))))
-    (lambda (k . e)
-      (define port (current-error-port))
-      (format port (ERROR-TEXT "GNU Artanis encountered exception!~%"))
-      (match e
-        (((? procedure? subr) (? string? msg) . args)
-         (format port "<~a>~%" (WARN-TEXT (current-filename)))
-         (when subr (format port "In procedure ~a :~%"
-                            (WARN-TEXT (procedure-name->string subr))))
-         (apply format port (REASON-TEXT msg) args)
-         (newline port))
-        (((? integer? status) (? procedure? subr) (? string? msg) . args)
-         (format port "HTTP ~a~%" (STATUS-TEXT status))
-         (format port "<~a>~%" (WARN-TEXT (current-filename)))
-         (when subr (format port "In procedure ~a :~%"
-                            (WARN-TEXT (procedure-name->string subr))))
-         (apply format port (REASON-TEXT msg) args)
-         (newline port)
-         (format-status-page status request))
-        (else
-         (format port "~a - ~a~%"
-                 (WARN-TEXT
-                  "BUG: invalid exception format, but we throw it anyway!")
-                 e)
-         (apply throw k e))))))
+            (render-sys-page 'client 404 rc))))
+    (make-unstop-exception-handler (exception-from-client request))))
 
 (define (response-emit-error status)
   (response-emit "" #:status status))
