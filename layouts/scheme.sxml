@@ -51,6 +51,6 @@
         "powered by " (a (@ (href "http://www.gnu.org/software/guile/")) "GNU Guile ")
         "This page is Powered by " (a (@ (href "http://wiki.call-cc.org/eggref/4/hyde")) "Hyde of Chicken Scheme")))
     ;; fork me on github
-    (a (@ (id "forkme") (href "http://github.com/NalaGinrut/artanis/")) "Fork me on Github")
+    (a (@ (id "forkme") (href "http://gitlab.com/NalaGinrut/artanis/")) "Fork me on GitLab")
 
     )))
