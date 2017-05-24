@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015
+;;  Copyright (C) 2014,2015,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -62,7 +62,7 @@
     (let ((c (peek-char port)))
       (cond
        ((eof-object? c)
-        (throw 'artanis-err 500 "sm-name-parser: Shouldn't be empty name!" name))
+        (throw 'artanis-err 500 sm-name-parser "Shouldn't be empty name!" name))
        ((char=? c #\@) ; post-qstr
         (read-char port) ; skip #\@
         `(post-qstr ,(string->keyword (get-name port)) ,(get-opts port)))
@@ -116,7 +116,7 @@
          ;; TODO: finish built-in
          ;;(build-in-add! n func args)
          n)
-        (else (throw 'artanis-err 500 "make-sm-string-template: Invalid result after parse"
+        (else (throw 'artanis-err 500 make-sm-string-template "Invalid result after parse"
                      nn)))))
   (define (match->item m)
     (or (and (irregex-match-substring m 'dollar) "$")
@@ -154,5 +154,7 @@
             (cond
              ((kw-arg-ref kargs (car item)) => ->string)
              ((qstr-ref (car item)) => ->string)
-             (else (throw 'artanis-err 500 "make-sm-string-template: Missing keyword" (car item))))))
+             (else (throw 'artanis-err 500 make-sm-string-template
+                          "Missing keyword `~a', didn't write name=\"content\" in tpl?"
+                          (car item))))))
       (string-concatenate (map item->string items)))))
