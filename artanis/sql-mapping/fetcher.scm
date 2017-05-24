@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015
+;;  Copyright (C) 2014,2015,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -40,8 +40,8 @@
         (conn (DB-open rc)))
     (if sm
         (DB-query conn (apply sm rc kargs))
-        (throw 'artanis-err 500
-               "sql-mapping-fetch: Can't find sql-mapping with name" name))))
+        (throw 'artanis-err 500 sql-mapping-fetch
+               "Can't find sql-mapping with name `~a'" name))))
 
 (define (sql-mapping-tpl-add name tpl)
   (sm-set! *sql-mapping-lookup-table*
@@ -85,14 +85,16 @@
     (let lp ()
       (cond
        ((eof-object? (peek-char port))
-        (throw 'artanis-err 500 "skip-endline: wrong syntax when skipping endline!")) 
+        (throw 'artanis-err 500 skip-endline
+               "Wrong syntax when skipping endline!")) 
        ((char-set-contains? char-set:whitespace (peek-char port))
         (read-char port) ; skip whitespace
         (lp)))))
   (let lp((tk (get-token port)) (opt '()) (constrain '()))
     (cond
      ((eof-object? tk)
-      (throw 'artanis-err 500 "sm-options-get: wrong syntax since you don't specify enough fields!"))
+      (throw 'artanis-err 500 sm-options-get
+             "Wrong syntax since you don't specify enough fields!"))
      ((string=? "" tk) ; end
       (read-char port) ; skip #\np
       `((opt ,opt) (constrain ,constrain)))
@@ -104,18 +106,21 @@
      ((char=? #\< (peek-char port))
       (read-char port) ; skip #\<
       (and=> (read-char port) ; skip #\-
-             (lambda (c) (if (char=? #\- c) #t (throw 'artanis-err 500 "sm-options-get: wrong syntax here!" c))))
+             (lambda (c) (if (char=? #\- c) #t (throw 'artanis-err 500 sm-options-get
+                                                      "Wrong syntax `~a' here!" c))))
       (let ((tkv (get-token port)))
         (and (char=? #\; (peek-char port)) (skip-endline)) ; skip #\; #\np
         (lp (get-token port) opt (cons (cons tk tkv) constrain))))
-     (else (throw 'artanis-err 500 "sm-options-get: Fatal! Shouldn't be here!" (peek-char port))))))
+     (else (throw 'artanis-err 500 sm-options-get
+                  "Fatal! Shouldn't be here `~a'!" (peek-char port))))))
 
 ;; NOTE: semi-colon shouldn't be delimiter in sql string anyway. So we'll use get-string-all.
 (define (sm-get port)
   (let ((sm-str (get-string-all port)))
     (cond
      ((eof-object? sm-str)
-      (throw 'artanis-err 500 "sm-get: wrong syntax, you must spacify a sql-mapping string!" sm-str))
+      (throw 'artanis-err 500 sm-get
+             "Wrong syntax `~a', you must spacify a sql-mapping string!" sm-str))
      (else (make-db-string-template (string-trim-both sm-str))))))
 
 (define *tk-handlers*
@@ -144,10 +149,13 @@
            (let ((h (assoc-ref *tk-handlers* tk)))
              (if h
                  (lp (peek-char port) #t (cons (h port) ret))
-                 (throw 'artanis-err 500 "sql-mapping-parser: Invalid token" tk)))))
-     (else (throw 'artanis-err 500 "sql-mapping-parser: Wrong syntax" (get-string-all port))))))
+                 (throw 'artanis-err 500 sql-mapping-parser
+                        "Invalid token `~a'" tk)))))
+     (else (throw 'artanis-err 500 sql-mapping-parser
+                  "Wrong syntax `~a'" (get-string-all port))))))
 
 (define (read-sql-mapping-from-file path name)
   (when (not (file-exists? path))
-    (throw 'artanis-err 500 "read-sql-mapping-from-file: file doens't exist!" path))
+    (throw 'artanis-err 500 read-sql-mapping-from-file
+           "File `~a' doens't exist!" path))
   (call-with-input-file path sql-mapping-parser))
