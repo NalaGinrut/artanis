@@ -195,11 +195,8 @@
   (init-config)
   (init-server-core)
   (check-invalid-config)
-  (sigaction SIGPIPE SIG_IGN))
-
-(define (check-if-not-run-init-server)
-  ;; Just check if the conf table is empty
-  (is-hash-table-empty? *conf-hash-table*))
+  (sigaction SIGPIPE SIG_IGN)
+  (set! is-init-server-run? #t))
 
 (define* (form-tag #:key (controller #f) (action #f) (method #f)
                    (class #f) (tag-class #f) (tag-id #f) (form-method "get"))
@@ -272,7 +269,7 @@
                             (lambda (len) (if (> len 100) 100 len))))))
      (((@ (rnrs bytevectors) bytevector?) body) "Body is bytevectors!")
      (else (throw 'artanis-err 500 ->proper-body-display "Invalid body type!" body))))
-  (when (check-if-not-run-init-server)
+  (when (not is-init-server-run?)
     (error "Sorry, but you have to run (init-server) in the begining of you main program!"))
   (and host (conf-set! '(host addr) host))
   (and port (conf-set! '(host port) port))

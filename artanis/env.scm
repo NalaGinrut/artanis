@@ -55,7 +55,8 @@
             %kernel-version
             %system-arch
             kernel-version>=?
-            linux-version>=?))
+            linux-version>=?
+            is-init-server-run?))
 
 ;; WARNING:
 ;; For concurrency in green-thread, all these stuffs should be immutable
@@ -188,8 +189,8 @@
   (and (string=? (%os-kernel) "Linux")
        (kernel-version>=? vstr)))
 
-
 ;; TODO: check uname here and provide features
 ;; either 'epoll or 'kqueue to use in cond-expand inside ragnarok
-;;  to select proper module for event-queue implementation.
-;; 
+;; to select proper module for event-queue implementation.
+
+(define is-init-server-run? #f)
