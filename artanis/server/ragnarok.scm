@@ -41,6 +41,9 @@
   #:use-module (srfi srfi-9 gnu)
   #:use-module (ice-9 suspendable-ports)
   #:use-module (ice-9 iconv)
+  ;; FIXME: Do we still need threads and mutex? Maybe someone who wants to
+  ;;        write their own server core still needs it. So we keep it.
+  #:use-module (ice-9 threads)
   #:use-module (rnrs bytevectors)
   #:export (establish-http-gateway
             get-task-breaker
