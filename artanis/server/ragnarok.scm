@@ -132,6 +132,8 @@
    (task-kont task)
    ragnarok-scheduler))
 
+;; print-work-table is only used for debugging
+#;
 (define (print-work-table server)
   (let ((wt (work-table-content (current-work-table server))))
     (display "PRINT WORK TABLE\n")
@@ -174,7 +176,7 @@
       (DEBUG "listen-socket: ~a = ~a~%" (car e) listen-socket)
       (= (car e) (port->fdes listen-socket))))
   (DEBUG "Start to fill ready queue~%")
-  (print-work-table server)
+  ;;  (print-work-table server)
   (let ((epfd (ragnarok-server-epfd server))
         (events (ragnarok-server-event-set server))
         (timeout (get-conf '(server polltimeout)))
