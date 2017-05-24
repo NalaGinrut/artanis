@@ -52,6 +52,8 @@
     ((db passwd) "")
     ((db name) ,(or (current-appname) "artanis"))
     ((db engine) InnoDB)
+    ((db poolsize) 64)
+    ((db pool) 'increase)
 
     ;; for server namespace
     ((server info) ,artanis-version)
@@ -128,6 +130,15 @@
    ((symbol? x) x)
    (else (error "Invalid value, should be string or symbol!" x))))
 
+(define *pool-modes* '(increase fixed))
+(define-syntax-rule (->pool-mode x)
+  (let ((p (string->symbol x)))
+    (if (memq p *pool-modes*)
+        p
+        (error (format
+                #f
+                "Invalid db.pool value, we accept: ~{~a~^,~}" *pool-modes*)))))
+
 (define (parse-namespace-db item)
   (match item
     (('enable usedb) (conf-set! 'use-db? (->bool usedb))) 
@@ -139,6 +150,8 @@
     (('username username) (conf-set! '(db username) username))
     (('passwd passwd) (conf-set! '(db passwd) passwd))
     (('engine engine) (conf-set! '(db engine) engine))
+    (('poolsize poolsize) (conf-set! '(db engine) (->integer poolsize)))
+    (('pool pool) (conf-set! '(db pool) (->pool-mode pool)))
     (else (error parse-namespace-db "Config: Invalid item" item))))
 
 (define (parse-namespace-server item)

@@ -24,6 +24,7 @@
   #:use-module (artanis route)
   #:use-module (artanis ssql)
   #:use-module (artanis env)
+  #:use-module (artanis server ragnarok)
   #:autoload (dbi dbi) (dbi-open dbi-query dbi-get_status dbi-close dbi-get_row)
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
@@ -163,7 +164,14 @@
 (define (get-conn-from-pool)
   (if *conn-pool*
       (if (queue-empty? *conn-pool*)
-          (create-new-DB-conn)
+          (case (get-conf '(db pool))
+            ((increase) (create-new-DB-conn))
+            ((fixed)
+             (schedule-task)
+             (get-conn-from-pool))
+            (else
+             (throw 'artanis-err 500 get-conn-from-pool
+                    "BUG: Invalid DB pool mode `~a'" (get-conf '(db pool)))))
           (queue-out! *conn-pool*))
       (error get-conn-from-pool "Seems the *conn-pool* wasn't well initialized!"
              *conn-pool*)))
@@ -185,15 +193,15 @@
 
 (define (init-connection-pool)
   (display "connection pools are initilizing...")
-  (let ((wqlen (get-conf '(server wqlen))))
+  (let ((poolsize (get-conf '(db poolsize))))
     (set! *conn-pool*
           (let ((dbconns
                  (map
                   (lambda (_) (create-new-DB-conn))
-                  (iota wqlen))))
+                  (iota poolsize))))
             (list->queue dbconns)))
     (display "DB pool init ok!\n")
-    (format #t "Now the size of connection pool is ~a.~%" wqlen)))
+    (format #t "Now the size of connection pool is ~a.~%" poolsize)))
 
 ;; ---------------------conn operations-------------------------------
 ;; Actually, it's not `open', but get a conn from pool.
