@@ -52,15 +52,21 @@ some cool experiences!
 * Compile and install
   See the manual below
 
-* Get docker image
+* Get docker image [Experimental]
 
 ```bash
-  docker run -it --rm --name my-running-script -v "$PWD":/usr/src/myapp -w /usr/src/myapp -p 127.0.0.1:8080:8080 bopjiang/artanis guile example/simple_http_server.scm
+  docker run -p 3000:8080 -it bopjiang/artanis
+
+  art create test
+  cd test
+  art work
   
-  curl 127.0.0.1:8080/hello
+  curl 127.0.0.1:8080
+
+==> no index.html but it works!
+
 ```
-  
-hello world
+
 ## Manual:
 http://gnu.org/software/artanis/manual
 
