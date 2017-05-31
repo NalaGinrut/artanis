@@ -268,7 +268,7 @@ See the files COPYING and COPYING.LESSER in toplevel of source code.
 
 This manual is published under the terms of the @uref{http://www.gnu.org/copyleft/fdl.html,GNU Free Documentation License} 1.3 or later.
 
-@strong{@emph{You must be aware there is no warranty whatsoever for GNU Artanis. This is described in full in the licenses.}}
+*/You must be aware there is no warranty whatsoever for GNU Artanis. This is described in full in the
 
 @node Installation
 @chapter Installation
@@ -303,6 +303,9 @@ guile-dbi-2.1.6 @strong{[Optional]}
 @end itemize
 @example
 wget -c http://download.gna.org/guile-dbi/guile-dbi-2.1.6.tar.gz
+# or mirror
+wget -c https://github.com/yagelix/guile-dbi/archive/guile-dbi-2.1.6.tar.gz
+
 tar xvzf guile-dbi-2.1.6.tar.gz
 cd guile-dbi-2.1.6 && ./configure && make
 sudo make install
@@ -314,11 +317,15 @@ guile-dbd @strong{[Optional]}. The dbd plugins connect to an actual database ser
 @end itemize
 @example
 wget -c http://download.gna.org/guile-dbi/guile-dbd-mysql-2.1.6.tar.gz
+# or mirror
+wget -c https://github.com/yagelix/guile-dbi/archive/guile-dbd-mysql-2.1.6.tar.gz
+
 tar xvzf guile-dbd-mysql-2.1.6.tar.gz
 cd guile-dbd-mysql-2.1.6 && ./configure && make
 sudo make install
 @end example
-MySQL is used for the examples in this manual. You may find dbd plugins for other databases at @uref{http://download.gna.org/guile-dbi,here}. The installation process is identical.
+MySQL is used for the examples in this manual. You may find dbd plugins for other databases at @uref{http://download.gna.org/guile-dbi,here} or
+@uref{https://github.com/yagelix/guile-dbi/releases,mirror}. The installation process is identical.
 
 @strong{Install the latest GNU Artanis:}
 
