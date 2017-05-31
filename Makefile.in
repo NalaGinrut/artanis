@@ -70,7 +70,7 @@ ALL_TARGETS :=	version \
 		modules \
 		scripts
 
-all: $(ALL_TARGETS)
+all: Makefile $(ALL_TARGETS)
 
 $(MOD_OBJ)/%.go: $(MOD)/%.scm
 	$(V)$(eval AELOG=build.err.$(shell basename $@))
@@ -80,10 +80,8 @@ $(MOD_OBJ)/%.go: $(MOD)/%.scm
 	$(V)script -e -c "$(GUILEC) -L $(SRC) $< -o $@" -f $(AELOG) > /dev/null || (cat $(AELOG) && exit 15)
 	$(V)if [ -e $(AELOG) ]; then cat $(AELOG) | grep warning; rm $(AELOG); :; fi
 
-configure: .git/COMMIT_EDITMSG
-	$(V)rm configure
-	$(V)bash autogen.sh
-	$(V)sh configure
+Makefile: $(SRC)/Makefile.in $(SRC)/configure
+	sh configure
 
 $(MOD)/version.scm:
 	$(V)echo -ne "Regenerating artanis/version.scm\n\r"
@@ -172,7 +170,7 @@ distclean-mk:
 	-rm -f Makefile
 
 version: .ARTANIS-VERSION configure
-	$(V)-rm $(MOD)/version.scm
+	$(V)-rm -fr $(MOD)/version.scm
 	$(V)$(MAKE) $(MOD)/version.scm
 
 modules: $(MOD_OBJ)/version.go $(mod-ofile)

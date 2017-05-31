@@ -1,6 +1,6 @@
 .PHONY: configure
 
-configure: configure.ac .git/COMMIT_EDITMSG
+configure: configure.ac
 	@rm -fr autom4te.cache Makefile config.status config.log *~
 	aclocal -I m4
 	autoconf
