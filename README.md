@@ -53,11 +53,12 @@ some cool experiences!
   See the manual below
 
 * Get docker image
-  ```bash
-  docker run -it --rm --name my-running-script -v "$PWD":/usr/src/myapp -w /usr/src/myapp -p 127.0.0.1:8080:8080 bopjiang/artanis guile example/simple_http_server.scm
 
+```bash
+  docker run -it --rm --name my-running-script -v "$PWD":/usr/src/myapp -w /usr/src/myapp -p 127.0.0.1:8080:8080 bopjiang/artanis guile example/simple_http_server.scm
+  
   curl 127.0.0.1:8080/hello
-  ```
+```
   
 hello world
 ## Manual:
