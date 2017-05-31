@@ -80,6 +80,11 @@ $(MOD_OBJ)/%.go: $(MOD)/%.scm
 	$(V)script -e -c "$(GUILEC) -L $(SRC) $< -o $@" -f $(AELOG) > /dev/null || (cat $(AELOG) && exit 15)
 	$(V)if [ -e $(AELOG) ]; then cat $(AELOG) | grep warning; rm $(AELOG); :; fi
 
+configure: .git/COMMIT_EDITMSG
+	$(V)rm configure
+	$(V)bash autogen.sh
+	$(V)sh configure
+
 $(MOD)/version.scm:
 	$(V)echo -ne "Regenerating artanis/version.scm\n\r"
 	$(V)-rm -f $@
@@ -166,7 +171,9 @@ clean-obj:
 distclean-mk:
 	-rm -f Makefile
 
-version: $(MOD)/version.scm
+version: .ARTANIS-VERSION configure
+	$(V)-rm $(MOD)/version.scm
+	$(V)$(MAKE) $(MOD)/version.scm
 
 modules: $(MOD_OBJ)/version.go $(mod-ofile)
 
