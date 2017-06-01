@@ -169,7 +169,7 @@ clean-obj:
 distclean-mk:
 	-rm -f Makefile
 
-version: .ARTANIS-VERSION configure
+version: $(SRC)/.ARTANIS-VERSION configure
 	$(V)-rm -fr $(MOD)/version.scm
 	$(V)$(MAKE) $(MOD)/version.scm
 
