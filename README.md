@@ -47,6 +47,10 @@ some cool experiences!
 * Efficient HTML template parsing.
 * Efficient static file downloading/uploading.
 
+## Prerequisite
+
+Guile-2.2+
+
 ## Install
 
 * Compile and install
@@ -111,32 +115,3 @@ http://gnu.org/software/artanis/manual
 
   If you're using GNU Artanis in your project, please share your experiences. GNU Artanis wants to build a friendly community to help
   people know more about free software and help functional programming to be used in industry.
-
-## Thanks for testing!
-* Fedora release 20 (Heisenbug)
-
-  Long Li <atommann AT gmail.com>
-
-* Arch
-
-  @42cmonkey
-
-* Debian 7.8
-
-  NalaGinrut
-
-* Debian 8.0 GNU/Hurd 0.5 & GNU-Mach 1.4+git20150208
-
-  NalaGinrut
-
-* Debian strech/sid
-  
-  NalaGinrut
-
-* OpenSUSE 12.2
-
-  NalaGinrut
-
-* OpenSUSE 13.2
-  
-  NalaGinrut
