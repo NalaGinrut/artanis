@@ -22,6 +22,7 @@
   #:use-module (artanis env)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 format)
   #:export (init-config 
             conf-set!
             get-conf
@@ -73,6 +74,7 @@
     ;;       SO_REUSEPORT (since 3.9)
     ;;       Allows mutiple servers to listen to the same socket port, say 8080.
     ((server multi) #t)
+    ((server websocket) #t)
 
     ;; for host namespace
     ((host name) #f)
@@ -168,6 +170,7 @@
     (('impl impl) (conf-set! '(server impl) (string->symbol impl)))
     (('multi multi) (conf-set! '(server multi) (->bool multi)))
     (('engine engine) (conf-set! '(server engine) (->symbol engine)))
+    (('websocket websocket) (conf-set! '(server websocket) (->bool websocket)))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 
 (define (parse-namespace-host item)
