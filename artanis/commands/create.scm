@@ -35,7 +35,7 @@
 
 (define conf-header
 "##  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-##  Copyright (C) 2015,2016
+##  Copyright (C) 2015,2016,2017
 ##      \"Mu Lei\" known as \"NalaGinrut\" <NalaGinrut@gmail.com>
 ##  Artanis is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU General Public License as published by
@@ -139,7 +139,7 @@
     (log) ; log files
     (lib) ; libs
     (pub ((img (upload)) css js)) ; public assets
-    (prv) ; private stuff, say, something dedicated config or tokens
+    (prv) ; private stuff, say, private config or tokens
     (tmp ((cache (migration)))) ; temporary files
     (test (unit functional benchmark)))) ; tests stuffs
 
