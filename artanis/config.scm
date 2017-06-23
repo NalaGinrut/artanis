@@ -54,7 +54,7 @@
     ((db name) ,(or (current-appname) "artanis"))
     ((db engine) InnoDB)
     ((db poolsize) 64)
-    ((db pool) 'increase)
+    ((db pool) increase)
 
     ;; for server namespace
     ((server info) ,artanis-version)
