@@ -46,7 +46,7 @@
   `(;; for DB namespace
     ((db enable) #f)
     ((db dbd) mysql)
-    ((db proto) 'tcp)
+    ((db proto) tcp)
     ((db addr) "localhost:3306")
     ((db socketfile) #f)
     ((db username) "root")
