@@ -272,7 +272,7 @@
 (define (valid-method? method)
   (if (and (member method *methods-list*) (allowed-method? method))
       method
-      (throw 'artanis-err 405 "invalid HTTP method" method)))
+      (throw 'artanis-err 405 valid-method? "invalid HTTP method `~a'" method)))
 
 ;; -------------- mmap ---------------------
 (define-public ACCESS_COPY              #x3)
@@ -447,7 +447,8 @@
       (case mode
         ((normal) str)
         ((db) (string-concatenate (list "\"" (->string str) "\"")))
-        (else (throw 'artanis-err 500 "%make-string-template: invalid mode" mode)))))
+        (else (throw 'artanis-err 500 %make-string-template
+                     "invalid mode `~a'" mode)))))
   (define (optimize rev-items tail)
     (cond ((null? rev-items) tail)
           ((not (string? (car rev-items)))
@@ -617,7 +618,8 @@
    ((string? col) (string->symbol (-> c string-downcase)))
    ((symbol? col) (-> col symbol-downcase))
    ((keyword? col) (normalize-column (keyword->string col) ci?))
-   (else (throw 'artanis-err 500 "normalize-column: Invalid type of column" col))))
+   (else (throw 'artanis-err 500 normalize-column
+                "Invalid type of column `~a'" col))))
 
 (define* (sxml->xml-string sxml #:key (escape? #f))
   (call-with-output-string
@@ -680,7 +682,7 @@
   (define (%convert lst)
     (match lst
       ((k v) (list (key-converter k) v))
-      (else (throw 'artanis-err 500 "generate-kv-from-post-qstr: Fatal! Can't be here!" lst))))
+      (else (throw 'artanis-err 500 generate-kv-from-post-qstr "Fatal! Can't be here!" lst))))
   (define (-> x)
     (string-trim-both x (lambda (c) (member c '(#\sp #\: #\return)))))
   (map (lambda (x)
@@ -708,7 +710,7 @@
                  "Maybe you run Artanis as unprivileged user? (say, not as root)\n"
                  (current-error-port)))
                ('(system-error . "No such file or directory")
-                (throw 'artanis-err 500 (->err-reason exe reason) file))
+                (throw 'artanis-err 500 handle-proper-owner (->err-reason exe reason) file))
                (else (apply throw k e)))))))
 
 ;; According to wiki, here's the standard format of data_url_scheme:
@@ -729,8 +731,8 @@
       ((or (? symbol?) (? string?))
        (or (and (get-conf 'debug-mode) (mime-check mime) (format #f "~a" mime))
            (format #f "~a" mime)))
-      (else (throw 'artanis-err 500
-                   "generate-data-url: Invalid MIME! Should be symbol or string"
+      (else (throw 'artanis-err 500 generate-data-url
+                   "Invalid MIME! Should be symbol or string"
                    mime))))
   (let ((b64 (base64-encode bv/str)))
     (string-concatenate (list "data:" (->mime) (->crypto) (->charset) "," b64))))
@@ -941,8 +943,8 @@
   (cond
    ((irregex-search *name-re* (basename f))
     => (lambda (m) (irregex-match-substring m 1)))
-   (else (throw 'artanis-err 500
-                "Migrate: wrong parsing of module name, shouldn't be here!" f))))
+   (else (throw 'artanis-err 500 gen-migrate-module-name
+                "Wrong parsing of module name, shouldn't be here!" f))))
 
 (define (try-to-load-migrate-cache name)
   (let ((file (format #f "~a/tmp/cache/migration/~a.scm" (current-toplevel) name)))
@@ -973,18 +975,18 @@
     (cond
      ((or (and (list? dbd0) (memq dbd1 dbd0)) (eq? dbd1 dbd0)) body ...)
      (else
-      (throw 'artanis-err 500
-             (format #f "This is only supported by `~a', but the current dbd is `~a'"
-                     dbd0 dbd1)
+      (throw 'artanis-err 500 'with-dbd
+             "This is only supported by `~a', but the current dbd is `~a'"
+             dbd0 dbd1
              'body ...)))))
 
 (define-syntax-rule (exclude-dbd dbds body ...)
   (let ((dbd (get-conf '(db dbd))))
     (cond
      ((memq dbd dbds)
-      (throw 'artanis-err 500
-             (format #f "This isn't supported by `~a', please check it out again!"
-                     dbds)
+      (throw 'artanis-err 500 'exclude-dbd
+             "This isn't supported by `~a', please check it out again!"
+             dbds
              'body ...))
      (else body ...))))
 
@@ -1062,11 +1064,11 @@
             (eq? (detect-type-name v) e)
             (begin
               (DEBUG "(~{~a~^ ~}) =? (~{~a~^ ~})~%" targs args)
-              (throw 'artanis-err 500
-                     (format #f "~a: Argument ~a is a `~a' type, but I expect type `~a'"
-                             op v (detect-type-name v) e)))))
+              (throw 'artanis-err 500 check-args-types
+                     "~a: Argument ~a is a `~a' type, but I expect type `~a'"
+                     op v (detect-type-name v) e))))
       args targs))
-    (else (throw 'artanis-err 500 "Invalid type annotation"
+    (else (throw 'artanis-err 500 check-args-types "Invalid type annotation `~a'"
                  (procedure-property op 'type-anno)))))
 
 (define (check-function-types op fret)
@@ -1076,11 +1078,12 @@
       (lambda (v e)
         (or (eq? e 'ANY)
             (eq? (detect-type-name v) e)
-            (throw 'artanis-err 500
-                   (format #f "`Return value ~a(~a) is expected to be type `~a'"
-                           v (detect-type-name v) e))))
+            (throw 'artanis-err 500 check-function-types
+                   "`Return value ~a(~a) is expected to be type `~a'"
+                   v (detect-type-name v) e)))
       fret func-types))
-    (else (throw 'artanis-err 500 "Invalid type annotation"
+    (else (throw 'artanis-err 500 check-function-types
+                 "Invalid type annotation `~a'"
                  (procedure-property op 'type-anno)))))
 
 (define (detect-and-set-type-anno! op ftypes atypes)
@@ -1293,16 +1296,17 @@
     (format port (ERROR-TEXT "GNU Artanis encountered exception!~%"))
     (match e
       (((? procedure? subr) (? string? msg) . args)
-       (format port "<~a>~%" (WARN-TEXT (current-filename)))
        (when subr (format port "In procedure ~a :~%"
                           (WARN-TEXT (procedure-name->string subr))))
        (apply format port (REASON-TEXT msg) args)
        (newline port))
-      (((? integer? status) (? procedure? subr) (? string? msg) . args)
+      (((? integer? status) (or (? symbol? subr) (? procedure? subr))
+        (? string? msg) . args)
        (format port "HTTP ~a~%" (STATUS-TEXT status))
-       (format port "<~a>~%" (WARN-TEXT (current-filename)))
        (when subr (format port "In procedure ~a :~%"
-                          (WARN-TEXT (procedure-name->string subr))))
+                          (WARN-TEXT (if (procedure? subr)
+                                         (procedure-name->string subr)
+                                         subr))))
        (apply format port (REASON-TEXT msg) args)
        (newline port)
        (syspage-generator status))
