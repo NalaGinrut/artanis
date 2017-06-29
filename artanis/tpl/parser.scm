@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016
+;;  Copyright (C) 2013,2014,2015,2016,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -32,7 +32,8 @@
     ((include)
      (if (file-exists? args)
          (apply cat args #f)
-         (throw 'artanis-err 500 "Included file in template doesn't exist!" args)))
+         (throw 'artanis-err 500 gen-command
+                "Included file `~a' in template doesn't exist!" args)))
     ((css)
      (format #f "<link rel=\"stylesheet\" href=\"/pub/css/~a\">" args))
     ((icon)
@@ -40,7 +41,8 @@
     ((js)
      (format #f "<script type=\"text/javascript\" src=\"/pub/js/~a\"> </script>" args))
     (else
-     (throw 'artanis-err 500 "Invalid command in template!" cmd))))
+     (throw 'artanis-err 500 gen-command
+            "Invalid command `~a' in template!" cmd))))
      
 (define (make-parser)
   (lalr-parser
