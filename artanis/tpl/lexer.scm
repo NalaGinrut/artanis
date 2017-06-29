@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016
+;;  Copyright (C) 2013,2014,2015,2016,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -52,7 +52,8 @@
              (read-char port)
              'code))))
         ((check) #t)
-        (else (throw 'artanis-err 500 "invalid mode" mode))))
+        (else (throw 'artanis-err 500 next-is-code-start?
+                     "invalid mode `~a'" mode))))
      (else #f))))
 
 (define (read-code port)
@@ -65,7 +66,8 @@
     (let ((c (read-char port)))
       (cond
        ((eof-object? c)
-        (throw 'artanis-err 500 "Invalid template text! No proper end sign!"))
+        (throw 'artanis-err 500 get-the-code
+               "Invalid template text! No proper end sign!"))
        ((and (not enter-string) (char=? c smiddle) (char=? (peek-char port) ssend))
         (read-char port) ; skip ssend
         (string-concatenate-reverse (cons code ret))) ; exit
@@ -148,7 +150,8 @@
     (case mode
       ((slim) (map lexical-token-category tokens))
       ((all) tokens)
-      (else (throw 'artanis-err 500 "make-token-checker: wrong mode" mode))))))
+      (else (throw 'artanis-err 500 make-token-checker
+                   "make-token-checker: wrong mode `~a'" mode))))))
 
 (define tpl-tokenizer
   (lambda (port)
