@@ -251,7 +251,7 @@
         (lp (cddr rest) e #f))))))
 
 (define-syntax-rule (static-filename path)
-  (substring/shared path 1))
+  (format #f "~a/~a" (current-toplevel) path))
 
 (define-syntax-rule (request-ip req)
   ;; TODO: support AF_INET6 in the future
@@ -1155,7 +1155,7 @@
       (string-append (generate-color color) str (generate-color control))))
 
 (define* (colorize-string str color)
-  "Example: (colorize-string \"hello\" '(BLUE BOLD))" 
+  "Example: (colorize-string \"hello\" '(BLUE BOLD))"
   (colorize-string-helper color str '(RESET) (using-readline?)))
 
 (define-syntax-rule (WARN-TEXT str) (colorize-string str '(YELLOW)))
@@ -1290,12 +1290,21 @@
   (lambda (status)
     (format-status-page/server status)))
 
+(define *rf-re* (string->irregex ".*/artanis/artanis/(.*)$"))
 (define (make-unstop-exception-handler syspage-generator)
+  (define (->reasonable-file filename)
+    (if (string? filename)
+        (let ((m (irregex-search *rf-re* filename)))
+          (if m
+              (format #f "artanis/~a" (irregex-match-substring m 1))
+              filename))
+        "In unknown file"))
   (lambda (k . e)
     (define port (current-error-port))
     (format port (ERROR-TEXT "GNU Artanis encountered exception!~%"))
     (match e
       (((? procedure? subr) (? string? msg) . args)
+       (format port "<~a>~%" (WARN-TEXT (->reasonable-file (current-filename))))
        (when subr (format port "In procedure ~a :~%"
                           (WARN-TEXT (procedure-name->string subr))))
        (apply format port (REASON-TEXT msg) args)
@@ -1303,6 +1312,7 @@
       (((? integer? status) (or (? symbol? subr) (? procedure? subr))
         (? string? msg) . args)
        (format port "HTTP ~a~%" (STATUS-TEXT status))
+       (format port "<~a>~%" (WARN-TEXT (->reasonable-file (current-filename))))
        (when subr (format port "In procedure ~a :~%"
                           (WARN-TEXT (if (procedure? subr)
                                          (procedure-name->string subr)
