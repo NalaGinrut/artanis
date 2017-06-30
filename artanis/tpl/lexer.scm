@@ -19,9 +19,11 @@
 
 (define-module (artanis tpl lexer)
   #:use-module (artanis tpl utils)
+  #:use-module (artanis irregex)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 receive)
   #:use-module (system base lalr)
+  #:use-module ((rnrs) #:select (define-record-type))
   #:export (make-tpl-tokenizer
             debug-tpl-tokenizer))
 
@@ -32,12 +34,19 @@
 (define scmd #\@)
 (define end-sign (string-append "\\\"" (string smiddle)))
 
-(define enter-string #f)
-(define code-start #f)
-(define last-char #\nl)
+(define-record-type lex-ctx
+  (fields
+   (mutable enter-string)
+   (mutable code-start)
+   (mutable cmd-start)
+   (mutable last-char)))
+
+(define (new-ctx)
+  (make-lex-ctx #f #f #f #\nl))
   
-(define* (next-is-code-start? c port #:optional (mode 'type))
-  (let ((c2 (peek-char port)))
+(define* (next-is-code-start? c port ctx #:optional (mode 'type))
+  (let ((c2 (peek-char port))
+        (enter-string (lex-ctx-enter-string ctx)))
     (cond
      ((and (not enter-string) (char=? c sstart) (char=? c2 smiddle))
       (case mode
@@ -60,89 +69,106 @@
   (read-delimited end-sign port 'peek))
 
 ;; FIXME: how about recursive embedded tpl?
-;;        My vote is never support it!
-(define (get-the-code port)
-  (let lp((code (read-code port)) (ret '()))
-    (let ((c (read-char port)))
-      (cond
-       ((eof-object? c)
-        (throw 'artanis-err 500 get-the-code
-               "Invalid template text! No proper end sign!"))
-       ((and (not enter-string) (char=? c smiddle) (char=? (peek-char port) ssend))
-        (read-char port) ; skip ssend
-        (string-concatenate-reverse (cons code ret))) ; exit
-       ((char=? #\" c)
-        (not! enter-string)
-        (set! last-char c)
-        (lp (read-code port) (cons "\"" (cons code ret))))
-       ((and (char=? c #\\) (char=? #\" (peek-char port)))
-        (set! enter-string #t)
-        (read-char port)
-        (set! last-char c)
-        (lp (read-code port) (cons "\\\"" (cons code ret))))
-       (else
-        (set! enter-string c)
-        (lp (read-code port) (cons (string c) (cons code ret))))))))
+;;        My vote is that never support it!
+(define (get-the-code port ctx)
+  (let ((enter-string (lex-ctx-enter-string ctx)))
+    (let lp((code (read-code port)) (ret '()))
+      (let ((c (read-char port)))
+        (cond
+         ((eof-object? c)
+          (throw 'artanis-err 500 get-the-code
+                 "Invalid template text! No proper end sign!"))
+         ((and (not enter-string) (char=? c smiddle) (char=? (peek-char port) ssend))
+          (read-char port) ; skip ssend
+          (string-concatenate-reverse (cons code ret))) ; exit
+         ((char=? #\" c)
+          (lex-ctx-enter-string-set! ctx (not enter-string))
+          (lex-ctx-last-char-set! ctx c)
+          (lp (read-code port) (cons "\"" (cons code ret))))
+         ((and (char=? c #\\) (char=? #\" (peek-char port)))
+          (lex-ctx-enter-string-set! ctx #t)
+          (read-char port)
+          (lex-ctx-last-char-set! ctx c)
+          (lp (read-code port) (cons code ret)))
+         (else
+          (lex-ctx-enter-string-set! ctx c)
+          (lp (read-code port) (cons (string c) (cons code ret)))))))))
 
+;; NOTE: Don't wrap code in double-quotes, for example:
+;; 1. <a href="<%= my-url %>">click me</a> (Wrong!)
+;; 2. <a href=<%= my-url %>click me</a> (Correct!)
 (define (read-html port)
-  (read-delimited "\"<" port 'peek))
+  (irregex-replace/all "\"" (read-delimited "<" port 'peek) "\\\""))
 
-(define (get-the-html port)
-  (let lp((html (read-html port)) (ret '()))
-    (let ((c (read-char port)))
-      (cond
-       ((or (eof-object? c) 
-            (and (not enter-string) (next-is-code-start? c port 'check)))
-        (unget-char1 c port) ; #\<
-        (string-concatenate 
-         `("(display \""
-           ,(string-concatenate-reverse (cons html ret))
-           "\")"))) ; exit
-       ((char=? #\" c)
-        (not! enter-string)
-        (lp (read-html port) (cons "\\\"" (cons html ret))))
-       (else
-        (lp (read-html port) (cons (string c) (cons html ret))))))))
+(define (get-the-html port ctx)
+  (let ((enter-string (lex-ctx-enter-string ctx))
+        (code-start (lex-ctx-code-start ctx)))
+   (let lp((html (read-html port)) (ret '()))
+     (let ((c (read-char port)))
+       (cond
+        ((or (eof-object? c) 
+             (and (not enter-string)
+                  (or (next-is-code-start? c port ctx 'check)
+                      (next-is-cmd-start? c port ctx 'check))))
+         (unget-char1 c port) ; #\<
+         (string-concatenate 
+          `("(display \""
+            ,(string-concatenate-reverse (cons html ret))
+            "\")"))) ; exit
+        ((char=? #\" c)
+         (lex-ctx-enter-string-set! ctx (not enter-string))
+         (lp (read-html port) (cons html ret)))
+        (else
+         (lp (read-html port) (cons (string c) (cons html ret)))))))))
 
-(define (next-is-cmd-start? c port)
-  (let ((c2 (peek-char port)))
+(define* (next-is-cmd-start? c port ctx #:optional (mode 'type))
+  (let ((c2 (peek-char port))
+        (enter-string (lex-ctx-enter-string ctx)))
     (cond
      ((and (not enter-string) (char=? c sstart) (char=? c2 scmd))
-      (read-char port) ; skip scmd
-      (let ((cmd (read-delimited " " port)))
-        (string->symbol cmd)))
+      (case mode
+        ((type)
+         (read-char port) ; skip scmd
+         (let ((cmd (read-delimited " \n\t" port)))
+           (string->symbol cmd)))
+        ((check) #t)
+        (else (throw 'artanis-err 500 next-is-code-start?
+                     "invalid mode `~a'" mode))))
      (else #f))))
       
-(define next-token
-  (lambda (port)
-    (let* ((c (read-char port))
-           (next (lambda ()
-                   (set! last-char c)
-                   (next-token port))))
-      (cond
-       ((eof-object? c) '*eoi*)
-       ((or (and (not (char=? last-char #\\)) (char=? c #\")) (char=? c #\')) 
-        ;; not an escaped double-quote
-        ;; NOTE: HTML string may contain #\' as string quote, and we'll
-        ;;       handle all code-string in get-the-code, so it's OK to
-        ;;       check #\' here.
-        (not! enter-string)
-        (next))
-       ((and (not enter-string) (not code-start) (next-is-code-start? c port))
-        => (lambda (type)
-             (set! code-start #f)
-             (return port type (get-the-code port))))
-       ((and (not enter-string) (not code-start) (next-is-cmd-start? c port))
-        => (lambda (cmd)
-             (set! code-start #f)
-             (return port 'command (cons cmd (get-the-code port)))))
-       (else
-        (unget-char1 c port)
-        (return port 'html (get-the-html port)))))))
+(define (next-token port ctx)
+  (let* ((enter-string (lex-ctx-enter-string ctx))
+         (code-start (lex-ctx-code-start ctx))
+         (cmd-start (lex-ctx-cmd-start ctx))
+         (last-char (lex-ctx-last-char ctx))
+         (c (read-char port))
+         (next (lambda ()
+                 (lex-ctx-last-char-set! ctx c)
+                 (next-token port ctx))))
+    (cond
+     ((eof-object? c) '*eoi*)
+     ((or (and (not (char=? last-char #\\)) (char=? c #\")) (char=? c #\')) 
+      ;; not an escaped double-quote
+      ;; NOTE: HTML string may contain #\' as string quote, and we'll
+      ;;       handle all code-string in get-the-code, so it's OK to
+      ;;       check #\' here.
+      (lex-ctx-enter-string-set! ctx (not enter-string))
+      (next))
+     ((and (not enter-string) (not code-start) (next-is-code-start? c port ctx))
+      => (lambda (type)
+           (lex-ctx-code-start-set! ctx #f)
+           (return port type (get-the-code port ctx))))
+     ((and (not enter-string) (not cmd-start) (next-is-cmd-start? c port ctx))
+      => (lambda (cmd)
+           (lex-ctx-cmd-start-set! ctx #f)
+           (return port 'command (cons cmd (get-the-code port ctx)))))
+     (else
+      (unget-char1 c port)
+      (return port 'html (get-the-html port ctx))))))
 
 (define (make-tpl-tokenizer port)
   (lambda ()
-    (next-token port)))
+    (next-token port (new-ctx))))
 
 (define* (make-token-checker tokenizer)
   (lambda* (src #:optional (mode 'slim))
@@ -153,13 +179,12 @@
       (else (throw 'artanis-err 500 make-token-checker
                    "make-token-checker: wrong mode `~a'" mode))))))
 
-(define tpl-tokenizer
-  (lambda (port)
-    (let lp ((out '()))
-      (let ((tok (next-token port)))
-        (if (eq? tok '*eoi*)
-            (reverse! out)
-            (lp (cons tok out)))))))
+(define (tpl-tokenizer port)
+  (let lp ((out '()))
+    (let ((tok (next-token port (new-ctx))))
+      (if (eq? tok '*eoi*)
+          (reverse! out)
+          (lp (cons tok out))))))
 
 (define (debug-tpl-tokenizer src)
   ((make-token-checker tpl-tokenizer) src))

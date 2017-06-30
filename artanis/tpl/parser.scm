@@ -35,11 +35,11 @@
          (throw 'artanis-err 500 gen-command
                 "Included file `~a' in template doesn't exist!" args)))
     ((css)
-     (format #f "<link rel=\"stylesheet\" href=\"/pub/css/~a\">" args))
+     (format #f "\"<link rel=\\\"stylesheet\\\" href=\\\"/pub/css/~a\\\">\"" args))
     ((icon)
-     (format #f "<link rel=\"icon\" href=\"/pub/img/~a\" type=\"image/x-icon\">" args))
+     (format #f "\"<link rel=\\\"icon\\\" href=\\\"/pub/img/~a\\\" type=\\\"image/x-icon\\\">\"" args))
     ((js)
-     (format #f "<script type=\"text/javascript\" src=\"/pub/js/~a\"> </script>" args))
+     (format #f "\"<script type=\\\"text/javascript\\\" src=\\\"/pub/js/~a\\\"> </script>\"" args))
     (else
      (throw 'artanis-err 500 gen-command
             "Invalid command `~a' in template!" cmd))))
@@ -53,7 +53,7 @@
          (*eoi*) : *eof-object*)
 
    (tpl (html) : (string-trim-both $1)
-        (command) : (gen-command (car $1) (cadr $1))
+        (command) : (string-concatenate `("(display " ,(gen-command (car $1) (cdr $1)) ")"))
         (program) : $1)
 
    (program (code) : $1
