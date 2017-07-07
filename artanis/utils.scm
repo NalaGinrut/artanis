@@ -303,16 +303,21 @@
 (define %mmap
   (pointer->procedure '*
                       (dynamic-func "mmap" *libc-ffi*)
-                      (list '* size_t int int int size_t)))
+                      (list '* size_t int int int size_t) #:return-errno? #t))
 (define %munmap
   (pointer->procedure int
                       (dynamic-func "munmap" *libc-ffi*)
-                      (list '* size_t)))
+                      (list '* size_t) #:return-errno? #t))
 (define* (mmap size #:key (addr %null-pointer) (fd -1) (prot MAP_SHARED) 
-               (flags PROT_READ) (offset 0))
-  (pointer->bytevector (%mmap addr size prot flags fd offset) size))
-(define (munmap bv size)
-  (%munmap (bytevector->pointer bv size) size))
+               (flags PROT_READ) (offset 0) (bv? #f))
+  (let ((ret (if bv? (lambda (p) (pointer->bytevector p size)) identity)))
+    (ret (%mmap addr size prot flags fd offset))))
+(define (munmap bv/pointer size)
+  (cond
+   ((bytevector? bv/pointer)
+    (%munmap (bytevector->pointer bv/pointer size) size))
+   ((pointer? bv/pointer)
+    (%munmap bv/pointer size))))
 
 ;; FIXME: what if len is not even?
 (define (string->byteslist str step base)
