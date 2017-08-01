@@ -59,10 +59,10 @@
       (lambda (port) (display expr port)))))
 
 ;; NOTE:
-;; cache? is #f, mean no need to recache, otherwise cache? is the cache filename
-(define-syntax-rule (tpl-render tpl e cache?)
+;; cache-file is #f, mean no need to recache, otherwise is the cache filename
+(define-syntax-rule (tpl-render tpl e cache-file)
   (let ((expr (tpl->expr tpl)))
-    (cache-the-file expr cache?)
+    (cache-the-file expr cache-file)
     (call-with-output-string
      (lambda (port)
        (parameterize ((current-output-port port))
