@@ -142,6 +142,7 @@ install: $(ALL_TARGETS)
 	$(CP) $(MOD_OBJ) $(MOD_TARGET_PATH)/
 
 ifdef DESTDIR
+	mkdir -p $(DESTDIR)/etc
 	$(CP) $(ARTANIS_ETC) $(DESTDIR)/etc/
 	$(CP) $(ARTANIS_PAGES) $(DESTDIR)/etc/artanis/
 	mkdir -p $(DESTDIR)/bin/
