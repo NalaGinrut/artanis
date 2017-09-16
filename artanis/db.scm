@@ -167,6 +167,7 @@
           (case (get-conf '(db pool))
             ((increase) (create-new-DB-conn))
             ((fixed)
+             (DEBUG "There's no DB connection from pool, wait for a moment!~%")
              (schedule-task)
              (get-conn-from-pool))
             (else
