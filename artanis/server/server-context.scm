@@ -63,11 +63,13 @@
             redirector-reader
             redirector-writer
             redirector-type
-            redirector-port
+            redirector-remote-port
             redirector-count
             redirector-mutex
             register-redirector!
+            remove-redirector!
             get-the-redirector-of-websocket
+            is-proxy?
             
             make-task
             task?
@@ -158,7 +160,7 @@
    reader      ; the registered reader
    writer      ; the registered writer
    type        ; proxy or websocket
-   port        ; remote port or #f
+   remote-port ; remote port or #f
    count       ; transfered bytes, maybe useful
    mutex))     ; a mutex for locking
 
@@ -193,6 +195,13 @@
                port
                0
                (make-mutex))))
+
+(define (remove-redirector! server client)
+  (hashv-remove! (ragnarok-server-services server)
+                 (client-sockport-decriptor client)))
+
+(define (is-proxy? redirector)
+  (eq? (redirector-type redirector) 'proxy))
 
 (define-record-type task
   (fields
