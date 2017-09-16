@@ -20,16 +20,14 @@
 
 (define-module (test websocket)
   #:use-module (artanis utils)
+  #:use-module (artanis websocket handshake)
+  #:use-module (artanis websocket frame)
   #:use-module (test-suite lib))
-
-;; export all things, since we need to test inner functions
-(eval-when (eval load compile)
-  (export-all-from-module! '(artanis websocket)))
 
 (with-test-prefix "websocket test"
 
   (pass-if "websocket key->accept"
-    (let ((ts (websocket:key->accept "x3JJHMbDL1EzLkh9GBhXDw==")))
+    (let ((ts (gen-accept-key "x3JJHMbDL1EzLkh9GBhXDw==")))
       (string=? ts "HSmrc0sMlYUkAGmm5OPpG2HaGWk=")))
 
   (pass-if "websocket one frame as string decode"
