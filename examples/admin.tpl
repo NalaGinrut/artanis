@@ -12,7 +12,7 @@
       <p>title:</p>
       <input type="text" name="title"/></br>
       <p>content:</p>
-      <textarea name="content" rows="25" cols="38">write something</textarea></br>
+      <textarea name="contents" rows="25" cols="38">write something</textarea></br>
       <input type="submit" value="Submit"/>
     </form>
   </body>
