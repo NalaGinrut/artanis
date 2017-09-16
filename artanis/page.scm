@@ -63,7 +63,7 @@
   (run-hook *before-response-hook* rc body))
 
 (define (init-after-request-hook)
-  (run-after-request! detect-if-connecting-websocket))
+  #t)
 
 (define (init-before-response-hook)
   (run-before-response! rc-conn-recycle))
