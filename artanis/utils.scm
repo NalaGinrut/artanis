@@ -84,7 +84,8 @@
             keep-alive? procedure-name->string proper-toplevel gen-content-length
             make-file-sender file-sender? file-sender-size file-sender-thunk
             get-string-all-with-detected-charset make-unstop-exception-handler
-            artanis-log exception-from-client exception-from-server render-sys-page)
+            artanis-log exception-from-client exception-from-server render-sys-page
+            bv-copy/share)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -1331,3 +1332,12 @@
                 "BUG: invalid exception format, but we throw it anyway!")
                e)
        (apply throw k e)))))
+
+(define* (bv-copy/share bv from
+                        #:optional (size (bytevector-length bv)) (offset 0) (type 'u8))
+  (when (> size (bytevector-length bv))
+    (error bv-copy/share "Specified size is larger than the length!" size))
+  (let* ((len (bytevector-length bv))
+         (ptr (bytevector->pointer bv))
+         (new-ptr (make-pointer (+ (pointer-address ptr) from))))
+    (pointer->bytevector new-ptr size offset type)))
