@@ -20,10 +20,13 @@
 ;;  and GNU Lesser General Public License along with this program.
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
-(use-modules (artanis artanis))
+(use-modules (artanis artanis) (artanis config))
 
 ;; the example of multi files upload
 (init-server)
+;;(conf-set! '(host addr) "0.0.0.0")
+(conf-set! '(server engine) 'guile)
+(conf-set! '(upload size) 10000000000)
 
 (define upload-form
   '(form (@ (method "POST") (enctype "multipart/form-data") (action "upload"))
@@ -41,4 +44,4 @@
       ((none) (response-emit "No uploaded files!"))
       (else (response-emit "Impossible! please report bug!")))))
 
-(run #:debug #t)
+(run #:debug #f)
