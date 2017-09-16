@@ -67,7 +67,7 @@
 ;;       openning work.
 (define (http-open server client)
   (throw 'artanis-err 500 http-open
-         "This method shouldn't be called, it's likely a bug!"))
+         "This method shouldn't be called, it's very likely a bug somewhere!"))
 
 (::define (http-read server client)
   (:anno: (ragnarok-server ragnarok-client) -> (<request> ANY))
@@ -88,23 +88,32 @@
        (else (read-request-body req)))))
   (DEBUG "Enter http-read ~a~%" (client-sockport client))
   (let ((port (client-sockport client)))
-   (cond
-    ((eof-object? (peek-char port))
-     (DEBUG "Encountered EOF, closing ~a~%" (client-sockport client))
-     ;; Close it as peer-shutdown
-     (%%raw-close-connection server client #t)
-     (simply-quit))
-    (else
-     (let* ((req (read-request port))
-            (is-websock? (detect-if-connecting-websocket req #f))
-            (body (if is-websock?
-                      #f (try-to-read-request-body req))))
-       (when (and is-websock? (get-conf 'debug-mode))
-         (DEBUG "websocket mode!~%")
-         (let ((ip (client-ip client)))
-           (DEBUG "The websocket based client ~a is reading...~%" ip)
-           (DEBUG "Just return #f body according to Artanis convention~%")))
-       (values req body))))))
+    (cond
+     ((eof-object? (peek-char port))
+      (DEBUG "Encountered EOF, closing ~a~%" (client-sockport client))
+      ;; Close it as peer-shutdown
+      (%%raw-close-connection server client #t)
+      (simply-quit))
+     (else
+      (let* ((req (read-request port))
+             (is-websock? (detect-if-connecting-websocket req #f))
+             (body (if is-websock?
+                       #f (try-to-read-request-body req))))
+        (cond
+         (is-websock?
+          (DEBUG "websocket mode!~%")
+          (let ((ip (client-ip client)))
+            (DEBUG "The websocket based client ~a is reading...~%" ip)
+            (DEBUG "Just return #f body according to Artanis convention~%"))
+          ;; NOTE: This step will finish handshake then schedule and wait for data
+          (do-websocket-handshake req client)
+          (DEBUG "[Websocket] Client `~a' is requesting a `~a' service~%"
+                 (client-ip client) proto-name)
+          ;; NOTE: Each time the body is the content from client. The content is parsed
+          ;;       from the frame in websocket-read. And the payload is parsed by the
+          ;;       registered parser. Users don't have to call parser explicitly.
+          (values req (websocket-read req server client)))
+         (else (values req body))))))))
 
 (::define (http-write server client response body method-is-head?)
   (:anno: (ragnarok-server ragnarok-client <response> ANY boolean) -> ANY)
@@ -126,9 +135,17 @@
                (ip (client-ip client)))
            (DEBUG "The redirected ~a client ~a is writing...~%" type ip)
            (DEBUG "Just suspended...~%")
-           ((redirector-writer redirector) redirector)
-           (break-task)
-           (http-write server client response body #f))))
+           (cond
+            ((is-proxy? redirector)
+             ;; TODO: auto proxy I/O
+             ((redirector-writer redirector) redirector)
+             (break-task)
+             (http-write server client response body #f))
+            (else
+             ;; NOTE: For common websocket, http-write will wrap the response body into
+             ;;       a websocket frame by websocket-write.
+             (DEBUG "Common websocket writing for `~a'~%" (client-ip client))
+             (websocket-write response body))))))
    (else
     (let* ((res (write-response response (client-sockport client)))
            (port (response-port res)))  ; return the continued port
@@ -141,10 +158,11 @@
        ((file-sender? body)
         ((file-sender-thunk body)))
        (else
-        (throw 'artanis-err 500 "1: Expected a bytevector for body" body)))))))
+        (throw 'artanis-err 500 http-write
+               "Expected a bytevector for body" body)))))))
 
 ;; Check if the client in the redirectors table:
-;; 1. In the table, just scheduled for next time.
+;; 1. In the table, emit websocket closing handshake.
 ;; 2. Not in the table, just close the connection.
 (::define (http-close server client peer-shutdown?)
   (:anno: (ragnarok-server ragnarok-client boolean) -> ANY)
@@ -152,15 +170,12 @@
   (cond
    ((and (not (must-close-connection?))
          (get-the-redirector-of-websocket server client))
-    ;; If the protocol has been registered by the client, then it means
-    ;; the client enabled a special websocket-based protocol other than
-    ;; HTTP. And we will not close this client, but treat it as a waiting
-    ;; connection.
     => (lambda (redirector)
          (let ((type (redirector-type redirector))
                (ip (client-ip client)))
-           (DEBUG "The ~a client ~a is suspending...~%" type ip)
-           (break-task))))
+           (DEBUG "Closing `~a' client `~a' registered as websocket...~%" type ip)
+           (closing-websocket-handshake server client peer-shutdown?)
+           (%%raw-close-connection server client peer-shutdown?))))
    (else
     (DEBUG "do close connection~%")
     ;; NOTE: Don't use simply-quit here, since there's no valid installed prompt
