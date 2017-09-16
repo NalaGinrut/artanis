@@ -35,4 +35,7 @@
 
 * Add server.idletimeout to shutdown a keep-alive connection when it's in idle status for the seconds specified by timeout.
   This would be helpful to avoid EADDRNOTAVAIL that occurs too much.
-  
+
+* Support if-modified-since and if-request-match caching
+
+* Add lexer context in tpl for functional feature
