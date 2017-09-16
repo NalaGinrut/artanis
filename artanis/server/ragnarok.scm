@@ -371,32 +371,36 @@
     (when (not http)
       (throw 'artanis-err 500 ragnarok-http-gateway-run
              "BUG: There should be `http' protocol at least!"))
-    (catch 'artanis-err
-      (lambda ()
-        (let main-loop((client (get-one-request-from-clients http server)))
-          (let ((proto-name (detect-client-protocol client)))
-            (DEBUG "Enter main-loop, protocol is ~a~%" proto-name)
-            (call-with-sigint
-             ;; handle C-c to break the server loop properly
+    (let main-loop((client (get-one-request-from-clients http server)))
+      (let ((proto-name (detect-client-protocol client)))
+        (DEBUG "Enter main-loop, protocol is ~a~%" proto-name)
+        (call-with-sigint
+         ;; handle C-c to break the server loop properly
+         (lambda ()
+           (DEBUG "Prepare to serve one request ~a~%" (client-sockport client))
+           (catch 'artanis-err
              (lambda ()
-               (DEBUG "Prepare to serve one request ~a~%" (client-sockport client))
-               (serve-one-request handler http server client)
-               (DEBUG "Serve one done~%"))
-             (lambda ()
-               ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
-               ;; NOTE: The parameters will be lost when exception raised here, so we can't
-               ;;       use any of current-task/server/client/proto in the exception handler
-               (DEBUG "Prepare to close connection ~a~%" (client-ip client))
-               (ragnarok-close http server client #f)))
-            (DEBUG "main-loop again~%")
-            (main-loop (get-one-request-from-clients http server)))))
-      (lambda e
-        (call-with-values
-            (lambda ()
-              (apply (make-unstop-exception-handler (exception-from-server)) e))
-          (lambda (r b s)
-            (ragnarok-write http server client r b #f)
-            (ragnarok-close http server client #f)))))))
+               (serve-one-request handler http server client))
+             (lambda e
+               (cond
+                ((= ETIMEDOUT (system-error-errno e))
+                 (main-loop (get-one-request-from-clients http server)))
+                (else
+                 (call-with-values
+                     (lambda ()
+                       (apply (make-unstop-exception-handler (exception-from-server)) e))
+                   (lambda (r b s)
+                     (ragnarok-write http server client r b #f)
+                     (ragnarok-close http server client #f)))))))
+           (DEBUG "Serve one done~%"))
+         (lambda ()
+           ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
+           ;; NOTE: The parameters will be lost when exception raised here, so we can't
+           ;;       use any of current-task/server/client/proto in the exception handler
+           (DEBUG "Prepare to close connection ~a~%" (client-ip client))
+           (ragnarok-close http server client #f)))
+        (DEBUG "main-loop again~%")
+        (main-loop (get-one-request-from-clients http server))))))
 
 ;; NOTE: we don't schedule guile-engine, although it provides naive mechanism for scheduling.
 (define (new-guile-engine)
@@ -444,7 +448,7 @@
              (not (eq? (get-conf '(server engine)) 'guile)))
         (DEBUG "Using Non-Blocking I/O~%")
         ;; enable global suspendable ports for non-blocking
-        ;; NOTE: only for ragnarok engine, not for Guile built-in engine.         
+        ;; NOTE: only for ragnarok engine, not for Guile built-in engine.
         (install-suspendable-ports!)
         (DEBUG "Installed suspendable ports~%")
         (parameterize ((current-read-waiter async-read-waiter)
