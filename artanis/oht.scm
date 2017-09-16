@@ -345,33 +345,38 @@
 ;; for #:websocket
 ;; 
 (define (websocket-maker type rule keys)
-  (define (call-with-websocket-channel args)
-    (match args
-      (('proto (? symbol? proto))
-       ;; TODO: call protocol initilizer, and establish websocket for it.
-       #t)
-      (('redirect (? string? ip/usk))
-       ;; NOTE: We use IP rather than hostname, since it's usually redirected to
-       ;;       a LAN address. Using hostname may cause DNS issues.
-       ;; NOTE: ip/usk means ip or unix-socket, the pattern should be this:
-       ;;       ^ip://(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(:[0-9]{1,5})?$
-       ;;       ^unix://[a-zA-Z-_0-9]+\\.socket$
-       ;; NOTE: Equivalent to transparent proxy.
-       ;; TODO: call protocol initilizer, and establish websocket
-       ;;       to redirect it.
-       #t)
-      (('proxy (? symbol? proto))
-       ;; NOTE: Setup a proxy with certain protocol handler.
-       ;;       Different from the regular proxy design, the proxy in Artanis doesn't
-       ;;       need a listen port, since it's always 80/443. The client should
-       ;;       support websocket, and visit the related URL for establishing
-       ;;       a websocket channel. Then the rest is the same with regular proxy.
-       #t)
-      (else (throw 'artanis-err 500 websocket-maker "Invalid type!" type))))
-  (this-rule-enabled-websocket! rule)
+  (match keys
+    ((#:proto (? symbol? proto))
+     ;; TODO: call protocol initilizer, and establish websocket for it.
+     ;; NOTE: In Artanis, we accept only one protocol for each URL-remapping,
+     ;;       if you have several protocols to service, please use different
+     ;;       URL-remapping.
+     (this-rule-enabled-websocket! rule proto)
+     #t)
+    ((#:redirect (? string? ip/usk))
+     ;; NOTE: We use IP rather than hostname, since it's usually redirected to
+     ;;       a LAN address. Using hostname may cause DNS issues.
+     ;; NOTE: ip/usk means ip or unix-socket, the pattern should be this:
+     ;;       ^ip://(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(:[0-9]{1,5})?$
+     ;;       ^unix://[a-zA-Z-_0-9]+\\.socket$
+     ;; NOTE: Equivalent to transparent proxy.
+     ;; TODO: call protocol initilizer, and establish websocket
+     ;;       to redirect it.
+     ;; NOTE: Just call :websocket as the handler is enough to redirect data automatically
+     (this-rule-enabled-websocket! rule 'redirect)
+     #t)
+    ((#:proxy (? symbol? proto))
+     ;; NOTE: Setup a proxy with certain protocol handler.
+     ;;       Different from the regular proxy design, the proxy in Artanis doesn't
+     ;;       need a listen port, since it's always 80/443. The client should
+     ;;       support websocket, and visit the related URL for establishing
+     ;;       a websocket channel. Then the rest is the same with regular proxy.
+     (this-rule-enabled-websocket! rule 'proxy)
+     #t)
+    (else (throw 'artanis-err 500 websocket-maker "Invalid type!" type)))
   (lambda (rc . args)
     (error "Artanis hasn't been ready for websocket yet!")
-    ;; TODO: parsing command and apply call-with-websocket-channel
+    ;; TODO: :websocket is not for read/write, it's only used for changing status.
     #t))
 
 ;; ---------------------------------------------------------------------------------
