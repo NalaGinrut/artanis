@@ -19,30 +19,15 @@
 
 (define-module (artanis websocket)
   #:use-module (artanis utils)
-  #:use-module (artanis crypto base64)
+  #:use-module (artanis config)
   #:use-module (artanis server server-context)
-  #:use-module (artanis server scheduler)
-  #:use-module (artanis irregex)
-  #:use-module (ice-9 iconv)
-  #:use-module (rnrs bytevectors)
-  #:use-module (web request)
-  #:use-module (web response)
-  #:use-module (web server)
-  #:use-module (srfi srfi-9)
-  #:use-module (srfi srfi-1)
-  #:export (websocket:key->accept
-            this-rule-enabled-websocket!
-            detect-if-connecting-websocket))
-
-(define *ws-magic* "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
-
-(define-record-type websocket-server
-  (make-websocket-server onopen onmessage onclose send)
-  websocket-server?
-  (onopen ws:onopen ws:onopen-set!)
-  (onmessage ws:onmessage ws:onmessage-set!)
-  (onclose ws:onclose ws:onclose-set!)
-  (send ws:send ws:send-set!))
+  #:use-module (artanis websocket handshake)
+  #:export (this-rule-enabled-websocket!
+            detect-if-connecting-websocket
+            websocket-read
+            websocket-write)
+  #:re-export (do-websocket-handshake
+               closing-websocket-handshake))
 
 ;; Op-code Meaning
 (define MSG_CONG #x0) ;	Message continuation [continuation]
@@ -78,21 +63,6 @@
          (head (integer->char (logior #x80 opcode))))
     (format #f "~a~a~a" head length data)))
 
-(define (websocket:key->accept wsk)
-  (let* ((realkey (string-append wsk *ws-magic*))
-         (keyhash (string->sha-1 realkey))
-         (keybv (list->u8vector (string->byteslist keyhash 2 16))))
-    (base64-encode keybv)))
-
-(define (websocket-handler req body)
-  (let* ((headers (request-headers req))
-         (key (assoc-ref headers 'sec-websocket-key))
-         (acpt (websocket:key->accept key))
-         (res (build-response #:code 101 #:headers `((Sec-WebSocket-Accept . ,acpt)
-                                                     (Upgrade . "websocket")
-                                                     (Connection . "Upgrade")))))
-    (values res "" 'ok)))
-
 ;; frame header "\x81" (1000 0001 in binary)
 (define *ws-frame-header* #\201)
 
@@ -122,26 +92,72 @@
 
 (define *rules-with-websocket* '())
 
-(define (this-rule-enabled-websocket! rule)
+(define (this-rule-enabled-websocket! rule protocol)
   (set! *rules-with-websocket*
-        (cons rule *rules-with-websocket*)))
+        (cons (cons (string->irregex rule) protocol) *rules-with-websocket*)))
+
+(define (get-websocket-protocol rule)
+  (any (lambda (pp)
+         (irregex-search (car pp) rule))
+       *rules-with-websocket*))
 
 ;; If the URL hit and haven't registered, then register it.
 ;; NOTE: The hook requires (req body) two parameters, so we can't pass server/client
 ;;       explicitly.
-(::define (detect-if-connecting-websocket req _)
-  (:anno: (<request> ANY) -> boolean)
+(::define (detect-if-connecting-websocket req)
+  (:anno: (<request>) -> boolean)
   (define (url-need-websocket? url)
     (any (lambda (rule) (irregex-search rule url)) *rules-with-websocket*))
-  ;;(DEBUG "detect if connecting websocket~%")
+  (DEBUG "detect if connecting websocket~%")
   (let ((server (current-server))
         (client (current-client))
         (url (request-path req))
         (port (request-port req)))
     (cond
+     ((get-the-redirector-of-websocket server client)
+      (DEBUG "Client `~a' has already registered websocket in `~a'" (client-ip client) url)
+      #t)
      ((url-need-websocket? url)
+      (cond
+       ((eq? (get-conf '(server engine)) 'guile)
+        (throw 'artanis-err 1006 detect-if-connecting-websocket
+               "Server engine `guile' doesn't support websocket!"))
+       ((not (get-conf '(server websocket)))
+        (throw 'artanis-err 1006 detect-if-connecting-websocket
+               "Websocket is fobbiden since server.websocket is not enabled")))
       ;; If the URL need websocket, and if it's not registered, then register it.
-      (when (not (get-the-redirector-of-websocket server client))
-        (register-redirector! server client #f #f 'websocket port))
+      ;; TODO: If the websocket was specified a protocol, then use the registered
+      ;;       reader/writer to replace `identity'.
+      (register-redirector! server client identity identity 'websocket port)
+      (do-websocket-handshake req)
+      (DEBUG "Register `~a' to use websocket for rule `~a'" (client-ip client) url)
       #t)
      (else #f))))
+
+;; NOTE: auth in websocket is not handled by #:auth, but should be specified
+;;       in #:websocket. So the authentication will be checked in websocket-read
+(define (websocket-check-auth req)
+
+  ;; return 401 or 3xx redirection if authentication failed
+  #t)
+
+;; TODO: Register protobuf handler to ragnarok-server when server start.
+(::define (websocket-read req server client)
+  (:anno: (<request> ragnaraok-server ragnarok-client) -> websocket-frame)
+  (cond
+   ((websocket-check-auth req)
+    (let* ((redirector (get-the-redirector-of-websocket server client))
+           (frame (read-websocket-frame (client-sockport client)))
+           (payload (websocket-frame-payload frame))
+           (reader (redirector-reader redirector)))
+      (new-websocket-frame #f reader payload)))
+   (else
+    (throw 'artanis-err 401 websocket-read
+           "Authentication failed: ~a" auth))))
+
+(::define (websocket-write res body server client)
+  (:anno: (<response> ANY ragnarok-server ragnarok-client) -> ANY)
+  (let* ((redirector (get-the-redirector-of-websocket server client))
+         (writer (redirector-writer redirector))
+         (frame (new-websocket-frame #t writer body)))
+    (write-response-body (write-response res) frame)))
