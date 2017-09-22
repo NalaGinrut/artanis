@@ -1050,6 +1050,8 @@
    ((symbol? o) 'symbol)
    ((string? o) 'string)
    ((integer? o) 'int)
+   ((positive? o) '+int)
+   ((negative? o) '-int)
    ((number? o) 'number)
    ((thunk? o) 'thunk)
    ((procedure? o) 'proc)
