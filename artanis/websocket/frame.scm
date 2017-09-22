@@ -26,17 +26,33 @@
   #:use-module (rnrs bytevectors)
   #:export (received-closing-frame
             send-websocket-closing-frame
+            
             websocket-frame-head1
             websocket-frame-head2
             websocket-frame-final-fragment?
             websocket-frame-opcode
-            websocket-frame-type))
+            websocket-frame-type
+
+            websocket-frame/client-final?
+            websocket-frame/client-type
+            websocket-frame/client-length
+            websocket-frame/client-payload
+
+            new-websocket-frame/client
+            write-websocket-frame/client))
 
 (define-record-type websocket-frame
   (fields
    payload-length
    payload-offset
    body))
+
+(define-record-type websockt-frame/client
+  (fields
+   final?
+   type
+   length
+   payload))
 
 ;;  %x0 denotes a continuation frame
 (define (is-continue-frame? opcode) (= opcode #x0))
@@ -90,11 +106,33 @@
     control-reserved     ; #xE
     control-reserved))   ; #xF
 
+(define-syntax-rule (generate-opcode type)
+  (list-index *opcode-list* type))
+
 (define-syntax-rule (get-head1 bv)
   (bytevector-u8-ref bv 0))
 
 (define-syntax-rule (get-head2 bv)
   (bytevector-u8-ref bv 1))
+
+(define-syntax-rule (%get-opcode bv)
+  (bytevector-u32-ref bv 4))
+
+(define-syntax-rule (%get-type opcode)
+  (assoc-ref *opcode-list* opcode))
+
+(define-syntax-rule (%verify-type type)
+  (cond
+   ((eq? type 'non-control-reserved)
+    (throw 'artanis-err 500 websocket-type
+           "The opcode `#x~:@(~x~)' is reserved for non-control frame" opcode))
+   ((eq? type 'control-reserved)
+    (throw 'artanis-err 500 websocket-type
+           "The opcode `#x~:@(~x~)' is reserved for control frame" opcode))
+   (else type)))
+
+(define-syntax-rule (%get-body bv payload-offset payload-length)
+  (bv-copy/share bv payload-offset payload-length))
 
 (::define (websocket-frame-head1 frame)
   (:anno: (websocket-frame) -> int)
@@ -108,32 +146,27 @@
   (:anno: (websocket-frame) -> boolean)
   (is-final-frame? (websocket-frame-head1 frame)))
 
-(define-syntax-rule (%get-opcode bv)
-  (bytevector-u32-ref bv 4))
+(::define (websocket-frame-final? frame)
+  (:anno: ))
 (::define (websocket-frame-opcode frame)
   (:anno: (websocket-frame) -> int)
   (%get-opcode (websocket-frame-body frame)))
 
 (::define (websocket-frame-type frame)
   (:anno: (websocket-frame) -> symbol)
-  (let* ((opcode (websocket-opcode frame))
-         (type (assoc-ref *opcode-list* opcode)))
-    (cond
-     ((eq? type 'non-control-reserved)
-      (throw 'artanis-err 500 websocket-type
-             "The opcode `#x~:@(~x~)' is reserved for non-control frame" opcode))
-     ((eq? type 'control-reserved)
-      (throw 'artanis-err 500 websocket-type
-             "The opcode `#x~:@(~x~)' is reserved for control frame" opcode))
-     (else type))))
+  (%get-type (%get-opcode (websocket-frame-body frame))))
 
-(define-syntax-rule (%get-body bv payload-offset payload-length)
-  (bv-copy/share bv payload-offset payload-length))
 (::define (websocket-frame-body frame)
   (:anno: (websocket-frame) -> bytevector)
-  (bv-copy/share (websocket-frame-body frame)
-                 (websocket-frame-payload-offset frame)
-                 (websocket-frame-payload-length frame)))
+  (%get-body (websocket-frame-body frame)
+             (websocket-frame-payload-offset frame)
+             (websocket-frame-payload-length frame)))
+
+(::define (websocket-frame-fin frame)
+  (:anno: (websocket-frame) -> int)
+  (if (websocket-frame-final-fragment? frame)
+      #x80
+      #x00))
 
 ;; NOTE: The frame will not be decoded or parsed into a record-type, on the contrary,
 ;;       it'll be kept as a binary frame read from client, and use bitwise operations for
@@ -186,11 +219,55 @@
          (payload (cook-payload mask payload-offset body)))
     (make-websocket-frame real-len payload-offset mask body)))
 
+(::define (generate-head1 final? type)
+  (:anno: (boolean symbol) -> int)
+  (logior (if final? #x80 #x00)
+          (generate-opcode type)))
+
+(define 16bit-size (ash 1 16))
+(define 64bit-size (ash 1 64))
+
+;; NOTE: According to RFC-6455, A server MUST NOT mask any frames that it sends to
+;;       the client. (From 5.1 Overview).
+;; NOTE: If the length is larger than 16bit, then just speicify it to 127 then deal with
+;;       the actual length in later extended length field.
+(::define (generate-head2 len)
+  (:anno: (+int) -> +int)
+  (cond
+   ((< len 126) len) ; payload length less than 126 bytes
+   ((< len 16bit-size) 126) ; extended 16bit payload length
+   ((< len 64bit-size) 127) ; extended 64bit payload length
+   (else (throw 'artanis-err 500 generate-head2
+                "The payload size `~a' excceded 64bit!" len))))
+
+(::define (write-websocket-frame/client res frame)
+  (:anno: (response websocket-frame/client) -> ANY)
+  (define (write-payload-size port len)
+    (if (and (> len 126) (< len 16bit-size))
+        (put-bytevector port (uint-list->bytevector (list len) 'big 2))
+        (put-bytevector port (uint-list->bytevector (list len) 'big 8))))
+  (let* ((final? (websocket-frame/client-final? frame))
+         (type (websocket-frame/client-type frame))
+         (len (websocket-frame/client-length frame))
+         (payload (websocket-frame/client-payload frame))
+         (port (response-port res))
+         (head1 (generate-head1 final? type))
+         (head2 (generate-head2 len)))
+    (put-u8 port head1)
+    (put-u8 port head2)
+    (write-payload-size port head2) ; head2 is actually the size since mask must be 0
+    (write-response-body res (websocket-frame/client-payload frame))))
+
 ;; NOTE: A better design is not to split then store fields to record-type,
 ;;       we just need to parse the frame and store the offset.
 ;; NOTE: It's better to delay preprocessing to the time the payload is needed.
 ;;       And store the preprocessor to the frame (record-type).
 ;; NOTE: Return bytevector
-(::define (new-websocket-frame need-mask? preprocessor body)
-  (:anno: (boolean procedure bytevector) -> bytevector)
-  #t)
+(::define (new-websocket-frame/client type final? preprocessor payload)
+  (:anno: (symbol boolean procedure bytevector) -> websocket-frame/client)
+  (let ((payload-len (bytevector-length payload)))
+    (make-websocket-frame/client
+     final?
+     type
+     payload-len
+     payload)))
