@@ -76,6 +76,11 @@
     ((server multi) #t)
     ((server websocket) #t)
 
+    ;; for WebSocket
+    ((websocket maxpayload) ,(ash 1 64))
+    ((websocket minpayload) 1) ; enlarge it to avoid slow 1-byte attack
+    ((websocket fragment) 4096) ; the fragment size
+    
     ;; for host namespace
     ((host name) #f)
     ((host addr) "127.0.0.1")
@@ -126,6 +131,12 @@
         i
         (error "Invalid integer!" x))))
 
+(define-syntax-rule (->ws-payload x)
+  (let ((size (->integer x)))
+    (if (and (> size 0) (< size (ash 1 64)))
+        size
+        (error "Invalid websocket payload size" x))))
+
 (define-syntax-rule (->symbol x)
   (cond
    ((string? x) (string->symbol x))
@@ -173,6 +184,13 @@
     (('websocket websocket) (conf-set! '(server websocket) (->bool websocket)))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 
+(define (parse-namespace-websocket item)
+  (match item
+    (('maxpayload maxpayload) (conf-set! '(websocket maxpayload) (->ws-payload maxpayload)))
+    (('minpayload minpayload) (conf-set! '(websocket minpayload) (->ws-payload minpayload)))
+    (('fragment fragment) (conf-set! '(websocket fragment) (->ws-payload fragment)))
+    (else (error parse-namespace-websocket "Config: Invalid item" item))))
+
 (define (parse-namespace-host item)
   (match item
     (('name name) (conf-set! '(host name) name))
@@ -213,6 +231,7 @@
   (match item
     (('db rest ...) (parse-namespace-db rest))
     (('server rest ...) (parse-namespace-server rest))
+    (('websocket rest ...) (parse-namespace-websocket rest))
     (('host rest ...) (parse-namespace-host rest))
     (('session rest ...) (parse-namespace-session rest))
     (('upload rest ...) (parse-namespace-upload rest))
