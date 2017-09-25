@@ -26,7 +26,10 @@
   #:use-module (rnrs bytevectors)
   #:export (received-closing-frame
             send-websocket-closing-frame
-            
+
+            make-websocket-frame
+            websocket-frame?
+            websocket-frame-parser
             websocket-frame-head1
             websocket-frame-head2
             websocket-frame-final-fragment?
@@ -43,6 +46,7 @@
 
 (define-record-type websocket-frame
   (fields
+   parser
    payload-length
    payload-offset
    body))
@@ -174,7 +178,7 @@
 ;;       unused fields each time, and eaiser for redirecting without any serialization.
 ;;       If users want to get certain field, Artanis provides APIs for fetching them. Users
 ;;       can decide how to parse the frames for efficiency.
-(define (read-websocket-frame port)
+(define (read-websocket-frame parser port)
   (define-syntax-rule (get-len control-frame? port)
     (cond
      ((< payload-len 126)
@@ -217,7 +221,7 @@
          (mask (and (is-masked-frame? head2) (get-mask payload-len)))
          (payload-offset (detect-payload-offset mask payload-len))
          (payload (cook-payload mask payload-offset body)))
-    (make-websocket-frame real-len payload-offset mask body)))
+    (make-websocket-frame parser real-len payload-offset mask body)))
 
 (::define (generate-head1 final? type)
   (:anno: (boolean symbol) -> int)
@@ -263,8 +267,8 @@
 ;; NOTE: It's better to delay preprocessing to the time the payload is needed.
 ;;       And store the preprocessor to the frame (record-type).
 ;; NOTE: Return bytevector
-(::define (new-websocket-frame/client type final? preprocessor payload)
-  (:anno: (symbol boolean procedure bytevector) -> websocket-frame/client)
+(::define (new-websocket-frame/client type final? payload)
+  (:anno: (symbol boolean bytevector) -> websocket-frame/client)
   (let ((payload-len (bytevector-length payload)))
     (make-websocket-frame/client
      final?

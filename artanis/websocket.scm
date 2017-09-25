@@ -147,10 +147,8 @@
   (cond
    ((websocket-check-auth req)
     (let* ((redirector (get-the-redirector-of-websocket server client))
-           (frame (read-websocket-frame (client-sockport client)))
-           (payload (websocket-frame-payload frame))
-           (reader (redirector-reader redirector)))
-      (new-websocket-frame #f reader payload)))
+           (reader (redirector-reader redirector))) ; reader: bytevector -> record-type
+      (read-websocket-frame reader (client-sockport client))))
    (else
     (throw 'artanis-err 401 websocket-read
            "Authentication failed: ~a" auth))))
@@ -158,6 +156,6 @@
 (::define (websocket-write res body server client)
   (:anno: (<response> ANY ragnarok-server ragnarok-client) -> ANY)
   (let* ((redirector (get-the-redirector-of-websocket server client))
-         (writer (redirector-writer redirector))
-         (frame (new-websocket-frame #t writer body)))
+         (writer (redirector-writer redirector)) ; writer: record-type -> bytevector
+         (frame (new-websocket-frame/client #t (writer body))))
     (write-response-body (write-response res) frame)))
