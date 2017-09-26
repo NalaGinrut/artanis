@@ -52,7 +52,7 @@ See the files COPYING and COPYING.LESSER in toplevel of source code.
 
 This manual is published under the terms of the [[http://www.gnu.org/copyleft/fdl.html][GNU Free Documentation License]] 1.3 or later.
 
-*/You must be aware there is no warranty whatsoever for GNU Artanis. This is described in full in the licenses./*
+*/You must be aware there is no warranty whatsoever for GNU Artanis. This is described in full in the 
 * Installation
 ** For users
 
@@ -75,6 +75,9 @@ I would NOT recommend you trying to compile/install Guile from Git repo, since i
 + guile-dbi-2.1.6 *[Optional]*
 #+begin_src null
 wget -c http://download.gna.org/guile-dbi/guile-dbi-2.1.6.tar.gz
+# or mirror
+wget -c https://github.com/yagelix/guile-dbi/archive/guile-dbi-2.1.6.tar.gz
+
 tar xvzf guile-dbi-2.1.6.tar.gz
 cd guile-dbi-2.1.6 && ./configure && make
 sudo make install
@@ -83,11 +86,15 @@ sudo make install
 + guile-dbd *[Optional]*. The dbd plugins connect to an actual database server.
 #+begin_src null
 wget -c http://download.gna.org/guile-dbi/guile-dbd-mysql-2.1.6.tar.gz
+# or mirror
+wget -c https://github.com/yagelix/guile-dbi/archive/guile-dbd-mysql-2.1.6.tar.gz
+
 tar xvzf guile-dbd-mysql-2.1.6.tar.gz
 cd guile-dbd-mysql-2.1.6 && ./configure && make
 sudo make install
 #+end_src
-MySQL is used for the examples in this manual. You may find dbd plugins for other databases at [[http://download.gna.org/guile-dbi][here]]. The installation process is identical.
+MySQL is used for the examples in this manual. You may find dbd plugins for other databases at [[http://download.gna.org/guile-dbi][here]] or
+[[https://github.com/yagelix/guile-dbi/releases][mirror]]. The installation process is identical.
 
 *Install the latest GNU Artanis:*
 
@@ -696,6 +703,59 @@ Options:
                                    Default: Ragnarok (New server core since 0.2)
   --help                         # Show this screen
 #+end_src
+* URL remapping
+** Introduction to URL remapping
+URL remapping is used to modify a web URL's appearance to provide short, pretty or fancy, search engine friendly URLs. 
+It's largely used in modern WAF(web application framework) to provide RESTful web APIs.
+** URL handling
+According to RFC2616, there are GET, POST, PUT, PATCH and DELETE methods. You may register handler for specified URL rule to these methods.
+
+/There would be a HEAD method, but in GNU Artanis, the HEAD method is handled by the server, so users can not use it./
+
+The usage:
+#+begin_src scheme
+(method rule handler)
+#+end_src
+
+And the handler could be one of two types, depending on your needs:
+#+begin_src scheme
+(lambda ()
+  ...
+  ret)
+
+(lambda (rc)
+  ...
+  ret)
+#+end_src
+
+*ret* also has two types:
+
++ 1. literal string as the returned response body
+
++ 2. See [[Emit Response][Emit Response]] 
+
+#+begin_src scheme
+(get "/hello" (lambda () "hello world"))
+#+end_src
+
+For POST method:
+#+begin_src scheme
+(post "/auth" (lambda (rc) ...))
+#+end_src
+** Get parameters from URL
+#+begin_src scheme
+(params rc name)
+;; e.g 
+(get "/hello/:who" (lambda (rc) (params rc "who")))
+#+end_src
+** Redirect link
+#+begin_src scheme
+(redirect-to rc path #:status 301
+                     #:scheme 'http)
+;; e.g
+(get "/aaa" (lambda (rc) (redirect-to rc "/bbb")))
+(get "/bbb" (lambda () "ok bbb"))
+#+end_src
 * MVC
 MVC is Model-Views-Controller, the most classic architectural pattern for implementing
 user interfaces.
@@ -751,59 +811,43 @@ For modifying tables, you should read [[Migration][Migration]].
 For other DB operation, please read [[FPRM (experimental)][FPRM]].
 
 (To be continue...)
-* URL remapping
-** Introduction to URL remapping
-URL remapping is used to modify a web URL's appearance to provide short, pretty or fancy, search engine friendly URLs. 
-It's largely used in modern WAF(web application framework) to provide RESTful web APIs.
-** URL handling
-According to RFC2616, there are GET, POST, PUT, PATCH and DELETE methods. You may register handler for specified URL rule to these methods.
+* Query String
+Query string is a special form of URL:
 
-/There would be a HEAD method, but in GNU Artanis, the HEAD method is handled by the server, so users can not use it./
-
-The usage:
-#+begin_src scheme
-(method rule handler)
+#+begin_src bash
+http://example.com/over/there?name=ferret&color=purple
 #+end_src
 
-And the handler could be one of two types, depending on your needs:
-#+begin_src scheme
-(lambda ()
-  ...
-  ret)
+It's useful to pass parameters to the server side.
+ 
+GNU Artanis provides convenient API to handle query strings.
 
-(lambda (rc)
-  ...
-  ret)
+** Query string from GET 
+The query string would be encoded in URL if the method is GET.
+
+#+begin_src bash
+http://example.com/over/there?name=ferret&color=purple
 #+end_src
-
-*ret* also has two types:
-
-+ 1. literal string as the returned response body
-
-+ 2. See [[Emit Response][Emit Response]] 
-
+Please notice that URL-remapping support regex, so you should register URL rule like this:
 #+begin_src scheme
-(get "/hello" (lambda () "hello world"))
+(get "/there?"
+  (lambda (rc)
+    (get-from-qstr rc "name")))
 #+end_src
+Or it will throw 404 since URL-remapping failed to hit the rule with query string.
+** Query string from POST
+The query string would be encoded in HTTP body if the method is POST.
 
-For POST method:
+There's only slitely difference when you pass query string by POST: you don't have to
+use regex, for example, "?" for hitting the URL. 
 #+begin_src scheme
-(post "/auth" (lambda (rc) ...))
+(post "/there"
+  (lambda (rc)
+    (get-from-qstr rc "name")))
 #+end_src
-** Get parameters from URL
-#+begin_src scheme
-(params rc name)
-;; e.g 
-(get "/hello/:who" (lambda (rc) (params rc "who")))
-#+end_src
-** Redirect link
-#+begin_src scheme
-(redirect-to rc path #:status 301
-                     #:scheme 'http)
-;; e.g
-(get "/aaa" (lambda (rc) (redirect-to rc "/bbb")))
-(get "/bbb" (lambda () "ok bbb"))
-#+end_src
+GNU Artanis will detect the method type, if it's POST, then the router will parse query
+string from the HTTP body automatically.
+
 * Layouts and Rendering in GNU Artanis
 ** Templating
 Templating provides a way to mix programming code into HTML.
@@ -1423,14 +1467,14 @@ You have to use src_scheme[:exports code]{#:cache mode} while you defining URL r
   (lambda (rc) ...))    
 #+end_src
 
-*/NOTE/*: the default value of maxage is defined by cache.maxage in src_scheme[:exports code]{/etc/artanis/artanis.conf}. The default value is 3600 seconds.
+*/NOTE/*: the default value of maxage is defined by src_scheme[:exports code]{cache.maxage} in src_scheme[:exports code]{/etc/artanis/artanis.conf}. The default value is 3600 seconds.
 
 *mode* could be:
 + src_scheme[:exports code]{#t} for enabling caching the page.
 + src_scheme[:exports code]{#f} for disabling caching the page explicitly. It's default to not cache.
 + src_scheme[:exports code]{('static [maxage <- 3600])} This mode must be used for static files, which means the URL rule must be a real path to a static file.
 + src_scheme[:exports code]{(filename [maxage <- 3600])} Specify a static file to cache. This is useful when you don't want to reveal actual path of the static file, but use a fake URL for it.
-+ src_scheme[:exports code]{('public filename [maxage <- 3600])} Allow proxies cache the content of specified static file. If HTTP authentication is required, responses are automatically private.
++ src_scheme[:exports code]{('public filename [maxage <- 3600])} Allow proxies cache the content of specified static file. If HTTP authentication is required, responses are automatically set to private.
 + src_scheme[:exports code]{('private filename [maxage <- 3600])} Not-Allow proxies cache the content of specified static file.
 
 Let's see the simplest cache test (for dynamic content):
