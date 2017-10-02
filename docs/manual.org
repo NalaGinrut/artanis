@@ -358,8 +358,8 @@ http://127.0.0.1:3000
 #+end_src
 
 Assuming there's a file named "index.html" in the current path. Now you may try http://localhost:3000/index.html in your browser.
-It's simple to fetch static file with the path in URL: http://localhost:3000/path/filename
-** Try simple URL remapping
+It's just simply fetching static file by the URL: http://localhost:3000/path/filename
+** Try simple URL remappinge
 Type these code in Guile REPL:
 #+begin_src scheme
 (use-modules (artanis artanis))
@@ -475,7 +475,7 @@ Here are some explanations:
   convert the query result to string, for this naive example case.
 
 /Exercise: Return a beautiful table in HTML rather than using object->string./
-* Basics of Scheme
+* Basic in Scheme
 This chapter introduces some useful documents to help you understand Scheme language well.
 Feel free to come back here if you have any problem with Scheme syntax.
 
@@ -856,7 +856,7 @@ If you're familiar with Django, which implemented a DSL(Domain Specific Language
 
 In templating of GNU Artanis, it's simply embedded Scheme code into HTML. Why? Because of the philosophy of FP(Functional Programming), everything could be a function. So obviously, src_scheme[:exports code]{(filesizeformat size)} is enough for understanding, and it's just simple function calling in prefix-notation. There's no need to implement DSL like src_python[:exports code]{size|filesizeformat} to increase the complexity of code. Let alone the syntax is very different from Python.
 
-The syntax like src_python[:exports code]{size|filesizeformat} is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme (functional programming), and the paradigm of Python (imperative programming).
+The syntax like src_python[:exports code]{size | filesizeformat} is postfix-notation used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme (functional programming), and the paradigm of Python (imperative programming).
 
 The philosophy of GNU Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce the unnecessary complexities. [[http://en.wikipedia.org/wiki/KISS_principle][KISS]].
 ** Templating for Rubyists
@@ -864,7 +864,7 @@ Templating in GNU Artanis looks very similar to Rails.
 
 The Rails code:
 
-#+begin_src ruby
+#+begin_src python
 <% if( @fullscreen == 1 ) %>
 <%= "<div class='full'><p>...</p></div>" %>
 <% end %>
@@ -880,6 +880,7 @@ And the same function in GNU Artanis code:
 ** Templating APIs
 #+begin_src scheme
 (tpl->response filename/sxml [environment <- (the-environment)] [escape? <- #f])
+
 (tpl->html filename/sxm [environment <- (the-environment)] [escape? <- #f])
 #+end_src
 
@@ -902,7 +903,9 @@ Write a tpl file named "my.tpl":
 </html>
 #+end_src
 
-The filename extension ".tpl" - for template - is arbitrary, you can name it whatever you like.
+The filename extension ".tpl" is NOT trivial, since the MVC will find the template by detecting
+controller name automatically. But if you don't use MVC, say, you just write a simple .scm
+file for loading GNU Artanis modules. then the extension filename ".tpl" is trivial.
 
 #+begin_src scheme
 (get "/test"
