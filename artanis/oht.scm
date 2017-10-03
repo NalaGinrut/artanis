@@ -89,12 +89,12 @@
 (define (page-delete rule . opts-and-handler) (define-handler 'DELETE rule opts-and-handler))
 
 ;; NOTE: we banned "\" in the path to avoid SQL-injection!!!
-(define *rule-regexp* (make-regexp ":[^\\/]+"))    
+(define *rule-regexp* (make-regexp ":[^\\/]+"))
 (define *path-keys-regexp* (make-regexp ":([^\\/\\.]+)"))
 
 (define (compile-rule rule)
-  (string-append "^" 
-                 (regexp-substitute/global 
+  (string-append "^"
+                 (regexp-substitute/global
                   #f *rule-regexp* rule 'pre "([^\\/\\?]+)" 'post)
                  "[^ $]?$"))
 
@@ -194,12 +194,12 @@
     (apply %cookie-modify (cget ck) kargs))
   (define (remove rc k)
     (let ((cookies (rc-set-cookie rc)))
-      (rc-set-cookie! 
+      (rc-set-cookie!
        rc
        `(,@cookies ,(%new-cookie #:npv '((key "")) #:expires *the-remove-expires*)))))
   (define-syntax-rule (init-cookies names)
-    (for-each 
-     (lambda (ck) 
+    (for-each
+     (lambda (ck)
        (set! ckl (cons (cons ck (new-cookie)) ckl)))
      names))
   (match mode
@@ -327,7 +327,7 @@
               (else
                ;; nothing noticed, re-throw it to next level.
                (apply throw e)))))))
-      (else (throw 'artanis-err 500 post-handler "Invalid mode!" mode))))
+      (else (throw 'artanis-err 500 post-handler "Invalid mode `~a'!" mode))))
   (define (get-values-from-post pl . keys)
     (apply
      values
@@ -340,10 +340,10 @@
       ('(get) (post-handler rc))
       (('get-vals keys ...) (apply get-values-from-post (post-handler rc) keys))
       ('(store) (post-handler rc))
-      (else (throw 'artanis-err 500 from-post-maker "Invalid cmd!" cmd)))))
+      (else (throw 'artanis-err 500 from-post-maker "Invalid cmd `~a'!" cmd)))))
 
 ;; for #:websocket
-;; 
+;;
 (define (websocket-maker type rule keys)
   (match keys
     ((#:proto (? symbol? proto))
@@ -351,8 +351,7 @@
      ;; NOTE: In Artanis, we accept only one protocol for each URL-remapping,
      ;;       if you have several protocols to service, please use different
      ;;       URL-remapping.
-     (this-rule-enabled-websocket! rule proto)
-     #t)
+     (this-rule-enabled-websocket! rule proto))
     ((#:redirect (? string? ip/usk))
      ;; NOTE: We use IP rather than hostname, since it's usually redirected to
      ;;       a LAN address. Using hostname may cause DNS issues.
@@ -363,24 +362,24 @@
      ;; TODO: call protocol initilizer, and establish websocket
      ;;       to redirect it.
      ;; NOTE: Just call :websocket as the handler is enough to redirect data automatically
-     (this-rule-enabled-websocket! rule 'redirect)
-     #t)
+     (this-rule-enabled-websocket! rule 'redirect))
     ((#:proxy (? symbol? proto))
      ;; NOTE: Setup a proxy with certain protocol handler.
      ;;       Different from the regular proxy design, the proxy in Artanis doesn't
      ;;       need a listen port, since it's always 80/443. The client should
      ;;       support websocket, and visit the related URL for establishing
      ;;       a websocket channel. Then the rest is the same with regular proxy.
-     (this-rule-enabled-websocket! rule 'proxy)
-     #t)
-    (else (throw 'artanis-err 500 websocket-maker "Invalid type!" type)))
-  (lambda (rc . args)
-    (error "Artanis hasn't been ready for websocket yet!")
-    ;; TODO: :websocket is not for read/write, it's only used for changing status.
-    #t))
+     (this-rule-enabled-websocket! rule 'proxy))
+    (else (throw 'artanis-err 500 websocket-maker "Invalid type `~a'!" type)))
+  (lambda (rc . cmd)
+    ;; NOTE: :websocket is not for read/write, it's only used for changing status.
+    (match cmd
+      ('(payload) (websocket-frame-payload (rc-body rc)))
+      ('(frame) (rc-body rc))
+      (else (throw 'artanis-err 500 websocket-maker "Invalid cmd `~a'!" cmd)))))
 
 ;; ---------------------------------------------------------------------------------
-  
+
 ;; NOTE: these short-cut-maker should never be exported!
 ;; ((handler arg rule keys) rc . args)
 ;; NOTE: If the keyword wasn't specified while defining the url-remap,
@@ -404,7 +403,7 @@
     ;; 1. SQL as string template.
     ;; 2. (table-name username-field passwd-field crypto-proc)
     ;; 3. (table-name crypto-proc), so passwd field will be "passwd" in default.
-    ;; e.g (get "/auth" 
+    ;; e.g (get "/auth"
     ;;      #:auth "select ${passwd} from blog where usrname=${myname}"
     ;;      (lambda (rc)
     ;;       (:auth rc #:usrname (params rc "username") #:passwd (params rc "passwd"))
@@ -438,7 +437,7 @@
     ;;       #:raw-sql "select * from Persons where name='nala'"
     ;;       (lambda (rc)
     ;;        (:raw-sql rc 'all)))
-    ;; It's used for a quick query, but you can't modify/specify query on the fly. 
+    ;; It's used for a quick query, but you can't modify/specify query on the fly.
     ;; Usage:
     ;;  :raw-sql procedure accepts three modes:
     ;; 1. 'all for getting all results.
@@ -450,7 +449,7 @@
     ;; The default value is #f.
     ;; This is useful for web caching.
     ;; values:
-    ;; * #t: will store the md5 of this page content, 
+    ;; * #t: will store the md5 of this page content,
     ;;       and compare it with Etag.
     ;; * #f: won't store md5, and won't do any caching work.
     ;;       Etag would be ignored. If the current rule is for dynamic page,
