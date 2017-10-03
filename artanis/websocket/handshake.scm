@@ -28,8 +28,8 @@
   #:use-module (artanis websocket frame)
   #:use-module (ice-9 iconv)
   #:use-module (rnrs bytevectors)
-  #:use-module (web response)
   #:use-module ((rnrs) #:select (define-record-type))
+  #:use-module (artanis websocket frame)
   #:export (do-websocket-handshake
             closing-websocket-handshake
             gen-accept-key
@@ -89,7 +89,7 @@
 (define (do-websocket-handshake req client)
   (define-syntax-rule (->protocols pl)
     (map (lambda (p) (string->symbol (string-trim-both p)))
-         (string-split pl #,)))
+         (string-split pl #\,)))
   (validate-websocket-request req client)
   (let* ((headers (request-headers req))
          (path (request-path req))
@@ -121,7 +121,7 @@
             "[Websocket] Closed by peer `~a'.~%" (client-ip client)))
    (else
     (send-websocket-closing-frame (client-sockport client))
-    (if (received-closing-frame (client-sockport client))
+    (if (received-closing-frame? (client-sockport client))
         (format (artanis-current-output)
                 "[Websocket] Closing `~a' normally.~%" (client-ip client))
         (throw 'artanis-err 1008 closing-websocket-handshake
