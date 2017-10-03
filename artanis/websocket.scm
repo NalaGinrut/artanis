@@ -22,6 +22,7 @@
   #:use-module (artanis config)
   #:use-module (artanis server server-context)
   #:use-module (artanis websocket handshake)
+  #:use-module (artanis websocket frame)
   #:export (this-rule-enabled-websocket!
             detect-if-connecting-websocket
             websocket-read
@@ -29,7 +30,7 @@
   #:re-export (do-websocket-handshake
                closing-websocket-handshake
 
-               received-closing-frame
+               received-closing-frame?
                send-websocket-closing-frame
 
                make-websocket-frame
