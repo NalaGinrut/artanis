@@ -22,9 +22,8 @@
   #:use-module (artanis server)
   #:use-module (ice-9 iconv)
   #:use-module (ice-9 match)
-  #:use-module ((rnrs) #:select (define-record-type))
-  #:use-module (rnrs bytevectors)
-  #:export (received-closing-frame
+  #:use-module (rnrs)
+  #:export (received-closing-frame?
             send-websocket-closing-frame
 
             make-websocket-frame
@@ -86,7 +85,8 @@
 (define (is-final-frame? head1)
   (not (zero? (logand #x80 head1))))
 
-(define (received-closing-frame port)
+(define (received-closing-frame? port)
+  ;; TODO: finish it
   #t)
 
 (define (send-websocket-closing-frame port)
@@ -121,7 +121,7 @@
   (bytevector-u8-ref bv 1))
 
 (define-syntax-rule (%get-opcode bv)
-  (bytevector-u32-ref bv 4))
+  (bytevector-u32-ref bv 4 1))
 
 (define-syntax-rule (%get-type opcode)
   (assoc-ref *opcode-list* opcode))
@@ -151,8 +151,6 @@
   (:anno: (websocket-frame) -> boolean)
   (is-final-frame? (websocket-frame-head1 frame)))
 
-(::define (websocket-frame-final? frame)
-  (:anno: ))
 (::define (websocket-frame-opcode frame)
   (:anno: (websocket-frame) -> int)
   (%get-opcode (websocket-frame-body frame)))
@@ -161,11 +159,13 @@
   (:anno: (websocket-frame) -> symbol)
   (%get-type (%get-opcode (websocket-frame-body frame))))
 
+(define-syntax-rule (%get-payload body payload-offset payload-length)
+  (%get-body body payload-offset payload-length))
 (::define (websocket-frame-payload frame)
   (:anno: (websocket-frame) -> bytevector)
-  (%get-body (websocket-frame-body frame)
-             (websocket-frame-payload-offset frame)
-             (websocket-frame-payload-length frame)))
+  (%get-payload (websocket-frame-body frame)
+                (websocket-frame-payload-offset frame)
+                (websocket-frame-payload-length frame)))
 
 (::define (websocket-frame-fin frame)
   (:anno: (websocket-frame) -> int)
@@ -180,16 +180,16 @@
 ;;       If users want to get certain field, Artanis provides APIs for fetching them. Users
 ;;       can decide how to parse the frames for efficiency.
 (define (read-websocket-frame parser port)
-  (define-syntax-rule (get-len control-frame? port)
+  (define-syntax-rule (get-len payload-len body control-frame?)
     (cond
      ((< payload-len 126)
       ;; Yes, it's redundant, but I never trust the data from client
       payload-len)
      ((= payload-len 126)
-      (bytevector-u16-ref (get-bytevector-n port 2) 0 'big))
+      (bytevector-u16-ref body 0 'big))
      ((= payload-len 127)
       (if (not control-frame?)
-          (bytevector-u64-ref (get-bytevector-n port 8) 0 'big)
+          (bytevector-u64-ref body 0 'big)
           (throw 'artanis-err 1007 read-websocket-frame
                  "Invalid websocket frame, the control frame can't be segmented!")))
      (else (throw 'artanis-err 500 read-websocket-frame
@@ -209,7 +209,7 @@
           (u8vector-set! payload i masked)
           (lp (1+ i)))))))
   (define (cook-payload mask payload-offset payload-length bv)
-    (let ((payload (%get-payload bv payload-offset)))
+    (let ((payload (%get-payload bv payload-offset payload-length)))
       (if mask
           (decode-with-mask! payload payload-length mask)
           payload)))
