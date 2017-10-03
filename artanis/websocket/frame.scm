@@ -35,6 +35,7 @@
             websocket-frame-final-fragment?
             websocket-frame-opcode
             websocket-frame-type
+            websocket-frame-payload
 
             websocket-frame/client-final?
             websocket-frame/client-type
@@ -160,7 +161,7 @@
   (:anno: (websocket-frame) -> symbol)
   (%get-type (%get-opcode (websocket-frame-body frame))))
 
-(::define (websocket-frame-body frame)
+(::define (websocket-frame-payload frame)
   (:anno: (websocket-frame) -> bytevector)
   (%get-body (websocket-frame-body frame)
              (websocket-frame-payload-offset frame)
