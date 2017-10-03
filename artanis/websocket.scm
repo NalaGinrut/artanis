@@ -27,7 +27,28 @@
             websocket-read
             websocket-write)
   #:re-export (do-websocket-handshake
-               closing-websocket-handshake))
+               closing-websocket-handshake
+
+               received-closing-frame
+               send-websocket-closing-frame
+
+               make-websocket-frame
+               websocket-frame?
+               websocket-frame-parser
+               websocket-frame-head1
+               websocket-frame-head2
+               websocket-frame-final-fragment?
+               websocket-frame-opcode
+               websocket-frame-type
+               websocket-frame-payload
+
+               websocket-frame/client-final?
+               websocket-frame/client-type
+               websocket-frame/client-length
+               websocket-frame/client-payload
+
+               new-websocket-frame/client
+               write-websocket-frame/client))
 
 ;; Op-code Meaning
 (define MSG_CONG #x0) ;	Message continuation [continuation]
@@ -84,9 +105,9 @@
     (let lp((i index-first-data-byte) (j 0) (ret '()))
       (cond
        ((>= i bv-len) (apply string (reverse ret)))
-       (else 
-        (let ((c (integer->char 
-                  (logxor 
+       (else
+        (let ((c (integer->char
+                  (logxor
                    (bytevector-u8-ref bv i) (bytevector-u8-ref masks (modulo j 4))))))
           (lp (1+ i) (1+ j) (cons c ret))))))))
 
@@ -158,4 +179,5 @@
   (let* ((redirector (get-the-redirector-of-websocket server client))
          (writer (redirector-writer redirector)) ; writer: record-type -> bytevector
          (frame (new-websocket-frame/client #t (writer body))))
+    ;; TODO: Check websocket.fragment and do fragmentation
     (write-response-body (write-response res) frame)))
