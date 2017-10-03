@@ -54,7 +54,7 @@
     ((db name) ,(or (current-appname) "artanis"))
     ((db engine) InnoDB)
     ((db poolsize) 64)
-    ((db pool) increase)
+    ((db pool) increase) ; increase or fixed
 
     ;; for server namespace
     ((server info) ,artanis-version)
@@ -77,9 +77,9 @@
     ((server websocket) #t)
 
     ;; for WebSocket
-    ((websocket maxpayload) ,(ash 1 64))
+    ((websocket maxpayload) ,(ash 1 64)) ; in bytes
     ((websocket minpayload) 1) ; enlarge it to avoid slow 1-byte attack
-    ((websocket fragment) 4096) ; the fragment size
+    ((websocket fragment) 4096) ; the fragment size in bytes
     
     ;; for host namespace
     ((host name) #f)
