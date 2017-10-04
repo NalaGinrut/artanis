@@ -38,4 +38,6 @@
 
 * Support if-modified-since and if-request-match caching
 
-* Add lexer context in tpl for functional feature
+* Upgrade the existing artanis.conf to newer one, but ask users for "yes" or "no"
+
+* Support multi-subprotocol of Websocket
