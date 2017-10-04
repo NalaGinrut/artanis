@@ -20,16 +20,28 @@
 (define-module (artanis websocket)
   #:use-module (artanis utils)
   #:use-module (artanis config)
+  #:use-module (artanis irregex)
   #:use-module (artanis server server-context)
   #:use-module (artanis websocket handshake)
   #:use-module (artanis websocket frame)
-  #:export (this-rule-enabled-websocket!
-            detect-if-connecting-websocket
+  #:use-module ((rnrs)
+                #:select (make-bytevector
+                          bytevector-u8-set!
+                          utf8->string
+                          string->bytevector
+                          bytevector-length
+                          bytevector-u8-ref
+                          bytevector-u8-ref
+                          bytevector-u8-ref))
+  #:export (detect-if-connecting-websocket
             websocket-read
             websocket-write)
-  #:re-export (do-websocket-handshake
+  #:re-export (; from (artanis websocket handshake)
+               do-websocket-handshake
                closing-websocket-handshake
-
+               this-rule-enabled-websocket!
+               
+               ; from (artanis websocket frame)
                received-closing-frame?
                send-websocket-closing-frame
 
@@ -43,93 +55,14 @@
                websocket-frame-type
                websocket-frame-payload
 
-               websocket-frame/client-final?
-               websocket-frame/client-type
-               websocket-frame/client-length
-               websocket-frame/client-payload
-
                new-websocket-frame/client
                write-websocket-frame/client))
-
-;; Op-code Meaning
-(define MSG_CONG #x0) ;	Message continuation [continuation]
-(define TXT_MSG  #x1) ; Text message [non-control]
-(define BIN_MSG  #x2) ; Binary message [non-control]
-(define CONN_CLOSE #x8) ; Connection Close [control]
-(define PING #x9) ; Ping [control]
-(define PONG #xA) ; Pong [control]
-
-(define (->pack size data)
-  (let ((bv (make-bytevector size)))
-    (bytevector-u8-set! bv (1- size) data)
-    (utf8->string bv)))
-
-(define (make-hybi00-frame data)
-  "Make a HyBi-00 frame from some data.
-   This function does exactly zero checks to make sure that the data is safe
-   and valid text without any 0xff bytes."
-  (format #f "\x00~a\xff" data))
-
-(define* (make-hybi07-frame data #:key (opcode #x01))
-  "Make a HyBi-07 frame.
-   This function always creates unmasked frames, and attempts to use the
-   smallest possible lengths."
-  (let* ((len (string-length data))
-         (length (cond
-                  ((> len #xffff)
-                   (format #f "\x7f~a" (->pack 8 len)))
-                  ((> len #x7d)
-                   ;; NOTE: `\x7e' happens to be `~' !!!
-                   (format #f "~\x7e~a" (->pack 2 len)))
-                  (else (integer->char len))))
-         (head (integer->char (logior #x80 opcode))))
-    (format #f "~a~a~a" head length data)))
-
-;; frame header "\x81" (1000 0001 in binary)
-(define *ws-frame-header* #\201)
-
-;; TODO: we need more efficient frame spliter
-(define (->frames frame)
-  (let ((ll (regexp-split "(\x81[^\x81]+)" frame)))
-    (filter (lambda (s) (not (string-null? s))) ll)))
-
-(define (websocket:decode-body-string body)
-  (let* ((bv (string->bytevector body "iso8859-1"))
-         (bv-len (bytevector-length bv))
-         (len (logand (bytevector-u8-ref bv 1) 127))
-         (index-first-mask (cond
-                            ((= len 126) 4)
-                            ((= len 127) 10)
-                            (else 2)))
-         (index-first-data-byte (+ index-first-mask 4))
-         (masks (bv-slice bv index-first-mask : index-first-data-byte)))
-    (let lp((i index-first-data-byte) (j 0) (ret '()))
-      (cond
-       ((>= i bv-len) (apply string (reverse ret)))
-       (else
-        (let ((c (integer->char
-                  (logxor
-                   (bytevector-u8-ref bv i) (bytevector-u8-ref masks (modulo j 4))))))
-          (lp (1+ i) (1+ j) (cons c ret))))))))
-
-(define *rules-with-websocket* '())
-
-(define (this-rule-enabled-websocket! rule protocol)
-  (set! *rules-with-websocket*
-        (cons (cons (string->irregex rule) protocol) *rules-with-websocket*)))
-
-(define (get-websocket-protocol rule)
-  (any (lambda (pp)
-         (irregex-search (car pp) rule))
-       *rules-with-websocket*))
 
 ;; If the URL hit and haven't registered, then register it.
 ;; NOTE: The hook requires (req body) two parameters, so we can't pass server/client
 ;;       explicitly.
 (::define (detect-if-connecting-websocket req)
   (:anno: (<request>) -> boolean)
-  (define (url-need-websocket? url)
-    (any (lambda (rule) (irregex-search rule url)) *rules-with-websocket*))
   (DEBUG "detect if connecting websocket~%")
   (let ((server (current-server))
         (client (current-client))
@@ -151,7 +84,7 @@
       ;; TODO: If the websocket was specified a protocol, then use the registered
       ;;       reader/writer to replace `identity'.
       (register-redirector! server client identity identity 'websocket port)
-      (do-websocket-handshake req)
+      (do-websocket-handshake req client)
       (DEBUG "Register `~a' to use websocket for rule `~a'" (client-ip client) url)
       #t)
      (else #f))))
@@ -173,12 +106,12 @@
       (read-websocket-frame reader (client-sockport client))))
    (else
     (throw 'artanis-err 401 websocket-read
-           "Authentication failed: ~a" auth))))
+           "Authentication failed: ~a" (client-ip client)))))
 
-(::define (websocket-write res body server client)
-  (:anno: (<response> ANY ragnarok-server ragnarok-client) -> ANY)
+(::define (websocket-write type res body server client)
+  (:anno: (symbol <response> ANY ragnarok-server ragnarok-client) -> ANY)
   (let* ((redirector (get-the-redirector-of-websocket server client))
          (writer (redirector-writer redirector)) ; writer: record-type -> bytevector
-         (frame (new-websocket-frame/client #t (writer body))))
+         (frame (new-websocket-frame/client type #t (writer body))))
     ;; TODO: Check websocket.fragment and do fragmentation
-    (write-response-body (write-response res) frame)))
+    (write-websocket-frame/client res frame)))

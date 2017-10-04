@@ -96,19 +96,19 @@
       (simply-quit))
      (else
       (let* ((req (read-request port))
-             (is-websock? (detect-if-connecting-websocket req #f))
-             (body (if is-websock?
+             (need-websocket? (detect-if-connecting-websocket req))
+             (body (if need-websocket?
                        #f (try-to-read-request-body req))))
         (cond
-         (is-websock?
+         (need-websocket?
           (DEBUG "websocket mode!~%")
           (let ((ip (client-ip client)))
             (DEBUG "The websocket based client ~a is reading...~%" ip)
             (DEBUG "Just return #f body according to Artanis convention~%"))
           ;; NOTE: This step will finish handshake then schedule and wait for data
           (do-websocket-handshake req client)
-          (DEBUG "[Websocket] Client `~a' is requesting a `~a' service~%"
-                 (client-ip client) proto-name)
+          (DEBUG "[Websocket] Client `~a' is requesting Websocket service~%"
+                 (client-ip client))
           ;; NOTE: Each time the body is the content from client. The content is parsed
           ;;       from the frame in websocket-read. And the payload is parsed by the
           ;;       registered parser. Users don't have to call parser explicitly.
@@ -145,7 +145,7 @@
              ;; NOTE: For common websocket, http-write will wrap the response body into
              ;;       a websocket frame by websocket-write.
              (DEBUG "Common websocket writing for `~a'~%" (client-ip client))
-             (websocket-write response body))))))
+             (websocket-write type response body server client))))))
    (else
     (let* ((res (write-response response (client-sockport client)))
            (port (response-port res)))  ; return the continued port

@@ -74,8 +74,6 @@
         (path-regexp (compile-rule rule))
         (opts (oah->opts opts-and-handler))
         (handler (oah->handler opts-and-handler)))
-    (when (assoc-ref opts #:websocket)
-      (this-rule-enabled-websocket! rule))
     (hash-set! *handlers-table*
                (cons method path-regexp)
                (make-handler-rc handler keys (new-oht opts #:rule rule #:keys keys)))))

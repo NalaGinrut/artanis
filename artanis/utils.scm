@@ -49,7 +49,7 @@
                           get-string-all))
   #:export (regexp-split hash-keys cat bv-cat get-global-time sanitize-response
             build-response write-response get-local-time string->md5 unsafe-random
-            uri-decode response-version response-code response-connection
+            uri-decode response-version response-code response-connection request-headers
             response-port write-response-body read-request request-uri request-method
             request-content-length request-port read-request-body response-content-length
             get-file-ext get-global-date get-local-date string-substitute
@@ -112,6 +112,7 @@
 (define read-request (@ (web request) read-request))
 (define read-request-body (@ (web request) read-request-body))
 (define request-uri (@ (web request) request-uri))
+(define request-headers (@ (web request) request-headers))
 (define request-method (@ (web request) request-method))
 (define request-content-length (@ (web request) request-content-length))
 (define request-port (@ (web request) request-port))

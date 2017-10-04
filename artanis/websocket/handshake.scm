@@ -29,11 +29,13 @@
   #:use-module (ice-9 iconv)
   #:use-module (rnrs bytevectors)
   #:use-module ((rnrs) #:select (define-record-type))
-  #:use-module (artanis websocket frame)
+  #:use-module ((srfi srfi-1) #:select (any))
   #:export (do-websocket-handshake
             closing-websocket-handshake
             gen-accept-key
-            valid-ws-request?))
+            valid-ws-request?
+            this-rule-enabled-websocket!
+            url-need-websocket?))
 
 (define *ws-magic* "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
@@ -41,8 +43,22 @@
   "HTTP/1.1 101 Switching Protocols\r
 ")
 
+(define *rules-with-websocket* '())
+
+(define (url-need-websocket? url)
+  (any (lambda (rule) (irregex-search rule url)) *rules-with-websocket*))
+
+(define (this-rule-enabled-websocket! rule protocol)
+  (set! *rules-with-websocket*
+        (cons (cons (string->irregex rule) protocol) *rules-with-websocket*)))
+
+(define (get-websocket-protocol rule)
+  (any (lambda (pp)
+         (irregex-search (car pp) rule))
+       *rules-with-websocket*))
+
 (define (gen-accept-key key)
-  (let* ((realkey (string-append wsk *ws-magic*))
+  (let* ((realkey (string-append key *ws-magic*))
          (keyhash (string->sha-1 realkey))
          (keybv (list->u8vector (string->byteslist keyhash 2 16))))
     (base64-encode keybv)))
@@ -74,18 +90,19 @@
      ((the-origin-is-acceptable? origin)
       (throw 'artanis-err 403 validate-websocket-request
              "Unacceptable origin `~a' from websocket client ~a"
-             origin (clicent-ip client)))
+             origin (client-ip client)))
      (else #t))))
 
-(define (confirm-websocket-protocols client path request-protocols)
+(define (confirm-available-protocols client path request-protocols)
   (let ((protocol (get-websocket-protocol path)))
     (cond
      ((memq protocol request-protocols) protocol)
      (else
       (throw 'artanis-err 1002 validate-websocket-request
              "Websocket subprotocol `~a' is unacceptable from client ~a"
-             sub-protocol (client-ip client))))))
+             protocol (client-ip client))))))
 
+;; NOTE: Although we can get `port' from `request', we still need `client' for IP address.
 (define (do-websocket-handshake req client)
   (define-syntax-rule (->protocols pl)
     (map (lambda (p) (string->symbol (string-trim-both p)))
@@ -94,13 +111,13 @@
   (let* ((headers (request-headers req))
          (path (request-path req))
          (request-protocols (->protocols (assoc-ref headers 'sec-websocket-protocol)))
-         (acpt-proto (confirm-available-protocols client path request-protocols))
+         (proto (confirm-available-protocols client path request-protocols))
          (port (request-port req))
          (key (assoc-ref headers 'sec-websocket-key))
          (accept-key (gen-accept-key key))
          (origin (or (assoc-ref headers 'origin) "unknown client"))
-         (res (build-response #:code 101 #:headers `((Sec-WebSocket-Accept . ,acpt)
-                                                     (Sec-WebSocket-Protocol . ,protocol)
+         (res (build-response #:code 101 #:headers `((Sec-WebSocket-Accept . ,accept-key)
+                                                     (Sec-WebSocket-Protocol . ,proto)
                                                      (Upgrade . "websocket")
                                                      (Connection . "Upgrade")))))
     (format (current-error-port)

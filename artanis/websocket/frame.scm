@@ -22,7 +22,17 @@
   #:use-module (artanis server)
   #:use-module (ice-9 iconv)
   #:use-module (ice-9 match)
-  #:use-module (rnrs)
+  #:use-module ((rnrs) #:select (bytevector-u8-ref
+                                 bytevector-u8-set!
+                                 bytevector-u64-ref
+                                 bytevector-u32-ref
+                                 bytevector-u16-ref
+                                 put-u8
+                                 put-bytevector
+                                 get-bytevector-all
+                                 bytevector-length
+                                 uint-list->bytevector
+                                 define-record-type))
   #:export (received-closing-frame?
             send-websocket-closing-frame
 
@@ -42,7 +52,8 @@
             websocket-frame/client-payload
 
             new-websocket-frame/client
-            write-websocket-frame/client))
+            write-websocket-frame/client
+            read-websocket-frame))
 
 (define-record-type websocket-frame
   (fields
@@ -51,7 +62,7 @@
    payload-offset
    body))
 
-(define-record-type websockt-frame/client
+(define-record-type websocket-frame/client
   (fields
    final?
    type
@@ -120,8 +131,15 @@
 (define-syntax-rule (get-head2 bv)
   (bytevector-u8-ref bv 1))
 
+(define-syntax-rule (get-mask bv payload-len)
+  (bytevector-u32-ref bv
+                      (+ 1 ; head1
+                         1 ; head2
+                         (if (= payload-len 126) 2 8)) ; rael-len
+                      'big))
+
 (define-syntax-rule (%get-opcode bv)
-  (bytevector-u32-ref bv 4 1))
+  (logand (get-head1 bv) #x0f))
 
 (define-syntax-rule (%get-type opcode)
   (assoc-ref *opcode-list* opcode))
@@ -194,7 +212,7 @@
                  "Invalid websocket frame, the control frame can't be segmented!")))
      (else (throw 'artanis-err 500 read-websocket-frame
                   "Invalid payload-len `~a'!" payload-len))))
-  (define (payload-detect mask payload-len)
+  (define (detect-payload-offset mask payload-len)
     (+ 1 ; head1
        1 ; head2
        (if (= payload-len 126) 2 8) ; real-len
@@ -219,9 +237,9 @@
          (control-frame? (is-control-frame? (%get-opcode body)))
          (payload-len (logand #x7f head1))
          (real-len (get-len body control-frame? payload-len))
-         (mask (and (is-masked-frame? head2) (get-mask payload-len)))
+         (mask (and (is-masked-frame? head2) (get-mask body payload-len)))
          (payload-offset (detect-payload-offset mask payload-len))
-         (payload (cook-payload mask payload-offset body)))
+         (payload (cook-payload mask payload-offset payload-len body)))
     (make-websocket-frame parser real-len payload-offset mask body)))
 
 (::define (generate-head1 final? type)
@@ -270,9 +288,15 @@
 ;; NOTE: Return bytevector
 (::define (new-websocket-frame/client type final? payload)
   (:anno: (symbol boolean bytevector) -> websocket-frame/client)
-  (let ((payload-len (bytevector-length payload)))
+  (define-syntax-rule (detect-type t)
+    (case t
+      ((proxy binary) 'binary)
+      ((ping pong text close) t)
+      (else 'binary))) ; the unknown redirector type should always be `binary' type
+  (let ((payload-len (bytevector-length payload))
+        (real-type (detect-type type)))
     (make-websocket-frame/client
      final?
-     type
+     real-type
      payload-len
      payload)))
