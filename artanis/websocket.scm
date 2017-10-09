@@ -48,8 +48,7 @@
                make-websocket-frame
                websocket-frame?
                websocket-frame-parser
-               websocket-frame-head1
-               websocket-frame-head2
+               websocket-frame-head
                websocket-frame-final-fragment?
                websocket-frame-opcode
                websocket-frame-type
