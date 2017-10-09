@@ -79,7 +79,8 @@
             plist-remove gen-migrate-module-name try-to-load-migrate-cache
             flush-to-migration-cache gen-local-conf-file with-dbd
             call-with-sigint define-box-type make-box-type unbox-type
-            ::define did-not-specify-parameter WARN-TEXT ERROR-TEXT REASON-TEXT
+            ::define did-not-specify-parameter colorize-string-helper
+            colorize-string WARN-TEXT ERROR-TEXT REASON-TEXT
             NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr request-path
             keep-alive? procedure-name->string proper-toplevel gen-content-length
             make-file-sender file-sender? file-sender-size file-sender-thunk
@@ -1061,6 +1062,7 @@
    ((list? o) 'list)
    ((bytevector? o) 'bv)
    ((socket-port? o) 'socket)
+   ((port? o) 'port)
    ((boolean? o) 'boolean)
    (else 'ANY)))
 
@@ -1281,7 +1283,7 @@
         (values response body 'exception))))
 
 (define (format-status-page/client status request)
-  (format (current-error-port) "[EXCEPTION] ~a is abnormal request, status: ~a, "
+  (format (current-error-port) (ERROR-TEXT "[EXCEPTION] ~a is abnormal request, status: ~a, ")
           (uri-path (request-uri request)) status)
   (display "rendering a sys page for it...\n" (current-error-port)) 
   (render-sys-page 'client status request))
@@ -1310,13 +1312,12 @@
         "In unknown file"))
   (lambda (k . e)
     (define port (current-error-port))
-    (format port (ERROR-TEXT "GNU Artanis encountered exception!~%"))
     (match e
       (((? procedure? subr) (? string? msg) . args)
        (format port "<~a>~%" (WARN-TEXT (->reasonable-file (current-filename))))
        (when subr (format port "In procedure ~a :~%"
                           (WARN-TEXT (procedure-name->string subr))))
-       (apply format port (REASON-TEXT msg) args)
+       (apply format port msg args)
        (newline port))
       (((? integer? status) (or (? symbol? subr) (? procedure? subr))
         (? string? msg) . args)
@@ -1326,7 +1327,7 @@
                           (WARN-TEXT (if (procedure? subr)
                                          (procedure-name->string subr)
                                          subr))))
-       (apply format port (REASON-TEXT msg) args)
+       (apply format port msg args)
        (newline port)
        (syspage-generator status))
       (else
