@@ -135,7 +135,9 @@
          (hrc (if handler-key  ; get handler-keys pair
                   (get-handler-rc handler-key)
                   (throw 'artanis-err 404 init-rule-handler-and-keys!
-                         "invalid handler key ~a" handler-key))))
+                         "Client ~a had visited an invalid path ~a"
+                         (REASON-TEXT (remote-info (rc-req rc)))
+                         (REASON-TEXT (rc-path rc))))))
     (rc-handler! rc (handler-rc-handler hrc))
     (rc-keys! rc (handler-rc-keys hrc))))
 
