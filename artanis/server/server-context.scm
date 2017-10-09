@@ -217,29 +217,24 @@
 ;; for emacs:
 ;; (put '::define 'scheme-indent-function 1)
 
-;; ragnarok-client -> socket-port
 ;; NOTE: The remote connection wrapped in Guile socket port.
 (::define (client-sockport c)
   (:anno: (ragnarok-client) -> socket-port)
   ;;(DEBUG "client-sockport: ~a~%" (unbox-type c))
   (car (unbox-type c)))
 
-;; ragnarok-client -> integer
 (::define (client-sockport-decriptor c)
   (:anno: (ragnarok-client) -> int)
   (port->fdes (client-sockport c)))
 
-;; ragnarok-client -> vector 
 (::define (client-details c)
   (:anno: (ragnarok-client) -> vector)
   (cdr (unbox-type c)))
 
-;; ragnarok-client -> integer
 (::define (client-fam c)
   (:anno: (ragnarok-client) -> int)
   (sockaddr:fam (client-details c)))
 
-;; ragnarok-client -> integer
 ;; NOTE: It's actually sin_addr.s_addr, which is the remote IP.
 (::define (client-addr c)
   (:anno: (ragnarok-client) -> int)
@@ -253,14 +248,12 @@
   (:anno: (ragnarok-client) -> string)
   (address->ip (client-addr c)))
 
-;; ragnarok-client -> integer
 ;; NOTE: Different from listenning-port
 ;; NOTE: This is socket port, say, ip:port, don't be confused with Guile port.
 (::define (client-connecting-port c)
   (:anno: (ragnarok-client) -> int)
   (sockaddr:port (client-details c)))
 
-;; work-table -> ragnarok-client -> ANY
 (::define (remove-from-work-table! wt client peer-shutdown?)
   (:anno: (work-table ragnarok-client boolean) -> ANY)
   (DEBUG "Removed task ~a~%" (client-sockport client))
@@ -268,14 +261,12 @@
   (when (not peer-shutdown?)
     (close (client-sockport client))))
 
-;; work-table -> ragnarok-client -> task -> ANY
 (::define (add-a-task-to-work-table! wt client task)
   (:anno: (work-table ragnarok-client task) -> ANY)
   (DEBUG "Add new task ~a == ~a~%"
          (client-sockport client) (client-sockport (task-client task)))
   (hashv-set! (work-table-content wt) (client-sockport-decriptor client) task))
 
-;; work-table -> ragnarok-client -> task
 (::define (get-task-from-work-table wt client)
   (:anno: (work-table ragnarok-client) -> task)
   (hashv-ref (work-table-content wt) (client-sockport-decriptor client)))
