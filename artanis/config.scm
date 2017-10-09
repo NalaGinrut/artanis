@@ -77,9 +77,10 @@
     ((server websocket) #t)
 
     ;; for WebSocket
-    ((websocket maxpayload) ,(ash 1 64)) ; in bytes
-    ((websocket minpayload) 1) ; enlarge it to avoid slow 1-byte attack
+    ((websocket maxpayload) ,(ash 1 64)) ; in bytes (only for fragment)
+    ((websocket minpayload) 1) ; enlarge it to avoid slow 1-byte attack (only for fragment)
     ((websocket fragment) 4096) ; the fragment size in bytes
+    ((websocket maxsize) ,(ash 1 10)) ; in bytes, the upload size from websocket
     
     ;; for host namespace
     ((host name) #f)
@@ -189,6 +190,7 @@
     (('maxpayload maxpayload) (conf-set! '(websocket maxpayload) (->ws-payload maxpayload)))
     (('minpayload minpayload) (conf-set! '(websocket minpayload) (->ws-payload minpayload)))
     (('fragment fragment) (conf-set! '(websocket fragment) (->ws-payload fragment)))
+    (('maxsize maxsize) (conf-set! '(websocket maxsize) (->integer maxsize)))
     (else (error parse-namespace-websocket "Config: Invalid item" item))))
 
 (define (parse-namespace-host item)
