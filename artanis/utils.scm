@@ -1045,16 +1045,15 @@
   (define (guile-specific-record-name o)
     ((@ (guile) record-type-name)
      ((@ (guile) record-type-descriptor) o)))
+  (DEBUG "detecting ~a~%" o)
   (cond
    ;; NOTE: record? is for R6RS record-type, but record-type? is not
    ((r6rs-record? o) (r6rs-record-type-name (record-rtd o)))
    ((guile-specific-record? o) (guile-specific-record-name o))
    ((symbol? o) 'symbol)
    ((string? o) 'string)
-   ((integer? o) 'int)
-   ((positive? o) '+int)
-   ((negative? o) '-int)
-   ((number? o) 'number)
+   ((integer? o) (if (positive? o) '+int '-int))
+   ((number? o) 'num)
    ((thunk? o) 'thunk)
    ((procedure? o) 'proc)
    ((vector? o) 'vector)
@@ -1067,12 +1066,18 @@
    (else 'ANY)))
 
 (define (check-args-types op args)
+  (define (check-eq? actual-type expect-type)
+    (case expect-type
+      ((+int) (eq? actual-type '+int))
+      ((-int) (eq? actual-type '-int))
+      ((int) (memq actual-type '(-int +int)))
+      (else (eq? expect-type actual-type))))
   (match (procedure-property op 'type-anno)
     (((targs ...) '-> (func-types ...))
      (for-each
       (lambda (v e)
         (or (eq? e 'ANY)
-            (eq? (detect-type-name v) e)
+            (check-eq? (detect-type-name v) e)
             (begin
               (DEBUG "(~{~a~^ ~}) =? (~{~a~^ ~})~%" targs args)
               (throw 'artanis-err 500 check-args-types
@@ -1302,40 +1307,41 @@
     (format-status-page/server status)))
 
 (define *rf-re* (string->irregex ".*/artanis/artanis/(.*)$"))
-(define (make-unstop-exception-handler syspage-generator)
-  (define (->reasonable-file filename)
-    (if (string? filename)
-        (let ((m (irregex-search *rf-re* filename)))
-          (if m
-              (format #f "artanis/~a" (irregex-match-substring m 1))
-              filename))
-        "In unknown file"))
-  (lambda (k . e)
-    (define port (current-error-port))
-    (match e
-      (((? procedure? subr) (? string? msg) . args)
-       (format port "<~a>~%" (WARN-TEXT (->reasonable-file (current-filename))))
-       (when subr (format port "In procedure ~a :~%"
-                          (WARN-TEXT (procedure-name->string subr))))
-       (apply format port msg args)
-       (newline port))
-      (((? integer? status) (or (? symbol? subr) (? procedure? subr))
-        (? string? msg) . args)
-       (format port "HTTP ~a~%" (STATUS-TEXT status))
-       (format port "<~a>~%" (WARN-TEXT (->reasonable-file (current-filename))))
-       (when subr (format port "In procedure ~a :~%"
-                          (WARN-TEXT (if (procedure? subr)
-                                         (procedure-name->string subr)
-                                         subr))))
-       (apply format port msg args)
-       (newline port)
-       (syspage-generator status))
-      (else
-       (format port "~a - ~a~%"
-               (WARN-TEXT
-                "BUG: invalid exception format, but we throw it anyway!")
-               e)
-       (apply throw k e)))))
+(define (->reasonable-file filename)
+  (if (string? filename)
+      (let ((m (irregex-search *rf-re* filename)))
+        (if m
+            (format #f "artanis/~a" (irregex-match-substring m 1))
+            filename))
+          "In unknown file"))
+(define-syntax-rule (make-unstop-exception-handler syspage-generator)
+  (let ((port (current-error-port))
+        (filename (current-filename)))
+    (lambda (k . e)
+      (match e
+        (((? procedure? subr) (? string? msg) . args)
+         (format port "Captured in <~a>~%" (WARN-TEXT (->reasonable-file filename)))
+         (when subr (format port "In procedure ~a :~%"
+                            (WARN-TEXT (procedure-name->string subr))))
+         (apply format port msg args)
+         (newline port))
+        (((? integer? status) (or (? symbol? subr) (? procedure? subr))
+          (? string? msg) . args)
+         (format port "HTTP ~a~%" (STATUS-TEXT status))
+         (format port "Captured in <~a>~%" (WARN-TEXT (->reasonable-file filename)))
+         (when subr (format port "Threw in procedure ~a :~%"
+                            (WARN-TEXT (if (procedure? subr)
+                                           (procedure-name->string subr)
+                                           subr))))
+         (apply format port msg args)
+         (newline port)
+         (syspage-generator status))
+        (else
+         (format port "~a - ~a~%"
+                 (WARN-TEXT
+                  "BUG: invalid exception format, but we throw it anyway!")
+                 e)
+         (apply throw k e))))))
 
 (define* (bv-copy/share bv from
                         #:optional (size (bytevector-length bv)) (offset 0) (type 'u8))
