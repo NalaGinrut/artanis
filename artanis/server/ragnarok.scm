@@ -383,7 +383,10 @@
                (serve-one-request handler http server client))
              (lambda e
                (cond
-                ((= ETIMEDOUT (system-error-errno e))
+                ((eqv? ETIMEDOUT (system-error-errno e))
+                 ;; NOTE: eqv? is necessary since system-error-errno on a
+                 ;;       non-system-erro will be non-integer, so don't use
+                 ;;       = to check.
                  (main-loop (get-one-request-from-clients http server)))
                 (else
                  (call-with-values
