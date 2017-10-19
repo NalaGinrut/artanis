@@ -77,7 +77,7 @@
     ((server websocket) #t)
 
     ;; for WebSocket
-    ((websocket maxpayload) ,(ash 1 64)) ; in bytes (only for fragment)
+    ((websocket maxpayload) ,(1- (ash 1 64))) ; in bytes (only for fragment)
     ((websocket minpayload) 1) ; enlarge it to avoid slow 1-byte attack (only for fragment)
     ((websocket fragment) 4096) ; the fragment size in bytes
     ((websocket maxsize) ,(ash 1 10)) ; in bytes, the upload size from websocket
