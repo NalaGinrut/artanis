@@ -126,6 +126,11 @@
     ((none null #{}#) "")
     (else x)))
 
+(define-syntax-rule (->none/boolean x)
+  (case (string->symbol (string-downcase x))
+    ((false no none null) #f)
+    (else x)))
+
 (define-syntax-rule (->integer x)
   (let ((i (string->number x)))
     (if (and (number? i) (>= i 0))
@@ -158,7 +163,7 @@
     (('enable usedb) (conf-set! 'use-db? (->bool usedb))) 
     (('dbd dbd) (conf-set! '(db dbd) (->symbol dbd)))
     (('proto proto) (conf-set! '(db proto) (->symbol proto)))
-    (('socketfile socketfile) (conf-set! '(db socketfile) (->none/str socketfile)))
+    (('socketfile socketfile) (conf-set! '(db socketfile) (->none/boolean socketfile)))
     (('addr addr) (conf-set! '(db addr) addr))
     (('name name) (conf-set! '(db name) name))
     (('username username) (conf-set! '(db username) username))
