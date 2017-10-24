@@ -151,7 +151,7 @@
         (%epoll-create size))
     (lambda (efd errno)
       (cond
-       ((>= efd 0) efd)
+       ((= efd 0) efd)
        (else
         (throw 'artanis-err 500 epoll-create "~S: ~A"
                (list size (strerror errno))
@@ -170,7 +170,7 @@
         (%epoll-create1 flag))
     (lambda (efd errno)
       (cond
-       ((>= efd 0) efd)
+       ((= efd 0) efd)
        (else
         (throw 'artanis-err 500 epoll-create1 "~S: ~A"
                (list flag (strerror errno))
@@ -234,7 +234,7 @@
           (%epoll-wait epfd (bytevector->pointer events) maxevents timeout))
       (lambda (ret errno)
         (cond
-         ((>= ret 0) (epoll-event-set->list events ret))
+         ((= ret 0) (epoll-event-set->list events ret))
          (else
           (throw 'artanis-err 500 epoll-wait "~S: ~A"
                  (list epfd events maxevents timeout (strerror errno))
@@ -254,7 +254,7 @@
           (%epoll-pwait epfd (bytevector->pointer events) maxevents timeout sigmask))
       (lambda (ret errno)
         (cond
-         ((>= ret 0) (epoll-event-set->list events ret))
+         ((= ret 0) (epoll-event-set->list events ret))
          (else
           (throw 'artanis-err 500 epoll-pwait "~S: ~A"
                  (list epfd events maxevents timeout sigmask (strerror errno))
