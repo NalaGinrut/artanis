@@ -39,7 +39,7 @@
 
 (define-syntax create-artanis-migration
   (lambda (x)
-    (syntax-case x ()
+    (syntax-case x (migrate-create)
       ((_ name) (identifier? #'name)
        #`(begin
            ;; NOTE: we have to encapsulate them to a module for protecting namespaces
@@ -51,28 +51,33 @@
              #:use-module (artanis utils)
              #:use-module (artanis db)
              #:use-module (artanis fprm))
-           (define *migrate-handlers* '())
-           (define (migrate-add! cmd handler)
+           (define #,(datum->syntax x '*migrate-handlers*) '())
+           (define (#,(datum->syntax x 'migrate-add!) cmd handler)
              (set! *migrate-handlers*
-                   (assoc-set! *migrate-handlers* cmd handler)))
-           (define-syntax migrate-up
+               (assoc-set! *migrate-handlers* cmd handler)))
+           (define-syntax #,(datum->syntax x 'migrate-create)
+               (syntax-rules ::: ()
+                 ((_ do-migrate-create :::)
+                  (migrate-add! 'create (lambda () do-migrate-create :::)))))
+           (define-syntax #,(datum->syntax x 'migrate-up)
              (syntax-rules ::: ()
-               ((_ body :::)
-                (migrate-add! 'up (lambda () body :::)))))
-           (define-syntax migrate-down
+               ((_ do-migrate-up :::)
+                (migrate-add! 'up (lambda () do-migrate-up :::)))))
+           (define-syntax #,(datum->syntax x 'migrate-down)
              (syntax-rules ::: ()
-               ((_ body :::)
-                (migrate-add! 'down (lambda () body :::)))))
-           (define-syntax migrate-change
+               ((_ do-migrate-down :::)
+                (migrate-add! 'down (lambda () do-migrate-down :::)))))
+           (define-syntax #,(datum->syntax x 'migrate-change)
              (syntax-rules ::: ()
-               ((_ body :::)
-                (migrate-add! 'change (lambda () body :::)))))
-           (define-public migrator
+               ((_ do-migrate-change :::)
+                (migrate-add! 'change (lambda () do-migrate-change :::)))))
+           (define-public #,(datum->syntax x 'migrator)
              (lambda (cmd . args)
                (cond
                 ((assoc-ref *migrate-handlers* cmd)
                  => (lambda (h) (h)))
-                (else (throw 'artanis-err 500 "Migrate: Invalid cmd!"))))))))))
+                (else (throw 'artanis-err 500 migrator
+                             "Migrate: Invalid cmd `~a'!" cmd))))))))))
 
 (define (create-table name . fl)
   (let ((raw ((@@ (artanis mvc model) parse-raw-fields) fl))
@@ -152,5 +157,6 @@
 
 (define (do-migration-create name fields port)
   (display (gen-migration-header (gen-migrate-module-name (port-filename port))) port)
+  (format port "(migrate-create~%~2t(display \"Add your create DB code\\n\"))~%")
   (format port "(migrate-up~%~2t(display \"Add your up code\\n\"))~%")
   (format port "(migrate-down~%~2t(display \"Add your down code\\n\"))~%"))
