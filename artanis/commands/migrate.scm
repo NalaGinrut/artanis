@@ -90,7 +90,7 @@
 
 (define (valid-operator? op)
   (case (string->symbol op)
-    ((up down) #t)
+    ((up down create) #t)
     (else #f)))
 
 (define (do-migrate . args)
