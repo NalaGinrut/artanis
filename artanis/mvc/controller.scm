@@ -40,7 +40,7 @@
              #:use-module (artanis artanis)
              #:use-module (artanis env)
              #:use-module (artanis utils))
-           (define-syntax-rule (view-render method e)
+           (define-syntax-rule (#,(datum->syntax x 'view-render) method e)
              (let ((file (format #f "~a/app/views/~a/~a.html.tpl"
                                   (current-toplevel) 'name method)))
                (cond
