@@ -159,7 +159,7 @@
       (lambda () (%inotify-init))
     (lambda (ifd  errno)
       (cond
-       ((= ifd 0) ifd)
+       ((>= ifd 0) ifd)
        (else
         (throw 'system-error "inotify-init" "~S: ~A"
                (list (strerror errno))
@@ -171,7 +171,7 @@
         (%inotify-add-watch fd (string->pointer pathname) mask))
     (lambda (ret errno)
       (cond
-       ((= ret 0) ret)
+       ((>= ret 0) ret)
        (else
         (throw 'system-error "inotify-add-watch" "~S: ~A"
                (list (strerror errno))
@@ -182,7 +182,7 @@
       (lambda () (%inotify-rm-watch fd wd))
     (lambda (ret errno)
       (cond
-       ((= ret 0) ret)
+       ((>= ret 0) ret)
        (else
         (throw 'system-error "inotify-rm-watch" "~S: ~A"
                (list (strerror errno))
