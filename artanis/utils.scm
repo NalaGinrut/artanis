@@ -1323,7 +1323,9 @@
          (format port "Captured in <~a>~%" (WARN-TEXT (->reasonable-file filename)))
          (when subr (format port "In procedure ~a :~%"
                             (WARN-TEXT (procedure-name->string subr))))
-         (apply format port msg args)
+         (apply format port
+                (REASON-TEXT (string-append "[REASON] " msg))
+                args)
          (newline port))
         (((? integer? status) (or (? symbol? subr) (? procedure? subr))
           (? string? msg) . args)
@@ -1333,7 +1335,9 @@
                             (WARN-TEXT (if (procedure? subr)
                                            (procedure-name->string subr)
                                            subr))))
-         (apply format port msg args)
+         (apply format port
+                (REASON-TEXT (string-append "[REASON] " msg))
+                args)
          (newline port)
          (syspage-generator status))
         (else
