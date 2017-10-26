@@ -30,7 +30,8 @@
 
 (define (print-options)
   (display "\nOPTIONS:\n")
-  (format #t "~2tVERSION=version~%"))
+  (format #t "~2tVERSION=version~%")
+  (format #t "~2t--debug~%"))
 
 (define *operators* '(up down))
 
@@ -46,12 +47,17 @@
   (display announce-foot))
 
 (define *verstr-re* (string->irregex "VERSION=(\\d{14})"))
+(define *debug-re* (string->irregex "--debug"))
 
 ;; TODO: add more options
 (define (opts-parser opts)
   (let lp((next opts) (ret '()))
     (cond
      ((null? next) ret)
+     ((irregex-search *debug-re* (car next))
+      => (lambda (m)
+           (conf-set! 'debug-mode #t)
+           (lp (cdr next) ret)))
      ((irregex-search *verstr-re* (car next))
       => (lambda (m)
            (lp (cdr next)
