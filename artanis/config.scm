@@ -105,6 +105,7 @@
     ((cache maxage) 3600) ; in seconds
 
     ;; for debug mode
+    ((debug enable) #f)
     ((debug monitor) ()))) ; user specified monitoring paths
 
 ;; Init all fields with default values
@@ -231,6 +232,7 @@
 
 (define (parse-namespace-debug item)
   (match item
+    (('enable enable) (conf-set! 'debug-mode (->bool enable)))
     (('monitor monitor) (conf-set! '(debug monitor) (->list monitor)))
     (else (error parse-namespace-cache "Config: Invalid item" item))))
 
