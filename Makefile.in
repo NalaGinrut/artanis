@@ -157,7 +157,7 @@ else
 	$(CP) $(BIN)/art $(PREFIX)/bin/
 	mkdir -p /etc/bash_completion.d/
 	$(CP) $(CMDCOMP) /etc/bash_completion.d/
-	source ~/.bashrc
+	source /etc/bash_completion
 endif
 
 	if [ -e /etc/bash.bashrc ]; then source /etc/bash.bashrc; fi
