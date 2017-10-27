@@ -170,7 +170,7 @@
     (('username username) (conf-set! '(db username) username))
     (('passwd passwd) (conf-set! '(db passwd) passwd))
     (('engine engine) (conf-set! '(db engine) engine))
-    (('poolsize poolsize) (conf-set! '(db engine) (->integer poolsize)))
+    (('poolsize poolsize) (conf-set! '(db poolsize) (->integer poolsize)))
     (('pool pool) (conf-set! '(db pool) (->pool-mode pool)))
     (else (error parse-namespace-db "Config: Invalid item" item))))
 
