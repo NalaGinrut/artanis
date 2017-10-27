@@ -146,7 +146,7 @@
     ((int) (->0 name args))
 
     ;; Character Types
-    
+
     ;; char for 1 byte single-byte internal type
     ((char) (if (null? args) (->0 name args) (->1 name args)))
     ((name) (->0 name args)) ; 64 bytes internal type for object names
@@ -263,7 +263,7 @@
 
 (define (make-table-dropper rc/conn)
   (define conn
-    (cond 
+    (cond
      ((route-context? rc/conn) (rc-conn rc/conn))
      ((<connection>? rc/conn) rc/conn)
      (else (throw 'artanis-err 500 make-table-dropper "Invalid rc or conn!" rc/conn))))
@@ -352,7 +352,7 @@
   ;;       support foreign keys directly, so we have to provide it outside.
   ;; TODO: who to deal with constrained tables without foreign-keys in stateless?
   (lambda* (tname defs #:key (if-exists? #f) (engine (get-conf '(db engine)))
-                  (dump #f) (primary-keys '()))                  
+                  (dump #f) (primary-keys '()))
     (let* ((types (map ->types defs))
            (sql (case if-exists?
                   ((overwrite drop)
@@ -412,7 +412,7 @@
                      ;;       use UPDATE because it'll effect all the records!!! In such case,
                      ;;       you should use INSERT.
                      (->sql update tname set kvp wcond)))
-            (conn (cond 
+            (conn (cond
                    ((route-context? rc/conn) (rc-conn rc/conn))
                    ((<connection>? rc/conn) rc/conn)
                    (else (throw 'artanis-err 500 make-table-setter "Invalid rc or conn!" rc/conn)))))
@@ -495,7 +495,7 @@
                   ;; #:foreach '(city ("sz" "bj" "sh"))
                   ;; NOTE: This is useful to avoid N+1 query problem.
                   (dump #f)
-                  ;; Dump SQL to a string as result, when #:dump set to #t, it won't do query operation. 
+                  ;; Dump SQL to a string as result, when #:dump set to #t, it won't do query operation.
                   )
     (let ((sql (format #f "select ~{~a~^,~} from ~a ~a;"
                        (->mix columns functions) tname (->opts ret group-by order-by condition foreach)))
@@ -563,7 +563,7 @@
                    "Invalid op!" op))))
   (lambda (tname op . args)
     (let ((sql (gen-sql tname op args))
-          (conn (cond 
+          (conn (cond
                  ((route-context? rc/conn) (rc-conn rc/conn))
                  ((<connection>? rc/conn) rc/conn)
                  (else (throw 'artanis-err 500 make-table-modifier
@@ -593,7 +593,7 @@
   ;; have chosen Scheme programming language for hacking.
   ;; PS: I'm not boasting that the whole Artanis would be stateless, but FPRM should do it as possible.
   ;; I maybe wrong and fail, but it's worth to try.
-  (define (get-table-schema tname)      
+  (define (get-table-schema tname)
     (let* ((sql (->sql select '("lcase(column_name)") from
                        (select * from 'information_schema.columns (having #:table_name tname))
                        as 'tmp_alias))
