@@ -48,6 +48,7 @@
            (define-module (db migration name)
              #:use-module (artanis mvc migration)
              #:use-module (artanis artanis)
+             #:use-module (artanis config)
              #:use-module (artanis utils)
              #:use-module (artanis db)
              #:use-module (artanis fprm))
