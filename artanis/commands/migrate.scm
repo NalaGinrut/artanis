@@ -82,7 +82,7 @@
         (match (sort fl compare-mfile)
           (() (format #t "Migration: No migrations of `~a' were found!~%" name) #f)
           ((f . rest) (format #f "~a/~a" path f))
-          (else (throw 'artanis-err 500 "Migration: Unknown error!")))))))
+          (else (throw 'artanis-err 500 %migrate "Unknown error!")))))))
   (let ((f (gen-migrate-file)))
     (when (string? f)
       (format #t "[Migrating ~a]~%" (basename f))
