@@ -159,7 +159,7 @@
   (fields
    reader      ; the registered reader
    writer      ; the registered writer
-   type        ; proxy or websocket
+   type        ; proxy or protocols based on websocket
    remote-port ; remote port or #f
    count       ; transfered bytes, maybe useful
    mutex))     ; a mutex for locking
@@ -170,9 +170,10 @@
 ;; 1. 'proxy
 ;;    For redirecting to the remote socket port.
 ;;    The content field will be the remote socket port.
-;; 2. 'websocket
-;;    For regular usage of websocket. If the http-read detects the current
-;;    client was bound to a websocket, then http-read won't read its body.
+;; 2. protocol in symbol, e.g, 'echo, 'ping
+;;    For regular usage of websocket. If the http-read has detected the
+;;    current client was bound to a websocket, then http-read won't read
+;;    its body.
 ;;    The body reading will be delayed to the handler, users have to
 ;;    use :websocket command to read the parsed body according to the
 ;;    registered protocol parser.
