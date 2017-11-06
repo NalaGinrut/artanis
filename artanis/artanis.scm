@@ -73,6 +73,7 @@
                :auth
                :session
                :from-post
+               :websocket
 
                ;; db module
                DB-open
