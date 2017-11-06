@@ -60,12 +60,10 @@
 ;; If the URL hit and haven't registered, then register it.
 ;; NOTE: The hook requires (req body) two parameters, so we can't pass server/client
 ;;       explicitly.
-(::define (detect-if-connecting-websocket req)
-  (:anno: (<request>) -> boolean)
+(::define (detect-if-connecting-websocket req server client)
+  (:anno: (<request> ragnarok-server ragnarok-client) -> boolean)
   (DEBUG "detect if connecting websocket~%")
-  (let ((server (current-server))
-        (client (current-client))
-        (url (request-path req))
+  (let ((url (request-path req))
         (port (request-port req)))
     (cond
      ((get-the-redirector-of-websocket server client)
@@ -79,12 +77,10 @@
        ((not (get-conf '(server websocket)))
         (throw 'artanis-err 1006 detect-if-connecting-websocket
                "Websocket is fobbiden since server.websocket is not enabled")))
-      ;; If the URL need websocket, and if it's not registered, then register it.
-      ;; TODO: If the websocket was specified a protocol, then use the registered
-      ;;       reader/writer to replace `identity'.
-      (register-redirector! server client identity identity 'websocket port)
-      (do-websocket-handshake req client)
+      ;; NOTE: We have to do handshake here, since we have no chance to know
+      ;;       if it's not registered in http-read without twice detection.
       (DEBUG "Register `~a' to use websocket for rule `~a'" (client-ip client) url)
+      (do-websocket-handshake req server client)
       #t)
      (else #f))))
 
@@ -97,7 +93,7 @@
 
 ;; TODO: Register protobuf handler to ragnarok-server when server start.
 (::define (websocket-read req server client)
-  (:anno: (<request> ragnaraok-server ragnarok-client) -> websocket-frame)
+  (:anno: (<request> ragnarok-server ragnarok-client) -> websocket-frame)
   (cond
    ((websocket-check-auth req)
     (let* ((redirector (get-the-redirector-of-websocket server client))
