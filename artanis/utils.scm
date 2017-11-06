@@ -1347,11 +1347,12 @@
                  e)
          (apply throw k e))))))
 
-(define* (bv-copy/share bv from
-                        #:optional (size (bytevector-length bv)) (offset 0) (type 'u8))
+(define* (bv-copy/share bv #:key (from 0) (type 'vu8)
+                        (size (- (bytevector-length bv) from)))
   (when (> size (bytevector-length bv))
     (error bv-copy/share "Specified size is larger than the length!" size))
-  (let* ((len (bytevector-length bv))
-         (ptr (bytevector->pointer bv))
+  (when (>= from (bytevector-length bv))
+    (error bv-copy/share "Can't copy from the end of the bytevector!" from))
+  (let* ((ptr (bytevector->pointer bv))
          (new-ptr (make-pointer (+ (pointer-address ptr) from))))
-    (pointer->bytevector new-ptr size offset type)))
+    (pointer->bytevector new-ptr size 0 type)))
