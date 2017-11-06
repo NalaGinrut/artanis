@@ -178,7 +178,7 @@
     (let ((listen-socket (ragnarok-server-listen-socket server)))
       (DEBUG "listen-socket: ~a = ~a~%" (car e) listen-socket)
       (= (car e) (port->fdes listen-socket))))
-  (DEBUG "Start to fill ready queue~%")
+  ;;(DEBUG "Start to fill ready queue~%")
   ;;  (print-work-table server)
   (let ((epfd (ragnarok-server-epfd server))
         (events (ragnarok-server-event-set server))
@@ -343,18 +343,18 @@
    (list #:port (get-conf '(host port)))))
 
 (define (get-one-request-from-clients proto server)
-  (DEBUG "Prepare to get one request from clients, proto is ~a~%" proto)
+  ;;(DEBUG "Prepare to get one request from clients, proto is ~a~%" proto)
   (let ((rq (ragnarok-server-ready-queue server)))
     (cond
      ((ready-queue-empty? rq)
       ;; if the queue is empty, filling the queue with new requests
       ;; with one epoll query.
-      (DEBUG "ready queue is empty~%")
+      ;;(DEBUG "ready queue is empty~%")
       (fill-ready-queue-from-service proto server)
-      (DEBUG "fill ready queue from service~%")
+      ;;(DEBUG "fill ready queue from service~%")
       (get-one-request-from-clients proto server))
      (else
-      (DEBUG "ready queue is NOT empty ~a, get one!~%" (unbox-type rq))
+      ;;(DEBUG "ready queue is NOT empty ~a, get one!~%" (unbox-type rq))
       (ready-queue-out! rq)))))
 
 (define (ragnarok-http-gateway-run handler)
