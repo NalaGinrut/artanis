@@ -77,8 +77,10 @@
                (cond
                 ((assoc-ref *migrate-handlers* cmd)
                  => (lambda (h) (h)))
-                (else (throw 'artanis-err 500 migrator
-                             "Migrate: Invalid cmd `~a'!" cmd))))))))))
+                (else
+                 (format (current-error-port) "[HINT] Did you remove `migrate-~a'?~%" cmd)
+                 (throw 'artanis-err 500 migrator "Migrate: Invalid cmd `~a'!"
+                             cmd))))))))))
 
 (define (create-table name . fl)
   (let ((raw ((@@ (artanis mvc model) parse-raw-fields) fl))
