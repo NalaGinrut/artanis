@@ -26,6 +26,7 @@
   #:use-module (artanis server scheduler)
   #:use-module (artanis irregex)
   #:use-module (artanis websocket frame)
+  #:use-module (artanis websocket protocols)
   #:use-module (ice-9 iconv)
   #:use-module (rnrs bytevectors)
   #:use-module ((rnrs) #:select (define-record-type))
@@ -40,21 +41,25 @@
 (define *ws-magic* "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
 (define *handshake-reply*
-  "HTTP/1.1 101 Switching Protocols\r
-")
+  (string->bytevector "HTTP/1.1 101 Switching Protocols\r\n"
+                      (get-conf '(server charset))))
 
 (define *rules-with-websocket* '())
 
 (define (url-need-websocket? url)
-  (any (lambda (rule) (irregex-search rule url)) *rules-with-websocket*))
+  (DEBUG "url-need-websocket~%~a~%" *rules-with-websocket*)
+  (any (lambda (rule)
+         (irregex-search (car rule) url)) *rules-with-websocket*))
 
 (define (this-rule-enabled-websocket! rule protocol)
+  (DEBUG "this-rule-enabled-websocket!~%")
   (set! *rules-with-websocket*
         (cons (cons (string->irregex rule) protocol) *rules-with-websocket*)))
 
 (define (get-websocket-protocol rule)
+  (DEBUG "get-websocket-protocol~%")
   (any (lambda (pp)
-         (irregex-search (car pp) rule))
+         (and (irregex-search (car pp) rule) (cdr pp)))
        *rules-with-websocket*))
 
 (define (gen-accept-key key)
@@ -65,29 +70,29 @@
 
 (define (validate-websocket-request req client)
   (define (not-proper-websocket-version? version)
-    (string=? version "13"))
-  (define (the-origin-is-acceptable? origin)
+    (not (string=? version "13")))
+  (define (the-origin-is-not-acceptable? origin)
     ;; TODO: check origin
-    #t)
+    #f)
   (let* ((headers (request-headers req))
-         (upgrade (assoc-ref headers 'upgrade))
-         (connection (assoc-ref headers 'connection))
+         (upgrade (car (assoc-ref headers 'upgrade)))
+         (connection (car (assoc-ref headers 'connection)))
          (version (assoc-ref headers 'sec-websocket-version))
          (origin (assoc-ref headers 'origin)))
     (cond
-     ((not (string=? connection "upgrade"))
+     ((not (eq? connection 'upgrade))
       (throw 'artanis-err 426 validate-websocket-request
              "Invalid connection `~a' request from ~a, expect 'upgrade!"
              connection (client-ip client)))
      ((not (string=? upgrade "websocket"))
       (throw 'artanis-err 426 validate-websocket-request
-             "Invalid protocol `~a' request from ~a, expect 'websocket!"
+             "Invalid protocol `~a' request from ~a, expect \"websocket\"!"
              upgrade (client-ip client)))
      ((not-proper-websocket-version? version)
       (throw 'artanis-err 426 validate-websocket-request
              "Invalid websocket version `~a' from client ~a"
              version (client-ip client)))
-     ((the-origin-is-acceptable? origin)
+     ((the-origin-is-not-acceptable? origin)
       (throw 'artanis-err 403 validate-websocket-request
              "Unacceptable origin `~a' from websocket client ~a"
              origin (client-ip client)))
@@ -103,10 +108,12 @@
              protocol (client-ip client))))))
 
 ;; NOTE: Although we can get `port' from `request', we still need `client' for IP address.
-(define (do-websocket-handshake req client)
+(define (do-websocket-handshake req server client)
   (define-syntax-rule (->protocols pl)
-    (map (lambda (p) (string->symbol (string-trim-both p)))
-         (string-split pl #\,)))
+    (if pl ; FIXME: how to deal with no-protocol-specified situation
+        (map (lambda (p) (string->symbol (string-trim-both p)))
+             (string-split pl #\,))
+        '(echo)))
   (validate-websocket-request req client)
   (let* ((headers (request-headers req))
          (path (request-path req))
@@ -117,12 +124,19 @@
          (accept-key (gen-accept-key key))
          (origin (or (assoc-ref headers 'origin) "unknown client"))
          (res (build-response #:code 101 #:headers `((Sec-WebSocket-Accept . ,accept-key)
-                                                     (Sec-WebSocket-Protocol . ,proto)
-                                                     (Upgrade . "websocket")
+                                                     ;;(Sec-WebSocket-Protocol . ,proto)
+                                                     (Upgrade . "Websocket")
                                                      (Connection . "Upgrade")))))
-    (format (current-error-port)
-            "[WebSocket] Handshake successfully from ~a" origin)
-    (write-response-body (write-response res port) *handshake-reply*)))
+    (format (artanis-current-output)
+            "[WebSocket] Handshake successfully from ~a~a~%"
+            origin (request-path req))
+    (format (artanis-current-output)
+            "[Websocket] Initializing `~a' protocol for Websocket ..."
+            proto)
+    (register-websocket-protocol! server client proto port)
+    (format (artanis-current-output) " done~%")
+    (write-response-body (write-response res port) *handshake-reply*)
+    (force-output port)))
 
 ;; NOTE: The actual closing operation should be in http-close
 ;; NOTE: If peer-shutdown? is #t, then it means the websocket reader got closing-frame,
