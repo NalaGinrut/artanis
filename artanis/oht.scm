@@ -342,15 +342,17 @@
 
 ;; for #:websocket
 ;;
-(define (websocket-maker type rule keys)
-  (match keys
-    ((#:proto (? symbol? proto))
+(define (websocket-maker mode rule keys)
+  (match mode
+    (((or #t 'raw))
+     (this-rule-enabled-websocket! rule 'raw))
+    (('proto (? symbol? proto))
      ;; TODO: call protocol initilizer, and establish websocket for it.
      ;; NOTE: In Artanis, we accept only one protocol for each URL-remapping,
      ;;       if you have several protocols to service, please use different
      ;;       URL-remapping.
      (this-rule-enabled-websocket! rule proto))
-    ((#:redirect (? string? ip/usk))
+    (('redirect (? string? ip/usk))
      ;; NOTE: We use IP rather than hostname, since it's usually redirected to
      ;;       a LAN address. Using hostname may cause DNS issues.
      ;; NOTE: ip/usk means ip or unix-socket, the pattern should be this:
@@ -361,14 +363,14 @@
      ;;       to redirect it.
      ;; NOTE: Just call :websocket as the handler is enough to redirect data automatically
      (this-rule-enabled-websocket! rule 'redirect))
-    ((#:proxy (? symbol? proto))
+    (('proxy (? symbol? proto))
      ;; NOTE: Setup a proxy with certain protocol handler.
      ;;       Different from the regular proxy design, the proxy in Artanis doesn't
      ;;       need a listen port, since it's always 80/443. The client should
      ;;       support websocket, and visit the related URL for establishing
      ;;       a websocket channel. Then the rest is the same with regular proxy.
      (this-rule-enabled-websocket! rule 'proxy))
-    (else (throw 'artanis-err 500 websocket-maker "Invalid type `~a'!" type)))
+    (else (throw 'artanis-err 500 websocket-maker "Invalid type `~a'!" mode)))
   (lambda (rc . cmd)
     ;; NOTE: :websocket is not for read/write, it's only used for changing status.
     (match cmd
