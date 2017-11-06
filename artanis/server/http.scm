@@ -96,7 +96,9 @@
       (simply-quit))
      (else
       (let* ((req (read-request port))
-             (need-websocket? (detect-if-connecting-websocket req))
+             (need-websocket?
+              ;; NOTE: This step includes handshake if it hasn't done it.
+              (detect-if-connecting-websocket req server client))
              (body (if need-websocket?
                        #f (try-to-read-request-body req))))
         (cond
@@ -105,13 +107,12 @@
           (let ((ip (client-ip client)))
             (DEBUG "The websocket based client ~a is reading...~%" ip)
             (DEBUG "Just return #f body according to Artanis convention~%"))
-          ;; NOTE: This step will finish handshake then schedule and wait for data
-          (do-websocket-handshake req client)
           (DEBUG "[Websocket] Client `~a' is requesting Websocket service~%"
                  (client-ip client))
           ;; NOTE: Each time the body is the content from client. The content is parsed
           ;;       from the frame in websocket-read. And the payload is parsed by the
           ;;       registered parser. Users don't have to call parser explicitly.
+          ;; NOTE: Now, schedule and wait for data
           (values req (websocket-read req server client)))
          (else (values req body))))))))
 
