@@ -23,7 +23,7 @@
 (use-modules (artanis artanis) (artanis utils))
 ;; exclude *.html static file to be handled by default static-page-emitter
 ;; we need to handle foo.html in rule test-18, this can avoid the conflict.
-(init-server #:exclude '(html))
+(init-server)
 
 (define mmr "123")
 
@@ -198,6 +198,10 @@
 (get "/pkg/:name\\.:format"
   (lambda (rc)
    (format #f "~a.~a" (params rc "name") (params rc "format"))))
+
+(post "/echo" #:websocket '(proto echo)
+  (lambda (rc)
+    (format #t "HHHHHHH: ~a" (:websocket rc 'payload))))
 
 (run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-passwd "123" #:debug #t)
 
