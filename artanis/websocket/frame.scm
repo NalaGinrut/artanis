@@ -23,6 +23,7 @@
   #:use-module (artanis server)
   #:use-module (ice-9 iconv)
   #:use-module (ice-9 match)
+  #:use-module (system foreign)
   #:use-module ((rnrs) #:select (bytevector-u8-ref
                                  bytevector-u8-set!
                                  bytevector-u64-ref
@@ -31,7 +32,6 @@
                                  put-u8
                                  put-bytevector
                                  get-bytevector-all
-                                 get-bytevector-n
                                  bytevector-length
                                  uint-list->bytevector
                                  define-record-type))
@@ -77,11 +77,10 @@
 (define (is-text-frame? opcode) (= opcode #x1))
 ;;  %x2 denotes a binary frame
 (define (is-binary-frame? opcode) (= opcode #x2))
-;;  %x3-7 are reserved for further non-control frames
-(define (is-non-control-frame? opcode)
-  (zero? (logand #x8 opcode)))
 (define (is-control-frame? opcode)
-  (not (is-non-control-frame? opcode)))
+  (logand #x8 opcode))
+(define (is-non-control-frame? opcode)
+  (not (is-continue-frame? opcode)))
 ;;  %x8 denotes a connection close
 (define (is-close-frame? opcode) (= opcode #x8))
 ;;  %x9 denotes a ping
@@ -93,10 +92,10 @@
   (and (> opcode #xb) (< opcode #xf)))
 
 (define (is-masked-frame? head)
-  (not (zero? (logand #x8000 head))))
+  (logtest #x8000 head))
 
 (define (is-final-frame? head)
-  (not (zero? (logand #x8000 head))))
+  (logtest #x8000 head))
 
 (define (received-closing-frame? port)
   ;; TODO: finish it
@@ -126,23 +125,23 @@
 (define-syntax-rule (generate-opcode type)
   (list-index *opcode-list* type))
 
-(::define (websocket-get-head port)
-  (:anno: (port) -> int)
-  (bytevector-u16-ref (get-bytevector-n port 2) 0 'big))
+(::define (websocket-get-head body)
+  (:anno: (bv) -> int)
+  (bytevector-u16-ref body 0 'big))
 
-(::define (websocket-get-body payload-len port)
-  (:anno: (int port) -> bytevector)
-  (when (> payload-len (get-conf '(websocket maxsize)))
-    (throw 'artanis-err 1009 websocket-get-body
-           "Too big message received! `~a' > `~a'"
-           payload-len (get-conf '(websocket maxpayload))))
-  (get-bytevector-n port payload-len))
+(::define (websocket-get-payload payload-offset body)
+  (:anno: (int bv) -> bv)
+  (pointer->bytevector
+   (make-pointer (+ payload-offset
+                    (pointer-address (bytevector->pointer body))))
+   (- (bytevector-length body) payload-offset)))
 
-(define-syntax-rule (get-mask bv payload-len)
+(define (get-mask bv payload-len)
+  (format #t "bv: ~a~%offset: ~a~%" bv (+ 1 1 (if (= payload-len 126) 2 8)))
   (bytevector-u32-ref bv
                       (+ 1 ; head1
                          1 ; head2
-                         (if (= payload-len 126) 2 8)) ; rael-len
+                         (if (= payload-len 126) 2 8)) ; real-len
                       'big))
 
 (define-syntax-rule (%get-opcode head)
@@ -161,9 +160,6 @@
            "The opcode `#x~:@(~x~)' is reserved for control frame" opcode))
    (else type)))
 
-(define-syntax-rule (%get-body bv payload-offset payload-length)
-  (bv-copy/share bv payload-offset payload-length))
-
 (::define (websocket-frame-final-fragment? frame)
   (:anno: (websocket-frame) -> boolean)
   (is-final-frame? (logand #xff00 (websocket-frame-head frame))))
@@ -177,9 +173,9 @@
   (%get-type (%get-opcode (logand #xff (websocket-frame-head frame)))))
 
 (define-syntax-rule (%get-payload body payload-offset payload-length)
-  (%get-body body payload-offset payload-length))
+  (bv-copy/share body payload-offset payload-length))
 (::define (websocket-frame-payload frame)
-  (:anno: (websocket-frame) -> bytevector)
+  (:anno: (websocket-frame) -> bv)
   (%get-payload (websocket-frame-body frame)
                 (websocket-frame-payload-offset frame)
                 (websocket-frame-payload-length frame)))
@@ -206,7 +202,12 @@
       (bytevector-u16-ref body 0 'big))
      ((= payload-len 127)
       (if (not control-frame?)
-          (bytevector-u64-ref body 0 'big)
+          (let ((real-len (bytevector-u64-ref body 0 'big)))
+            (if (<= real-len (get-conf '(websocket maxpayload)))
+                real-len
+                (throw 'artanis-err 1009 read-websocket-frame
+                       "Too big message received! `~a' > `~a'"
+                       payload-len (get-conf '(websocket maxpayload)))))
           (throw 'artanis-err 1007 read-websocket-frame
                  "Invalid websocket frame, the control frame can't be segmented!")))
      (else (throw 'artanis-err 500 read-websocket-frame
@@ -219,7 +220,7 @@
   (define (decode-with-mask! payload len mask)
     (let lp ((i 0))
       (cond
-       ((> i len) payload)
+       ((>= i len) payload)
        (else
         (let ((masked (logxor (u8vector-ref payload i)
                               (u8vector-ref mask (modulo i 4)))))
@@ -232,15 +233,17 @@
           payload)))
   ;; NOTE: We have to read the header first since we need to check the payload length for
   ;;       security isssue.
-  (let* ((head (websocket-get-head port))
+  (let* ((body (get-bytevector-all port))
+         (head (pk "head"(websocket-get-head body)))
          (control-frame? (is-control-frame? (%get-opcode head)))
-         (payload-len (logand #x7f00 head))
-         (real-len (get-len head control-frame? payload-len))
-         (mask (and (is-masked-frame? head) (get-mask head payload-len)))
-         (payload-offset (detect-payload-offset mask payload-len))
-         (body (websocket-get-body payload-len port))
-         (payload (cook-payload mask payload-offset payload-len body)))
-    (make-websocket-frame head parser real-len payload-offset mask body)))
+         (a (pk "plen" (logand #x7f00 head)))
+         (payload-len (pk "payload-len"(ash (logand #x7f00 head) -8)))
+         (real-len (pk "real-len"(get-len payload-len body control-frame?)))
+         (mask (pk "mask"(and (is-masked-frame? head) (get-mask body payload-len))))
+         (payload-offset (pk "payload-offset"(detect-payload-offset mask payload-len)))
+         (payload (pk "payload"(websocket-get-payload payload-offset body)))
+         (cooked (pk "cooked"(cook-payload mask payload-offset payload-len payload))))
+    (make-websocket-frame head parser real-len payload-offset mask cooked)))
 
 (::define (generate-head1 final? type)
   (:anno: (boolean symbol) -> int)
@@ -264,7 +267,7 @@
                 "The payload size `~a' excceded 64bit!" len))))
 
 (::define (write-websocket-frame/client res frame)
-  (:anno: (response websocket-frame/client) -> ANY)
+  (:anno: (<response> websocket-frame/client) -> ANY)
   (define (write-payload-size port len)
     (if (and (> len 126) (< len 16bit-size))
         (put-bytevector port (uint-list->bytevector (list len) 'big 2))
@@ -287,7 +290,7 @@
 ;;       And store the preprocessor to the frame (record-type).
 ;; NOTE: Return bytevector
 (::define (new-websocket-frame/client type final? payload)
-  (:anno: (symbol boolean bytevector) -> websocket-frame/client)
+  (:anno: (symbol boolean bv) -> websocket-frame/client)
   (define-syntax-rule (detect-type t)
     (case t
       ((proxy binary) 'binary)
