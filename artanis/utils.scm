@@ -254,7 +254,9 @@
         (lp (cddr rest) e #f))))))
 
 (define-syntax-rule (static-filename path)
-  (format #f "~a/~a" (current-toplevel) path))
+  (if (current-toplevel)
+      (format #f "~a/~a" (current-toplevel) path)
+      (format #f "./~a" path)))
 
 (define-syntax-rule (request-ip req)
   ;; TODO: support AF_INET6 in the future
@@ -1045,7 +1047,6 @@
   (define (guile-specific-record-name o)
     ((@ (guile) record-type-name)
      ((@ (guile) record-type-descriptor) o)))
-  (DEBUG "detecting ~a~%" o)
   (cond
    ;; NOTE: record? is for R6RS record-type, but record-type? is not
    ((r6rs-record? o) (r6rs-record-type-name (record-rtd o)))
@@ -1060,7 +1061,6 @@
    ((pair? o) 'pair)
    ((list? o) 'list)
    ((bytevector? o) 'bv)
-   ((socket-port? o) 'socket)
    ((port? o) 'port)
    ((boolean? o) 'boolean)
    (else 'ANY)))
