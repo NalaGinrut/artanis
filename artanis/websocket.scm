@@ -54,6 +54,7 @@
                websocket-frame-type
                websocket-frame-payload
 
+               print-websocket-frame
                new-websocket-frame/client
                write-websocket-frame/client))
 
@@ -67,7 +68,8 @@
         (port (request-port req)))
     (cond
      ((get-the-redirector-of-websocket server client)
-      (DEBUG "Client `~a' has already registered websocket in `~a'" (client-ip client) url)
+      (DEBUG "Client `~a' has already registered websocket in `~a'~%"
+             (client-ip client) url)
       #t)
      ((url-need-websocket? url)
       (cond
@@ -79,7 +81,7 @@
                "Websocket is fobbiden since server.websocket is not enabled")))
       ;; NOTE: We have to do handshake here, since we have no chance to know
       ;;       if it's not registered in http-read without twice detection.
-      (DEBUG "Register `~a' to use websocket for rule `~a'" (client-ip client) url)
+      (DEBUG "Register `~a' to use websocket for rule `~a'~%" (client-ip client) url)
       (do-websocket-handshake req server client)
       #t)
      (else #f))))
@@ -94,19 +96,22 @@
 ;; TODO: Register protobuf handler to ragnarok-server when server start.
 (::define (websocket-read req server client)
   (:anno: (<request> ragnarok-server ragnarok-client) -> websocket-frame)
+  (DEBUG "Enter websocket-read~%")
   (cond
    ((websocket-check-auth req)
-    (let* ((redirector (get-the-redirector-of-websocket server client))
-           (reader (redirector-reader redirector))) ; reader: bytevector -> record-type
-      (read-websocket-frame reader (client-sockport client))))
+    (let* ((redirector (pk "111"(get-the-redirector-of-websocket server client)))
+           (reader (pk "222"(redirector-reader redirector)))) ; reader: bytevector -> record-type
+      (pk "333"(read-websocket-frame reader (client-sockport client)))))
    (else
     (throw 'artanis-err 401 websocket-read
            "Authentication failed: ~a" (client-ip client)))))
 
-(::define (websocket-write type res body server client)
-  (:anno: (symbol <response> ANY ragnarok-server ragnarok-client) -> ANY)
+(::define (websocket-write type body server client)
+  (:anno: (symbol ANY ragnarok-server ragnarok-client) -> ANY)
+  (DEBUG "Enter websocket-read~%")
   (let* ((redirector (get-the-redirector-of-websocket server client))
          (writer (redirector-writer redirector)) ; writer: record-type -> bytevector
-         (frame (new-websocket-frame/client type #t (writer body))))
+         (frame (new-websocket-frame/client 'text #t (writer body)))
+         (port (client-sockport client)))
     ;; TODO: Check websocket.fragment and do fragmentation
-    (write-websocket-frame/client res frame)))
+    (write-websocket-frame/client port frame)))
