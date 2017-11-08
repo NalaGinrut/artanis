@@ -82,11 +82,12 @@
             ::define did-not-specify-parameter colorize-string-helper
             colorize-string WARN-TEXT ERROR-TEXT REASON-TEXT
             NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr request-path
-            keep-alive? procedure-name->string proper-toplevel gen-content-length
+            response-keep-alive? request-keep-alive?
+            procedure-name->string proper-toplevel gen-content-length
             make-file-sender file-sender? file-sender-size file-sender-thunk
             get-string-all-with-detected-charset make-unstop-exception-handler
             artanis-log exception-from-client exception-from-server render-sys-page
-            bv-copy/share)
+            bv-copy/share bv-backward)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -1202,7 +1203,7 @@
 (define (request-path req)
   (uri-path (request-uri req)))
 
-(define (keep-alive? response)
+(define (response-keep-alive? response)
   (let ((v (response-version response)))
     (and (or (< (response-code response) 400)
              (= (response-code response) 404))
@@ -1215,6 +1216,12 @@
               ;; HTTP/1.0 needs explicit keep-alive notice
               ((0) (memq 'keep-alive (response-connection response)))))
            (else #f)))))
+
+;; NOTE: The order matters
+(define (request-keep-alive? request)
+  (or (equal? (request-upgrade request) '(websocket))
+      (equal? (request-connection request) '(keep-alive))
+      (equal? (request-version request) '(1 . 1))))
 
 (define (procedure-name->string proc)
   (symbol->string (procedure-name proc)))
@@ -1349,10 +1356,20 @@
 
 (define* (bv-copy/share bv #:key (from 0) (type 'vu8)
                         (size (- (bytevector-length bv) from)))
-  (when (> size (bytevector-length bv))
-    (error bv-copy/share "Specified size is larger than the length!" size))
+  (when (> size (- (bytevector-length bv) from))
+    (error bv-copy/share
+           (format #f "Size(~a) is larger than the length(~a) - from(~a)!"
+                   size (bytevector-length bv) from)))
   (when (>= from (bytevector-length bv))
-    (error bv-copy/share "Can't copy from the end of the bytevector!" from))
+    (error bv-copy/share
+           (format #f "Can't copy from the end of the bytevector (~a)!"
+                   from)))
   (let* ((ptr (bytevector->pointer bv))
          (new-ptr (make-pointer (+ (pointer-address ptr) from))))
     (pointer->bytevector new-ptr size 0 type)))
+
+(define* (bv-backward bv offset #:key (type 'vu8) (extend 0))
+  (let* ((ptr (bytevector->pointer bv))
+         (new-ptr (make-pointer (- (pointer-address ptr) offset)))
+         (len (bytevector-length bv)))
+    (pointer->bytevector new-ptr (+ len extend) 0 type)))
