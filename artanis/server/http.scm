@@ -146,7 +146,7 @@
              ;; NOTE: For common websocket, http-write will wrap the response body into
              ;;       a websocket frame by websocket-write.
              (DEBUG "Common websocket writing for `~a'~%" (client-ip client))
-             (websocket-write type response body server client))))))
+             (websocket-write type body server client))))))
    (else
     (let* ((res (write-response response (client-sockport client)))
            (port (response-port res)))  ; return the continued port
