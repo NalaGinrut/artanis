@@ -261,4 +261,4 @@
                  (list errno))))))))
 
 (define-public (is-peer-shutdown? e)
-  (not (zero? (logand (cdr e) EPOLLRDHUP))))
+  (logtest (cdr e) (logior EPOLLIN EPOLLRDHUP)))
