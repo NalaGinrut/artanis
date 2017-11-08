@@ -40,14 +40,10 @@
 
 (define *ws-magic* "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
-(define *handshake-reply*
-  (string->bytevector "HTTP/1.1 101 Switching Protocols\r\n"
-                      (get-conf '(server charset))))
-
 (define *rules-with-websocket* '())
 
 (define (url-need-websocket? url)
-  (DEBUG "url-need-websocket~%~a~%" *rules-with-websocket*)
+  (DEBUG "url-need-websocket~%")
   (any (lambda (rule)
          (irregex-search (car rule) url)) *rules-with-websocket*))
 
@@ -125,7 +121,9 @@
          (origin (or (assoc-ref headers 'origin) "unknown client"))
          (res (build-response #:code 101 #:headers `((Sec-WebSocket-Accept . ,accept-key)
                                                      ;;(Sec-WebSocket-Protocol . ,proto)
-                                                     (Upgrade . "Websocket")
+                                                     ;;(Sec-WebSocket-Extensions . "permessage-deflate")
+                                                     (Sec-Websocket-Version . "13")
+                                                     (Upgrade . "websocket")
                                                      (Connection . "Upgrade")))))
     (format (artanis-current-output)
             "[WebSocket] Handshake successfully from ~a~a~%"
@@ -135,8 +133,14 @@
             proto)
     (register-websocket-protocol! server client proto port)
     (format (artanis-current-output) " done~%")
-    (write-response-body (write-response res port) *handshake-reply*)
-    (force-output port)))
+    (format #t
+            "~a"
+            (call-with-output-string
+              (lambda (out)
+                (write-response res out))))
+    (write-response res port)
+    (force-output port)
+    (DEBUG "Handshake done!~%")))
 
 ;; NOTE: The actual closing operation should be in http-close
 ;; NOTE: If peer-shutdown? is #t, then it means the websocket reader got closing-frame,
