@@ -74,6 +74,7 @@
             make-task
             task?
             task-client
+            task-keepalive? task-keepalive?-set!
             task-kont task-kont-set!
             task-prio task-prio-set!
 
@@ -206,7 +207,8 @@
 
 (define-record-type task
   (fields
-   client ; connecting client: <port, opt> 
+   client ; connecting client: <port, opt>
+   (mutable keepalive?) ; if keep it alive
    (mutable kont) ; delimited continuation
    (mutable prio))) ; priority
 
@@ -299,7 +301,11 @@
 ;; NOTE: We need this null-task as a placeholder to let task scheduling loop
 ;;       work smoothly.
 (define (the-null-task)
-  (DEBUG "A NULL-Task was called. The work table seems empty~%"))
+  (make-task
+   "The null task client"
+   #f
+   (lambda () (DEBUG "A NULL-Task was called. The work table seems empty~%"))
+   "The null task prio"))
 
 ;; NOTE: We can't put them in env.scm, since it uses things imported
 ;;       from utils.scm. But it's OK and it's better the keep them private.
@@ -315,7 +321,7 @@
 ;;          It is used within the handler, so it's fine to use the parameters.
 ;;       4. All hooks related to request
 ;;          They are actually called within the handler.
-(define current-task (make-parameter the-null-task))
+(define current-task (make-parameter (the-null-task)))
 (define current-proto (make-parameter (did-not-specify-parameter 'proto)))
 (define current-server (make-parameter (did-not-specify-parameter 'server)))
 (define current-client (make-parameter (did-not-specify-parameter 'client)))
