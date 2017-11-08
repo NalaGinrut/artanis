@@ -81,7 +81,10 @@
 (define* (close-current-task! server client #:optional (peer-shutdown? #f))
   ;; NOTE: current task is the head of work-table
   (DEBUG "close task ~a~%" (client-sockport client))
-  (remove-from-work-table! (current-work-table server) client peer-shutdown?))
+  (let ((task (current-task)))
+    (DEBUG "task: ~a~%" (task-keepalive? task))
+    (task-keepalive?-set! task #f)
+    (remove-from-work-table! (current-work-table server) client peer-shutdown?)))
 
 (define customized-scheduler #f)
 
