@@ -21,7 +21,9 @@
   #:use-module (artanis utils)
   #:use-module (artanis config)
   #:use-module (artanis server)
+  #:use-module (artanis env)
   #:use-module (ice-9 iconv)
+  #:use-module (ice-9 format)
   #:use-module (ice-9 match)
   #:use-module (system foreign)
   #:use-module ((rnrs) #:select (bytevector-u8-ref
@@ -32,6 +34,7 @@
                                  put-u8
                                  put-bytevector
                                  get-bytevector-all
+                                 get-bytevector-n
                                  bytevector-length
                                  uint-list->bytevector
                                  define-record-type))
@@ -46,12 +49,14 @@
             websocket-frame-opcode
             websocket-frame-type
             websocket-frame-payload
+            websocket-frame-mask
 
             websocket-frame/client-final?
             websocket-frame/client-type
             websocket-frame/client-length
             websocket-frame/client-payload
 
+            print-websocket-frame
             new-websocket-frame/client
             write-websocket-frame/client
             read-websocket-frame))
@@ -62,6 +67,7 @@
    parser
    payload-length
    payload-offset
+   mask
    body))
 
 (define-record-type websocket-frame/client
@@ -103,7 +109,8 @@
 
 (define (send-websocket-closing-frame port)
   ;; Make sure it's flushed before closing
-  (force-output port))
+  (force-output port)
+  (close-task))
 
 (define *opcode-list*
   '(continuation         ; #x0
@@ -114,9 +121,10 @@
     non-control-reserved ; #x5
     non-control-reserved ; #x6
     non-control-reserved ; #x7
-    close                ; #x9
-    ping                 ; #xA
-    pong                 ; #xB
+    close                ; #x8
+    ping                 ; #x9
+    pong                 ; #xA
+    control-reserved     ; #xB
     control-reserved     ; #xC
     control-reserved     ; #xD
     control-reserved     ; #xE
@@ -129,23 +137,17 @@
   (:anno: (bv) -> int)
   (bytevector-u16-ref body 0 'big))
 
-(::define (websocket-get-payload payload-offset body)
-  (:anno: (int bv) -> bv)
-  (pointer->bytevector
-   (make-pointer (+ payload-offset
-                    (pointer-address (bytevector->pointer body))))
-   (- (bytevector-length body) payload-offset)))
-
-(define (get-mask bv payload-len)
-  (format #t "bv: ~a~%offset: ~a~%" bv (+ 1 1 (if (= payload-len 126) 2 8)))
-  (bytevector-u32-ref bv
-                      (+ 1 ; head1
-                         1 ; head2
-                         (if (= payload-len 126) 2 8)) ; real-len
-                      'big))
+(define-syntax-rule (get-mask body payload-len)
+  (bv-copy/share body
+                 #:from (+ 1 ; head1
+                           1 ; head2
+                           (if (< payload-len 126)
+                               0
+                               (if (= payload-len 126) 2 8))) ; real-len
+                 #:size 4))
 
 (define-syntax-rule (%get-opcode head)
-  (logand head #x0f))
+  (ash (logand head #x0f00) -8))
 
 (define-syntax-rule (%get-type opcode)
   (assoc-ref *opcode-list* opcode))
@@ -173,7 +175,7 @@
   (%get-type (%get-opcode (logand #xff (websocket-frame-head frame)))))
 
 (define-syntax-rule (%get-payload body payload-offset payload-length)
-  (bv-copy/share body payload-offset payload-length))
+  (bv-copy/share body #:from payload-offset #:size payload-length))
 (::define (websocket-frame-payload frame)
   (:anno: (websocket-frame) -> bv)
   (%get-payload (websocket-frame-body frame)
@@ -193,16 +195,16 @@
 ;;       If users want to get certain field, Artanis provides APIs for fetching them. Users
 ;;       can decide how to parse the frames for efficiency.
 (define (read-websocket-frame parser port)
-  (define-syntax-rule (get-len payload-len body control-frame?)
+  (define-syntax-rule (get-len payload-len pre control-frame?)
     (cond
      ((< payload-len 126)
       ;; Yes, it's redundant, but I never trust the data from client
       payload-len)
      ((= payload-len 126)
-      (bytevector-u16-ref body 0 'big))
+      (bytevector-u16-ref pre 2 'big))
      ((= payload-len 127)
       (if (not control-frame?)
-          (let ((real-len (bytevector-u64-ref body 0 'big)))
+          (let ((real-len (bytevector-u64-ref pre 2 'big)))
             (if (<= real-len (get-conf '(websocket maxpayload)))
                 real-len
                 (throw 'artanis-err 1009 read-websocket-frame
@@ -215,7 +217,7 @@
   (define (detect-payload-offset mask payload-len)
     (+ 1 ; head1
        1 ; head2
-       (if (= payload-len 126) 2 8) ; real-len
+       (if (< payload-len 126) 0 (if (= payload-len 126) 2 8)) ; real-len
        (if mask 4 0))) ; mask-len
   (define (decode-with-mask! payload len mask)
     (let lp ((i 0))
@@ -226,24 +228,45 @@
                               (u8vector-ref mask (modulo i 4)))))
           (u8vector-set! payload i masked)
           (lp (1+ i)))))))
-  (define (cook-payload mask payload-offset payload-length bv)
-    (let ((payload (%get-payload bv payload-offset payload-length)))
-      (if mask
-          (decode-with-mask! payload payload-length mask)
-          payload)))
+  (define (cook-payload mask payload real-len)
+    (if mask
+        (decode-with-mask! payload real-len mask)
+        payload))
+  (define* (read-and-verify-body port size #:optional (backward #f) (extend 0))
+    (let ((body (get-bytevector-n port size)))
+      (cond
+       ((not (eof-object? body))
+        ;; NOTE: We add back the header + possible length (2 + 2 bytes) for better
+        ;;       redirecting in proxy mode.
+        (if backward
+            (bv-backward body backward #:extend 10)
+            body))
+       (else
+        ;; NOTE: If it's encoutered EOF, then it means the peer is shutdown.
+        ;;       We use (break-task) here for scheduling it out, rather than (close-task)
+        ;;       since (close-task) will remove the delimited-continuation, but Ragnarok
+        ;;       has to check it later and a crash happens.
+        (DEBUG "Websocket shutdown by peer~%")
+        (break-task)))))
   ;; NOTE: We have to read the header first since we need to check the payload length for
   ;;       security isssue.
-  (let* ((body (get-bytevector-all port))
-         (head (pk "head"(websocket-get-head body)))
+  ;; FIXME: Maybe we have to drop the whole-body-redirecting method, since the socket
+  ;;        demands a size to get all body. If we use get-bytevector-all, then it's stuck.
+  ;;        Even if we are in non-blocking, so sad.
+  (let* ((pre (read-and-verify-body port 10))
+         (head (pk "head"(websocket-get-head pre)))
          (control-frame? (is-control-frame? (%get-opcode head)))
-         (a (pk "plen" (logand #x7f00 head)))
-         (payload-len (pk "payload-len"(ash (logand #x7f00 head) -8)))
-         (real-len (pk "real-len"(get-len payload-len body control-frame?)))
-         (mask (pk "mask"(and (is-masked-frame? head) (get-mask body payload-len))))
+         (payload-len (pk "payload-len"(logand #x7f head)))
+         (real-len (pk "real-len"(get-len payload-len pre control-frame?)))
+         (mask (pk "mask"(is-masked-frame? head)))
          (payload-offset (pk "payload-offset"(detect-payload-offset mask payload-len)))
-         (payload (pk "payload"(websocket-get-payload payload-offset body)))
-         (cooked (pk "cooked"(cook-payload mask payload-offset payload-len payload))))
-    (make-websocket-frame head parser real-len payload-offset mask cooked)))
+         (body-size (pk "body-size" (- (+ payload-offset real-len) 10)))
+         (body (pk "read-and-verify-body"(read-and-verify-body port body-size 10)))
+         (mask-array (pk "mask-array"(and mask (get-mask body payload-len))))
+         (payload (pk "payload"(%get-payload body payload-offset real-len))))
+    (DEBUG "----------------------------~%")
+    (pk "cooked"(cook-payload mask payload real-len))
+    (make-websocket-frame head parser real-len payload-offset mask-array body)))
 
 (::define (generate-head1 final? type)
   (:anno: (boolean symbol) -> int)
@@ -266,8 +289,8 @@
    (else (throw 'artanis-err 500 generate-head2
                 "The payload size `~a' excceded 64bit!" len))))
 
-(::define (write-websocket-frame/client res frame)
-  (:anno: (<response> websocket-frame/client) -> ANY)
+(::define (write-websocket-frame/client port frame)
+  (:anno: (port websocket-frame/client) -> ANY)
   (define (write-payload-size port len)
     (if (and (> len 126) (< len 16bit-size))
         (put-bytevector port (uint-list->bytevector (list len) 'big 2))
@@ -276,13 +299,13 @@
          (type (websocket-frame/client-type frame))
          (len (websocket-frame/client-length frame))
          (payload (websocket-frame/client-payload frame))
-         (port (response-port res))
          (head1 (generate-head1 final? type))
          (head2 (generate-head2 len)))
     (put-u8 port head1)
     (put-u8 port head2)
     (write-payload-size port head2) ; head2 is actually the size since mask must be 0
-    (write-response-body res (websocket-frame/client-payload frame))))
+    (put-bytevector port (websocket-frame/client-payload frame))
+    (force-output port)))
 
 ;; NOTE: A better design is not to split then store fields to record-type,
 ;;       we just need to parse the frame and store the offset.
@@ -303,3 +326,22 @@
      real-type
      payload-len
      payload)))
+
+(::define (print-websocket-frame frame)
+  (:anno: (websocket-frame) -> ANY)
+  (call-with-output-string
+    (lambda (port)
+     (let* ((head (websocket-frame-head frame))
+            (opcode (%get-opcode head))
+            (body (websocket-frame-body frame))
+            (offset (pk "---offset"(websocket-frame-payload-offset frame)))
+            (size (pk "---size"(websocket-frame-payload-length frame)))
+            (payload (%get-payload body offset size))
+            (mask (websocket-frame-mask frame)))
+       (format port "<websocket-frame:~%")
+       (format port "~10thead: ~a~%" head)
+       (format port "~10tfinal?: ~a~%" (is-final-frame? head))
+       (format port "~10ttype: ~a~%" (list-ref *opcode-list* opcode))
+       (format port "~10tpayload-offset: ~a~%" offset)
+       (format port "~10tpayload-size: ~a~%" size)
+       (format port "~10tpayload: ~a>" payload)))))
