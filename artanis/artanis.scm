@@ -34,6 +34,7 @@
   #:use-module (artanis third-party csv)
   #:use-module (artanis third-party json)
   #:use-module (artanis server)
+  #:use-module (artanis websocket)
   #:use-module (artanis version)
   #:use-module (web server)
   #:use-module (srfi srfi-1)
@@ -270,6 +271,10 @@
                      (and=> (string-length body)
                             (lambda (len) (if (> len 100) 100 len))))))
      (((@ (rnrs bytevectors) bytevector?) body) "Body is bytevectors!")
+     ((websocket-frame? body)
+      (if debug
+          (print-websocket-frame body)
+          "<websocket-frame>"))
      (else (throw 'artanis-err 500 ->proper-body-display "Invalid body type!" body))))
   (when (not is-init-server-run?)
     (error "Sorry, but you have to run (init-server) in the begining of you main program!"))
