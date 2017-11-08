@@ -280,6 +280,9 @@
                        (lambda (request body)
                          (call-with-values
                              (lambda ()
+                               (let ((task (current-task)))
+                                 (when (request-keep-alive? request)
+                                   (task-keepalive?-set! task #t)))
                                (handle-request handler request body))
                            (lambda (response body request-status)
                              ;; NOTE: We provide the 3rd parameter here to keep it
@@ -290,7 +293,8 @@
                                              (eq? 'HEAD (request-method request)))
                              (cond
                               ((or (eq? request-status 'exception)
-                                   (not (keep-alive? response)))
+                                   (not (response-keep-alive? response))
+                                   (task-keepalive? (current-task)))
                                (ragnarok-close proto server client #f))
                               (else
                                (DEBUG "Client ~a keep alive~%" (client-sockport client))
@@ -323,7 +327,7 @@
       (parameterize ((current-server server)
                      (current-client client)
                      (current-proto proto)
-                     (current-task (make-task client kont prio)))
+                     (current-task (make-task client #f kont prio)))
         (run-task (current-task)))))
    (else
     ;; NOTE: If we come here, it means the ready socket is NEITHER:
