@@ -199,9 +199,9 @@
   (lambda (rc)
    (format #f "~a.~a" (params rc "name") (params rc "format"))))
 
-(post "/echo" #:websocket '(proto echo)
+(get "/echo" #:websocket '(proto echo)
   (lambda (rc)
-    (format #t "HHHHHHH: ~a" (:websocket rc 'payload))))
+    (:websocket rc 'payload)))
 
 (run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-passwd "123" #:debug #t)
 

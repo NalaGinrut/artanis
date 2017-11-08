@@ -6,7 +6,7 @@
          {
              if ("WebSocket" in window)
                  {
-                     alert("WebSocket is supported by your Browser!");
+                     document.write("<p>WebSocket is supported by your Browser!</p>");
                      
                      // Let us open a web socket
                      var ws = new WebSocket("ws://localhost:3000/echo");
@@ -15,19 +15,19 @@
                      {
                          // Web Socket is connected, send data using send()
                          ws.send("hello world");
-                         alert("Message is sent...");
+                         document.write("<p>Message is sent...</p>");
                      };
 		     
                      ws.onmessage = function (evt) 
                      { 
                          var received_msg = evt.data;
-                         alert("hello welcome...");
+                         document.write("<p>hello welcome...</p>");
                      };
 		     
                      ws.onclose = function()
                      { 
                          // websocket is closed.
-                         alert("Connection is closed..."); 
+                         document.write("<p>Connection is closed...</p>"); 
                      };
 		     
                      window.onbeforeunload = function(event) {
@@ -38,7 +38,7 @@
              else
                  {
                      // The browser doesn't support WebSocket
-                     alert("WebSocket NOT supported by your Browser!");
+                     document.write("<p>WebSocket NOT supported by your Browser!</p>");
                  }
          }
         </script>
