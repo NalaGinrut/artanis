@@ -34,6 +34,7 @@
   (let ((conn (client-sockport client))
         (conn-fd (client-sockport-decriptor client))
         (epfd (ragnarok-server-epfd server)))
+    (DEBUG "Clean connected fd ~a~%" conn-fd)
     ;; NOTE:
     ;; In kernel versions before 2.6.9, the EPOLL_CTL_DEL operation required a
     ;; non-null pointer in event, even though this argument is ignored. Since
@@ -48,8 +49,14 @@
     ;; NOTE: We can't just close it here, if we do so, then we've lost the information
     ;;       to get fd from port which is the key to remove task from work-table. 
     (when (not peer-shutdown?)
-      (shutdown conn 0)
-      (force-output conn))))
+      (DEBUG "Peer is not shutdown~%")
+      (catch #t
+        (lambda ()
+          (shutdown conn 0)
+          (DEBUG "Shutdown ~a successfully~%" conn)
+          (force-output conn)
+          (DEBUG "Force-output ~a successfully~%" conn))
+        list)))) ; I don't care if the connection is still alive anymore, so ignore errors.
 
 ;; NOTE: Close operation must follow these steps:
 ;; 1. remove fd from epoll event
