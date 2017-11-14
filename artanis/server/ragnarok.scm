@@ -294,10 +294,11 @@
                              (cond
                               ((or (eq? request-status 'exception)
                                    (not (response-keep-alive? response))
-                                   (task-keepalive? (current-task)))
+                                   (not (task-keepalive? (current-task))))
                                (ragnarok-close proto server client #f))
                               (else
-                               (DEBUG "Client ~a keep alive~%" (client-sockport client))
+                               (DEBUG "Client ~a keep alive, status: ~a~%"
+                                      (client-sockport client) request-status)
                                (break-task)
                                (DEBUG "Continue from keep-alive connection!~%")
                                (kont)))))))))
@@ -470,18 +471,20 @@
      (else (error establish-http-gateway
                   "Invalid `server.engine' in artanis.conf" (ragnarok-engine-name engine))))))
 
+;; WARNING: Don't use = here, must use eqv? since it's not always numbers
 (define (io-exception:peer-is-shutdown? e)
   (and (eq? (car e) 'system-error)
        (let ((errno (system-error-errno e)))
-         (or (= errno EPIPE) ; broken pipe
-             (= errno EIO) ; write to a closed socket
-             (= error ECONNRESET))))) ; shutdown by peer
+         (or (eqv? errno EPIPE) ; broken pipe
+             (eqv? errno EIO) ; write to a closed socket
+             (eqv? errno ECONNRESET))))) ; shutdown by peer
 
+;; WARNING: Don't use = here, must use eqv? since it's not always numbers
 (define (io-exception:out-of-memory? e)
   (and (eq? (car e) 'system-error)
        (let ((errno (system-error-errno e)))
-         (or (= errno ENOMEM) ; no memory
-             (= error ENOBUFS))))) ; no buffer could be allocated
+         (or (eqv? errno ENOMEM) ; no memory
+             (eqv? errno ENOBUFS))))) ; no buffer could be allocated
 
 (define (make-io-exception-handler type)
   (lambda e
@@ -490,7 +493,9 @@
      ((io-exception:peer-is-shutdown? e)
       ;; NOTE: peer has been shutdown for reasons, we just let them be checked by epoll
       ;;       in next round loop, and close the connection by Ragnarok.
-      (DEBUG "Peer is shutdown~%")
+      ;; WARN: Don't call (close-task) directly, since we'll lose the chance to remove
+      ;;       it from epoll.
+      (DEBUG "Peer is shutdown, just schedule and wait for closing it later ~%")
       (break-task))
      ((io-exception:out-of-memory? e)
       ;; NOTE: out of memory, and throw 503 to let client try again. We can't just schedule
