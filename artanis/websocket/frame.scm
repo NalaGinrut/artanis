@@ -47,7 +47,6 @@
             websocket-frame-head
             websocket-frame-final-fragment?
             websocket-frame-opcode
-            websocket-frame-type
             websocket-frame-payload
             websocket-frame-mask
 
@@ -66,9 +65,8 @@
    head
    parser
    payload-length
-   payload-offset
    mask
-   body))
+   payload))
 
 (define-record-type websocket-frame/client
   (fields
@@ -76,6 +74,17 @@
    type
    length
    payload))
+
+(define (%read-bytevector port n)
+  (let ((bv (get-bytevector-n port n)))
+    (cond
+     ((eof-object? bv)
+      (throw 'artanis-err 400 %read-bytevector "Websocket get EOF from peer!"))
+     ((= (bytevector-length bv) n)
+      bv)
+     (else
+      (throw 'artanis-err 400 %read-bytevector
+             "Can't read from the client successfully!")))))
 
 ;;  %x0 denotes a continuation frame
 (define (is-continue-frame? opcode) (= opcode #x0))
@@ -108,9 +117,9 @@
   #t)
 
 (define (send-websocket-closing-frame port)
-  ;; Make sure it's flushed before closing
-  (force-output port)
-  (close-task))
+  (let ((close-frame (new-websocket-frame/client 'close #t #vu8(0))))
+    (write-websocket-frame/client port close-frame)
+    (close-task)))
 
 (define *opcode-list*
   '(continuation         ; #x0
@@ -133,18 +142,12 @@
 (define-syntax-rule (generate-opcode type)
   (list-index *opcode-list* type))
 
-(::define (websocket-get-head body)
-  (:anno: (bv) -> int)
-  (bytevector-u16-ref body 0 'big))
+(::define (websocket-get-head port)
+  (:anno: (port) -> int)
+  (bytevector-u16-ref (%read-bytevector port 2) 0 'big))
 
-(define-syntax-rule (get-mask body payload-len)
-  (bv-copy/share body
-                 #:from (+ 1 ; head1
-                           1 ; head2
-                           (if (< payload-len 126)
-                               0
-                               (if (= payload-len 126) 2 8))) ; real-len
-                 #:size 4))
+(define-syntax-rule (get-mask port)
+ (%read-bytevector port 4))
 
 (define-syntax-rule (%get-opcode head)
   (ash (logand head #x0f00) -8))
@@ -168,19 +171,7 @@
 
 (::define (websocket-frame-opcode frame)
   (:anno: (websocket-frame) -> int)
-  (%get-opcode (logand #xff00 (websocket-frame-body frame))))
-
-(::define (websocket-frame-type frame)
-  (:anno: (websocket-frame) -> symbol)
-  (%get-type (%get-opcode (logand #xff (websocket-frame-head frame)))))
-
-(define-syntax-rule (%get-payload body payload-offset payload-length)
-  (bv-copy/share body #:from payload-offset #:size payload-length))
-(::define (websocket-frame-payload frame)
-  (:anno: (websocket-frame) -> bv)
-  (%get-payload (websocket-frame-body frame)
-                (websocket-frame-payload-offset frame)
-                (websocket-frame-payload-length frame)))
+  (%get-opcode (ash (logand #xff00 (websocket-frame-head frame)) -8)))
 
 (::define (websocket-frame-fin frame)
   (:anno: (websocket-frame) -> int)
@@ -195,16 +186,16 @@
 ;;       If users want to get certain field, Artanis provides APIs for fetching them. Users
 ;;       can decide how to parse the frames for efficiency.
 (define (read-websocket-frame parser port)
-  (define-syntax-rule (get-len payload-len pre control-frame?)
+  (define-syntax-rule (get-len payload-len port control-frame?)
     (cond
      ((< payload-len 126)
       ;; Yes, it's redundant, but I never trust the data from client
       payload-len)
      ((= payload-len 126)
-      (bytevector-u16-ref pre 2 'big))
+      (bytevector-u16-ref (%read-bytevector port 2) 0 'big))
      ((= payload-len 127)
       (if (not control-frame?)
-          (let ((real-len (bytevector-u64-ref pre 2 'big)))
+          (let ((real-len (bytevector-u64-ref (%read-bytevector port 8) 0 'big)))
             (if (<= real-len (get-conf '(websocket maxpayload)))
                 real-len
                 (throw 'artanis-err 1009 read-websocket-frame
@@ -218,9 +209,10 @@
     (+ 1 ; head1
        1 ; head2
        (if (< payload-len 126) 0 (if (= payload-len 126) 2 8)) ; real-len
-       (if mask 4 0))) ; mask-len
+       (if mask 4 0))) ; mask-lenre
   (define (decode-with-mask! payload len mask)
     (let lp ((i 0))
+      (DEBUG "payload: ~a~%len: ~a~%mask: ~a~%" payload len mask)
       (cond
        ((>= i len) payload)
        (else
@@ -232,41 +224,33 @@
     (if mask
         (decode-with-mask! payload real-len mask)
         payload))
-  (define* (read-and-verify-body port size #:optional (backward #f) (extend 0))
-    (let ((body (get-bytevector-n port size)))
+  (define* (read-and-verify-payload port size)
+    (let ((payload (get-bytevector-n port size)))
       (cond
-       ((not (eof-object? body))
-        ;; NOTE: We add back the header + possible length (2 + 2 bytes) for better
-        ;;       redirecting in proxy mode.
-        (if backward
-            (bv-backward body backward #:extend 10)
-            body))
+       ((eof-object? payload)
+        (throw 'artanis-err 400 read-and-verify-payload "Websocket get EOF from peer!"))
+       ((= (bytevector-length payload) size)
+        (DEBUG "Websocket get payload (~a bytes) sucessfully!" size)
+        payload)
        (else
-        ;; NOTE: If it's encoutered EOF, then it means the peer is shutdown.
-        ;;       We use (break-task) here for scheduling it out, rather than (close-task)
-        ;;       since (close-task) will remove the delimited-continuation, but Ragnarok
-        ;;       has to check it later and a crash happens.
-        (DEBUG "Websocket shutdown by peer~%")
-        (break-task)))))
+        (throw 'artanis-err 400 read-and-verify-payload
+               "Websocket payload in wrong size ~a bytes! Expect ~a bytes!"
+               (bytevector-length payload) size)))))
   ;; NOTE: We have to read the header first since we need to check the payload length for
   ;;       security isssue.
   ;; FIXME: Maybe we have to drop the whole-body-redirecting method, since the socket
   ;;        demands a size to get all body. If we use get-bytevector-all, then it's stuck.
   ;;        Even if we are in non-blocking, so sad.
-  (let* ((pre (read-and-verify-body port 10))
-         (head (pk "head"(websocket-get-head pre)))
+  (let* ((head (pk "head"(websocket-get-head port)))
          (control-frame? (is-control-frame? (%get-opcode head)))
          (payload-len (pk "payload-len"(logand #x7f head)))
-         (real-len (pk "real-len"(get-len payload-len pre control-frame?)))
+         (real-len (pk "real-len"(get-len payload-len port control-frame?)))
          (mask (pk "mask"(is-masked-frame? head)))
-         (payload-offset (pk "payload-offset"(detect-payload-offset mask payload-len)))
-         (body-size (pk "body-size" (- (+ payload-offset real-len) 10)))
-         (body (pk "read-and-verify-body"(read-and-verify-body port body-size 10)))
-         (mask-array (pk "mask-array"(and mask (get-mask body payload-len))))
-         (payload (pk "payload"(%get-payload body payload-offset real-len))))
+         (mask-array (pk "mask-array"(and mask (get-mask port))))
+         (payload (pk "read-and-verify-payload"(read-and-verify-payload port real-len)))
+         (cooked-payload (pk "cooked-payload"(cook-payload mask-array payload real-len))))
     (DEBUG "----------------------------~%")
-    (pk "cooked"(cook-payload mask payload real-len))
-    (make-websocket-frame head parser real-len payload-offset mask-array body)))
+    (make-websocket-frame head parser real-len mask-array cooked-payload)))
 
 (::define (generate-head1 final? type)
   (:anno: (boolean symbol) -> int)
@@ -303,7 +287,8 @@
          (head2 (generate-head2 len)))
     (put-u8 port head1)
     (put-u8 port head2)
-    (write-payload-size port head2) ; head2 is actually the size since mask must be 0
+    (when (> len 126)
+      (write-payload-size port head2)) ; head2 is actually the size since mask must be 0
     (put-bytevector port (websocket-frame/client-payload frame))
     (force-output port)))
 
@@ -333,15 +318,12 @@
     (lambda (port)
      (let* ((head (websocket-frame-head frame))
             (opcode (%get-opcode head))
-            (body (websocket-frame-body frame))
-            (offset (pk "---offset"(websocket-frame-payload-offset frame)))
+            (payload (websocket-frame-payload frame))
             (size (pk "---size"(websocket-frame-payload-length frame)))
-            (payload (%get-payload body offset size))
             (mask (websocket-frame-mask frame)))
        (format port "<websocket-frame:~%")
        (format port "~10thead: ~a~%" head)
        (format port "~10tfinal?: ~a~%" (is-final-frame? head))
        (format port "~10ttype: ~a~%" (list-ref *opcode-list* opcode))
-       (format port "~10tpayload-offset: ~a~%" offset)
        (format port "~10tpayload-size: ~a~%" size)
        (format port "~10tpayload: ~a>" payload)))))
