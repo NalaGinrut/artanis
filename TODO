@@ -41,3 +41,5 @@
 * Upgrade the existing artanis.conf to newer one, but ask users for "yes" or "no"
 
 * Support multi-subprotocol of Websocket
+
+* Implement real non-blocking for sending regular file on Linux
