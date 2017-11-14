@@ -43,17 +43,17 @@
 (define *rules-with-websocket* '())
 
 (define (url-need-websocket? url)
-  (DEBUG "url-need-websocket~%")
+  ;;(DEBUG "url-need-websocket?~%")
   (any (lambda (rule)
          (irregex-search (car rule) url)) *rules-with-websocket*))
 
 (define (this-rule-enabled-websocket! rule protocol)
-  (DEBUG "this-rule-enabled-websocket!~%")
+  ;;(DEBUG "this-rule-enabled-websocket!~%")
   (set! *rules-with-websocket*
         (cons (cons (string->irregex rule) protocol) *rules-with-websocket*)))
 
 (define (get-websocket-protocol rule)
-  (DEBUG "get-websocket-protocol~%")
+  ;;(DEBUG "get-websocket-protocol~%")
   (any (lambda (pp)
          (and (irregex-search (car pp) rule) (cdr pp)))
        *rules-with-websocket*))
