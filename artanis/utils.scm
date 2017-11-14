@@ -205,7 +205,7 @@
         (display str out)
         str)))
 
-;; WARN: besure that you've already checked the file exists before!!!
+;; WARN: besure that you've already checked the file existtance before!!!
 (define* (bv-cat file/port #:optional (out (current-output-port)))
   (define get-bytevector-all (@ (rnrs io ports) get-bytevector-all))
   (let ((bv (if (port? file/port)
