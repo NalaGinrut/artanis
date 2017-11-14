@@ -51,7 +51,6 @@
                websocket-frame-head
                websocket-frame-final-fragment?
                websocket-frame-opcode
-               websocket-frame-type
                websocket-frame-payload
 
                print-websocket-frame
