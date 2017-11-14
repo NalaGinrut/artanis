@@ -33,6 +33,7 @@
   #:use-module (web http)
   #:use-module (ice-9 match)
   #:use-module (ice-9 iconv)
+  #:use-module (ice-9 futures)
   #:use-module ((rnrs) #:select (bytevector-length bytevector?))
   #:export (params
             response-emit
@@ -86,7 +87,8 @@
             (handler rc)))
     (lambda* (body #:key (pre-headers (prepare-headers '()))
                    (status 200) 
-                   (mtime (generate-modify-time (current-time))))
+                   (mtime (generate-modify-time (current-time)))
+                   (request-status 'ok))
       (let* ((reformed-body (->bytevector body))
              (response
               (build-response #:code status
@@ -105,7 +107,7 @@
             (values response reformed-body)
             (values response reformed-body
                     ;; NOTE: return the status while handling the request.
-                    'ok))))))
+                    request-status))))))
 
 (define (work-with-request request body)
   ;;(DEBUG "work with request~%")
@@ -124,10 +126,12 @@
 ;; NOTE: last-modfied in #:headers will be ignored, it should be in #:mtime
 (define* (response-emit body #:key (status 200) 
                         (headers '())
-                        (mtime (current-time)))
+                        (mtime (current-time))
+                        (request-status 'ok))
   (DEBUG "Response emit headers: ~a~%" headers)
   (values body #:pre-headers (prepare-headers headers) #:status status
-          #:mtime (generate-modify-time mtime)))
+          #:mtime (generate-modify-time mtime)
+          #:request-status request-status))
 
 (define (throw-auth-needed)
   (response-emit
@@ -189,17 +193,23 @@
           (make-file-sender
            size
            (lambda ()
+             ;; NOTE: In Linux, non-blocking for regular file (not a socket) is basically
+             ;;       unsupported!!! So we have to find a way to make sure the regular file
+             ;;       reading is non-blocking, or the whole Ragnarok will be blocked.
              ;; TODO: support trunked length requesting for continously downloading
-             (sendfile out in size)
-             (force-output out)
-             (close in))))))
+             (future
+              (begin
+                (sendfile out in size)
+                (force-output out)
+                (close in))))))))
     (lambda (mtime status body mime)
       (cond
        ((= status 200)
         (response-emit body #:status status
                        #:headers `((content-type . ,(list mime))
                                    ,@headers)
-                       #:mtime mtime))
+                       #:mtime mtime
+                       #:request-status 'downloading))
        (else (response-emit body #:status status))))))
 
 ;; When you don't want to use cache, use static-page-emitter.
