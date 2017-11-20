@@ -261,4 +261,15 @@
                  (list errno))))))))
 
 (define-public (is-peer-shutdown? e)
-  (logtest (cdr e) (logior EPOLLIN EPOLLRDHUP)))
+  (if (logtest (cdr e) EPOLLRDHUP)
+      (if (logtest (cdr e) EPOLLIN)
+          (begin
+            (DEBUG "Peer ~a is half-closed, but we can still read, close it next time!"
+                   e)
+            #t)
+          (begin
+            (DEBUG "Peer ~a is completely closed!" e)
+            #f))
+      (begin
+        (DEBUG "Peer ~a is still alive!" e)
+        #f)))
