@@ -168,6 +168,7 @@
     (let* ((p (reverse (cons x l)))
            (pstr (->path p)))
       (mkdir pstr) ; generate path
+      (touch (format #f "~a/.gitkeep" pstr))
       (print-create-info pstr)
       (and=> (assoc-ref *files-handler* p)
              (lambda (h) (h pstr)))))
