@@ -126,8 +126,8 @@
                (set! es (make-pointer (+ (pointer-address es) offset)))
                (set! cursor (+ cursor offset))
                we)))
-          (else (throw 'artanis-err 500
-                       "inotify - make-event-iterator: invalid struct!"
+          (else (throw 'artanis-err 500 make-inotify-event-iterator
+                       "Invalid struct `~a'!"
                        (parse-c-struct es inotify-event-meta)))))))))
 
 (define inotify-guardian (make-guardian))
