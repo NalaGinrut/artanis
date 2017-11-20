@@ -82,7 +82,7 @@
   ;; NOTE: current task is the head of work-table
   (DEBUG "close task ~a~%" (client-sockport client))
   (let ((task (current-task)))
-    (DEBUG "task: ~a~%" (task-keepalive? task))
+    (DEBUG "task-keepalive?: ~a~%" (task-keepalive? task))
     (task-keepalive?-set! task #f)
     (remove-from-work-table! (current-work-table server) client peer-shutdown?)))
 
