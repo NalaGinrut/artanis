@@ -37,7 +37,8 @@
 ;; FIXME: Here we just add MVC modules to monitored list, feel free
 ;;        to add more if it's necessary.
 (define *monitored-files*
-  '("app/models" "app/controllers"))
+  `(,(format #f "~a/app/models" (current-toplevel))
+    ,(format #f "~a/app/controllers" (current-toplevel))))
 
 (define debug-file-watcher-loops "[ERR] You're not in debug mode!")
 
