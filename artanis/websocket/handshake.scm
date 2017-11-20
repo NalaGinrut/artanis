@@ -133,11 +133,6 @@
             proto)
     (register-websocket-protocol! server client proto port)
     (format (artanis-current-output) " done~%")
-    (format #t
-            "~a"
-            (call-with-output-string
-              (lambda (out)
-                (write-response res out))))
     (write-response res port)
     (force-output port)
     (DEBUG "Handshake done!~%")))

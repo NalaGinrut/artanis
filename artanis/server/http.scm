@@ -110,12 +110,12 @@
                        #f (try-to-read-request-body req))))
         (cond
          (need-websocket?
-          (DEBUG "websocket mode!~%")
           (let ((ip (client-ip client)))
+            (DEBUG "Client `~a' is in Websocket mode!~%" ip)
             (DEBUG "The websocket based client ~a is reading...~%" ip)
-            (DEBUG "Just return #f body according to Artanis convention~%"))
-          (DEBUG "[Websocket] Client `~a' is requesting Websocket service~%"
-                 (client-ip client))
+            (DEBUG "Just return #f body according to Artanis convention~%")
+            (DEBUG "[Websocket] Client `~a' is requesting Websocket service~%"
+                   (client-ip client)))
           ;; NOTE: Each time the body is the content from client. The content is parsed
           ;;       from the frame in websocket-read. And the payload is parsed by the
           ;;       registered parser. Users don't have to call parser explicitly.

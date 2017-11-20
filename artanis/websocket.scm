@@ -62,7 +62,6 @@
 ;;       explicitly.
 (::define (detect-if-connecting-websocket req server client)
   (:anno: (<request> ragnarok-server ragnarok-client) -> boolean)
-  (DEBUG "detect if connecting websocket~%")
   (let ((url (request-path req))
         (port (request-port req)))
     (cond
@@ -98,9 +97,9 @@
   (DEBUG "Enter websocket-read~%")
   (cond
    ((websocket-check-auth req)
-    (let* ((redirector (pk "111"(get-the-redirector-of-websocket server client)))
-           (reader (pk "222"(redirector-reader redirector)))) ; reader: bytevector -> record-type
-      (pk "333"(read-websocket-frame reader (client-sockport client)))))
+    (let* ((redirector (get-the-redirector-of-websocket server client))
+           (reader (redirector-reader redirector))) ; reader: bytevector -> record-type
+      (read-websocket-frame reader (client-sockport client))))
    (else
     (throw 'artanis-err 401 websocket-read
            "Authentication failed: ~a" (client-ip client)))))
