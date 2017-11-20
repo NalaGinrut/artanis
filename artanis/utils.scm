@@ -776,7 +776,8 @@
          (scandir (format #f "~a/app/~a/" toplevel component)
                   (lambda (f)
                     (not (or (string=? f ".")
-                             (string=? f ".."))))))))
+                             (string=? f "..")
+                             (string=? f ".gitkeep"))))))))
 
 (define (cache-this-route! url meta)
   (define (write-header port)
