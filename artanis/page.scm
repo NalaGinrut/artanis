@@ -201,6 +201,7 @@
               (begin
                 (sendfile out in size)
                 (force-output out)
+                (DEBUG "File `~a' sending over!" filename)
                 (close in))))))))
     (lambda (mtime status body mime)
       (cond
