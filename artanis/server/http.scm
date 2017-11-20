@@ -49,10 +49,10 @@
     ;; NOTE: We can't just close it here, if we do so, then we've lost the information
     ;;       to get fd from port which is the key to remove task from work-table. 
     (when (not peer-shutdown?)
-      (DEBUG "Peer is not shutdown~%")
+      (DEBUG "Peer is not shutdown, let me close it for an end~%")
       (catch #t
         (lambda ()
-          (shutdown conn 0)
+          (shutdown conn 0) ; Stop receiving data
           (DEBUG "Shutdown ~a successfully~%" conn)
           (force-output conn)
           (DEBUG "Force-output ~a successfully~%" conn))
