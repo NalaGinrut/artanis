@@ -264,12 +264,12 @@
   (if (logtest (cdr e) EPOLLRDHUP)
       (if (logtest (cdr e) EPOLLIN)
           (begin
-            (DEBUG "Peer ~a is half-closed, but we can still read, close it next time!"
+            (DEBUG "Peer ~a is half-closed, but we can still read, close it next time!~%"
                    e)
-            #t)
+            #f) ; yes peer is shutdown but we return false for reading more data
           (begin
-            (DEBUG "Peer ~a is completely closed!" e)
-            #f))
+            (DEBUG "Peer ~a is completely closed!~%" e)
+            #t)) ; yes peer shutdown is true
       (begin
-        (DEBUG "Peer ~a is still alive!" e)
-        #f)))
+        (DEBUG "Peer ~a is still alive!~%" e)
+        #f))) ; no peer is not shutdown
