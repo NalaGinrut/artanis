@@ -1109,6 +1109,10 @@ For example:
 (->sql select * from 'Persons (where #:city "Shenzhen"))
 (->sql select '(age name) from 'Persons (where "age < 30"))
 #+end_src
+The SQL update maybe quite different to SQL grammar, it should like blow.
+#+BEGIN_SRC scheme
+(->sql update 'table set (list (list phone_number "13666666666")) (where #:name "john"))
+#+END_SRC
 ** FPRM (experimental)
 FPRM stands for Functional Programming Relational Mapping. It's a new word I invented. But it's not new concept. FP here indicates *stateless*. 
 
