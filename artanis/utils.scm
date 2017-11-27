@@ -749,12 +749,14 @@
     (string-concatenate (list "data:" (->mime) (->crypto) (->charset) "," b64))))
 
 (define (verify-ENTRY entry)
+  (format #t "entry: ~a~%" entry)
   (cond
-   ((not (file-exists? entry)) #f)
+   ((not (file-exists? entry))
+    (format (artanis-current-output) "ENTRY file is missing!~%")
+    #f)
    (else
-    (let* ((line (call-with-input-file entry read-line))
-           (m (string-match "Artanis top-level: (.*)" line)))
-      (and m (string=? (match:substring m 1) (dirname entry)))))))
+    (let ((line (call-with-input-file entry read-line)))
+      (string=? line ";; This an Artanis ENTRY file, don't remove it!")))))
 
 (define-syntax draw-expander
   (syntax-rules (rule options method)

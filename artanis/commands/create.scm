@@ -189,7 +189,7 @@
 
 (define (create-entry name)
   (let ((fp (open-file "ENTRY" "w")))
-    (format fp ";; Artanis top-level: ~a~%" (getcwd))
+    (format fp ";; This an Artanis ENTRY file, don't remove it!~%")
     (display *entry-string* fp)
     (close fp)))
 
