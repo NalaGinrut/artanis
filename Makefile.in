@@ -60,11 +60,11 @@ else
 V :=
 endif
 
-mod-sfile := $(sort $(shell find $(MOD) -name *.scm))
+mod-sfile := $(sort $(shell find $(MOD) -name '*.scm'))
 mod-ofile := $(mod-sfile:.scm=.go)
 mod-ofile := $(subst $(MOD)/,$(MOD_OBJ)/,$(mod-ofile))
 
-test-cases := $(shell find $(TESTS) -name *.test)
+test-cases := $(shell find $(TESTS) -name '*.test')
 
 ALL_TARGETS :=	version \
 		modules \
