@@ -1,6 +1,6 @@
 ;;; (json syntax) --- Guile JSON implementation.
 
-;; Copyright (C) 2013 Aleix Conchillo Flaque <aconchillo@gmail.com>
+;; Copyright (C) 2013-2017 Aleix Conchillo Flaque <aconchillo@gmail.com>
 ;;
 ;; This file is part of guile-json.
 ;;
@@ -26,6 +26,7 @@
 ;;; Code:
 
 (define-module (artanis third-party json upstream syntax)
+  #:use-module (ice-9 deprecated)
   #:use-module (ice-9 match)
   #:export (json))
 
@@ -41,17 +42,35 @@
 (define-syntax json
   (syntax-rules (unquote unquote-splicing array object)
     ((_ (unquote val))
-     val)
+     (begin
+       (issue-deprecation-warning
+	"`json' macro is deprecated. Use scheme data types instead.")
+       val))
     ((_ ((unquote-splicing val) . rest))
-     (append val (json rest)))
+     (begin
+       (issue-deprecation-warning
+	"`json' macro is deprecated. Use scheme data types instead.")
+       (append val (json rest))))
     ((_ (array val . rest))
-     (cons (json val) (json rest)))
+     (begin
+       (issue-deprecation-warning
+	"`json' macro is deprecated. Use scheme data types instead.")
+       (cons (json val) (json rest))))
     ((_ (object key+val ...))
-     (list->hash-table
-      (json (array key+val ...))))
+     (begin
+       (issue-deprecation-warning
+	"`json' macro is deprecated. Use scheme data types instead.")
+       (list->hash-table
+	(json (array key+val ...)))))
     ((_ (val . rest))
-     (cons (json val) (json rest)))
+     (begin
+       (issue-deprecation-warning
+	"`json' macro is deprecated. Use scheme data types instead.")
+       (cons (json val) (json rest))))
     ((_ val)
-     (quote val))))
+     (begin
+       (issue-deprecation-warning
+	"`json' macro is deprecated. Use scheme data types instead.")
+       (quote val)))))
 
 ;;; (json syntax) ends here
