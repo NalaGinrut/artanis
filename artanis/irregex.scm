@@ -1,8 +1,8 @@
 ;;;; irregex.scm -- IrRegular Expressions
-;; v0.9.3
-;; Copyright (c) 2005-2012 Alex Shinn.  All rights reserved.
-;; The main site here: http://code.google.com/p/irregex/
-;; BSD-style license: http://opensource.org/licenses/BSD-3-Clause
+;;
+;; Copyright (c) 2005-2016 Alex Shinn.  All rights reserved.
+;; BSD-style license: http://synthcode.com/license.txt
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; At this moment there was a loud ring at the bell, and I could
 ;; hear Mrs. Hudson, our landlady, raising her voice in a wail of
@@ -13,6 +13,66 @@
 ;;
 ;; "No, it's not quite so bad as that.  It is the unofficial
 ;; force, -- the Baker Street irregulars."
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Notes
+;;
+;; This code should not require any porting - it should work out of
+;; the box in any R[45]RS Scheme implementation.  Slight modifications
+;; are needed for R6RS (a separate R6RS-compatible version is included
+;; in the distribution as irregex-r6rs.scm).
+;;
+;; The goal of portability makes this code a little clumsy and
+;; inefficient.  Future versions will include both cleanup and
+;; performance tuning, but you can only go so far while staying
+;; portable.  AND-LET*, SRFI-9 records and custom macros would've been
+;; nice.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; History
+;; 0.9.6: 2016/12/05 - fixed exponential memory use of + in compilation
+;;                     of backtracking matcher.
+;; 0.9.5: 2016/09/10 - fixed a bug in irregex-fold handling of bow
+;; 0.9.4: 2015/12/14 - performance improvement for {n,m} matches
+;; 0.9.3: 2014/07/01 - R7RS library
+;; 0.9.2: 2012/11/29 - fixed a bug in -fold on conditional bos patterns
+;; 0.9.1: 2012/11/27 - various accumulated bugfixes
+;; 0.9.0: 2012/06/03 - Using tags for match extraction from Peter Bex.
+;; 0.8.3: 2011/12/18 - various accumulated bugfixes
+;; 0.8.2: 2010/08/28 - (...)? submatch extraction fix and alternate
+;;                     named submatches from Peter Bex
+;;                     Added irregex-split, irregex-extract,
+;;                     irregex-match-names and irregex-match-valid-index?
+;;                     to Chicken and Guile module export lists and made
+;;                     the latter accept named submatches.  The procedures
+;;                     irregex-match-{start,end}-{index,chunk} now also
+;;                     accept named submatches, with the index argument
+;;                     made optional.  Improved argument type checks.
+;;                     Disallow negative submatch index.
+;;                     Improve performance of backtracking matcher.
+;;                     Refactor charset handling into a consistent API
+;; 0.8.1: 2010/03/09 - backtracking irregex-match fix and other small fixes
+;; 0.8.0: 2010/01/20 - optimizing DFA compilation, adding SRE escapes
+;;                     inside PCREs, adding utility SREs
+;; 0.7.5: 2009/08/31 - adding irregex-extract and irregex-split
+;;                     *-fold copies match data (use *-fold/fast for speed)
+;;                     irregex-opt now returns an SRE
+;; 0.7.4: 2009/05/14 - empty alternates (or) and empty csets always fail,
+;;                     bugfix in default finalizer for irregex-fold/chunked
+;; 0.7.3: 2009/04/14 - adding irregex-fold/chunked, minor doc fixes
+;; 0.7.2: 2009/02/11 - some bugfixes, much improved documentation
+;; 0.7.1: 2008/10/30 - several bugfixes (thanks to Derick Eddington)
+;; 0.7.0: 2008/10/20 - support abstract chunked strings
+;; 0.6.2: 2008/07/26 - minor bugfixes, allow global disabling of utf8 mode,
+;;                     friendlier error messages in parsing, \Q..\E support
+;; 0.6.1: 2008/07/21 - added utf8 mode, more utils, bugfixes
+;;   0.6: 2008/05/01 - most of PCRE supported
+;;   0.5: 2008/04/24 - fully portable R4RS, many PCRE features implemented
+;;   0.4: 2008/04/17 - rewriting NFA to use efficient closure compilation,
+;;                     normal strings only, but all of the spencer tests pass
+;;   0.3: 2008/03/10 - adding DFA converter (normal strings only)
+;;   0.2: 2005/09/27 - adding irregex-opt (like elisp's regexp-opt) utility
+;;   0.1: 2005/08/18 - simple NFA interpreter over abstract chunked strings
 
 (define-module (artanis irregex)
   #:export (irregex string->irregex sre->irregex string->sre
@@ -3042,16 +3102,7 @@
               ((sre-empty? (sre-sequence (cdr sre)))
                (error "invalid sre: empty *" sre))
               (else
-               (letrec
-                   ((body
-                     (lp (sre-sequence (cdr sre))
-                         n
-                         flags
-                         (lambda (cnk init src str i end matches fail)
-                           (body cnk init src str i end matches
-                                 (lambda ()
-                                   (next cnk init src str i end matches fail)
-                                   ))))))
+               (let ((body (rec (list '+ (sre-sequence (cdr sre))))))
                  (lambda (cnk init src str i end matches fail)
                    (body cnk init src str i end matches
                          (lambda ()
@@ -3076,15 +3127,26 @@
                          (lambda ()
                            (body cnk init src str i end matches fail))))))))
             ((+)
-             (lp (sre-sequence (cdr sre))
-                 n
-                 flags
-                 (rec (list '* (sre-sequence (cdr sre))))))
+             (cond
+              ((sre-empty? (sre-sequence (cdr sre)))
+               (error "invalid sre: empty +" sre))
+              (else
+               (letrec
+                   ((body
+                     (lp (sre-sequence (cdr sre))
+                         n
+                         flags
+                         (lambda (cnk init src str i end matches fail)
+                           (body cnk init src str i end matches
+                                 (lambda ()
+                                   (next cnk init src str i end matches fail)
+                                   ))))))
+                 body))))
             ((=)
              (rec `(** ,(cadr sre) ,(cadr sre) ,@(cddr sre))))
             ((>=)
              (rec `(** ,(cadr sre) #f ,@(cddr sre))))
-            ((** **?)
+            ((**)
              (cond
               ((or (and (number? (cadr sre))
                         (number? (caddr sre))
@@ -3092,27 +3154,67 @@
                    (and (not (cadr sre)) (caddr sre)))
                (lambda (cnk init src str i end matches fail) (fail)))
               (else
-               (let* ((from (cadr sre))
-                      (to (caddr sre))
-                      (? (if (eq? '** (car sre)) '? '??))
-                      (* (if (eq? '** (car sre)) '* '*?))
-                      (sre (sre-sequence (cdddr sre)))
-                      (x-sre (sre-strip-submatches sre))
-                      (next (if to
-                                (if (= from to)
-                                    next
-                                    (fold (lambda (x next)
-                                            (lp `(,? ,sre) n flags next))
-                                          next
-                                          (zero-to (- to from))))
-                                (rec `(,* ,sre)))))
-                 (if (zero? from)
+               (letrec
+                   ((from (cadr sre))
+                    (to (caddr sre))
+                    (body-contents (sre-sequence (cdddr sre)))
+                    (body
+                     (lambda (count)
+                       (lp body-contents
+                           n
+                           flags
+                           (lambda (cnk init src str i end matches fail)
+                             (if (and to (= count to))
+                                 (next cnk init src str i end matches fail)
+                                 ((body (+ 1 count))
+                                  cnk init src str i end matches
+                                  (lambda ()
+                                    (if (>= count from)
+                                        (next cnk init src str i end matches fail)
+                                        (fail))))))))))
+                 (if (and (zero? from) to (zero? to))
                      next
-                     (lp `(seq ,@(map (lambda (x) x-sre) (zero-to (- from 1)))
-                               ,sre)
-                         n
-                         flags
-                         next))))))
+                     (lambda (cnk init src str i end matches fail)
+                       ((body 1) cnk init src str i end matches
+                        (lambda ()
+                          (if (zero? from)
+                              (next cnk init src str i end matches fail)
+                              (fail))))))))))
+            ((**?)
+             (cond
+              ((or (and (number? (cadr sre))
+                        (number? (caddr sre))
+                        (> (cadr sre) (caddr sre)))
+                   (and (not (cadr sre)) (caddr sre)))
+               (lambda (cnk init src str i end matches fail) (fail)))
+              (else
+               (letrec
+                   ((from (cadr sre))
+                    (to (caddr sre))
+                    (body-contents (sre-sequence (cdddr sre)))
+                    (body
+                     (lambda (count)
+                       (lp body-contents
+                           n
+                           flags
+                           (lambda (cnk init src str i end matches fail)
+                             (if (< count from)
+                                 ((body (+ 1 count)) cnk init
+                                  src str i end matches fail)
+                                 (next cnk init src str i end matches
+                                       (lambda ()
+                                         (if (and to (= count to))
+                                             (fail)
+                                             ((body (+ 1 count)) cnk init
+                                              src str i end matches fail))))))))))
+                 (if (and (zero? from) to (zero? to))
+                     next
+                     (lambda (cnk init src str i end matches fail)
+                       (if (zero? from)
+                           (next cnk init src str i end matches
+                                 (lambda ()
+                                   ((body 1) cnk init src str i end matches fail)))
+                           ((body 1) cnk init src str i end matches fail))))))))
             ((word)
              (rec `(seq bow ,@(cdr sre) eow)))
             ((word+)
@@ -3319,11 +3421,10 @@
                (fail))))
         ((bow)
          (lambda (cnk init src str i end matches fail)
-           (if (and (or (if (> i ((chunker-get-start cnk) src))
-                            (not (char-alphanumeric? (string-ref str (- i 1))))
-                            (let ((ch (chunker-prev-char cnk src end)))
-                              (and ch (not (char-alphanumeric? ch)))))
-                        (and (eq? src (car init)) (eqv? i (cdr init))))
+           (if (and (if (> i ((chunker-get-start cnk) src))
+                        (not (char-alphanumeric? (string-ref str (- i 1))))
+                        (let ((ch (chunker-prev-char cnk init src)))
+                          (or (not ch) (not (char-alphanumeric? ch)))))
                     (if (< i end)
                         (char-alphanumeric? (string-ref str i))
                         (let ((next ((chunker-get-next cnk) src)))
