@@ -318,6 +318,23 @@ debug.monitor = <PATHs>
 #+END_SRC
 + The paths need to be monitored in debug-mode. This will take advantage of `inotify' in GNU/Linux kernel.
 + /*Note:*/ We may support GNU/Hurd as well, with its file monitor mechanism, in the future.
+** APIs
+When you need change the default configure
+#+BEGIN_SRC scheme
+(conf-set! key value)
+;;e.g
+(conf-set! passd "123456")
+#+END_SRC
+Get the current configre
+#+BEGIN_SRC scheme
+(get-conf key)
+;;e.g
+(get-conf '(server charset))
+#+END_SRC
+Get current host
+#+BEGIN_SRC scheme
+(current-myhost)
+#+END_SRC
 * Hello World
 ** Use Guile REPL and verify GNU Artanis installation
 If you are already familiar with Guile, you may skip this section.
@@ -756,6 +773,42 @@ For POST method:
 (get "/aaa" (lambda (rc) (redirect-to rc "/bbb")))
 (get "/bbb" (lambda () "ok bbb"))
 #+end_src
+* Route context
+Route context is a struct which encapsulated server necessary infomation from http package.
+You can get this infomation by Artanis provide API in needed.
+** APIs
+ Get path from uri
+#+BEGIN_SRC scheme
+(rc-path rc)
+;;e.g
+(get "/aaa/bbb" (lambda(rc) (rc-path rc)))
+#+END_SRC
+You can get "aaa/bbb". 
+
+Get HTTP request from rc.
+#+BEGIN_SRC scheme
+(rc-req rc)
+#+END_SRC
+Get request body
+#+BEGIN_SRC scheme
+(rc-body rc)
+#+END_SRC
+Get request method
+#+BEGIN_SRC  scheme
+(rc-method rc)
+#+END_SRC
+Get DB connection
+#+BEGIN_SRC scheme
+(rc-conn rc)
+#+END_SRC
+Get query table
+#+BEGIN_SRC scheme
+(rc-qt rc)
+#+END_SRC
+Get client handler
+#+BEGIN_SRC scheme
+(rc-handler rc)
+#+END_SRC
 * MVC
 MVC is Model-Views-Controller, the most classic architectural pattern for implementing
 user interfaces.
@@ -1056,6 +1109,10 @@ For example:
 (->sql select * from 'Persons (where #:city "Shenzhen"))
 (->sql select '(age name) from 'Persons (where "age < 30"))
 #+end_src
+The SQL update maybe quite different to SQL grammar, it should like blow.
+#+BEGIN_SRC scheme
+(->sql update 'table set (list (list phone_number "13666666666")) (where #:name "john"))
+#+END_SRC
 ** FPRM (experimental)
 FPRM stands for Functional Programming Relational Mapping. It's a new word I invented. But it's not new concept. FP here indicates *stateless*. 
 
@@ -1607,6 +1664,8 @@ from rnrs.
 #+begin_src scheme
 (get-string-all-with-detected-charset filename)
 #+end_src
+** Time operation tool
+TODO
 * Debug mode
 GNU Artanis provides debug-mode for more convenient debug. You may enable it easy.
 
