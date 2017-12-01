@@ -252,6 +252,28 @@ server.multi = <boolean>
 + The default value is true.
 + /*Note:*/ Added since Artanis-0.2, GNU/Linux-3.9+ is required.
 
+** Websocket config
+#+BEGIN_SRC conf
+websocket.maxpayload = <integer>
+#+END_SRC
++ The max payload size in bytes.
+
+#+BEGIN_SRC conf
+websocket.minpayload = <integer>
+#+END_SRC
++ The min payload size in bytes.
+
+#+BEGIN_SRC conf
+websocket.minpayload = <integer>
+#+END_SRC
++ The min payload size in bytes.
+
+#+BEGIN_SRC conf
+websocket.fragment = <integer>
+#+END_SRC
++ If /fragment/ is larger than zero, then it's the size of websocket frame fragment.
++ If /fragment/ is zero, then the websocket frame will not be fragmented.
+
 ** Host config
 #+BEGIN_SRC conf
 host.name = enable | disable | <boolean>
