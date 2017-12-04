@@ -261,7 +261,7 @@
                ((_ rest rest* :::)
                 (define-public #,(datum->syntax #'name (symbol-append '$ (syntax->datum #'name)))
                   (let* ((raw (parse-raw-fields (list `rest `rest* :::)))
-                         (mt (map-table-from-DB (get-conn-from-pool 0)))
+                         (mt (map-table-from-DB (current-connection)))
                          (meta (create-model-meta (list `rest `rest* :::))))
                     (lambda (cmd . args)
                       (apply mt cmd 'name (fix-fields cmd args meta))))))))
