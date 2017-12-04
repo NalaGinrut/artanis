@@ -37,7 +37,7 @@
   #:use-module (artanis third-party json)
   #:use-module (artanis third-party csv)
   #:use-module (artanis server scheduler)
-  #:use-module (ice-9 regex) ; FIXME: should use irregex!
+  #:use-module (artanis irregex)
   #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
@@ -87,19 +87,18 @@
 (define (page-delete rule . opts-and-handler) (define-handler 'DELETE rule opts-and-handler))
 
 ;; NOTE: we banned "\" in the path to avoid SQL-injection!!!
-(define *rule-regexp* (make-regexp ":[^\\/]+"))
-(define *path-keys-regexp* (make-regexp ":([^\\/\\.]+)"))
+(define *rule-regexp* (string->irregex ":[^\\/]+"))
+(define *path-keys-regexp* (string->irregex ":([^\\/\\.]+)"))
 
 (define (compile-rule rule)
   (string-append "^"
-                 (regexp-substitute/global
-                  #f *rule-regexp* rule 'pre "([^\\/\\?]+)" 'post)
+                 (irregex-replace/all *rule-regexp* rule "([^\\/\\?]+)")
                  "$"))
 
 ;; parse rule-string and generate the regexp to parse keys from path-string
 (define (rule->keys rule)
-  (map (lambda (m) (match:substring m 1))
-       (list-matches *path-keys-regexp* rule)))
+  (map (lambda (m) (irregex-match-substring m 1))
+       (artanis-list-matches *path-keys-regexp* rule)))
 
 (define-syntax-rule (get-oht rc)
   (handler-rc-oht (get-handler-rc (rc-rhk rc))))
