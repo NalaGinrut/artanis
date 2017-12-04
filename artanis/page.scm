@@ -196,7 +196,8 @@
              ;; NOTE: In Linux, non-blocking for regular file (not a socket) is basically
              ;;       unsupported!!! So we have to find a way to make sure the regular file
              ;;       reading is non-blocking, or the whole Ragnarok will be blocked.
-             ;; TODO: support trunked length requesting for continously downloading
+             ;; TODO: use splice to make a real non-blocking version.
+             ;; TODO: support trunked length requesting for continously downloading.
              (future
               (begin
                 (sendfile out in size)
