@@ -94,7 +94,7 @@
   (string-append "^"
                  (regexp-substitute/global
                   #f *rule-regexp* rule 'pre "([^\\/\\?]+)" 'post)
-                 "[^ $]?$"))
+                 "$"))
 
 ;; parse rule-string and generate the regexp to parse keys from path-string
 (define (rule->keys rule)
