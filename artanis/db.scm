@@ -39,6 +39,7 @@
             DB-get-n-rows
             db-conn-success?
             get-conn-from-pool
+            current-connection
             init-DB
             connect-db
             make-<connection>

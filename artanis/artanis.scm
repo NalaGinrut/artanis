@@ -89,6 +89,7 @@
                connect-db
                make-<connection>
                <connection>?
+               current-connection
 
                ;; fprm module
                map-table-from-DB
