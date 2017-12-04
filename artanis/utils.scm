@@ -87,7 +87,7 @@
             make-file-sender file-sender? file-sender-size file-sender-thunk
             get-string-all-with-detected-charset make-unstop-exception-handler
             artanis-log exception-from-client exception-from-server render-sys-page
-            bv-copy/share bv-backward)
+            bv-copy/share bv-backward artanis-list-matches)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -1376,3 +1376,10 @@
          (new-ptr (make-pointer (- (pointer-address ptr) offset)))
          (len (bytevector-length bv)))
     (pointer->bytevector new-ptr (+ len extend) 0 type)))
+
+(define (artanis-list-matches irx str)
+  (let lp ((start 0) (ret '()))
+    (let ((m (irregex-search irx str start)))
+      (if m
+          (lp (irregex-match-end-index m) (cons m ret))
+          ret))))
