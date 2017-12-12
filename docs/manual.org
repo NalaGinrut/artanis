@@ -10,10 +10,10 @@
 #+TEXINFO_PRINTED_TITLE: GNU Artanis
 
 #+OPTIONS: H:3 toc:t \n:nil ::t |:t ^:nil -:t f:t *:t tex:t d:(HIDE) tags:not-in-toc
-#+OPTIONS: tex:t          Do the right thing automatically (MathJax)
+#+OPTIONS: latex:t          Do the right thing automatically (MathJax)
 #+OPTIONS: tex:verbatim   Verbatim export, for jsMath or so
 #+OPTIONS: broken-links:mark somewhere
-#+OPTIONS: 
+
 * Introduction
 
 #+begin_src nil
@@ -126,13 +126,13 @@ A configuration file is required when Artanis is run for the first time.
 db.enable = <boolean>
 #+END_SRC
 + Whether to use database, if disabled, the database won't be initialized in the beginning, which saves memory and boot time.
-+ Some users may want to use GNU Artanis without configuring any databases, so please set it to false to avoid error.
+ + Some users may want to use GNU Artanis without configuring any databases, so please set it to *false* to avoid error.
  
 #+BEGIN_SRC conf
 db.dbd = mysql | postgresql | sqlite3
 #+END_SRC
 + What database server should be used, depends on the database installed on your machine.
-+ NOTE: If you use MariaDB then you should set it to mysql as well.
+ + NOTE: If you use MariaDB then you should set it to mysql as well.
 
 #+BEGIN_SRC conf
 db.proto = tcp | socketfile
@@ -169,7 +169,7 @@ db.name = <string>
 db.engine = <string>
 #+END_SRC
 + The engine of the database server.
-+ */NOTE:/* for sqlite3, you have to set it to nothing, say src_conf[:exports code]{db.engine = }. If you remove this item at all, it'll be */InnoDB/* in default!
+ + */NOTE:/* for sqlite3, you have to set it to nothing, say src_conf[:exports code]{db.engine = }. If you remove this item at all, it'll be */InnoDB/* in default!
 
 ** Server config
 #+BEGIN_SRC conf
@@ -186,7 +186,7 @@ server.nginx = enable | disable
 server.charset = <string>
 #+END_SRC
 + Charset in server side. /*utf-8*/ in default.
-+ /*Note:*/ Don't change it unless you know what you're doing!
+ + /*Note:*/ Don't change it unless you know what you're doing!
 
 #+BEGIN_SRC conf
 server.syspage.path = /etc/artanis/pages
@@ -197,35 +197,35 @@ server.syspage.path = /etc/artanis/pages
 server.backlog = <integer>
 #+END_SRC
 + Backlog of the socket.
-+ /*Note:*/ Don't change it unless you really know what you're doing!
+ + /*Note:*/ Don't change it unless you really know what you're doing!
 
 #+BEGIN_SRC conf
 server.wqlen = <integer>
 #+END_SRC
 + The length of the work queue in Artanis server.
-+ /*Note:*/ Added since Artanis-0.2.
+ + /*Note:*/ Added since Artanis-0.2.
 
 #+BEGIN_SRC conf
 server.trigger = edge | level
 #+END_SRC
 + The trigger mode of epoll.
-+ /*Note:*/ Added since Artanis-0.2.
+ + /*Note:*/ Added since Artanis-0.2.
 
 #+BEGIN_SRC conf
 server.engine = ragnarok | guile | <customized engine>
 #+END_SRC
 + The server core which is used for holding high concurrent connections. Artanis has a strong server core named [[Ragnarok server core][Ragnarok,]]
   which is based on [[https://en.wikipedia.org/wiki/Delimited_continuation][delimited continuations]] to provide asynchronous non-blocking high concurrent serving.
-+ You may choose guile inner server which is weak, but sometimes you may under an operating system lacking of key features
-  to run Raganrok, for example, maybe there's no epoll.
-+ /*Note:*/ Added since Artanis-0.2.
+ + You may choose guile inner server which is weak, but sometimes you may under an operating system lacking of key features
+   to run Raganrok, for example, maybe there's no epoll in your Operating System, for example, GNU/Hurd.
+ + /*Note:*/ Added since Artanis-0.2.
 
 #+BEGIN_SRC conf
 server.polltimeout = <integer>
 #+END_SRC
 + The the timeout for each event polling round, in miliseconds.
-+ The default value is 500 miliseconds.
-+ /*Note:*/ Added since Artanis-0.2.
+ + The default value is 500 miliseconds.
+ + /*Note:*/ Added since Artanis-0.2.
 
 #+BEGIN_SRC conf
 server.bufsize = <integer>
@@ -236,8 +236,8 @@ server.bufsize = <integer>
   or uploading service, it's better to set it larger. But the large buffer size will increase the latency of
   unserved requests. Please read [[Ragnarok server core][Ragnarok]] chapter to learn the design principle, which will be helpful for you
   to decide how to tweak.
-+ The default value is 12288, say, 12KB.
-+ /*Note:*/ Added since Artanis-0.2.
+ + The default value is 12288, say, 12KB.
+ + /*Note:*/ Added since Artanis-0.2.
 
 
 #+BEGIN_SRC conf
@@ -249,8 +249,8 @@ server.multi = <boolean>
   This feature let us start multiple Artanis instances listenning on the same socket port. When requests come, the
   Linux kernel will do necessary lock and allocation work for us to dispatch requests to these Artanis instances.
   This makes GNU Artanis provide performance and stateless perfectly.
-+ The default value is true.
-+ /*Note:*/ Added since Artanis-0.2, GNU/Linux-3.9+ is required.
+ + The default value is true.
+ + /*Note:*/ Added since Artanis-0.2, GNU/Linux-3.9+ is required.
 
 ** Websocket config
 #+BEGIN_SRC conf
@@ -294,7 +294,7 @@ host.port = <integer>
 host.family = ipv4 | ipv6
 #+END_SRC
 + Specify the protocol family
-+ Added since Artanis-0.2.
+ + Added since Artanis-0.2.
 ** Session config
 
 #+BEGIN_SRC conf
@@ -306,16 +306,16 @@ session.path = <PATH>
 session.engine = simple | db | file | <third-party-engine>
 #+END_SRC
 + Specify session engine.
-+ *simple* uses hash table for memcache.
-+ *db* uses RDBMS for storing sessions.
-+ *file* stores session information into text files.
+ + *simple* uses hash table for memcache.
+ + *db* uses RDBMS for storing sessions.
+ + *file* stores session information into text files.
 
 ** Upload config
 #+BEGIN_SRC conf
 upload.types = <item-list>
 #+END_SRC
 + Specify allowed upload file type, say, src_conf[:exports code]{upload.types = jpg,png,gif}.
-+ /*Note:*/ Added since Artanis-0.2.
+ + /*Note:*/ Added since Artanis-0.2.
 
 #+BEGIN_SRC conf
 upload.path = <PATH>
@@ -326,34 +326,36 @@ upload.path = <PATH>
 upload.size = <interger>
 #+END_SRC
 + The size limitation of uploaded file in bytes.
-+ /*Note:*/ Added since Artanis-0.2
+ + /*Note:*/ Added since Artanis-0.2
 
 ** Cache config 
 #+BEGIN_SRC conf
 cache.maxage = <integer>
 #+END_SRC
 + The maximum age of cached page in seconds.
-+ This is the global maxage of any cache. If you want to specify maxage for certain page, please read [[Cache][Cache]].
+ + This is the global maxage of any cache. If you want to specify maxage for certain page, please read [[Cache][Cache]].
 ** Debug config
 #+BEGIN_SRC conf
 debug.monitor = <PATHs>
 #+END_SRC
 + The paths need to be monitored in debug-mode. This will take advantage of `inotify' in GNU/Linux kernel.
-+ /*Note:*/ We may support GNU/Hurd as well, with its file monitor mechanism, in the future.
-** APIs
-When you need change the default configure
+ + /*Note:*/ We may support GNU/Hurd as well, with its file monitor mechanism, in the future.
+** Config APIs
++ When you need change the default configure
 #+BEGIN_SRC scheme
 (conf-set! key value)
 ;;e.g
-(conf-set! passd "123456")
+(conf-set! 'debug-mode #t)
 #+END_SRC
-Get the current configre
+
++ Get the current configre
 #+BEGIN_SRC scheme
 (get-conf key)
 ;;e.g
 (get-conf '(server charset))
 #+END_SRC
-Get current host
+
++ Get current hostname in GNU Artanis environment.
 #+BEGIN_SRC scheme
 (current-myhost)
 #+END_SRC
@@ -408,7 +410,7 @@ Type these code in Guile REPL:
 
 Now you can visit http://localhost:8080/hello with your browser, and (hopefully) see the result.
 
-/If you encounter "[EXCEPTION] /favicon.ico is abnormal request", please just ignore that warning./
+/If you encounter "[EXCEPTION] /favicon.ico is abnormal request" , please just ignore that warning./
 
 Let me explain the code:
 
@@ -796,41 +798,69 @@ For POST method:
 (get "/bbb" (lambda () "ok bbb"))
 #+end_src
 * Route context
-Route context is a struct which encapsulated server necessary infomation from http package.
-You can get this infomation by Artanis provide API in needed.
-** APIs
- Get path from uri
-#+BEGIN_SRC scheme
-(rc-path rc)
-;;e.g
-(get "/aaa/bbb" (lambda(rc) (rc-path rc)))
-#+END_SRC
-You can get "aaa/bbb". 
+Route context is a struct which encapsulated server necessary information from the current request context.
+We named it /route/ because it's related to the route of [[URL remapping][URL remapping]]. 
+Usually it's passed to the page handler as the unique argument, it's expected to provide sufficient
+information in the current request status.
 
-Get HTTP request from rc.
 #+BEGIN_SRC scheme
-(rc-req rc)
+(HTTP-METHOD URL-rule (lambda (<route-context>) ...))
+;; e.g:
+(get "/hello" (lambda (rc) "world")) ; rc is <route-context> type
 #+END_SRC
-Get request body
+
+** Route context APIs
+
 #+BEGIN_SRC scheme
-(rc-body rc)
+(rc-path <route-context>)
 #+END_SRC
-Get request method
++ Get the requested path, that is to say, the actual URI visited by the client.
+
+#+BEGIN_SRC scheme
+;; e.g
+(get "/hello/world" (lambda (rc) (rc-path rc)))
+;; visit localhost:3000/hello/world or from any port you specified
+;; the result is "/hello/world". 
+(get "/hello/:who" (lambda (rc) (rc-path rc)))
+;; visit localhost:3000/hello/world or from any port you specified
+;; the result is "/hello/world". 
+#+END_SRC
+
+#+BEGIN_SRC scheme
+(rc-req <route-context>)
+#+END_SRC
++ Get the current HTTP request as a record-type.
+
+#+BEGIN_SRC scheme
+(rc-body <route-context>)
+#+END_SRC
++ Get the current request body:
+ + For a regular HTTP request, then it should be a bytevector;
+ + For a Websocket request, it should be [[Websocket frame][<websocket-frame>]] as a record-type.
+
 #+BEGIN_SRC  scheme
-(rc-method rc)
+(rc-method <route-context>)
 #+END_SRC
-Get DB connection
++ Get the current requested HTTP method.
+
 #+BEGIN_SRC scheme
-(rc-conn rc)
+(rc-conn <route-context>)
 #+END_SRC
-Get query table
++ Get the current DB connection if you've requested one, please checkout [[DB shortcut][DB shortcut]].
+
 #+BEGIN_SRC scheme
-(rc-qt rc)
+(rc-qt <route-context>)
 #+END_SRC
-Get client handler
++ Get query table, which is a key-value list parsed from [[Query String][query string]].
+
 #+BEGIN_SRC scheme
-(rc-handler rc)
+(rc-handler <route-context>)
 #+END_SRC
++ Get the current request handler. The tricky part is that you can only get this handler
+  within this handler unless you can go no where to run /rc-handler/ correctly.
+ + It's on your own risk to use this API. But now that we have powerful first class lambda,
+   you may do some magic. Well, depends on you.
+
 * MVC
 MVC is Model-Views-Controller, the most classic architectural pattern for implementing
 user interfaces.
@@ -1021,6 +1051,8 @@ Sometimes you may need quasiquote to reference a variable, for example:
 #+end_src
 
 * Database
+** DB connection pool
+TODO
 ** Migration
 Migration provides a way do complicated modification of tables in database automatically.
 Here's an example.
@@ -1115,7 +1147,7 @@ GNU Artanis provides three ways to complete this mission. All of them, are *expe
 
 + SQL Mapping (1,3,6)
 ** SSQL (experimental)
-The concept of SSQL is very easy. Write SQL in S-expr. 
+The concept of SSQL is very easy. Write SQL in [[https://en.wikipedia.org/wiki/S-expression][s-expression]]. 
 
 Usage:
 #+begin_src scheme
@@ -1581,22 +1613,131 @@ But, if your current URL rule is used for authentication (once you use src_schem
   #:cache '(public "pub/some.html") ; will be changed to 'private' forcely.
   (lambda (rc) (:cache rc)))
 #+end_src
+
+* Shortcuts
+** What is shortcuts?
+The /shortcuts/ is a series of special functions. It's used to simplify the complex
+operations, according to the configuration specified by the related keyword, which
+is set by you after a URL-rule.
+
+It was named /OHT/ which stands for /Optional Handler Table/, which indicate the basic
+principle to be implemented, but too obscured to understand. So let's just call it /shortcut/.
+
+Anyway, you may find them in the module [[https://gitlab.com/NalaGinrut/artanis/blob/master/artanis/oht.scm][(artanis oht)]].
+ 
+It's a good practice to use /shortcuts/ as possible and avoid calling low-level APIs.
+
+Each shortcuts consists of 2 parts: *config* and *apply*.
+
+*config* means you need to configure certain service for the specific URL rule. This configuration
+will only be availble for this URL rule, and indenpendent to other registered URL rules.
+
+*apply* is used for calling specific functions related to your configuration in *config* step. The
+first argument of *apply* method must be src_scheme[:exports code]{route-context} and it is
+described in [[Route context][route context]].
+
+** Database connection
+
+This is useful when you use database. The shortcut provides a way to interact with the
+raw connection. The connection is fetched from connection pool, which has been created
+when GNU Artanis is started.
+
+#+BEGIN_SRC scheme
+;; config
+#:conn #t
+
+;; apply
+(:conn <route-context> [sql])
+#+END_SRC 
+
++ The second argument is optional, if it's missing, then src_scheme[:exports code]{:conn}
+  will return the raw connection after applying src_scheme[:exports code]{(:conn rc)}.
+  + NOTE: If you didn't set src_scheme[:exports code]{#:conn #t}, and applied
+    src_scheme[:exports code]{(:conn rc)}, then src_scheme[:exports code]{(rc-conn rc)}
+    will return src_scheme[:exports code]{#f}. This is why you shouldn't use low-level
+    src_scheme[:exports code]{(rc-conn rc)}.
++ If the second argument exists, then it should be a valid SQL string for querying.
+  The returne value is described in [[DB connection pool][DB connection pool]].
+  + The SQL string could be generated from [[SSQL (experimental)][SSQL]].
+
+** Raw SQL
+
+This shortcut is useful for simple oneshot query.
+
+#+BEGIN_SRC scheme
+;; config
+#:raw-sql sql
+
+;; apply
+(:raw-sql <route-context> mode) 
+#+END_SRC
+
+*Sql* must be a valid SQL string.
+
+*Mode* is listed below:
++ 'all for getting all the results.
++ 'top for getting the first results.
++ A positive integer to indicate how many results should be returned.
+
+** String template
+
+The shortcut for [[String Template][string template]]. Sometimes it's useful when you just need a quick way to
+use string template. But it doesn't support multi templates. If you do need multi templates
+please use the traditional [[String Template]].
+
+#+BEGIN_SRC scheme
+;; config
+#:str "string template"
+
+;; apply
+(:str <route-context> key-values ...)
+#+END_SRC
+
+Please checkout [[String Template][string template]] to find out how to use the /string-template/ and /key-values/.
+
+** SQL-Mapping shortcut (unfinished)
+
+This is related to [[SQL Mapping (experimental)][SQL-Mapping]], which is still experimental, maybe you should wait for
+the next version.
+
+#+BEGIN_SRC scheme
+;; config
+#:sql-mapping config-patterns
+
+;; apply
+(:sql-mapping <route-context> command ...)
+#+END_SRC
+
+Here're the *config-patterns*:
++ src_scheme[:exports code]{#t} enable the simple sql-mapping.
++ src_scheme[:exports code]{`(path ,path ,name)}
+  Fetch the sql-mapping with /name/ in specified /path/.
+  + /name/ should be in symbol type.
+  + /path/ should be in string type, and an existing path in your filesystem.
++ src_scheme[:exports code]{`(add ,name ,sql-template)}
+  Fetch the sql-mapping with /name/ rendered from /sql-template/.
+  + /name/ should be in symbol type.
+  + /sql-template/ is decribed in [[SQL Mapping (experimental)][SQL-Mapping]].
+
 * Ragnarok server core
 ** Introduction
 Since 0.2, GNU Artanis has a strong server core for high concurrency. It is named Ragnarok.
 In the philosophy of the design of GNU Artanis, everything is meant to be flexible and customizable.
-So the server core is customizable, in case someone thought Ragnarok is not good enough yet.
+So the server core is customizable, in case someone thought Ragnarok is not good enough.
 
 Ragnarok doesn't use any popular library for handling events (libev/libuv etc ...).
 It's a brand new server core based on epoll and [[https://en.wikipedia.org/wiki/Delimited_continuation][delimited continuations]].  
 
-** Principle
+** Principles
 The basic principle of Ragnarok is co-routine. And these co-routines are implemented with [[https://en.wikipedia.org/wiki/Delimited_continuation][delimited continuations]].
-Actually, there's no kernel controlled threads (say, pthread) in Ragnarok. All the tasks are scheduled by
-an userland scheduler, and the task is nothing but just a special continuation. The difference between it and
-regular full continuation is that it could be delimited for fine granularity rather than capture the whole stack.
+Actually, there's no OS-kernel controlled threads (say, pthread) for scheduling /request-handler/ in Ragnarok.
+All the tasks are scheduled by an userland scheduler, and the task is nothing but just a special continuation.
+The key difference between it and regular [[https://en.wikipedia.org/wiki/Call-with-current-continuation#Criticism][full-stack continuation]] is that it could be delimited for fine granularity
+rather than capture the whole stack.
 
-For reaserchers, there is a paper published on ICFP Schemeworkshop2016 to explain the principle and the design of GNU Artanis.
+For reaserchers, there is a paper published on [[http://www.schemeworkshop.org/2016/][ICFP Scheme Workshop 2016 conference]] to explain the principle and
+the design of GNU Artanis:
+
 [[https://github.com/NalaGinrut/artanis/raw/gh-pages/research/scheme16/art2016.pdf][Multi-purpose web framework design based on websockets over HTTP Gateway]].
 
 (to be continued ...) 
@@ -1615,11 +1756,11 @@ dispatched by the Linux kernel.
 
 (to be continued ...)
 
-** APIs
+** Ragnarok APIs
 You may use these APIs for customizing your own server core.
 (to be continued ...)
 * Utils
- *The functions introduced here requires to import (artanis utils) module.*
+ *The functions listed below requires to import [[https://gitlab.com/NalaGinrut/artanis/blob/master/artanis/utils.scm][(artanis utils)]] module.*
 ** String Template
 GNU Artanis provides Python3-like template strings:
 #+begin_src scheme
