@@ -31,6 +31,7 @@
   #:use-module (artanis env)
   #:use-module (artanis utils)
   #:use-module (artanis config)
+  #:use-module (artanis page)
   #:use-module (artanis server epoll)
   #:use-module (artanis server server-context)
   #:use-module (artanis server scheduler)
@@ -383,23 +384,53 @@
          ;; handle C-c to break the server loop properly
          (lambda ()
            (DEBUG "Prepare to serve one request ~a~%" (client-sockport client))
-           (catch 'artanis-err
+           (catch 'uri-error
+             ;; NOTE: We make it very strict according to RFC 3986.
+             ;;       For example:
+             ;;       =======================3.3 Path============================
+             ;;       If a URI does not contain an authority component,
+             ;;       then the path cannot begin with two slash characters ("//").
+             ;;       ===========================================================
+             ;;       It means we will not accept the URL like:
+             ;;       http://localhost:3000//hello
+             ;;       And GNU Artanis will reply a warning page to tell
+             ;;       the client what's wrong with the URL.
+             ;;       Most mainstream server just try to make the client
+             ;;       happier even if the URL is wrong. I don't think
+             ;;       it's a good way to go. Make it strict to avoid
+             ;;       potential security risk is better.
              (lambda ()
-               (serve-one-request handler http server client))
-             (lambda e
-               (cond
-                ((eqv? ETIMEDOUT (system-error-errno e))
-                 ;; NOTE: eqv? is necessary since system-error-errno on a
-                 ;;       non-system-erro will be non-integer, so don't use
-                 ;;       = to check.
-                 (main-loop (get-one-request-from-clients http server)))
-                (else
-                 (call-with-values
-                     (lambda ()
-                       (apply (make-unstop-exception-handler (exception-from-server)) e))
-                   (lambda (r b s)
-                     (ragnarok-write http server client r b #f)
-                     (ragnarok-close http server client #f)))))))
+               (catch 'artanis-err
+                 (lambda ()
+                   (serve-one-request handler http server client))
+                 (lambda e
+                  (cond
+                   ((eqv? ETIMEDOUT (system-error-errno e))
+                    ;; NOTE: eqv? is necessary since system-error-errno on a
+                    ;;       non-system-erro will be non-integer, so don't use
+                    ;;       = to check.
+                    (main-loop (get-one-request-from-clients http server)))
+                   (else
+                    (call-with-values
+                        (lambda ()
+                          (apply (make-unstop-exception-handler (exception-from-server)) e))
+                      (lambda (r b s)
+                        (ragnarok-write http server client r b #f)
+                        (ragnarok-close http server client #f))))))))
+             (lambda (k . e)
+               (call-with-values
+                   (lambda ()
+                     (let* ((reason (apply format #f e))
+                            (warn-page (get-syspage "warn-the-client.tpl"))
+                            (reason-page (string->bytevector
+                                          (tpl->html warn-page (the-environment))
+                                          (get-conf '(server charset))))
+                            (response (artanis-sys-response
+                                       400 (client-sockport client) reason-page)))
+                       (values response reason-page #f)))
+                 (lambda (r b s)
+                   (ragnarok-write http server client r b #f)
+                   (ragnarok-close http server client #f)))))
            (DEBUG "Serve one done~%"))
          (lambda ()
            ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
