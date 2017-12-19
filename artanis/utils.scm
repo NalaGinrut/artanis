@@ -87,7 +87,8 @@
             make-file-sender file-sender? file-sender-size file-sender-thunk
             get-string-all-with-detected-charset make-unstop-exception-handler
             artanis-log exception-from-client exception-from-server render-sys-page
-            bv-copy/share bv-backward artanis-list-matches)
+            bv-copy/share bv-backward artanis-list-matches get-syspage
+            artanis-sys-response)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -1254,13 +1255,15 @@
       (set-port-encoding! port (get-conf '(server charset)))
       (get-string-all port))))
 
+(define (get-syspage file)
+  (let ((local-syspage (format #f "~a/sys/pages/~a"
+                               (current-toplevel) file)))
+    (if (file-exists? local-syspage)
+        local-syspage
+        (format #f "~a/~a" (get-conf '(server syspage path)) file))))
+
 (define (syspage-show file)
-  (let ((local-syspage (format #f "~a/sys/pages/~a" (current-toplevel) file)))
-    (cond
-     ((file-exists? local-syspage)
-      (bv-cat local-syspage #f))
-     (else
-      (bv-cat (string-append (get-conf '(server syspage path)) "/" file) #f)))))
+  (bv-cat (get-syspage file) #f))
 
 ;; ENHANCE: use colored output
 (define* (artanis-log blame-who? status mime #:key (port (current-error-port))
@@ -1383,3 +1386,10 @@
       (if m
           (lp (irregex-match-end-index m) (cons m ret))
           ret))))
+
+(define (artanis-sys-response status port bv-body)
+  (build-response #:code status
+                  #:port port
+                  #:headers `((server . ,(get-conf '(server info)))
+                              ,(gen-content-length bv-body)
+                              (content-type . (text/html)))))
