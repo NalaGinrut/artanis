@@ -56,7 +56,8 @@
             %system-arch
             kernel-version>=?
             linux-version>=?
-            is-init-server-run?))
+            is-init-server-run?
+            current-params))
 
 ;; WARNING:
 ;; For concurrency in green-thread, all these stuffs should be immutable
@@ -194,3 +195,5 @@
 ;; to select proper module for event-queue implementation.
 
 (define is-init-server-run? #f)
+
+(define current-params (make-parameter identity))

@@ -55,7 +55,8 @@
     ((db engine) InnoDB)
     ((db poolsize) 64)
     ((db pool) increase) ; increase or fixed
-
+    ((db encodeparams) #f) ; whether to encode params each time
+    
     ;; for server namespace
     ((server info) ,artanis-version)
     ((server nginx) #f)

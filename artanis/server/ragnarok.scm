@@ -491,7 +491,10 @@
         (install-suspendable-ports!)
         (DEBUG "Installed suspendable ports~%")
         (parameterize ((current-read-waiter async-read-waiter)
-                       (current-write-waiter async-write-waiter))
+                       (current-write-waiter async-write-waiter)
+                       (current-params (if (get-conf '(db encodeparams))
+                                           uri-encode
+                                           identity)))
           (DEBUG "Starting `~a' engine loader ...~%" (ragnarok-engine-name engine))
           (loader handler)))
        (else
