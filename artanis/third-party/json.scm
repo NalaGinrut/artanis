@@ -24,12 +24,15 @@
 ;;; Code:
 
 (define-module (artanis third-party json)
+  #:use-module (artanis env)
   #:use-module (artanis third-party json upstream builder)
   #:use-module (artanis third-party json upstream parser)
   #:use-module (artanis third-party json upstream syntax)
   #:use-module (artanis irregex)
   #:use-module (srfi srfi-1)
-  #:export (->json-string)
+  #:export (->json-string
+            json-ref
+            json-set!)
   #:re-export (scm->json
                scm->json-string
                json->scm
@@ -73,3 +76,16 @@
         (throw 'artanis-err 400 ->json-string
                "Invalid JSONP, possibly be an XSS attack!" jsonp)))
    (else ((if securty-check? validate-json identity) (scm->json-string sxml)))))
+
+(define (json-ref json-obj key)
+  (let ((val (hash-ref json-obj key)))
+    (if (string? val)
+        ((current-params) val)
+        val)))
+
+(define (json-set! json-obj key val)
+  (hash-set! json-obj
+             ((current-params) key)
+             (if (string? val)
+                 ((current-params) val)
+                 val)))
