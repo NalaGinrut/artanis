@@ -139,17 +139,18 @@
                          (REASON-TEXT (remote-info (rc-req rc)))
                          (REASON-TEXT (rc-path rc))))))
     (rc-handler! rc (handler-rc-handler hrc))
-    (rc-keys! rc (handler-rc-keys hrc))))
+    (rc-keys! rc (reverse (handler-rc-keys hrc)))))
 
 (define (init-rule-path-regexp! rc)
   (rc-re! rc (string->irregex (cdr (rc-rhk rc)))))
 
 ;; init key-bindings table
 (define (init-rule-key-bindings! rc)
-  (let ((m (irregex-search (rc-re rc) (rc-path rc))))
+  (let* ((m (irregex-search (rc-re rc) (rc-path rc)))
+         (num (irregex-match-num-submatches m)))
     (rc-bt! rc
             (map (lambda (k i) (cons k (irregex-match-substring m i))) 
-                 (rc-keys rc) (iota (irregex-match-num-submatches m) 1)))))
+                 (rc-keys rc) (iota num 1)))))
 
 (define (init-query! rc)
   ;; NOTE: All the prefix/postfix ":" in query/post keys are trimmed.
@@ -160,7 +161,7 @@
                ((GET) (uri-query (request-uri (rc-req rc))))
                ;; The accessor of GET and POST should be divided
                ((POST PUT DELETE HEAD OPTIONS PATCH) #f) ; don't handle post here
-               (else (throw 'artanis-err 405 
+               (else (throw 'artanis-err 405 init-query!
                             "wrong method for query!" (rc-method rc))))))
     (if str
         (rc-qt! rc (map (lambda (x) 
