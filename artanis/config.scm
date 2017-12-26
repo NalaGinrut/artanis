@@ -55,8 +55,12 @@
     ((db engine) InnoDB)
     ((db poolsize) 64)
     ((db pool) increase) ; increase or fixed
-    ((db encodeparams) #f) ; whether to encode params each time
-    
+    ;; whether to encode params each time
+    ;; NOTE: If you enable db.encodeparams then it's better to decode the related value
+    ;;       twice in the client-side, since some requests may be sent from browsers, and
+    ;;       they're already encoded.
+    ((db encodeparams) #f)
+
     ;; for server namespace
     ((server info) ,artanis-version)
     ((server nginx) #f)
