@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015
+;;  Copyright (C) 2014,2015,2017
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -20,6 +20,7 @@
 (define-module (artanis sql-mapping)
   #:use-module (artanis sql-mapping fetcher)
   #:use-module (artanis utils)
+  #:use-module (artanis env)
   #:use-module (artanis db)
   #:use-module (artanis ssql)
   #:use-module (artanis route)
@@ -55,7 +56,7 @@
      (sql-mapping-tpl-add name sql-tpl)
      sql-mapping-fetch)
     ;;('fprm map-table-from-DB)
-    (else (throw 'artanis-err 500 "sql-mapping-maker: Invalid mode!" mode))))
+    (else (throw 'artanis-err 500 sql-mapping-maker "Invalid mode!" mode))))
 
 ;; TODO: Should add user customerized unauth page
 (define (auth-maker val rule keys)
@@ -75,7 +76,7 @@
       (and pw (string=? (crypto (post-ref passwd)) pw))))
   (define customed-basic-checker #f)
   (define (basic-checker rc p sql)
-    (format #t "~a, ~a~%" p sql)
+    (DEBUG "~a, ~a~%" p sql)
     (string=? p (->passwd rc sql)))
   (define sql
     (match val
@@ -110,7 +111,7 @@
       ((? string? tpl)
        (set! mode 'tpl)
        (make-db-string-template tpl))
-      (else (throw 'artanis-err 500 "auth-maker: wrong pattern" val))))
+      (else (throw 'artanis-err 500 auth-maker "wrong pattern" val))))
   (lambda (rc . kargs)
     (define result
       (begin
@@ -120,8 +121,8 @@
           ((table-specified-fields)
            (let ((u (post-ref username))
                  (p (post-ref passwd)))
-             (format #t "~a: ~a~%" username u)
-             (format #t "~a: ~a~%" passwd p)
+             (DEBUG "~a: ~a~%" username u)
+             (DEBUG "~a: ~a~%" passwd p)
              (and u (table-checker rc (sql u)))))
           ((tpl) (table-checker rc (apply sql kargs)))
           ((basic)
@@ -132,7 +133,7 @@
                     (customed-basic-checker rc u p)
                     (basic-checker rc p (sql u)))))
              (else #f)))
-          (else (throw 'artanis-err 500 "auth-maker: Fatal BUG! Invalid mode! Shouldn't be here!" mode)))))
+          (else (throw 'artanis-err 500 auth-maker "Fatal BUG! Invalid mode! Shouldn't be here!" mode)))))
     (if result
         (display "Auth ok!\n")
         (display "Auth failed!\n"))

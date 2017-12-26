@@ -694,8 +694,9 @@
   (define cook (if no-evil? eliminate-evil-HTML-entities identity))
   (define (%convert lst)
     (match lst
-      ((k v) (list (key-converter k) v))
-      (else (throw 'artanis-err 500 generate-kv-from-post-qstr "Fatal! Can't be here!" lst))))
+      ((k v) (list (key-converter k) ((current-encoder) v)))
+      (else (throw 'artanis-err 500 generate-kv-from-post-qstr
+                   "Fatal! Can't be here!" lst))))
   (define (-> x)
     (string-trim-both x (lambda (c) (member c '(#\sp #\: #\return)))))
   (map (lambda (x)
