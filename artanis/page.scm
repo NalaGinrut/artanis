@@ -51,7 +51,7 @@
 ;; the params will be searched in binding-list first, then search from qstr
 ;; TODO: qstr should be independent from rules binding.
 (define (params rc key)
-  ((current-params)
+  ((current-encoder)
    (or (assoc-ref (rc-bt rc) key)
        (get-from-qstr rc key))))
 

@@ -80,12 +80,12 @@
 (define (json-ref json-obj key)
   (let ((val (hash-ref json-obj key)))
     (if (string? val)
-        ((current-params) val)
+        ((current-encoder) val)
         val)))
 
 (define (json-set! json-obj key val)
   (hash-set! json-obj
-             ((current-params) key)
+             ((current-encoder) key)
              (if (string? val)
-                 ((current-params) val)
+                 ((current-encoder) val)
                  val)))

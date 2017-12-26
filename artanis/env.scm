@@ -57,7 +57,7 @@
             kernel-version>=?
             linux-version>=?
             is-init-server-run?
-            current-params))
+            current-encoder))
 
 ;; WARNING:
 ;; For concurrency in green-thread, all these stuffs should be immutable
@@ -196,4 +196,4 @@
 
 (define is-init-server-run? #f)
 
-(define current-params (make-parameter identity))
+(define current-encoder (make-parameter identity))
