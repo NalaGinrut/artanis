@@ -247,7 +247,7 @@
                       (dynamic-func "epoll_pwait" (dynamic-link))
                       (list int '* int int '*) #:return-errno? #t))
 
-(define-public (epoll-pwait epfd events maxevents timeout sigmask)
+(define-public (epoll-pwait epfd events timeout sigmask)
   (let ((maxevents (get-conf '(server wqlen))))
     (call-with-values
         (lambda ()
