@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -23,7 +23,7 @@
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
-  #:export (init-config 
+  #:export (init-config
             conf-set!
             get-conf
             current-conf-file
@@ -86,7 +86,7 @@
     ((websocket minpayload) 1) ; enlarge it to avoid slow 1-byte attack (only for fragment)
     ((websocket fragment) 4096) ; the fragment size in bytes
     ((websocket maxsize) ,(ash 1 10)) ; in bytes, the upload size from websocket
-    
+
     ;; for host namespace
     ((host name) #f)
     ((host addr) "127.0.0.1")
@@ -166,7 +166,7 @@
 
 (define (parse-namespace-db item)
   (match item
-    (('enable usedb) (conf-set! 'use-db? (->bool usedb))) 
+    (('enable usedb) (conf-set! 'use-db? (->bool usedb)))
     (('dbd dbd) (conf-set! '(db dbd) (->symbol dbd)))
     (('proto proto) (conf-set! '(db proto) (->symbol proto)))
     (('socketfile socketfile) (conf-set! '(db socketfile) (->none/boolean socketfile)))
@@ -177,6 +177,7 @@
     (('engine engine) (conf-set! '(db engine) engine))
     (('poolsize poolsize) (conf-set! '(db poolsize) (->integer poolsize)))
     (('pool pool) (conf-set! '(db pool) (->pool-mode pool)))
+    (('encodeparams encodeparams) (conf-set! '(db encodeparams) (->bool encodeparams)))
     (else (error parse-namespace-db "Config: Invalid item" item))))
 
 (define (parse-namespace-server item)
@@ -256,29 +257,29 @@
     (else (error parse-config-item "Unsupported config namespace!" item))))
 
 (define (parse-line line)
-  (call-with-input-string 
-   line
-   (lambda (port)
-     (let lp((next (read-char port)) (key? #t) (word '()) (ret '()))
-       (cond
-        ((or (eof-object? next)
-             (char=? next #\#)) ; skip comment 
-         (reverse (cons (list->string (reverse word)) ret)))
-        ((char-set-contains? char-set:whitespace next)
-         ;; skip all whitespaces
-         (lp (read-char port) key? word ret))
-        ((and key? (char=? next #\.))
-         ;; a namespace end
-         (lp (read-char port) key? '() (cons (list->symbol (reverse word)) ret)))
-        ((and key? (char=? next #\=))
-         ;; value start
-         (lp (read-char port) #f '() (cons (list->symbol (reverse word)) ret)))
-        ((not key?)
-         ;; store chars of value
-         (lp (read-char port) key? (cons next word) ret))
-        (else
-         ;; store chars of key
-         (lp (read-char port) key? (cons next word) ret)))))))
+  (call-with-input-string
+      line
+    (lambda (port)
+      (let lp((next (read-char port)) (key? #t) (word '()) (ret '()))
+        (cond
+         ((or (eof-object? next)
+              (char=? next #\#)) ; skip comment
+          (reverse (cons (list->string (reverse word)) ret)))
+         ((char-set-contains? char-set:whitespace next)
+          ;; skip all whitespaces
+          (lp (read-char port) key? word ret))
+         ((and key? (char=? next #\.))
+          ;; a namespace end
+          (lp (read-char port) key? '() (cons (list->symbol (reverse word)) ret)))
+         ((and key? (char=? next #\=))
+          ;; value start
+          (lp (read-char port) #f '() (cons (list->symbol (reverse word)) ret)))
+         ((not key?)
+          ;; store chars of value
+          (lp (read-char port) key? (cons next word) ret))
+         (else
+          ;; store chars of key
+          (lp (read-char port) key? (cons next word) ret)))))))
 
 (define (init-inner-database-item)
   (define dbd (get-conf '(db dbd)))
@@ -345,13 +346,13 @@
                ((file-exists? *default-conf-file*)
                 (format (artanis-current-output) "Loading ~a..." *default-conf-file*)
                 *default-conf-file*)
-               (else 
+               (else
                 (error init-config
                        "Fatal error! Do you have /etc/artanis/artanis.conf?")))))
   (let lp((line (read-line fp)))
     (cond
      ((eof-object? line) #t)
-     ((parse-line line) 
+     ((parse-line line)
       => (lambda (item)
            (parse-config-item item)
            (lp (read-line fp))))
