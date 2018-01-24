@@ -765,6 +765,7 @@ It's simple to fetch static file with the path in URL: @uref{http://localhost:30
 Type these code in Guile REPL:
 @example
 (use-modules (artanis artanis))
+(init-server)
 (get "/hello" (lambda () "hello world"))
 (run #:port 8080)
 @end example
