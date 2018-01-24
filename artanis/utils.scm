@@ -1279,7 +1279,7 @@
             (qstr (uri-query uri))
             (method (request-method request)))
        (format port "[Remote] ~a @ ~a~%" (remote-info request) (local-time-stamp))
-       (format port "[Request] method: ~a, path: ~a, qeury: ~a~%" method path qstr)
+       (format port "[Request] method: ~a, path: ~a, query: ~a~%" method path qstr)
        (format port "[Response] status: ~a, MIME: ~a~%~%" status mime)))
     ((server)
      (format port "[Server] ~a @ ~a~%" (get-conf '(host addr)) (local-time-stamp))
