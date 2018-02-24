@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2017
+;;  Copyright (C) 2013,2014,2015,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -49,7 +49,7 @@
 ;; <db> is only used for store connect config info, it doens't contain
 ;; connection object. It's useless when the connection-pool init is down.
 (define-record-type <db>
-  (fields 
+  (fields
    username passwd))
 
 (define-record-type <mysql>
@@ -107,7 +107,7 @@
   (make-<connection> 'open conn))
 
 (define-record-type <connection>
-  (fields 
+  (fields
    ;; status provides a simple way to avoid reopen or reclose
    (mutable status) ; open or closed
    conn))
@@ -122,7 +122,7 @@
 ;; Connect database from DBI.
 ;; e.g: (connect-db "mysql" "root:123:artanis:tcp:localhost:3306")
 (define connect-db
-  (case-lambda* 
+  (case-lambda*
    ((dbd str) (%do-connect dbd str))
    ((dbd #:key (db-name "artanis") (db-username "root") (db-passwd "")
          (addr "localhost:3306") (proto 'tcp))
@@ -197,11 +197,11 @@
   (display "connection pools are initilizing...")
   (let ((poolsize (get-conf '(db poolsize))))
     (set! *conn-pool*
-          (let ((dbconns
-                 (map
-                  (lambda (_) (create-new-DB-conn))
-                  (iota poolsize))))
-            (list->queue dbconns)))
+      (let ((dbconns
+             (map
+              (lambda (_) (create-new-DB-conn))
+              (iota poolsize))))
+        (list->queue dbconns)))
     (display "DB pool init ok!\n")
     (format #t "Now the size of connection pool is ~a.~%" poolsize)))
 
@@ -222,28 +222,35 @@
 (define* (DB-query conn sql #:key (check? #f))
   (cond
    ((not (<connection>? conn))
-    (throw 'artanis-err 500 DB-query "Invalid DB connection!" conn))
+    (throw 'artanis-err 500 DB-query
+           "Invalid DB connection ~a!" conn))
    ((not (eq? (<connection>-status conn) 'open))
-    (throw 'artanis-err 500 DB-query "Can't query from a closed connection!" conn))
+    (throw 'artanis-err 500 DB-query
+           "Can't query from a closed connection ~a!" conn))
    ((not (string? sql))
-    (throw 'artanis-err 500 DB-query "Invalid SQL string!" sql))
+    (throw 'artanis-err 500 DB-query
+           "Invalid SQL string ~a!" sql))
    (else
     (db-query-debug-info sql)
     (dbi-query (<connection>-conn conn) sql)
     (when (not (db-conn-success? conn))
       (format (current-error-port) "SQL: ~a~%" sql)
       (if check?
-          (format (current-error-port) "DB-query check failed: ~a" (db-conn-failed-reason conn))
-          (throw 'artanis-err 500 DB-query "failed reason: `~a'~%" (db-conn-failed-reason conn))))
+          (format (current-error-port) "DB-query check failed: ~a"
+                  (db-conn-failed-reason conn))
+          (throw 'artanis-err 500 DB-query "failed reason: `~a'~%"
+                 (db-conn-failed-reason conn))))
     conn)))
 
 ;; NOTE: actually it'll never close the connection, just recycle it.
 (define (DB-close conn)
   (cond
    ((not (<connection>? conn))
-    (throw 'artanis-err 500 DB-close "Invalid DB connection!" conn))   
+    (throw 'artanis-err 500 DB-close
+           "Invalid DB connection ~a!" conn))
    ((eq? (<connection>-status conn) 'closed)
-    (throw 'artanis-err 500 DB-close "the connection is already closed!" conn))
+    (throw 'artanis-err 500 DB-close
+           "The connection ~a is already closed!" conn))
    (else
     ;; NOTE: Because Artanis uses green-thread, all requests share the same
     ;;       DB connection, so it's dangerous to leave the connection to next
@@ -260,17 +267,21 @@
 (define (DB-result-status conn)
   (cond
    ((not (<connection>? conn))
-    (throw 'artanis-err 500 DB-result-status "Invalid DB connection!" conn))
+    (throw 'artanis-err 500 DB-result-status
+           "Invalid DB connection ~a!" conn))
    ((not (eq? (<connection>-status conn) 'open))
-    (throw 'artanis-err 500 DB-result-status "Can't query from a closed connection!" conn))
+    (throw 'artanis-err 500 DB-result-status
+           "Can't query from a closed connection ~a!" conn))
    (else (dbi-get_status (<connection>-conn conn)))))
 
 (define (DB-get-all-rows conn)
   (cond
    ((not (<connection>? conn))
-    (throw 'artanis-err 500 DB-get-all-rows "Invalid DB connection!" conn))
+    (throw 'artanis-err 500 DB-get-all-rows
+           "Invalid DB connection ~a!" conn))
    ((not (eq? (<connection>-status conn) 'open))
-    (throw 'artanis-err 500 DB-get-all-rows "Can't query from a closed connection!" conn))
+    (throw 'artanis-err 500 DB-get-all-rows
+           "Can't query from a closed connection ~a!" conn))
    (else
     (let lp((next (dbi-get_row (<connection>-conn conn))) (result '()))
       (if next
@@ -280,17 +291,21 @@
 (define (DB-get-top-row conn)
   (cond
    ((not (<connection>? conn))
-    (throw 'artanis-err 500 DB-get-top-row "Invalid DB connection!" conn))
+    (throw 'artanis-err 500 DB-get-top-row
+           "Invalid DB connection ~a!" conn))
    ((not (eq? (<connection>-status conn) 'open))
-    (throw 'artanis-err 500 DB-get-top-row "Can't query from a closed connection!" conn))
+    (throw 'artanis-err 500 DB-get-top-row
+           "Can't query from a closed connection ~a!" conn))
    (else (dbi-get_row (<connection>-conn conn)))))
 
 (define (DB-get-n-rows conn n)
   (cond
    ((not (<connection>? conn))
-    (throw 'artanis-err 500 DB-get-n-rows "Invalid DB connection!" conn))
+    (throw 'artanis-err 500 DB-get-n-rows
+           "Invalid DB connection ~a!" conn))
    ((not (eq? (<connection>-status conn) 'open))
-    (throw 'artanis-err 500 DB-get-n-rows "Can't query from a closed connection!" conn))
+    (throw 'artanis-err 500 DB-get-n-rows
+           "Can't query from a closed connection ~a!" conn))
    (else
     (let lp((next (dbi-get_row (<connection>-conn conn))) (cnt 0) (result '()))
       (if (or next (< cnt n))
