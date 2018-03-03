@@ -19,6 +19,7 @@
 
 (define-module (artanis commands help)
   #:use-module (artanis utils)
+  #:use-module (artanis env)
   #:use-module (artanis commands)
   #:use-module (srfi srfi-1)
   #:use-module (ice-9 ftw)
@@ -26,9 +27,9 @@
 
 (define (get-all-commands)
   (map remove-ext
-       (scandir (dirname (current-filename))
-                (lambda (f) 
-                  (not (or (string=? f ".") 
+       (scandir (format #f "~a/artanis/commands" (%site-dir))
+                (lambda (f)
+                  (not (or (string=? f ".")
                            (string=? f "..")))))))
 
 (define (get-info cmd)
