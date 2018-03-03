@@ -1,12 +1,8 @@
 TOP := $(shell pwd)
 PREFIX := @prefix@
 SRC := @srcdir@
-CC := @CC@
 GUILE := @GUILE@
 VERSION := @PACKAGE_VERSION@
-CFLAGS := @GUILE_CFLAGS@ -fPIC -MD -DHAVE_CONFIG_H $(INCLUDES)
-LIBS := @GUILE_LIBS@ -shared
-LDFLAGS := @GUILE_LDFLAGS@ -fPIC -shared
 SHELL := /bin/bash
 RELEASE_TYPE := stable
 PREV_VER := 0.2.1
