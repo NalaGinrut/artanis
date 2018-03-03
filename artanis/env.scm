@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2016,2017
+;;  Copyright (C) 2014,2015,2016,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -69,7 +69,7 @@
 ;; table structure:
 ;; '((rule-handler-key (handler . keys)) ...)
 ;; for example:
-;; `(("GET \"/photo/:id/edit\"" (,(lambda (req ..) ...) . id)))  
+;; `(("GET \"/photo/:id/edit\"" (,(lambda (req ..) ...) . id)))
 (define *handlers-table* (make-hash-table))
 (define *conf-hash-table* (make-hash-table))
 
@@ -166,21 +166,21 @@
 (define (version>=? s1 s2)
   (let ((sm1 (string-match "[0-9]+" s1))
         (sm2 (string-match "[0-9]+" s2)))
-    ;; if one of the strings doesn't contain numeric values 
+    ;; if one of the strings doesn't contain numeric values
     ;;  compare as usual strings
     (if (or (not sm1) (not sm2)) (string>=? s1 s2)
-      ;; otherwise -- compare prefixes, then numeric parts,
-      ;; then, recursively, suffixes.
-      (let ((mp1 (match:prefix sm1))
-            (mp2 (match:prefix sm2))
-            (ms1 (match:substring sm1))
-            (ms2 (match:substring sm2)))
-        (cond
-          ((string>? mp1 mp2) #t)
-          ((string<? mp1 mp2) #f)
-          ((> (string->number ms1) (string->number ms2)) #t)
-          ((< (string->number ms1) (string->number ms2)) #f)
-          (else
+        ;; otherwise -- compare prefixes, then numeric parts,
+        ;; then, recursively, suffixes.
+        (let ((mp1 (match:prefix sm1))
+              (mp2 (match:prefix sm2))
+              (ms1 (match:substring sm1))
+              (ms2 (match:substring sm2)))
+          (cond
+           ((string>? mp1 mp2) #t)
+           ((string<? mp1 mp2) #f)
+           ((> (string->number ms1) (string->number ms2)) #t)
+           ((< (string->number ms1) (string->number ms2)) #f)
+           (else
             (version>=? (match:suffix sm1) (match:suffix sm2))))))))
 
 (define (kernel-version>=? vstr)
