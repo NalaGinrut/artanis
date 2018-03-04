@@ -69,7 +69,7 @@
   (hash-ref *handlers-table* handler-key))
 
 (define-record-type route-context
-  (make-route-context handler keys regexp request path qt method rhk bt 
+  (make-route-context handler keys regexp request path qt method rhk bt
                       body date cookie set-cookie conn)
   route-context?
   (handler rc-handler rc-handler!) ; reqeust handler
@@ -77,7 +77,7 @@
   (regexp rc-re rc-re!) ; regexp to parse key-bindings
   (request rc-req rc-req!) ; client request
   ;; FIXME: actually we don't need this redundant path,
-  ;;        it's better to get from request. 
+  ;;        it's better to get from request.
   (path rc-path rc-path!) ; path from uri
   (qt rc-qt rc-qt!) ; query table
   ;; FIXME: the current Guile inner server treat HEAD as GET, so we
@@ -86,7 +86,7 @@
   (rhk rc-rhk rc-rhk!) ; rule handler key in handlers-table
   (bt rc-bt rc-bt!) ; bindings table
   (body rc-body rc-body!) ; request body
-  (date rc-mtime rc-mtime!) ; modified time, users need to set it in handler
+  (date rc-mtime rc-mtime!) ; modified time, users may want to set it
   (cookie rc-cookie rc-cookie!) ; the cookie parsed from header string
   (set-cookie rc-set-cookie rc-set-cookie!) ; the cookies needed to be set as response
   ;; auto DB connection doesn't need users to close it, it's auto closed when request is over.
@@ -149,7 +149,7 @@
   (let* ((m (irregex-search (rc-re rc) (rc-path rc)))
          (num (irregex-match-num-submatches m)))
     (rc-bt! rc
-            (map (lambda (k i) (cons k (irregex-match-substring m i))) 
+            (map (lambda (k i) (cons k (irregex-match-substring m i)))
                  (rc-keys rc) (iota num 1)))))
 
 (define (init-query! rc)
@@ -164,7 +164,7 @@
                (else (throw 'artanis-err 405 init-query!
                             "wrong method for query!" (rc-method rc))))))
     (if str
-        (rc-qt! rc (map (lambda (x) 
+        (rc-qt! rc (map (lambda (x)
                           (map -> (string-split x #\=)))
                         (string-split str #\&)))
         '())))
