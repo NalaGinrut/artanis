@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2017
+;;  Copyright (C) 2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -241,15 +241,14 @@
   ;; FIXME: Maybe we have to drop the whole-body-redirecting method, since the socket
   ;;        demands a size to get all body. If we use get-bytevector-all, then it's stuck.
   ;;        Even if we are in non-blocking, so sad.
-  (let* ((head (pk "head"(websocket-get-head port)))
+  (let* ((head (websocket-get-head port))
          (control-frame? (is-control-frame? (%get-opcode head)))
-         (payload-len (pk "payload-len"(logand #x7f head)))
-         (real-len (pk "real-len"(get-len payload-len port control-frame?)))
-         (mask (pk "mask"(is-masked-frame? head)))
-         (mask-array (pk "mask-array"(and mask (get-mask port))))
-         (payload (pk "read-and-verify-payload"(read-and-verify-payload port real-len)))
-         (cooked-payload (pk "cooked-payload"(cook-payload mask-array payload real-len))))
-    (DEBUG "----------------------------~%")
+         (payload-len (logand #x7f head))
+         (real-len (get-len payload-len port control-frame?))
+         (mask (is-masked-frame? head))
+         (mask-array (and mask (get-mask port)))
+         (payload (read-and-verify-payload port real-len))
+         (cooked-payload (cook-payload mask-array payload real-len)))
     (make-websocket-frame head parser real-len mask-array cooked-payload)))
 
 (::define (generate-head1 final? type)

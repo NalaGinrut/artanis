@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2017
+;;  Copyright (C) 2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -155,4 +155,4 @@
         (format (artanis-current-output)
                 "[Websocket] Closing `~a' normally.~%" (client-ip client))
         (throw 'artanis-err 1008 closing-websocket-handshake
-               "The client didn't follow RFC-6544 to send closing frame~%")))))
+               "The client didn't conform RFC-6544 to send closing frame~%")))))

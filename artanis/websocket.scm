@@ -40,7 +40,7 @@
                do-websocket-handshake
                closing-websocket-handshake
                this-rule-enabled-websocket!
-               
+
                ; from (artanis websocket frame)
                received-closing-frame?
                send-websocket-closing-frame
@@ -98,7 +98,8 @@
   (cond
    ((websocket-check-auth req)
     (let* ((redirector (get-the-redirector-of-websocket server client))
-           (reader (redirector-reader redirector))) ; reader: bytevector -> record-type
+           ;; reader: bytevector -> customized data frame
+           (reader (redirector-reader redirector)))
       (read-websocket-frame reader (client-sockport client))))
    (else
     (throw 'artanis-err 401 websocket-read
