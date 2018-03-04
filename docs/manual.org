@@ -10,8 +10,8 @@
 #+TEXINFO_PRINTED_TITLE: GNU Artanis
 
 #+OPTIONS: H:3 toc:t \n:nil ::t |:t ^:nil -:t f:t *:t tex:t d:(HIDE) tags:not-in-toc
-#+OPTIONS: latex:t          Do the right thing automatically (MathJax)
-#+OPTIONS: tex:verbatim   Verbatim export, for jsMath or so
+#+OPTIONS: latex:t
+#+OPTIONS: tex:verbatim
 #+OPTIONS: broken-links:mark somewhere
 
 * Introduction
@@ -244,7 +244,7 @@ A configuration file is required when Artanis is run for the first time.
 #+BEGIN_SRC conf
   server.multi = <boolean>
 #+END_SRC
-+ This is the most significant feature for [[Ragnarok server core][Ragnarok]]. Please remember that *there's no any threads in GNU Artanis*.
++ This is the most significant feature of [[Ragnarok server core][Ragnarok]]. Please remember that *there's no any thread in GNU Artanis*.
   All the tasks are based on [[https://en.wikipedia.org/wiki/Delimited_continuation][delimited continuations]], this kind of design is the so-called [[https://en.wikipedia.org/wiki/Green_threads][Green Threads.]]
   Then how to take advantage of multi-cores? Fortunately, GNU/Linux has introduced a feature named [[https://lwn.net/Articles/542629/][SO_REUSEPORT]] since 3.9.
   This feature let us start multiple Artanis instances listenning on the same socket port. When requests come, the
@@ -337,26 +337,33 @@ A configuration file is required when Artanis is run for the first time.
   + This is the global maxage of any cache. If you want to specify maxage for certain page, please read [[Cache][Cache]].
 ** Debug config
 #+BEGIN_SRC conf
+  debug.enable = <boolean>
+#+END_SRC
++ Wheather to enable debug mode. If you enable debug mode, Artanis will print debug information verbosely.
+  The module you modified will be reloaded instantly, and the page view will be rendered either.
++ /NOTE: This option will drag the performance of Artanis, so please use it for debug only./
+
+#+BEGIN_SRC conf
   debug.monitor = <PATHs>
 #+END_SRC
 + The paths need to be monitored in debug-mode. This will take advantage of `inotify' in GNU/Linux kernel.
   + /*Note:*/ We may support GNU/Hurd as well, with its file monitor mechanism, in the future.
 ** Config APIs
-+ When you need change the default configure
+To change the default configurations:
 #+BEGIN_SRC scheme
   (conf-set! key value)
   ;;e.g
   (conf-set! 'debug-mode #t)
 #+END_SRC
 
-+ Get the current configre
+To get the current configre
 #+BEGIN_SRC scheme
   (get-conf key)
   ;;e.g
   (get-conf '(server charset))
 #+END_SRC
 
-+ Get current hostname in GNU Artanis environment.
+To get current hostname in GNU Artanis environment.
 #+BEGIN_SRC scheme
   (current-myhost)
 #+END_SRC
@@ -830,14 +837,15 @@ information in the current request status.
 #+BEGIN_SRC scheme
   (rc-req <route-context>)
 #+END_SRC
-+ Get the current HTTP request as a record-type.
++ Get the current HTTP request wrapped in record-type. About HTTP request
+  please see [[https://www.gnu.org/software/guile/manual/html_node/Requests.html][HTTP Request]]. It stores HTTP request of Guile.
 
 #+BEGIN_SRC scheme
   (rc-body <route-context>)
 #+END_SRC
 + Get the current request body:
-  + For a regular HTTP request, then it should be a bytevector;
-  + For a Websocket request, it should be [[Websocket frame][<websocket-frame>]] as a record-type.
+  + For a regular HTTP request, the body should be a bytevector;
+  + For a Websocket request, the body should be [[Websocket frame][Websocket frame]] as a record-type.
 
 #+BEGIN_SRC  scheme
   (rc-method <route-context>)
@@ -862,6 +870,27 @@ information in the current request status.
   + It's on your own risk to use this API. But now that we have powerful first class lambda,
     you may do some magic. Well, depends on you.
 
+#+BEGIN_SRC scheme
+  (rc-mtime <route-context>) ; getter
+  (rc-mtime! <route-context>) ; setter
+#+END_SRC
++ You may set it in the handler to return you customized modified time.
+  For static pages, the mtime is set automatically. But sometimes people
+  may want to set it in a dynamic generated page.
+
+#+BEGIN_SRC scheme
+  (rc-cookie <route-context>)
+#+END_SRC
++ The cookies parsed from request header.
+
+#+BEGIN_SRC scheme
+  (rc-set-cookie! <route-context>)
+#+END_SRC
++ Set response cookie from server side. If you want to return cookies to
+  the client, please use it.
+
+There're other APIs in /route-context/, but they're largely used for
+internals of Artanis, rarely useful for users. So we don't list them here.
 * MVC
 MVC is Model-Views-Controller, the most classic architectural pattern for implementing
 user interfaces.
@@ -942,17 +971,17 @@ Please notice that URL-remapping support regex, so you should register URL rule 
 #+end_src
 Or it will throw 404 since URL-remapping failed to hit the rule with query string.
 ** Query string from POST
-The query string would be encoded in HTTP body if the method is POST.
+The query string would be encoded in HTTP body if the method were POST.
 
 There's only slitely difference when you pass query string by POST: you don't have to
-use regex, for example, "?" for hitting the URL.
+use regex, for example, "?" for matching the URL.
 #+begin_src scheme
   (post "/there"
     (lambda (rc)
       (get-from-qstr rc "name")))
 #+end_src
-GNU Artanis will detect the method type, if it's POST, then the router will parse query
-string from the HTTP body automatically.
+GNU Artanis will detect the method type in /get-from-qstr/, if it's POST, then the router
+will parse query string from the HTTP body automatically.
 
 * Layouts and Rendering in GNU Artanis
 ** Templating
@@ -1720,6 +1749,191 @@ Here're the *config-patterns*:
   + /name/ should be in symbol type.
   + /sql-template/ is decribed in [[SQL Mapping (experimental)][SQL-Mapping]].
 
+* Websocket (Experimental)
+** Introduction
+Websocket is becoming more and more important for modern web development. GNU Artanis
+is trying to provide an industrial strenth and efficient Websocket implementation.
+Moreover, Websocket is important for the design of GNU Artanis, please see [[Principles][Principles]] for more details.
+
+** Basic usage
+
+/(The Websocket support is still experimental and unfinished, only demo works, please don't use it)/
+
+In GNU Artanis, the Websocket handling is triggered by certain URL registered by you. You should
+use src_scheme[:exports code]{#:websocket} to configure the Websocket. For example:
+
+#+BEGIN_SRC scheme
+(use-modules (artanis artanis))
+
+(get "/echo" #:websocket '(proto echo)
+  (lambda (rc)
+    (:websocket rc 'payload)))
+
+(run #:port 3000)
+#+END_SRC
+
+In this simple test, we choose the simplest *echo* protocol of Websocket that return the string sent
+from the client back.
+And we write a simple JS for web frontend:
+
+#+BEGIN_SRC js
+function WebSocketTest()
+{
+    if ("WebSocket" in window)
+    {
+        document.write("<p>WebSocket is supported by your Browser!</p>");
+
+        // Let us open a web socket
+        var ws = new WebSocket("ws://localhost:3000/echo");
+
+        ws.onopen = function()
+        {
+            // Web Socket is connected, send data using send()
+            ws.send("hello world");
+            document.write("<p>Message is sent...</p>");
+        };
+
+        ws.onmessage = function (evt)
+        {
+            var received_msg = evt.data;
+            document.write("<p>hello welcome...</p>");
+        };
+
+        ws.onclose = function()
+        {
+            // websocket is closed.
+            document.write("<p>Connection is closed...</p>");
+        };
+
+        window.onbeforeunload = function(event) {
+            socket.close();
+        };
+    }
+    else
+    {
+        // The browser doesn't support WebSocket
+        document.write("<p>WebSocket NOT supported by your Browser!</p>");
+    }
+}
+#+END_SRC
+
+** Websocket APIs
+
+ *NOTE: The Websocket is very preliminary that only support echo. So it's not usable yet.*
+
+*** Websocket configuration
+#+BEGIN_SRC scheme
+#:websocket `(proto ,protocol_name)
+#+END_SRC
+The *protocol_name* could be:
+ + *'echo* for simply echo test.
+ *NOTE:* More regular protocols will be added in the future.
+
+#+BEGIN_SRC scheme
+#:websocket simple_pattern
+#+END_SRC
+The *simple_pattern* could be:
+ + *#t* or *'raw* means this URL enables Websocket without specifed protocol. So you will get raw
+   data of the decoded payload.
+
+#+BEGIN_SRC scheme
+#:websocket `(redirect ,ip/usk)
+#+END_SRC
+This is used for redirecting Websocket stream to other address.
+ip/usk means ip or unix-socket, the pattern should be this:
+ + ^ip://(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(:[0-9]{1,5})?$
+ + ^unix://[a-zA-Z-_0-9]+\\.socket$
+
+#+BEGIN_SRC scheme
+#:websocket `(proxy ,protocol)
+#+END_SRC
+Setup a proxy with certain protocol handler.
+Different from the regular proxy design, the proxy in Artanis doesn't
+need a listen port, since it's always 80/443 or customized HTTP port.
+The client should support websocket, and visit the related URL for establishing
+a websocket channel. Then the rest is the same with regular proxy.
+
+*** Websocket application
+
+#+BEGIN_SRC scheme
+(:websocket <route-context> command)
+#+END_SRC
+The *command* could be:
+ + *'payload* to get the decoded data from the client. It's decoded from Websocket frame automatically.
+   So you don't have to parse the frame.
+
+** Websocket frame
+
+According to [[https://tools.ietf.org/html/rfc6455][RFC6455]], GNU Artanis provides Websocket frame data
+struct.
+
+The frame will not be decoded or parsed into a record-type, on the contrary, it'll be kept as a binary
+frame read from client, and use bitwise operations for fetching the fields. This kind of `lazy' design
+will save much time on parsing unused fields each time, and eaiser for redirecting without any serialization.
+If users want to get certain field, Artanis provides APIs for fetching them. Users can decide how to parse
+the frames for efficiency.
+
+Here're the APIs:
+
+#+BEGIN_SRC scheme
+(websocket-frame? <websocket-frame>)
+#+END_SRC
+
+#+BEGIN_SRC scheme
+;; parser: bytevector -> customized data frame
+(websocket-frame-parser <websocket-frame>)
+#+END_SRC
+
+*websocket-frame-parser* is the registered reader for the protocol specified by
+src_scheme[:exports code]{#:websocket} configuration. The protocol is customizable based on protobuf.
+/NOTE: The customized protocol hasn't been implemented yet./
+
+#+BEGIN_SRC scheme
+(websocket-frame-head <websocket-frame>)
+(websocket-frame-final-fragment? <websocket-frame>)
+(websocket-frame-opcode <websocket-frame>)
+(websocket-frame-payload <websocket-frame>)
+(websocket-frame-mask <websocket-frame>)
+#+END_SRC
+Get the Websocket frame information, see [[https://tools.ietf.org/html/rfc6455#page-27][Data framing]].
++ *head* is the first 2 bytes in the data frame.
++ *final-fragment* means it's the last frame in a session.
++ *opcode* is the opcode in the frame, see [[Websocket opcode][Websocket opcode]].
++ *payload* is the actual data which is encoded.
++ *mask* is the mask of the frame.
+
+** Websocket opcode
+
+Defines the interpretation of the "Payload data". If an unknown opcode is received,
+the receiving endpoint MUST fail the WebSocket connection.
+
+#+BEGIN_SRC scheme
+;;  check if it's a continuation frame
+(is-continue-frame? opcode)
+
+;;  check if it's text frame
+(is-text-frame? opcode)
+
+;; check if it's binary frame
+(is-binary-frame? opcode)
+
+;; check if it's control frame
+(is-control-frame? opcode)
+(is-non-control-frame? opcode)
+
+;;  websocket requires closing
+(is-close-frame? opcode)
+
+;;  check if it's a ping frame
+(is-ping-frame? opcode)
+
+;;  check if it's a pong frame
+(is-pong-frame? opcode)
+
+;;  %xB-F are reserved for further control frames
+(is-reserved-frame? opcode)
+
+#+END_SRC
 * Ragnarok server core
 ** Introduction
 Since 0.2, GNU Artanis has a strong server core for high concurrency. It is named Ragnarok.
@@ -1744,7 +1958,7 @@ the design of GNU Artanis:
 (to be continued ...)
 
 ** Features
-In Artanis, the request handling could be scheduled when the socket buffer is full (depends on server.bufsize).
+In Artanis, the request handling could be scheduled when the socket buffer is full (depends on src_conf[:exports code]{server.bufsize}).
 And let other request's handler run. Just like the scheduling of OS but it's in the userland.
 
 So if it's the buffer issue when scheduling, then there's no way to flush before break since we can't tell if the
@@ -1759,6 +1973,7 @@ dispatched by the Linux kernel.
 
 ** Ragnarok APIs
 You may use these APIs for customizing your own server core.
+
 (to be continued ...)
 * Utils
 *The functions listed below requires to import [[https://gitlab.com/NalaGinrut/artanis/blob/master/artanis/utils.scm][(artanis utils)]] module.*
