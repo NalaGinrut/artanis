@@ -31,9 +31,10 @@
 (define (gen-command cmd args)
   (case cmd
     ((include)
-     (let ((filename (format #f "~a/pub/~a" (current-toplevel) args)))
+     (let ((filename (string-trim-both
+                      (format #f "~a/pub/~a" (current-toplevel) args))))
        (if (file-exists? filename)
-           (apply cat filename #f)
+           (format #f "~s" (cat filename #f))
            (throw 'artanis-err 500 gen-command
                   "Included file `~a' in template doesn't exist!" filename))))
     ((css)
