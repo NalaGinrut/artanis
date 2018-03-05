@@ -56,4 +56,17 @@ Changes in 0.2.1
   fixed: throw cookie for debug while encounter an invalid cookie.
   fixed: search session id from cookies list in rc.
   fixed exception throwing while spawning sessions.
-  
+
+Changes in 0.2.2
+* Notable changes
+  Fixed many bugs.
+  Enable strict URI checking for Ragnarok.
+  Make better exception throwing.
+  Upgrade irregex to v0.9.6.
+  Update guile-json to 0.6.0.
+  Create .gitkeep to make sure the empty folders could be git traced properly.
+  Websocket support (Preliminary).
+  Support LibreJS.
+
+
+
