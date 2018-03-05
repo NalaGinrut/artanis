@@ -31,7 +31,7 @@
   (case cmd
     ((include)
      (if (file-exists? args)
-         (apply cat args #f)
+         (apply cat (string-append "/pub/" args) #f)
          (throw 'artanis-err 500 gen-command
                 "Included file `~a' in template doesn't exist!" args)))
     ((css)
@@ -43,7 +43,7 @@
     (else
      (throw 'artanis-err 500 gen-command
             "Invalid command `~a' in template!" cmd))))
-     
+
 (define (make-parser)
   (lalr-parser
    (code disp-code html command) ; terminal tokens
