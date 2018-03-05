@@ -19,6 +19,7 @@
 
 (define-module (artanis tpl parser)
   #:use-module (artanis utils)
+  #:use-module (artanis env)
   #:use-module (artanis tpl utils)
   #:use-module (artanis tpl lexer)
   #:use-module (system base lalr)
