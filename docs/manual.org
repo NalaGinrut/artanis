@@ -1057,6 +1057,74 @@ Because *external-var* is defined outside the file "my.tpl", and it's bound in /
 If you don't have any external var needs to be referenced, just use src_scheme[:exports code]{(tpl->response "file.tpl")} is fine.
 
 Then see http://localhost:3000/test in your browser.
+
+** Template special commands
+GNU Artanis provide special helper commands.
+
+Please notice that GNU Artanis constrains the path of sources in application folder for
+security reasons. The resources files, CSS, JS etc, should be put int *pub* directory in
+the application folder, or the client can't access them.
+
+Those special commands are useful to expand the path for you, and they should be added
+into the tamplate file, for example:
+#+BEGIN_SRC html
+ <html>
+   <head>
+     <@icon favicon.ico %>
+     <@js functions.js %>
+     <@css blog.css %>
+   </head>
+
+   <@include sidebar.html %>
+
+   <body>
+     ...
+   </body>
+ </html>
+#+END_SRC
+
+*NOTE:* The command name is prefixed with *@*, say, *@include*, *@css*, etc. Please do
+not seperate the *@*, or it will throw excepton.
+
+For example, you may include html files with *include* command:
+#+BEGIN_SRC scheme
+;; @include is the command name, not <@ include filename %>
+<@include filename.html %>
+#+END_SRC
+This will be expanded like this:
+#+BEGIN_SRC bash
+/current_toplevel/pub/filename.html
+#+END_SRC
+*NOTE:* Please make sure the included file is put to *pub* directory in the application
+folder.
+
+To reference CSS file:
+#+BEGIN_SRC scheme
+<@css filename.css %>
+#+END_SRC
+This will be expanded like this:
+#+BEGIN_SRC html
+<link rel="stylesheet" href="/pub/css/filename.css">
+#+END_SRC
+
+To reference JS file in the HTML head:
+#+BEGIN_SRC scheme
+<@js filename.js %>
+#+END_SRC
+This will be expanded like this:
+#+BEGIN_SRC html
+<script type="text/javascript" src="/pub/js/filename.js"> </script>
+#+END_SRC
+
+To specify the icon:
+#+BEGIN_SRC scheme
+<@icon favicon.ico %>
+#+END_SRC
+This will be expanded like this:
+#+BEGIN_SRC html
+<link rel="icon" href="/pub/img/favicon.ico" type="image/x-icon">
+#+END_SRC
+
 ** SXML Templating
 [[http://en.wikipedia.org/wiki/SXML][SXML]] is an alternative syntax for writing XML data, using the form of S-expressions.
 
@@ -1750,12 +1818,12 @@ Here're the *config-patterns*:
   + /sql-template/ is decribed in [[SQL Mapping (experimental)][SQL-Mapping]].
 
 * Websocket (Experimental)
-** Introduction
+** Websocket introduction
 Websocket is becoming more and more important for modern web development. GNU Artanis
 is trying to provide an industrial strenth and efficient Websocket implementation.
 Moreover, Websocket is important for the design of GNU Artanis, please see [[Principles][Principles]] for more details.
 
-** Basic usage
+** Websocket basic usage
 
 /(The Websocket support is still experimental and unfinished, only demo works, please don't use it)/
 
@@ -1841,8 +1909,8 @@ The *simple_pattern* could be:
 #+END_SRC
 This is used for redirecting Websocket stream to other address.
 ip/usk means ip or unix-socket, the pattern should be this:
- + ^ip://(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(:[0-9]{1,5})?$
- + ^unix://[a-zA-Z-_0-9]+\\.socket$
+ + src_scheme[:exports code]{^ip://(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(:[0-9]{1,5})?$}
+ + src_scheme[:exports code]{^unix://[a-zA-Z-_0-9]+\\.socket$}
 
 #+BEGIN_SRC scheme
 #:websocket `(proxy ,protocol)
