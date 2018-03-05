@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -30,7 +30,7 @@
 (define (gen-command cmd args)
   (case cmd
     ((include)
-     (let ((filename (format #f "~a/pub/" (current-toplevel) args)))
+     (let ((filename (format #f "~a/pub/~a" (current-toplevel) args)))
        (if (file-exists? filename)
            (apply cat filename #f)
            (throw 'artanis-err 500 gen-command
