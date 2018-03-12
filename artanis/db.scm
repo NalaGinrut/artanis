@@ -77,7 +77,7 @@
   (match sqlite3
     (($ <sqlite3> ($ <db> _ username passwd) dbname)
      ;; FIXME: is it necessary for sqlite3 to require username/passwd??
-     ;; NOTE: sqlite3 requires the dbname to postfixed by ".db", or it
+     ;; NOTE: sqlite3 requires the dbname to be postfixed by ".db", or it
      ;;       complains that DB open failed.
      (string-append dbname ".db"))
     (else (error 'sqlite3 "Wrong connection config!" sqlite3))))
