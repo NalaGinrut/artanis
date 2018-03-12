@@ -76,7 +76,10 @@
 (define (->sqlite3 sqlite3)
   (match sqlite3
     (($ <sqlite3> ($ <db> _ username passwd) dbname)
-     dbname) ; FIXME: is it necessary for sqlite3 to require username/passwd??
+     ;; FIXME: is it necessary for sqlite3 to require username/passwd??
+     ;; NOTE: sqlite3 requires the dbname to postfixed by ".db", or it
+     ;;       complains that DB open failed.
+     (string-append dbname ".db"))
     (else (error 'sqlite3 "Wrong connection config!" sqlite3))))
 
 (define-record-type <postgresql>
@@ -155,11 +158,14 @@
       (else (error new-DB "Something is wrong, invalid db!" db)))))
 
 (define (create-new-DB-conn)
-  (let ((conn (DB-do-conn! (new-DB))))
+  (let ((conn (DB-do-conn! (new-DB)))
+        (dbd (get-conf '(db dbd)))
+        (db-name (get-conf '(db name))))
     (when (not (db-conn-success? conn))
       (error init-connection-pool "Database connect failed: "
              (db-conn-failed-reason conn)))
-    (DB-query conn (->sql use (get-conf '(db name))))
+    (when (not (eq? dbd 'sqlite3)) ; sqlite3 doesn't support 'USE' statement
+      (DB-query conn (->sql use db-name)))
     conn))
 
 (define (get-conn-from-pool)
