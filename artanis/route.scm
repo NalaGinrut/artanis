@@ -155,15 +155,14 @@
 (define (init-query! rc)
   ;; NOTE: All the prefix/postfix ":" in query/post keys are trimmed.
   ;;       Because only rule keys can use such naming.
-  (define (-> x)
-    (string-trim-both x (lambda (c) (member c '(#\sp #\: #\return)))))
+  (define (-> x) (string-trim-both x))
   (let ((str (case (rc-method rc)
                ((GET) (uri-query (request-uri (rc-req rc))))
                ;; The accessor of GET and POST should be divided
                ((POST PUT DELETE HEAD OPTIONS PATCH) #f) ; don't handle post here
                (else (throw 'artanis-err 405 init-query!
                             "wrong method for query!" (rc-method rc))))))
-    (if str
+    (if (and str (string-index str #\=))
         (rc-qt! rc (map (lambda (x)
                           (map -> (string-split x #\=)))
                         (string-split str #\&)))
