@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2016,2017
+;;  Copyright (C) 2014,2015,2016,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -83,11 +83,11 @@
      (else body))) ; just let it be checked by http-write
   (call-with-values
       (lambda ()
-        (if (thunk? handler) 
-            (handler) 
+        (if (thunk? handler)
+            (handler)
             (handler rc)))
     (lambda* (body #:key (pre-headers (prepare-headers '()))
-                   (status 200) 
+                   (status 200)
                    (mtime (generate-modify-time (current-time)))
                    (request-status 'ok))
       (let* ((reformed-body (->bytevector body))
@@ -96,7 +96,7 @@
                               #:headers `((server . ,(get-conf '(server info)))
                                           (last-modified . ,mtime)
                                           ,(gen-content-length reformed-body)
-                                          ,@pre-headers 
+                                          ,@pre-headers
                                           ,@(generate-cookies (rc-set-cookie rc))))))
         (run-before-response-hooks rc body)
         (let ((type (assq-ref pre-headers 'content-type)))
@@ -125,7 +125,7 @@
   (response-emit "" #:status status))
 
 ;; NOTE: last-modfied in #:headers will be ignored, it should be in #:mtime
-(define* (response-emit body #:key (status 200) 
+(define* (response-emit body #:key (status 200)
                         (headers '())
                         (mtime (current-time))
                         (request-status 'ok))
@@ -160,7 +160,7 @@
    (else #f))) ; wrong param causes 404
 
 ;; 301 is good for SEO and avoid some client problem
-;; Use `URL scheme' incase users need to redirect to HTTPS or others. 
+;; Use `URL scheme' incase users need to redirect to HTTPS or others.
 (define* (redirect-to rc path #:key (status 301) (scheme 'http))
   (response-emit
    ""
@@ -189,22 +189,22 @@
       (lambda ()
         (let* ((in (open-input-file filename))
                (size (stat:size (stat filename))))
-         (generate-response-with-file
-          filename
-          (make-file-sender
-           size
-           (lambda ()
-             ;; NOTE: In Linux, non-blocking for regular file (not a socket) is basically
-             ;;       unsupported!!! So we have to find a way to make sure the regular file
-             ;;       reading is non-blocking, or the whole Ragnarok will be blocked.
-             ;; TODO: use splice to make a real non-blocking version.
-             ;; TODO: support trunked length requesting for continously downloading.
-             (future
-              (begin
-                (sendfile out in size)
-                (force-output out)
-                (DEBUG "File `~a' sending over!" filename)
-                (close in))))))))
+          (generate-response-with-file
+           filename
+           (make-file-sender
+            size
+            (lambda ()
+              ;; NOTE: In Linux, non-blocking for regular file (not a socket) is basically
+              ;;       unsupported!!! So we have to find a way to make sure the regular file
+              ;;       reading is non-blocking, or the whole Ragnarok will be blocked.
+              ;; TODO: use splice to make a real non-blocking version.
+              ;; TODO: support trunked length requesting for continously downloading.
+              (future
+               (begin
+                 (sendfile out in size)
+                 (force-output out)
+                 (DEBUG "File `~a' sending over!" filename)
+                 (close in))))))))
     (lambda (mtime status body mime)
       (cond
        ((= status 200)
@@ -216,6 +216,6 @@
        (else (response-emit body #:status status))))))
 
 ;; When you don't want to use cache, use static-page-emitter.
-(define (static-page-emitter rc)
-  (emit-response-with-file (static-filename (rc-path rc))
+(define* (static-page-emitter rc #:key (dir ""))
+  (emit-response-with-file (string-append dir (static-filename (rc-path rc)))
                            (request-port (rc-req rc))))
