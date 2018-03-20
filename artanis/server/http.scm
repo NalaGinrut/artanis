@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016,2017
+;;  Copyright (C) 2016,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -47,7 +47,7 @@
     ;; NOTE: `shutdown' is preferred here to stop receiving data.
     ;;       Then try to send all the rest data.
     ;; NOTE: We can't just close it here, if we do so, then we've lost the information
-    ;;       to get fd from port which is the key to remove task from work-table. 
+    ;;       to get fd from port which is the key to remove task from work-table.
     (when (not peer-shutdown?)
       (DEBUG "Peer is not shutdown, let me close it for an end~%")
       (catch #t
@@ -82,6 +82,20 @@
     (write-response (build-response #:version '(1 . 1) #:code status
                                     #:headers '((content-length . 0)))
                     port))
+  (define (try-to-read-request port)
+    (catch #t
+      (lambda ()
+        (read-request port))
+      (lambda (k . e)
+        (case k
+          ;; TODO: how about bad-response for proxy?
+          ((http-version bad-header bad-header-component bad-request)
+           (DEBUG "ERROR in read-request: ~a~%" e)
+           (bad-request 400 port)
+           (%%raw-close-connection server client #f)
+           (simply-quit))
+          (else
+           (apply throw k e))))))
   (define (try-to-read-request-body req)
     (DEBUG "try to read request body ~a~%" req)
     (let ((content-length (or (request-content-length req) 0))
@@ -102,7 +116,7 @@
       (%%raw-close-connection server client #t)
       (simply-quit))
      (else
-      (let* ((req (read-request port))
+      (let* ((req (try-to-read-request port))
              (need-websocket?
               ;; NOTE: This step includes handshake if it hasn't done it.
               (detect-if-connecting-websocket req server client))
