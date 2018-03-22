@@ -46,11 +46,10 @@
             <connection>?))
 
 ;; NOTE:
-;; <db> is only used for store connect config info, it doens't contain
-;; connection object. It's useless when the connection-pool init is down.
+;; <db> is the temporal info of specific database config, it doens't contain
+;; connection object. It's useless when the connection-pool init is finished.
 (define-record-type <db>
-  (fields
-   username passwd))
+  (fields username passwd))
 
 (define-record-type <mysql>
   (parent <db>)
