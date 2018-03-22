@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -125,7 +125,7 @@
                route-context?
                get-header
                get-from-qstr
-               
+
                ;; csv
                make-csv-reader
                csv->xml
@@ -142,7 +142,7 @@
                json-parser?
                json-parser-port
                json
-               
+
                ;; upload
                mfd-simple-dump
                make-mfd-dumper
@@ -164,6 +164,9 @@
                mfd-simple-dump-all
                store-uploaded-files
                upload-files-to
+
+               ;; server
+               schedule-task
 
                ;; version
                artanis-version)
@@ -206,39 +209,39 @@
                    (class #f) (tag-class #f) (tag-id #f) (form-method "get"))
   (lambda tags
     (call-with-output-string
-     (lambda (port)
-       (format port "<form accept-charset='~a'" (get-conf '(server charset)))
-       (format port " action='~a'"
-               (call-with-output-string
-                (lambda (port2)
-                  (display "/" port2)
-                  (and controller (format port2 "~a/" controller))
-                  (and action (format port2 "~a?" action))
-                  (and method (format port2 "method=~a" method))
-                  (and class (format port2 "&class=~a" class)))))
-       (format port " method='~a'" method)
-       (and tag-class (format port " class='~a'" tag-class))
-       (and tag-id (format port " id='~a'" tag-id))
-       (display ">\n" port)
-       (for-each (lambda (tag) (format port "~a~%" tag)) tags)
-       (format port "</form>~%")))))
+      (lambda (port)
+        (format port "<form accept-charset='~a'" (get-conf '(server charset)))
+        (format port " action='~a'"
+                (call-with-output-string
+                  (lambda (port2)
+                    (display "/" port2)
+                    (and controller (format port2 "~a/" controller))
+                    (and action (format port2 "~a?" action))
+                    (and method (format port2 "method=~a" method))
+                    (and class (format port2 "&class=~a" class)))))
+        (format port " method='~a'" method)
+        (and tag-class (format port " class='~a'" tag-class))
+        (and tag-id (format port " id='~a'" tag-id))
+        (display ">\n" port)
+        (for-each (lambda (tag) (format port "~a~%" tag)) tags)
+        (format port "</form>~%")))))
 
 (define (make-general-tag tag)
   (lambda attrs
     (lambda (contents)
       (call-with-output-string
-       (lambda (port)
-         (format port "<~a" tag)
-         (let lp((next attrs))
-           (cond
-            ((null? next)
-             (display ">\n" port)
-             (display contents port)
-             (newline port)
-             (format port "</~a>" tag))
-            (else
-             (format port " ~a='~a'" (keyword->symbol (car next)) (cadr next))
-             (lp (cddr attrs))))))))))
+        (lambda (port)
+          (format port "<~a" tag)
+          (let lp((next attrs))
+            (cond
+             ((null? next)
+              (display ">\n" port)
+              (display contents port)
+              (newline port)
+              (format port "</~a>" tag))
+             (else
+              (format port " ~a='~a'" (keyword->symbol (car next)) (cadr next))
+              (lp (cddr attrs))))))))))
 
 (define label-tag (make-general-tag 'label))
 (define a-tag (make-general-tag 'a))
@@ -291,12 +294,12 @@
     (init-DB)
     (display "DB init done!\n")
     (when (eq? 'db (get-conf '(session backend)))
-          (session-init)
-          (display "Session with DB backend init done!\n")))
+      (session-init)
+      (display "Session with DB backend init done!\n")))
   (case (get-conf '(session backend))
     ((db)
      (when (not (get-conf 'use-db?))
-           (error "Session with DB backend init failed because you didn't enable DB!")))
+       (error "Session with DB backend init failed because you didn't enable DB!")))
     (else
      (session-init)
      (format #t "Session with ~:@(~a~) backend init done!~%"
