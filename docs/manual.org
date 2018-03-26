@@ -30,11 +30,11 @@ This manual documents GNU Artanis, a fast, monolithithic web framework of Scheme
 
 A [[http://en.wikipedia.org/wiki/Web_application_framework][web application framework (WAF)]] is a software framework that is designed to support the development of dynamic websites,
 web applications, web services and web resources.
-The framework aims to alleviate the overhead associated with common activities performed in web development.
-GNU Artanis provides several tools for web development: database access, templating frameworks, session management, [[http://en.wikipedia.org/wiki/Rewrite_engine][URL-remapping]] for [[http://en.wikipedia.org/wiki/Representational_state_transfer][RESTful]], page caching, and so on.
+This framework aims to alleviate the overhead associated with common activities in web development.
+GNU Artanis provides several tools for web development: database access, templating frameworks, session management, [[http://en.wikipedia.org/wiki/Rewrite_engine][URL-remapping]] for [[http://en.wikipedia.org/wiki/Representational_state_transfer][RESTful]], page caching, and more.
 
 Guile is the GNU Ubiquitous Intelligent Language for Extensions, the official extension language for the [[http://www.gnu.org/][GNU operating system]].
-Guile is also an interpreter and compiler for other dynamic programming languages except Scheme programming language.
+Guile is also an interpreter and compiler for other dynamic programming languages including Scheme.
 
 [[http://en.wikipedia.org/wiki/Scheme_%28programming_language%29][Scheme]] is a functional programming language and one of the two main dialects of the programming language [[http://en.wikipedia.org/wiki/Lisp_(programming_language)][Lisp]].
 Scheme follows a minimalist design philosophy specifying a small standard core with powerful tools for language extension.
