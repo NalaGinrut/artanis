@@ -26,7 +26,7 @@ Texts.  A copy of the license is included in the section entitled ``GNU
 Free Documentation License''.
 #+end_src
 
-This manual describes the use of GNU Artanis and its API.
+This manual documents GNU Artanis, a fast, monolithithic web framework of Scheme.
 
 A [[http://en.wikipedia.org/wiki/Web_application_framework][web application framework (WAF)]] is a software framework that is designed to support the development of dynamic websites,
 web applications, web services and web resources.
