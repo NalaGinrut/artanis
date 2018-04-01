@@ -56,7 +56,7 @@ Options:
   -f, [--force]    # Overwrite files that already exist
   -s, [--skip]     # Skip files that already exist
                    # If -s and -f are both provided, -f will be enabled
-  -q, [--quiet]    # Suppress status output                   
+  -q, [--quiet]    # Suppress status output
 
 Example:
   art draw model myblog
@@ -137,10 +137,13 @@ Example:
       (%draw-test name)))))
 
 (define (%draw-migration name)
+  (when (not (is-valid-table-name? name))
+    (throw 'arranis-err 500 "Migrate: Invalid table name `~a'"
+           name))
   (let* ((path (current-toplevel))
          (entry (string-append path "/ENTRY"))
          (t (strftime "%Y%m%d%H%M%S" (localtime (current-time))))
-         (f (format #f "~a_~a.scm" t name))
+         (f (format #f "~a_~a.scm" name t))
          (cpath (string-append path "/db/migration/" f)))
     (cond
      ((not (verify-ENTRY entry))

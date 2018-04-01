@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -88,13 +88,13 @@
             get-string-all-with-detected-charset make-unstop-exception-handler
             artanis-log exception-from-client exception-from-server render-sys-page
             bv-copy/share bv-backward artanis-list-matches get-syspage
-            artanis-sys-response)
+            artanis-sys-response char-predicate handle-upload is-valid-table-name?)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
 (define* (get-random-from-dev #:key (length 8) (uppercase #f))
-  (call-with-input-file "/dev/urandom" 
-    (lambda (port)  
+  (call-with-input-file "/dev/urandom"
+    (lambda (port)
       (let* ((bv ((@ (rnrs) get-bytevector-n) port length))
              (str (format #f "~{~2,'0x~}" ((@ (rnrs) bytevector->u8-list) bv))))
         (if uppercase
@@ -122,7 +122,7 @@
 (define request-port (@ (web request) request-port))
 
 (define-syntax-rule (local-eval-string str e)
-  (local-eval 
+  (local-eval
    (call-with-input-string (format #f "(begin ~a)" str) read)
    e))
 
@@ -160,27 +160,27 @@
 
 ;; default time is #f, get current time
 (define* (get-global-time #:optional (time #f) (nsec 0))
-  (call-with-output-string 
+  (call-with-output-string
    (lambda (port)
      ;; NOTE: (time-utc->data t 0) to get global time.
-     (write-date 
-      (time-utc->date 
+     (write-date
+      (time-utc->date
        (if time (make-time 'time-utc nsec time) (current-time))
        0)
       port))))
 
 ;; default time is #f, get current time
 (define* (get-local-time #:optional (time #f) (nsec 0))
-  (call-with-output-string 
+  (call-with-output-string
    (lambda (port)
      ;; NOTE: (time-utc->data t) to get local time.
-     (write-date 
-      (time-utc->date 
+     (write-date
+      (time-utc->date
        (if time (make-time 'time-utc nsec time) (current-time)))
       port))))
 
 (define* (regexp-split regex str #:optional (flags 0))
-  (let ((ret (fold-matches 
+  (let ((ret (fold-matches
               regex str (list '() 0 str)
               (lambda (m prev)
                 (let* ((ll (car prev))
@@ -227,33 +227,33 @@
 (define (string-substitute str re what)
   (regexp-substitute/global #f re str 'pre what 'post))
 
-(define-syntax get-file-ext               
+(define-syntax get-file-ext
   (syntax-rules ()
     ((_ filename)
      (substring/shared filename
                        (1+ (string-index-right filename #\.))))))
 
 (define* (get-global-date #:optional (time #f))
-  (parse-header 'date 
+  (parse-header 'date
                 (if time
-                    (get-global-time (car time) (cdr time)) 
+                    (get-global-time (car time) (cdr time))
                     (get-global-time))))
 
 (define* (get-local-date #:optional (time #f))
-  (parse-header 'date 
+  (parse-header 'date
                 (if time
-                    (get-local-time (car time) (cdr time)) 
+                    (get-local-time (car time) (cdr time))
                     (get-local-time))))
 
-(define (nfx exp)   
+(define (nfx exp)
   (let lp((rest exp) (result '()) (cur #f))
-    (cond 
+    (cond
      ((null? rest) result)
      ((null? result)
-      (let ((e (list (cadr rest) (car rest) (caddr rest)))) 
+      (let ((e (list (cadr rest) (car rest) (caddr rest))))
         (lp (cdddr rest) e (car rest))))
      (else
-      (let ((e (list cur result (cadr rest)))) 
+      (let ((e (list cur result (cadr rest))))
         (lp (cddr rest) e #f))))))
 
 (define-syntax-rule (static-filename path)
@@ -288,11 +288,11 @@
 (define-public ACCESS_WRITE             #x2)
 (define-public ALLOCATIONGRANULARITY #x1000)
 
-(define-public PROT_READ       #x1)       
-(define-public PROT_WRITE      #x2)       
-(define-public PROT_EXEC       #x4)       
-(define-public PROT_SEM        #x8)       
-(define-public PROT_NONE       #x0)       
+(define-public PROT_READ       #x1)
+(define-public PROT_WRITE      #x2)
+(define-public PROT_EXEC       #x4)
+(define-public PROT_SEM        #x8)
+(define-public PROT_NONE       #x0)
 (define-public PROT_GROWSDOWN  #x01000000)
 (define-public PROT_GROWSUP    #x02000000)
 
@@ -316,7 +316,7 @@
   (pointer->procedure int
                       (dynamic-func "munmap" *libc-ffi*)
                       (list '* size_t) #:return-errno? #t))
-(define* (mmap size #:key (addr %null-pointer) (fd -1) (prot MAP_SHARED) 
+(define* (mmap size #:key (addr %null-pointer) (fd -1) (prot MAP_SHARED)
                (flags PROT_READ) (offset 0) (bv? #f))
   (let ((ret (if bv? (lambda (p) (pointer->bytevector p size)) identity)))
     (ret (%mmap addr size prot flags fd offset))))
@@ -330,11 +330,11 @@
 ;; FIXME: what if len is not even?
 (define (string->byteslist str step base)
   (define len (string-length str))
-  (let lp((ret '()) (i 0)) 
-    (cond 
+  (let lp((ret '()) (i 0))
+    (cond
      ((>= i len) (reverse ret))
-     ((zero? (modulo i step)) 
-      (lp (cons (string->number (substring/shared str i (+ i step)) base) ret) (1+ i))) 
+     ((zero? (modulo i step))
+      (lp (cons (string->number (substring/shared str i (+ i step)) base) ret) (1+ i)))
      (else (lp ret (1+ i))))))
 
 (define (string->sha-1 str/bv)
@@ -351,26 +351,26 @@
     ((_ ll lo : hi)
      (let ((len (length ll)))
        (and (<= lo len) (>= len hi)
-	    (let lp((rest ll) (result '()) (cnt 1))
-	      (cond
-	       ((null? rest) (error "no"))
-	       ((<= cnt lo) (lp (cdr rest) result (1+ cnt)))
-	       ((> cnt hi) (reverse result))
-	       (else (lp (cdr rest) (cons (car rest) result) (1+ cnt))))))))
+      (let lp((rest ll) (result '()) (cnt 1))
+        (cond
+         ((null? rest) (error "no"))
+         ((<= cnt lo) (lp (cdr rest) result (1+ cnt)))
+         ((> cnt hi) (reverse result))
+         (else (lp (cdr rest) (cons (car rest) result) (1+ cnt))))))))
     ((_ ll lo :)
      (drop ll lo))
     ((_ ll : hi)
      (take ll hi))))
 
-;; TODO: 
+;; TODO:
 ;; 1. (> hi (bytevector-length bv))
 ;; 2. (< lo 0) wrap reference
-(define (%bv-slice bv lo hi) 
-  (let* ((len (- hi lo)) 
+(define (%bv-slice bv lo hi)
+  (let* ((len (- hi lo))
          (slice ((@ (rnrs) make-bytevector) len)))
     ((@ (rnrs) bytevector-copy!) bv lo slice 0 len) slice))
 
-;; NOT SAFE %bytevector-slice for GC, need 
+;; NOT SAFE %bytevector-slice for GC, need
 ;;(define (%bytevector-slice bv lo hi)
 ;;  (and (< hi lo) (error %bytevector-slice "wrong range" lo hi))
 ;;  (let* ((ptr (bytevector->pointer bv))
@@ -391,8 +391,8 @@
 ;; get the unified basename both POSIX and WINDOWS
 (define (uni-basename filename)
   (substring filename
-             (1+ 
-              (string-index-right filename 
+             (1+
+              (string-index-right filename
                                   (lambda (c) (or (char=? c #\\) (char=? c #\/)))))))
 
 ;; FIXME: checkout-the-path only support POSIX file path
@@ -408,7 +408,7 @@
       (cond
        ((null? next) #t)
        ((string-null? (car next)) (lp (cdr next) last))
-       (else 
+       (else
         (let ((now-path (string-append last (car next) "/")))
           (cond
            ((file-exists? now-path)
@@ -427,16 +427,16 @@
 ;;   (define ll '()) ; list for all keywords
 ;;   (define lv '()) ; list for default value
 ;;   (define template
-;;     (irregex-replace/all 
+;;     (irregex-replace/all
 ;;      ;;"(\\$\\{([^$])+\\})"
 ;;      *stpl-SRE* str
-;;      (lambda (m) 
+;;      (lambda (m)
 ;;        (cond
 ;;         ((irregex-match-substring m 'dollar) "$")
 ;;         ((irregex-match-substring m 'tilde) "~~")
 ;;         (else
 ;;          (let* ((var (irregex-match-substring m 1))
-;;                 (key (symbol->keyword (string->symbol 
+;;                 (key (symbol->keyword (string->symbol
 ;;                                        (irregex-match-substring m 'name))))
 ;;                 (v (kw-arg-ref opts key)))
 ;;            (and v (set! lv (cons (cons key v) lv))) ; default value
@@ -444,7 +444,7 @@
 ;;            (set! lk (cons var lk))
 ;;            "~a"))))))
 ;;   (lambda args
-;;     (let ((vals (map (lambda (x) 
+;;     (let ((vals (map (lambda (x)
 ;;                        (or (kw-arg-ref args x) (assoc-ref lv x)
 ;;                            (if mode (assoc-ref lk x) "NONE"))) ll)))
 ;;     (format #f "~?" template (reverse vals)))))
@@ -536,7 +536,7 @@
 (define stack-push! q-push!)
 (define stack-top q-front)
 (define stack-remove! %q-remove-with-key!)
-(define stack-empty? q-empty?) 
+(define stack-empty? q-empty?)
 (define stack-length q-length)
 (define (stack->list stk) (list-copy (stack-slots stk)))
 
@@ -935,7 +935,7 @@
 (define Gbytes (ash 1 30))
 (define Mbytes (ash 1 20))
 (define Kbytes (ash 1 10))
-(define (filesize size) 
+(define (filesize size)
   (cond
    ((>= size Gbytes)
     (format #f "~,1fGiB" (/ size Gbytes)))
@@ -1200,7 +1200,7 @@
     ((ipv6) AF_INET6)
     (else (throw 'artanis-err 500 get-family "Invalid (host family)!"
                  (get-conf '(host family))))))
-        
+
 (define (get-addr)
   (let ((host (get-conf '(host addr)))
         (family (get-family)))
@@ -1305,7 +1305,7 @@
 (define (format-status-page/client status request)
   (format (current-error-port) (ERROR-TEXT "[EXCEPTION] ~a is abnormal request, status: ~a, ")
           (uri-path (request-uri request)) status)
-  (display "rendering a sys page for it...\n" (current-error-port)) 
+  (display "rendering a sys page for it...\n" (current-error-port))
   (render-sys-page 'client status request))
 
 (define (format-status-page/server status)
@@ -1395,3 +1395,39 @@
                   #:headers `((server . ,(get-conf '(server info)))
                               ,(gen-content-length bv-body)
                               (content-type . (text/html)))))
+
+(define (char-predicate string)
+  (let ((cs (string->char-set string)))
+    (lambda (c)
+      (and (not (eof-object? c)) (char-set-contains? cs c)))))
+
+(define (handle-upload thunk)
+  (catch 'system-error
+    thunk
+    (lambda e
+      (let ((errno (system-error-errno e)))
+        (cond
+         ((= errno ENOMEM)
+          ;; NOTE: Out of memory, call (gc) and throw 507
+          (format (artanis-current-output) "No memory! Run GC now!~%")
+          (gc)
+          (throw 'artanis-err 507 handle-upload
+                 "Server is out of RAMs, please extend more RAMs!~%"))
+         ((= errno EIO)
+          ;; NOTE: The storage device was disconnected, just throw 507
+          (throw 'artanis-err 507 handle-upload
+                 "Server is not available, maybe storage media was disconnected?~%"))
+         ((= errno ENOSPC)
+          ;; NOTE: no space for uploading, just throw 507
+          (throw 'artanis-err 507 handle-upload
+                 "Server has insufficient storage space!~%"))
+         (else
+          ;; nothing noticed, re-throw it to next level.
+          (apply throw e)))))))
+
+;;for verify db table name
+(define invalid-char-set? (char-predicate "*&-{}[]?.\\%$#@!,"))
+
+(define is-valid-table-name?
+  (lambda (name)
+    (not (string-any invalid-char-set? name))))

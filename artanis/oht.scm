@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2016,2017
+;;  Copyright (C) 2014,2015,2016,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -299,31 +299,14 @@
       ((or #t 'query-string 'qstr) (post->qstr-table rc))
       ('qstr-safe (post->qstr-table rc 'safe))
       ((or 'bv 'bytevector) (rc-body rc))
+      ;; Get mfds and handle it by yourself
+      ;; You may rename the uploaded files, get the key-value from the body
+      ;; or anything you want from mfd.
+      (('get-mfds-op-from-post rest ...)
+       (apply get-mfds-op-from-post rc rest))
       ;; upload operation, indeed
       (('store rest ...)
-       (catch 'system-error
-         (lambda ()
-           (apply store-the-bv rc rest))
-         (lambda e
-           (let ((errno (system-error-errno e)))
-             (cond
-              ((= errno ENOMEM)
-               ;; NOTE: Out of memory, call (gc) and throw 507
-               (format (artanis-current-output) "No memory! Run GC now!~%")
-               (gc)
-               (throw 'artanis-err 507 post-handler
-                      "Server is out of RAMs, please extend more RAMs!~%"))
-              ((= errno EIO)
-               ;; NOTE: The storage device was disconnected, just throw 507
-               (throw 'artanis-err 507 post-handler
-                      "Server is not available, maybe storage media was disconnected?~%"))
-              ((= errno ENOSPC)
-               ;; NOTE: no space for uploading, just throw 507
-               (throw 'artanis-err 507 post-handler
-                      "Server has insufficient storage space!~%"))
-              (else
-               ;; nothing noticed, re-throw it to next level.
-               (apply throw e)))))))
+       (handle-upload (lambda () (apply store-the-bv rc rest))))
       (else (throw 'artanis-err 500 post-handler "Invalid mode `~a'!" mode))))
   (define (get-values-from-post pl . keys)
     (apply

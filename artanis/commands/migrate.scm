@@ -66,17 +66,17 @@
 
 (define (%migrate op name opts)
   (define *mfile-re*
-    (string->irregex (format #f "^(\\d{14})_~a\\.scm$" name)))
+    (string->irregex (format #f "^~a_(\\d{14})\\.scm$" name)))
   (define (compare-mfile x y)
-    (let ((mx (irregex-match-substring (irregex-search *mfile-re* x) 1))
-          (my (irregex-match-substring (irregex-search *mfile-re* y) 1)))
-      (>= (string->number mx) (string->number my))))
+  (let ((mx (irregex-match-substring (irregex-search *mfile-re* x) 1))
+        (my (irregex-match-substring (irregex-search *mfile-re* y) 1)))
+    (>= (string->number mx) (string->number my))))
   (define (is-mfile s) (irregex-search *mfile-re* s))
   (define path (format #f "~a/db/migration" (current-toplevel)))
   (define (gen-migrate-file)
     (cond
      ((assoc-ref opts 'version)
-      => (lambda (v) (format #f "~a/~a_~a.scm" path v name)))
+      => (lambda (v) (format #f "~a/~a_~a.scm" path name v)))
      (else
       (let ((fl (scandir path is-mfile)))
         (match (sort fl compare-mfile)

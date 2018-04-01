@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2017
+;;  Copyright (C) 2013,2014,2015,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -29,9 +29,9 @@
   #:use-module (srfi srfi-1)
   #:use-module ((rnrs)
                 #:select (get-bytevector-all utf8->string put-bytevector
-                          call-with-bytevector-output-port string->utf8
-                          bytevector-length define-record-type
-                          bytevector-u8-ref))
+                                             call-with-bytevector-output-port string->utf8
+                                             bytevector-length define-record-type
+                                             bytevector-u8-ref))
   #:use-module (web request)
   #:use-module (web client)
   #:use-module (web uri)
@@ -54,7 +54,14 @@
             mfd-type
             mfd-simple-dump-all
             store-uploaded-files
-            upload-files-to))
+            get-mfds-op-from-post
+            mfds-operator?
+            mfds-operator-mfds
+            mfds-operator-dumper
+            mfds-op-ref
+            mfds-op-store
+            upload-files-to
+            current-upload-path))
 
 ;; NOTE: mfd stands for "Multipart Form Data"
 
@@ -121,7 +128,8 @@
   (match (string-split line #\:)
     ((k v)
      (-> `(,k ,@(string-split v #\;))))
-    (else (throw 'artanis-err 400 "->mfd-headers: Invalid MFD header!" line))))
+    (else (throw 'artanis-err 400 ->mfd-header
+                 "->mfd-headers: Invalid MFD header!" line))))
 
 ;; NOTE: convert boundary to bytevector before pass in.
 (define (parse-mfds boundary body)
@@ -146,7 +154,8 @@
                 (llen (- end start -1)))
             (lp (+ start llen) (bv-read-line body (+ start llen))
                 (cons (->mfd-header line) ret)))))))
-     (else (throw 'artanis-err 400 "Invalid Multi Form Data header!" body))))
+     (else (throw 'artanis-err 400 get-headers
+                  "Invalid Multi Form Data header!" body))))
   (define (get-content-end from)
     (define btable (build-bv-lookup-table boundary))
     (let lp((i from))
@@ -156,8 +165,8 @@
         (lp (+ i blen)))
        ((is-boundary? i) i)
        (else (lp (1+ i))))))
-        ;; ENHANCEMENT: use Fast String Matching to move forward quicker
-        ;;(lp (1+ (bv-read-line body i)))))))
+  ;; ENHANCEMENT: use Fast String Matching to move forward quicker
+  ;;(lp (1+ (bv-read-line body i)))))))
   (let lp((i 0) (mfds '()))
     (cond
      ((is-end-line? i) mfds)
@@ -172,14 +181,29 @@
              (type (-> headers "Content-Type"))
              (mfd (make-mfd (car dispos) name filename start end type)))
         (lp end (cons mfd mfds))))
-     (else (throw 'artanis-err 422 "Wrong multipart form body!")))))
+     (else (throw 'artanis-err 422 parse-mfds
+                  "Wrong multipart form body!")))))
 
 (define* (make-mfd-dumper body #:key (path (current-upload-path))
                           (uid #f) (gid #f) (path-mode #o775)
                           (mode #o664) (sync #f))
-  (lambda* (mfd #:key (rename #f) (repath #f))
-    (let ((filename (or rename (mfd-filename mfd)))
-          (target-path (or repath path)))
+  (define (gen-new-name oldname renamer)
+    (cond
+     ((not renamer)  oldname)
+     ((string? renamer) renamer)
+     ((procedure? renamer)
+      (let ((newname (renamer oldname)))
+        (if (string? newname)
+            newname
+            (throw 'artanis-err 500 gen-new-name
+                   (format #f "Somehow your renamer generated a bad name ~a!"
+                           newname)))))
+     (else (throw 'artanis-err 500 gen-new-name
+                  (format #f "Invalid renamer ~a!" renamer)))))
+  (lambda* (mfd #:key (renamer #f) (repath #f))
+    (let* ((oldname (mfd-filename mfd))
+           (filename (or (gen-new-name oldname renamer) oldname))
+           (target-path (or repath path)))
       ;; iif the mfd is a valid file
       (when (and filename (string? filename) (not (string-null? filename)))
         (let* ((real-path (format #f "~a/~a" target-path (dirname filename)))
@@ -191,7 +215,7 @@
           (handle-proper-owner des-file uid gid)
           (chmod des-file mode))))))
 
-;; mfd-simple-dump will choose current-upload-path, 
+;; mfd-simple-dump will choose current-upload-path,
 ;; with default filename and path
 (define (mfd-simple-dump rc mfd)
   ((make-mfd-dumper (rc-body rc)) mfd))
@@ -230,19 +254,57 @@
                    `(success ,(get-slist mfds) ,(get-flist mfds)))))))
    (else 'none)))
 
+(define-record-type mfds-operator
+  (fields
+   mfds ; the list of mfd
+   dumper)) ; the dumper
+
+(define (mfds-op-ref rc mo key)
+  (let* ((mfds (mfds-operator-mfds mo))
+         (value-mfd (any (lambda (mfd)
+                           (and (string=? key (mfd-name mfd))
+                                mfd))
+                         mfds)))
+    (if value-mfd
+        (mfd->utf8 rc value-mfd)
+        (throw 'artanis-err 500 mfds-op-ref
+               (format #f "No mfd field named ~a!" key)))))
+
+(define (mfds-op-store mo . args)
+  (let ((file-mfds (mfds-operator-mfds mo))
+        (dumper (mfds-operator-dumper mo)))
+    (handle-upload
+     (lambda ()
+       (for-each (lambda(mfd)
+                   (apply dumper mfd args)) file-mfds)))))
+
+(define* (get-mfds-op-from-post rc #:key (path (current-upload-path))
+                                (uid #f) (gid #f) (simple-ret? #t) (need-mfd? #f)
+                                (mode #o664) (path-mode #o775) (sync #f))
+  (cond
+   ((content-type-is-mfd? rc)
+     => (lambda (boundry)
+          (let ((mfds (parse-mfds (string->utf8 (string-append "--" boundry))
+                                  (rc-body rc)))
+                (dumper (make-mfd-dumper (rc-body rc) #:path path #:mode mode
+                                         #:uid uid #:gid gid #:path-mode path-mode
+                                         #:sync sync)))
+            (make-mfds-operator mfds dumper))))
+   (else (make-mfds-operator '() identity))))
+
 (define (mfds->body mfdsp boundary)
   (call-with-bytevector-output-port
    (lambda (port)
      (for-each
       (lambda (mfdp)
         (let ((mfd (car mfdp))
-              (data (cdr mfdp))) 
+              (data (cdr mfdp)))
           (when (not (mfd? mfd))
             (throw 'artanis-err 500 mfds->body "Invalid <mfd> type: ~a!" mfd))
           (display (mfd-dispos mfd) port)
-          (put-bv port data (mfd-begin mfd) (mfd-end mfd)))
-        mfdsp)
-      (display (string-append "\r\n--" boundary "--\r\n") port)))))
+          (put-bv port data (mfd-begin mfd) (mfd-end mfd))))
+      mfdsp)
+     (display (string-append "\r\n--" boundary "--\r\n") port))))
 
 (define (current-upload-path) (get-conf '(upload path)))
 
@@ -261,7 +323,7 @@
        (format port "--~a\r\n" boundary)
        (format port "Content-Disposition: form-data; name=~s" name)
        (and filename
-            (format port "; filename=~s" filename))       
+            (format port "; filename=~s" filename))
        (and mime (format port "\r\nContent-Type: ~a" mime))
        (display "\r\n\r\n" port))))
   (define-syntax-rule (->file file)
@@ -309,7 +371,7 @@
     ;; Guile web module will count Content-Length for you.
     (http-post uri
                #:body body
-               #:headers `((Content-Type . ,ct)))))
+               #:headers `((Content-Type  ,ct)))))
 
 (define (is-mfds? x)
   (and (list? x) (every mfd? x)))
