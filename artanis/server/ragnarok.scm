@@ -48,7 +48,8 @@
   #:use-module (rnrs bytevectors)
   #:export (establish-http-gateway
             get-task-breaker
-            protocol-service-open))
+            protocol-service-open
+            get-resources-collector))
 
 ;; default socket should be nonblock
 (define (make-listen-socket family addr port)
@@ -128,6 +129,38 @@
     (task-kont task)
     ragnarok-scheduler))
 
+(define (is-task-timeout? task)
+  (let ((ctime (task-create-time task))
+        (timeout (task-timeout task)))
+    (if (zero? timeout)
+        #f ; timeout = 0 means disable connection timeout
+        (>= (- (current-time) ctime) timeout))))
+
+(define (resources-collector)
+  (define (remove-timemout-connections)
+    (let ((wt (work-table-content (current-work-table (current-server))))
+          (http (current-proto))
+          (server (current-server)))
+      (hash-for-each
+       (lambda (_ t)
+         (catch 'resources-collector
+           (lambda ()
+             (when (is-task-timeout? t)
+               (throw 'resources-collector 408 serve-one-request
+                      "The request is timeout!")))
+           (lambda e
+             (call-with-values
+                 (lambda ()
+                   (apply (make-unstop-exception-handler (exception-from-server)) e))
+               (lambda (r b s)
+                 (ragnarok-write http server (task-client t) r b #f)
+                 (ragnarok-close http server (task-client t) #f))))))
+       wt)))
+  ;; TODO: add more collectors
+  (when (> (get-conf '(server timeout)) 0)
+    ;; If timeout is 0 then don't check timeout connections
+    (remove-timemout-connections)))
+
 ;; print-work-table is only used for debugging
 (define (print-work-table server)
   (let ((wt (work-table-content (current-work-table server))))
@@ -158,6 +191,12 @@
                       (format (artanis-current-output)
                               "Ragnarok can't accept request. ~a~%"
                               (strerror EADDRNOTAVAIL))
+                      (parameterize ((current-proto proto)
+                                     (current-server server))
+                        ;; When there's no available port for new requests,
+                        ;; we call resources-collector to recycle timeout
+                        ;; requests.
+                        (resources-collector))
                       #f)
                      (else
                       (DEBUG "Get ~a new connections.~%" (length ret))
@@ -171,7 +210,7 @@
       (DEBUG "listen-socket: ~a = ~a~%" (car e) listen-socket)
       (= (car e) (port->fdes listen-socket))))
   ;;(DEBUG "Start to fill ready queue~%")
-  ;;  (print-work-table server)
+  ;;(print-work-table server)
   (let ((epfd (ragnarok-server-epfd server))
         (events (ragnarok-server-event-set server))
         (timeout (get-conf '(server polltimeout)))
@@ -244,11 +283,6 @@
              #:keep-alive? #t)
   (DEBUG "register End~%"))
 
-(define (task-is-timeout? task)
-  (let ((ctime (task-create-time task))
-        (timeout (task-timeout task)))
-    (>= (- (current-time) ctime) timeout)))
-
 (::define (serve-one-request handler proto server client)
   (:anno: (proc ragnarok-protocol ragnarok-server ragnarok-client) -> ANY)
   (DEBUG "START:  serve ~a~%" (client-sockport client))
@@ -260,7 +294,7 @@
                         (current-server server)
                         (current-client client)
                         (current-task task))
-           (when (task-is-timeout? task)
+           (when (is-task-timeout? task)
              (DEBUG "Peer ~a timeout!~%" client)
              (throw 'artanis-err 408 serve-one-request
                     "The request is timeout!"))
@@ -401,7 +435,7 @@
              (lambda ()
                (catch 'artanis-err
                  (lambda ()
-                   (print-work-table server)
+                   ;;(print-work-table server)
                    (serve-one-request handler http server client))
                  (lambda e
                    (cond
@@ -448,6 +482,7 @@
    'guile
    (lambda () (DEBUG info))
    (lambda _ (DEBUG info))
+   (lambda () (DEBUG "The `guile' engine doesn't have resources collector!"))
    guile-builtin-server-run))
 
 (define (new-ragnarok-engine)
@@ -455,10 +490,16 @@
    'ragnarok
    break-task
    run-task
+   resources-collector
    ragnarok-http-gateway-run))
 
 (define-syntax-rule (get-task-breaker)
   (ragnarok-engine-breaker
+   (lookup-server-engine
+    (get-conf '(server engine)))))
+
+(define-syntax-rule (get-resources-collector)
+  (ragnarok-engine-collector
    (lookup-server-engine
     (get-conf '(server engine)))))
 
