@@ -70,10 +70,12 @@
             remove-redirector!
             get-the-redirector-of-websocket
             is-proxy?
-            
+
             make-task
             task?
             task-client
+            task-create-time
+            task-timeout
             task-keepalive? task-keepalive?-set!
             task-kont task-kont-set!
             task-prio task-prio-set!
@@ -85,7 +87,7 @@
             client-connecting-port
             client-ip
             address->ip
-            
+
             remove-from-work-table!
             add-a-task-to-work-table!
             get-task-from-work-table
@@ -208,6 +210,8 @@
 (define-record-type task
   (fields
    client ; connecting client: <port, opt>
+   create-time ; the created time of task, for timeout checking
+   timeout ; timeout of task
    (mutable keepalive?) ; if keep it alive
    (mutable kont) ; delimited continuation
    (mutable prio))) ; priority
@@ -287,7 +291,7 @@
 
 ;; This is a table to record client and proto pairs (CP pairs), client is the
 ;; key while protocol name is the value.
-;; NOTE: The CP pairs should be recorded in http-open handler, 
+;; NOTE: The CP pairs should be recorded in http-open handler,
 (define *proto-conn-table* (make-hash-table))
 
 (define (specified-proto? client)
