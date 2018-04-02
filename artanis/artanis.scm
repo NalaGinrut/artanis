@@ -202,7 +202,7 @@
   (init-config)
   (init-server-core)
   (check-invalid-config)
-  (sigaction SIGPIPE SIG_IGN)
+  (sigaction SIGPIPE SIG_IGN) ; surpass SIGPIPE signal since we want to handle EPIPE by self
   (set! is-init-server-run? #t))
 
 (define* (form-tag #:key (controller #f) (action #f) (method #f)
