@@ -39,7 +39,7 @@
 ;; on what purpose associated file descriptor serves.
 (define-public EPOLLPRI #x002) ; There is urgent data available for read operations.
 
-(define-public EPOLLOUT #x004) ; The associated file is available for write operations. 
+(define-public EPOLLOUT #x004) ; The associated file is available for write operations.
 (define-public EPOLLWRNORM #x100) ; identical to EPOLLOUT
 
 ;; on some sockets there will be the data send with MSG_OOB flag passed to socket.
