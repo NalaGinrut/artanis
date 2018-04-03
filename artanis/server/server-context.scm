@@ -75,8 +75,8 @@
             make-task
             task?
             task-client
-            task-create-time
             task-timeout
+            task-touch-time task-touch-time-set!
             task-keepalive? task-keepalive?-set!
             task-kont task-kont-set!
             task-prio task-prio-set!
@@ -212,7 +212,7 @@
 (define-record-type task
   (fields
    client ; connecting client: <port, opt>
-   create-time ; the created time of task, for timeout checking
+   (mutable touch-time) ; refresh when the connection is handled each time
    timeout ; timeout of task
    (mutable keepalive?) ; if keep it alive
    (mutable kont) ; delimited continuation

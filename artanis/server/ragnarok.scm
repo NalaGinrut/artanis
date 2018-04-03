@@ -130,11 +130,14 @@
     ragnarok-scheduler))
 
 (define (is-task-timeout? task)
-  (let ((ctime (task-create-time task))
+  (let ((start-time (task-touch-time task))
         (timeout (task-timeout task)))
     (if (zero? timeout)
         #f ; timeout = 0 means disable connection timeout
-        (>= (- (current-time) ctime) timeout))))
+        (>= (- (current-time) start-time) timeout))))
+
+(define (update-task-time! task)
+  (task-touch-time-set! task (current-time)))
 
 (define (resources-collector)
   (define (remove-timemout-connections)
@@ -298,6 +301,7 @@
              (DEBUG "Peer ~a timeout!~%" client)
              (throw 'artanis-err 408 serve-one-request
                     "The request is timeout!"))
+           (update-task-time! task)
            (run-task task))))
    ((not (is-listenning-socket? server client))
     (DEBUG "Ragnarok: new request ~a~%" (client-sockport client))
@@ -338,7 +342,7 @@
              (prio #t) ; TODO: we don't have prio yet
              (bufsize (get-conf '(server bufsize)))
              (wt (current-work-table server))
-             (ctime (current-time))
+             (start-time (current-time))
              (timeout (get-conf '(server timeout))))
       ;; Register new connection socket to epoll event set, or it can't be
       ;; raised again.
@@ -362,7 +366,7 @@
       (parameterize ((current-server server)
                      (current-client client)
                      (current-proto proto)
-                     (current-task (make-task client ctime timeout #f kont prio)))
+                     (current-task (make-task client start-time timeout #f kont prio)))
         (run-task (current-task)))))
    (else
     ;; NOTE: If we come here, it means the ready socket is NEITHER:
