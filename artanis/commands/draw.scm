@@ -138,7 +138,7 @@ Example:
 
 (define (%draw-migration name)
   (when (not (is-valid-table-name? name))
-    (throw 'arranis-err 500 "Migrate: Invalid table name `~a'"
+    (throw 'arranis-err 500 %draw-migration "Migrate: Invalid table name `~a'"
            name))
   (let* ((path (current-toplevel))
          (entry (string-append path "/ENTRY"))
