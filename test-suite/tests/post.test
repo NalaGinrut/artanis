@@ -55,6 +55,41 @@ Content-Disposition: form-data; name=\"note\"\r
 aa.scm\r
 ------WebKitFormBoundaryimGSqF43tiXYkB0c--" name))
 
+(define post-test-5-single-file
+  (format #f
+          "POST /~a HTTP/1.1
+Host: localhost:3000
+Connection: keep-alive
+Content-Length: 847
+Cache-Control: max-age=0
+Origin: http://localhost:3000
+Upgrade-Insecure-Requests: 1
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryIk8cvprF80GcQ22w
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.119 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
+Referer: http://localhost:3000/patch/upload
+Accept-Encoding: gzip, deflate, br
+Accept-Language: en,zh-CN;q=0.9,zh;q=0.8
+
+
+------WebKitFormBoundaryIk8cvprF80GcQ22w
+Content-Disposition: form-data; name=\"upfile\"; filename=\"README.md\"
+Content-Type: text/markdown
+
+
+------WebKitFormBoundaryIk8cvprF80GcQ22w
+Content-Disposition: form-data; name=\"note\"
+
+note
+------WebKitFormBoundaryIk8cvprF80GcQ22w
+Content-Disposition: form-data; name=\"description\"
+
+description
+------WebKitFormBoundaryIk8cvprF80GcQ22w
+Content-Disposition: form-data; name=\"skeleton\"
+
+all
+------WebKitFormBoundaryIk8cvprF80GcQ22w--" name))
 ;; TEST1
 (define post-test-1-simple-form
   "POST /test1 HTTP/1.1\r
@@ -151,12 +186,29 @@ aa.scm\r
         (else (format #t "BUG: ~a~%" ret) "BUG!!!")))))
 
 (define test4-expect-body "{\"file\" : \"aa.scm\",\"size\" : 40}")
+
 (define test4-expect-res
   (build-response
    #:version '(1 . 1)
    #:code 200
    #:headers `(,@(make-unified-header '(application/json (charset . "utf-8")))
                (content-length . ,(string-length test4-expect-body)))))
+;; TEST 5
+(define post-test-5-single-file-upload-advanced (gen-req "test5"))
+
+(define (upload-stat sl fl) (list (car fl) (car sl)))
+
+(post "/test5"
+  #:mime 'json
+  (lambda (rc)
+    (catch #t
+      (lambda ()
+        (let ((mfds-op (get-mfds-from-post rc #:sync #t))
+              (mfds (mfds-operator-mfds mfds-op)))
+          ))
+      (lambda (k . reason)
+        (format #t "BUG: ~a~%" reason)
+        reason))))
 
 (with-test-prefix "<Methods> POST test"
 
