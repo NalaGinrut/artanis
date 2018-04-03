@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2016
+;;  Copyright (C) 2014,2015,2016,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -34,7 +34,8 @@
                break-task
                close-task)
   #:export (init-server-core
-            schedule-task))
+            schedule-task
+            try-to-recycle-resources))
 
 (define schedule-task
   (lambda ()
@@ -42,6 +43,20 @@
      'schedule-task
      "If you saw this line, it means server-core hasn't been initialized!")))
 
+;; NOTE: There're only 2 places to recycle resources automatically:
+;;       1. When there's no available port to allocate.
+;;       2. When there's no availble DB connection in the pool.
+;; WARN: Users may call it freely, but please notice that timeout checking
+;;       will scan all the existing requested connection to drop timeout
+;;       connections. If you do this frequently, you'll lose the benefit of
+;;       epoll.
+(define try-to-recycle-resources
+  (lambda ()
+    (error
+     'try-to-recycle-resources
+     "If you saw this line, it means server-core hasn't been initialized!")))
+
 (define (init-server-core)
   (set! schedule-task (get-task-breaker))
+  (set! try-to-recycle-resources (get-resources-collector))
   (protocol-add! 'http (new-http-protocol)))

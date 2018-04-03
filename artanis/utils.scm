@@ -43,11 +43,12 @@
   #:use-module (web uri)
   #:use-module ((rnrs)
                 #:select (get-bytevector-all utf8->string put-bytevector
-                          bytevector-u8-ref string->utf8 bytevector-length
-                          make-bytevector bytevector-s32-native-ref bytevector?
-                          define-record-type record-rtd record-accessor
-                          get-string-all))
+                                             bytevector-u8-ref string->utf8 bytevector-length
+                                             make-bytevector bytevector-s32-native-ref bytevector?
+                                             define-record-type record-rtd record-accessor
+                                             get-string-all))
   #:export (regexp-split hash-keys cat bv-cat get-global-time sanitize-response
+
             build-response write-response get-local-time string->md5 unsafe-random
             uri-encode uri-decode response-version response-code response-connection
             request-headers response-port write-response-body read-request request-uri
@@ -161,23 +162,24 @@
 ;; default time is #f, get current time
 (define* (get-global-time #:optional (time #f) (nsec 0))
   (call-with-output-string
-   (lambda (port)
-     ;; NOTE: (time-utc->data t 0) to get global time.
-     (write-date
-      (time-utc->date
-       (if time (make-time 'time-utc nsec time) (current-time))
-       0)
-      port))))
+    (lambda (port)
+      ;; NOTE: (time-utc->data t 0) to get global time.
+      (write-date
+       (time-utc->date
+        (if time (make-time 'time-utc nsec time) (current-time))
+        0)
+       port))))
+
 
 ;; default time is #f, get current time
 (define* (get-local-time #:optional (time #f) (nsec 0))
   (call-with-output-string
-   (lambda (port)
-     ;; NOTE: (time-utc->data t) to get local time.
-     (write-date
-      (time-utc->date
-       (if time (make-time 'time-utc nsec time) (current-time)))
-      port))))
+    (lambda (port)
+      ;; NOTE: (time-utc->data t) to get local time.
+      (write-date
+       (time-utc->date
+        (if time (make-time 'time-utc nsec time) (current-time)))
+       port))))
 
 (define* (regexp-split regex str #:optional (flags 0))
   (let ((ret (fold-matches
@@ -351,12 +353,12 @@
     ((_ ll lo : hi)
      (let ((len (length ll)))
        (and (<= lo len) (>= len hi)
-      (let lp((rest ll) (result '()) (cnt 1))
-        (cond
-         ((null? rest) (error "no"))
-         ((<= cnt lo) (lp (cdr rest) result (1+ cnt)))
-         ((> cnt hi) (reverse result))
-         (else (lp (cdr rest) (cons (car rest) result) (1+ cnt))))))))
+            (let lp((rest ll) (result '()) (cnt 1))
+              (cond
+               ((null? rest) (error "no"))
+               ((<= cnt lo) (lp (cdr rest) result (1+ cnt)))
+               ((> cnt hi) (reverse result))
+               (else (lp (cdr rest) (cons (car rest) result) (1+ cnt))))))))
     ((_ ll lo :)
      (drop ll lo))
     ((_ ll : hi)
@@ -468,10 +470,10 @@
            (optimize (cdr rev-items)
                      (cons (car rev-items) tail)))
           (else (receive (strings rest) (span string? rev-items)
-                         (let ((s (string-concatenate-reverse strings)))
-                           (if (string-null? s)
-                               (optimize rest tail)
-                               (optimize rest (cons s tail))))))))
+                  (let ((s (string-concatenate-reverse strings)))
+                    (if (string-null? s)
+                        (optimize rest tail)
+                        (optimize rest (cons s tail))))))))
   (define (match->item m)
     (or (and (irregex-match-substring m 'dollar) "$")
         (let* ((name (irregex-match-substring m 'var))
@@ -636,8 +638,8 @@
 
 (define* (sxml->xml-string sxml #:key (escape? #f))
   (call-with-output-string
-   (lambda (port)
-     (sxml->xml sxml port escape?))))
+    (lambda (port)
+      (sxml->xml sxml port escape?))))
 
 (define (run-after-request! proc)
   (add-hook! *after-request-hook* proc))
@@ -662,25 +664,25 @@
        ((= n 3) (list->string (reverse! ret)))
        (else (lp (1+ n) (cons (read-char port) ret))))))
   (call-with-output-string
-   (lambda (out)
-     (let lp((c (peek-char in)))
-       (cond
-        ((eof-object? c) #t)
-        ((hit? c)
-         => (lambda (str)
-              (display str out)
-              (read-char in)
-              (lp (peek-char in))))
-        ((char=? c #\%)
-         (let* ((s (get-estr in))
-                (e (hit? s)))
-           (if e
-               (display e out)
-               (display s out))
-           (lp (peek-char in))))
-        (else
-         (display (read-char in) out)
-         (lp (peek-char in))))))))
+    (lambda (out)
+      (let lp((c (peek-char in)))
+        (cond
+         ((eof-object? c) #t)
+         ((hit? c)
+          => (lambda (str)
+               (display str out)
+               (read-char in)
+               (lp (peek-char in))))
+         ((char=? c #\%)
+          (let* ((s (get-estr in))
+                 (e (hit? s)))
+            (if e
+                (display e out)
+                (display s out))
+            (lp (peek-char in))))
+         (else
+          (display (read-char in) out)
+          (lp (peek-char in))))))))
 
 (define *terrible-HTML-entities*
   '((#\< . "&lt;") (#\> . "&gt;") (#\& . "&amp;") (#\" . "&quot;")
@@ -712,20 +714,20 @@
   (define-syntax-rule (->err-reason exe reason)
     (format #f "'~a' encoutered system error: ~s" exe reason))
   (catch 'system-error
-         (lambda ()
-           (chown file (or uid (getuid)) (or gid (getgid))))
-         (lambda (k . e)
-           (let ((exe (car e))
-                 (reason (caaddr e)))
-             (match (cons k reason)
-               ('(system-error . "Operation not permitted")
-                (print-the-warning exe reason)
-                (display
-                 "Maybe you run Artanis as unprivileged user? (say, not as root)\n"
-                 (current-error-port)))
-               ('(system-error . "No such file or directory")
-                (throw 'artanis-err 500 handle-proper-owner (->err-reason exe reason) file))
-               (else (apply throw k e)))))))
+    (lambda ()
+      (chown file (or uid (getuid)) (or gid (getgid))))
+    (lambda (k . e)
+      (let ((exe (car e))
+            (reason (caaddr e)))
+        (match (cons k reason)
+          ('(system-error . "Operation not permitted")
+           (print-the-warning exe reason)
+           (display
+            "Maybe you run Artanis as unprivileged user? (say, not as root)\n"
+            (current-error-port)))
+          ('(system-error . "No such file or directory")
+           (throw 'artanis-err 500 handle-proper-owner (->err-reason exe reason) file))
+          (else (apply throw k e)))))))
 
 ;; According to wiki, here's the standard format of data_url_scheme:
 ;; data:[<MIME-type>][;charset=<encoding>][;base64],<data>
@@ -819,8 +821,8 @@
         (load croute)))))
   (when (file-exists? route) (delete-file route))
   (when (not (file-exists? route-cache))
-        (cache-this-route! #f #f)
-        (dump-route-from-cache))
+    (cache-this-route! #f #f)
+    (dump-route-from-cache))
   (let ((rl (call-with-input-file route-cache read)))
     (cond
      ((eof-object? rl)
@@ -860,26 +862,26 @@
           (delete-file path)))
      ((draw:is-skip?)
       (format (artanis-current-output) "skip ~10t app/~a/~a~%" component name))
-   (else
-    (format (artanis-current-output)
-            "~a `~a' exists! (Use --force/-f to overwrite or --skip/-s to ignore)~%"
-            (string-capitalize component) name)
-    (exit 1)))))
+     (else
+      (format (artanis-current-output)
+              "~a `~a' exists! (Use --force/-f to overwrite or --skip/-s to ignore)~%"
+              (string-capitalize component) name)
+      (exit 1)))))
 
 ;; Check if all methods are valid
 (define (check-drawing-method lst)
   (define errstr "Invalid drawing method, shouldn't contain '/' ")
   (for-each (lambda (name)
               (when (not (irregex-match "[^/]+" name))
-                    (error check-drawing-method errstr name)))
+                (error check-drawing-method errstr name)))
             lst)
   lst)
 
 (define (subbv->string bv encoding start end)
   (call-with-output-string
-   (lambda (port)
-     (set-port-encoding! port encoding)
-     (put-bytevector port bv start (- end start)))))
+    (lambda (port)
+      (set-port-encoding! port encoding)
+      (put-bytevector port bv start (- end start)))))
 
 (define* (bv-u8-index bv u8 #:optional (time 1))
   (let ((len (bytevector-length bv)))
@@ -893,11 +895,11 @@
 (define* (bv-u8-index-right bv u8 #:optional (time 1))
   (let ((len (bytevector-length bv)))
     (let lp((i (1- len)) (t 1))
-    (cond
-     ((< i 0) #f)
-     ((= (bytevector-u8-ref bv i) u8)
-      (if (= t time) i (lp (1- i) (1+ t))))
-     (else (lp (1- i) t))))))
+      (cond
+       ((< i 0) #f)
+       ((= (bytevector-u8-ref bv i) u8)
+        (if (= t time) i (lp (1- i) (1+ t))))
+       (else (lp (1- i) t))))))
 
 (define* (subbv=? bv bv2 #:optional (start 0) (end (1- (bytevector-length bv))))
   (and (<= (bytevector-length bv2) (bytevector-length bv))
@@ -1009,7 +1011,7 @@
 
 (define-syntax-rule (DEBUG fmt args ...)
   (when (get-conf 'debug-mode)
-        (format (artanis-current-output) fmt args ...)))
+    (format (artanis-current-output) fmt args ...)))
 
 (define call-with-sigint
   (if (not (provided? 'posix))
@@ -1021,7 +1023,7 @@
               (dynamic-wind
                 (lambda ()
                   (set! handler
-                        (sigaction SIGINT (lambda (sig) (throw 'interrupt)))))
+                    (sigaction SIGINT (lambda (sig) (throw 'interrupt)))))
                 thunk
                 (lambda ()
                   (if handler
@@ -1127,7 +1129,7 @@
              (lambda () body ...)
            (lambda ret
              (when (get-conf 'debug-mode)
-                   (eq? (detect-type-name ret) (check-function-types op ret)))
+               (eq? (detect-type-name ret) (check-function-types op ret)))
              (apply values ret))))
        (detect-and-set-type-anno! op '(func-types ...) '(targs ...))))))
 
@@ -1328,7 +1330,7 @@
         (if m
             (format #f "artanis/~a" (irregex-match-substring m 1))
             filename))
-          "In unknown file"))
+      "In unknown file"))
 (define-syntax-rule (make-unstop-exception-handler syspage-generator)
   (let ((port (current-error-port))
         (filename (current-filename)))

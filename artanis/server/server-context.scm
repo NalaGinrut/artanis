@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016,2017
+;;  Copyright (C) 2016,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -27,6 +27,7 @@
             ragnarok-engine-name
             ragnarok-engine-breaker
             ragnarok-engine-runner
+            ragnarok-engine-collector
             ragnarok-engine-loader
 
             make-ragnarok-server
@@ -70,10 +71,12 @@
             remove-redirector!
             get-the-redirector-of-websocket
             is-proxy?
-            
+
             make-task
             task?
             task-client
+            task-create-time
+            task-timeout
             task-keepalive? task-keepalive?-set!
             task-kont task-kont-set!
             task-prio task-prio-set!
@@ -85,7 +88,7 @@
             client-connecting-port
             client-ip
             address->ip
-            
+
             remove-from-work-table!
             add-a-task-to-work-table!
             get-task-from-work-table
@@ -104,6 +107,7 @@
    name
    breaker
    runner
+   collector
    loader))
 
 (define-record-type ragnarok-server
@@ -208,6 +212,8 @@
 (define-record-type task
   (fields
    client ; connecting client: <port, opt>
+   create-time ; the created time of task, for timeout checking
+   timeout ; timeout of task
    (mutable keepalive?) ; if keep it alive
    (mutable kont) ; delimited continuation
    (mutable prio))) ; priority
@@ -287,7 +293,7 @@
 
 ;; This is a table to record client and proto pairs (CP pairs), client is the
 ;; key while protocol name is the value.
-;; NOTE: The CP pairs should be recorded in http-open handler, 
+;; NOTE: The CP pairs should be recorded in http-open handler,
 (define *proto-conn-table* (make-hash-table))
 
 (define (specified-proto? client)

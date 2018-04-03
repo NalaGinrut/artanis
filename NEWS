@@ -62,7 +62,7 @@ Changes in 0.2.2
   Failed release.
 
 Changes in 0.2.3
-* Notable changes
+* Notebale changes
   Fixed many bugs.
   Enable strict URI checking for Ragnarok.
   Make better exception throwing.
@@ -72,12 +72,11 @@ Changes in 0.2.3
   Websocket support (Preliminary).
   Support LibreJS.
 
- Changes in 0.2.4
- * Notable changes
-   Fixed wrong continuations capturing in Ragnarok
-   static-page-emitter can be specified dir now
-   Fixed to avoid crash when encounter bad request
-   Fixed support query parameters without value
-   Fixed make sqlite3 work
-   fixed avoid bash_completion if it's uninstalled
-
+Changes in 0.2.4
+* Notable changes
+  Fixed wrong continuations capturing in Ragnarok.
+  static-page-emitter can be specified dir now.
+  Fixed to avoid crash when encounter bad request.
+  Fixed support query parameters without value.
+  Fixed make sqlite3 work.
+  Fixed avoid bash_completion if it's uninstalled.

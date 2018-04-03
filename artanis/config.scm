@@ -71,6 +71,7 @@
     ((server wqlen) 64) ; work queue maxlen
     ((server trigger) edge)
     ((server engine) ragnarok)
+    ((server timeout) 60) ; in seconds
     ((server polltimeout) 500) ; in miliseconds
     ;; From "HOP, A Fast Server for the Diffuse Web", Serrano.
     ((server bufsize) 12288) ; in Bytes
@@ -189,6 +190,7 @@
     (('backlog backlog) (conf-set! '(server backlog) (->integer backlog)))
     (('wqlen wqlen) (conf-set! '(server wqlen) (->integer wqlen)))
     (('trigger trigger) (conf-set! '(server trigger) (string->symbol trigger)))
+    (('timeout timeout) (conf-set! '(server timeout) (->integer timeout)))
     (('polltimeout polltimeout) (conf-set! '(server polltimeout) (->integer polltimeout)))
     (('bufsize bufsize) (conf-set! '(server bufsize) (->integer bufsize)))
     (('impl impl) (conf-set! '(server impl) (string->symbol impl)))
