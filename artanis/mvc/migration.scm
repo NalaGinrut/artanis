@@ -152,11 +152,11 @@
 
 (define (gen-migration-header name)
   (call-with-output-string
-    (lambda (port)
-      (format port ";; Migration ~a definition of ~a~%" name (current-appname))
-      (display ";; Please add your license header here.\n" port)
-      (display ";; This file is generated automatically by GNU Artanis.\n" port)
-      (format port "(create-artanis-migration ~a) ; DO NOT REMOVE THIS LINE!!!~%~%" name))))
+   (lambda (port)
+     (format port ";; Migration ~a definition of ~a~%" name (current-appname))
+     (display ";; Please add your license header here.\n" port)
+     (display ";; This file is generated automatically by GNU Artanis.\n" port)
+     (format port "(create-artanis-migration ~a) ; DO NOT REMOVE THIS LINE!!!~%~%" name))))
 
 (define (do-migration-create name fields port)
   (display (gen-migration-header (gen-migrate-module-name (port-filename port))) port)

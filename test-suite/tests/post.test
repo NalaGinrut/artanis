@@ -17,6 +17,7 @@
 
 (define-module (test post)
   #:use-module (artanis artanis)
+  #:use-module (artanis upload)
   #:use-module (artanis utils)
   #:use-module (ice-9 receive)
   #:use-module (ice-9 match)
@@ -55,41 +56,48 @@ Content-Disposition: form-data; name=\"note\"\r
 aa.scm\r
 ------WebKitFormBoundaryimGSqF43tiXYkB0c--" name))
 
-(define post-test-5-single-file
-  (format #f
-          "POST /~a HTTP/1.1
-Host: localhost:3000
-Connection: keep-alive
-Content-Length: 847
-Cache-Control: max-age=0
-Origin: http://localhost:3000
-Upgrade-Insecure-Requests: 1
-Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryIk8cvprF80GcQ22w
-User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.119 Safari/537.36
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
-Referer: http://localhost:3000/patch/upload
-Accept-Encoding: gzip, deflate, br
-Accept-Language: en,zh-CN;q=0.9,zh;q=0.8
-
-
-------WebKitFormBoundaryIk8cvprF80GcQ22w
-Content-Disposition: form-data; name=\"upfile\"; filename=\"README.md\"
-Content-Type: text/markdown
-
-
-------WebKitFormBoundaryIk8cvprF80GcQ22w
-Content-Disposition: form-data; name=\"note\"
-
-note
-------WebKitFormBoundaryIk8cvprF80GcQ22w
-Content-Disposition: form-data; name=\"description\"
-
-description
-------WebKitFormBoundaryIk8cvprF80GcQ22w
-Content-Disposition: form-data; name=\"skeleton\"
-
-all
-------WebKitFormBoundaryIk8cvprF80GcQ22w--" name))
+(define  (post-test-5-single-file name)
+  (
+   format #f
+"POST /~a HTTP/1.1\r
+Host: localhost:3000\r
+Connection: keep-alive\r
+Content-Length: 573\r
+Cache-Control: max-age=0\r
+Origin: http://localhost:3000\r
+Upgrade-Insecure-Requests: 1\r
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryIk8cvprF80GcQ22w\r
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.119 Safari/537.36\r
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8\r
+Referer: http://localhost:3000/patch/upload\r
+Accept-Encoding: gzip, deflate, br\r
+Accept-Language: en,zh-CN;q=0.9,zh;q=0.8\r
+\r
+------WebKitFormBoundaryIk8cvprF80GcQ22w\r
+Content-Disposition: form-data; name=\"upfile\"; filename=\"README.md\"\r
+Content-Type: text/markdown\r
+\r
+(let ((a \"hello\")\r
+      (b \"world\"))\r
+  (display a)\r
+  (newline)\r
+  (dispaly b)\r
+  (newline))\r
+\r
+------WebKitFormBoundaryIk8cvprF80GcQ22w\r
+Content-Disposition: form-data; name=\"note\"\r
+\r
+note\r
+------WebKitFormBoundaryIk8cvprF80GcQ22w\r
+Content-Disposition: form-data; name=\"description\"\r
+\r
+description\r
+------WebKitFormBoundaryIk8cvprF80GcQ22w\r
+Content-Disposition: form-data; name=\"skeleton\"\r
+\r
+all\r
+------WebKitFormBoundaryIk8cvprF80GcQ22w--" name
+))
 ;; TEST1
 (define post-test-1-simple-form
   "POST /test1 HTTP/1.1\r
@@ -98,7 +106,7 @@ User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML,
 Content-Type: application/x-www-form-urlencoded\r
 Content-Length: 20\r
 \r
-name=nala&passwd=123
+name=nala&passwd=121
 ")
 
 (post "/test1" #:from-post #t
@@ -194,7 +202,15 @@ aa.scm\r
    #:headers `(,@(make-unified-header '(application/json (charset . "utf-8")))
                (content-length . ,(string-length test4-expect-body)))))
 ;; TEST 5
-(define post-test-5-single-file-upload-advanced (gen-req "test5"))
+(define test5-expect-body "{\"description\" : \"description\",\"skeleton\":\"all\",\"note\" : \"note\"}")
+
+(define test5-expect-res
+  (build-response
+   #:version '(1 . 1)
+   #:code 200
+   #:headers `(,@(make-unified-header '(application/json (charset . "utf-8")))
+               (content-length . ,(string-length test5-expect-body)))))
+(define post-test-5-single-file-upload-advanced (post-test-5-single-file "test5"))
 
 (define (upload-stat sl fl) (list (car fl) (car sl)))
 
@@ -203,9 +219,12 @@ aa.scm\r
   (lambda (rc)
     (catch #t
       (lambda ()
-        (let ((mfds-op (get-mfds-from-post rc #:sync #t))
-              (mfds (mfds-operator-mfds mfds-op)))
-          ))
+        (let* ((mfds-op (get-mfds-from-post rc #:sync #t))
+              (note (mfds-op-ref rc mfds-op "note"))
+              (description (mfds-op-ref rc mfds-op "desciption"))
+              (skeletion (mfds-op-ref rc mfds-op "skeleton")))
+          (:mime rc (json (object (description  ,description) (skeleton  ,skeletion)
+                             (note . ,note))))))
       (lambda (k . reason)
         (format #t "BUG: ~a~%" reason)
         reason))))
@@ -228,4 +247,7 @@ aa.scm\r
   (pass-if "single file upload store advanced test"
     (receive (r b) (test-from-request post-test-4-single-file-upload-advanced)
              (responses-equal? r b test4-expect-res test4-expect-body)))
+  (pass-if "single file upload store advanced test 5"
+           (receive (r b) (test-from-request post-test-5-single-file-upload-advanced)
+                    (responses-equal? r b test5-expect-res test5-expect-body)))
   )
