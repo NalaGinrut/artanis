@@ -28,10 +28,11 @@
   #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)
   #:use-module ((rnrs)
-                #:select (get-bytevector-all utf8->string put-bytevector
-                                             call-with-bytevector-output-port string->utf8
-                                             bytevector-length define-record-type
-                                             bytevector-u8-ref))
+                #:select (get-bytevector-all
+                          utf8->string put-bytevector
+                          call-with-bytevector-output-port string->utf8
+                          bytevector-length define-record-type
+                          bytevector-u8-ref))
   #:use-module (web request)
   #:use-module (web client)
   #:use-module (web uri)
@@ -52,6 +53,7 @@
             mfd-begin
             mfd-end
             mfd-type
+            mfd-size
             mfd-simple-dump-all
             store-uploaded-files
             get-mfds-op-from-post
@@ -283,13 +285,13 @@
                                 (mode #o664) (path-mode #o775) (sync #f))
   (cond
    ((content-type-is-mfd? rc)
-     => (lambda (boundry)
-          (let ((mfds (parse-mfds (string->utf8 (string-append "--" boundry))
-                                  (rc-body rc)))
-                (dumper (make-mfd-dumper (rc-body rc) #:path path #:mode mode
-                                         #:uid uid #:gid gid #:path-mode path-mode
-                                         #:sync sync)))
-            (make-mfds-operator mfds dumper))))
+    => (lambda (boundry)
+         (let ((mfds (parse-mfds (string->utf8 (string-append "--" boundry))
+                                 (rc-body rc)))
+               (dumper (make-mfd-dumper (rc-body rc) #:path path #:mode mode
+                                        #:uid uid #:gid gid #:path-mode path-mode
+                                        #:sync sync)))
+           (make-mfds-operator mfds dumper))))
    (else (make-mfds-operator '() identity))))
 
 (define (mfds->body mfdsp boundary)
@@ -319,13 +321,13 @@
   (define boundary (format #f "----------Artanis-~a" (get-random-from-dev #:uppercase #t)))
   (define-syntax-rule (->dispos name filename mime)
     (call-with-output-string
-     (lambda (port)
-       (format port "--~a\r\n" boundary)
-       (format port "Content-Disposition: form-data; name=~s" name)
-       (and filename
-            (format port "; filename=~s" filename))
-       (and mime (format port "\r\nContent-Type: ~a" mime))
-       (display "\r\n\r\n" port))))
+      (lambda (port)
+        (format port "--~a\r\n" boundary)
+        (format port "Content-Disposition: form-data; name=~s" name)
+        (and filename
+             (format port "; filename=~s" filename))
+        (and mime (format port "\r\nContent-Type: ~a" mime))
+        (display "\r\n\r\n" port))))
   (define-syntax-rule (->file file)
     (if (file-exists? file)
         (call-with-input-file file get-bytevector-all)
