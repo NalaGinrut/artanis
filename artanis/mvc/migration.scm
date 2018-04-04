@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2017
+;;  Copyright (C) 2015,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -57,9 +57,9 @@
              (set! *migrate-handlers*
                (assoc-set! *migrate-handlers* cmd handler)))
            (define-syntax #,(datum->syntax x 'migrate-create)
-               (syntax-rules ::: ()
-                 ((_ do-migrate-create :::)
-                  (migrate-add! 'create (lambda () do-migrate-create :::)))))
+             (syntax-rules ::: ()
+               ((_ do-migrate-create :::)
+                (migrate-add! 'create (lambda () do-migrate-create :::)))))
            (define-syntax #,(datum->syntax x 'migrate-up)
              (syntax-rules ::: ()
                ((_ do-migrate-up :::)
@@ -80,7 +80,7 @@
                 (else
                  (format (current-error-port) "[HINT] Did you remove `migrate-~a'?~%" cmd)
                  (throw 'artanis-err 500 migrator "Migrate: Invalid cmd `~a'!"
-                             cmd))))))))))
+                        cmd))))))))))
 
 (define (create-table name . fl)
   (let ((raw ((@@ (artanis mvc model) parse-raw-fields) fl))
@@ -109,13 +109,13 @@
             "Renaming table `~a' to `~a'.........." old new)
     (mt 'mod 'rename old new)
     (display "DONE.\n" (artanis-current-output))))
-  
+
 (define (add-column tname . cl)
   (let ((mt (map-table-from-DB (current-connection))))
     (format (artanis-current-output)
-            "Adding columns `(~{~a~^,~})' to table `~a'.........." 
+            "Adding columns `(~{~a~^,~})' to table `~a'.........."
             (map car cl) tname)
-    (apply mt 'mod 'add tname cl)
+    (apply mt 'mod tname 'add cl)
     (display "DONE.\n" (artanis-current-output))))
 
 (define (change-column tname col type)

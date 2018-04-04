@@ -48,6 +48,7 @@
                                              define-record-type record-rtd record-accessor
                                              get-string-all))
   #:export (regexp-split hash-keys cat bv-cat get-global-time sanitize-response
+
                          build-response write-response get-local-time string->md5 unsafe-random
                          uri-encode uri-decode response-version response-code response-connection
                          request-headers response-port write-response-body read-request request-uri
@@ -88,7 +89,7 @@
                          get-string-all-with-detected-charset make-unstop-exception-handler
                          artanis-log exception-from-client exception-from-server render-sys-page
                          bv-copy/share bv-backward artanis-list-matches get-syspage
-                         artanis-sys-response)
+                         artanis-sys-response char-predicate handle-upload is-valid-table-name?)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -168,6 +169,7 @@
         (if time (make-time 'time-utc nsec time) (current-time))
         0)
        port))))
+
 
 ;; default time is #f, get current time
 (define* (get-local-time #:optional (time #f) (nsec 0))
@@ -1395,3 +1397,39 @@
                   #:headers `((server . ,(get-conf '(server info)))
                               ,(gen-content-length bv-body)
                               (content-type . (text/html)))))
+
+(define (char-predicate string)
+  (let ((cs (string->char-set string)))
+    (lambda (c)
+      (and (not (eof-object? c)) (char-set-contains? cs c)))))
+
+(define (handle-upload thunk)
+  (catch 'system-error
+    thunk
+    (lambda e
+      (let ((errno (system-error-errno e)))
+        (cond
+         ((= errno ENOMEM)
+          ;; NOTE: Out of memory, call (gc) and throw 507
+          (format (artanis-current-output) "No memory! Run GC now!~%")
+          (gc)
+          (throw 'artanis-err 507 handle-upload
+                 "Server is out of RAMs, please extend more RAMs!~%"))
+         ((= errno EIO)
+          ;; NOTE: The storage device was disconnected, just throw 507
+          (throw 'artanis-err 507 handle-upload
+                 "Server is not available, maybe storage media was disconnected?~%"))
+         ((= errno ENOSPC)
+          ;; NOTE: no space for uploading, just throw 507
+          (throw 'artanis-err 507 handle-upload
+                 "Server has insufficient storage space!~%"))
+         (else
+          ;; nothing noticed, re-throw it to next level.
+          (apply throw e)))))))
+
+;;for verify db table name
+(define invalid-char-set? (char-predicate "*&-{}[]?.\\%$#@!,"))
+
+(define is-valid-table-name?
+  (lambda (name)
+    (not (string-any invalid-char-set? name))))

@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2016,2017
+;;  Copyright (C) 2014,2015,2016,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -46,28 +46,28 @@
   #:use-module (web request)
   #:export (define-handler
 
-            get
-            post
-            put
-            patch
-            page-delete
+             get
+             post
+             put
+             patch
+             page-delete
 
-            :sql-mapping
-            :str
-            :conn
-            :raw-sql
-            :cookies
-            :cache
-            :cookies-set!
-            :cookies-ref
-            :cookies-update!
-            :cookies-remove!
-            :cookies-setattr!
-            :mime
-            :auth
-            :session
-            :from-post
-            :websocket))
+             :sql-mapping
+             :str
+             :conn
+             :raw-sql
+             :cookies
+             :cache
+             :cookies-set!
+             :cookies-ref
+             :cookies-update!
+             :cookies-remove!
+             :cookies-setattr!
+             :mime
+             :auth
+             :session
+             :from-post
+             :websocket))
 
 (define (define-handler method rule opts-and-handler)
   (let ((keys (rule->keys rule))
@@ -128,11 +128,11 @@
 (define (conn-maker yes? rule keys)
   (and yes?
        (case-lambda
-        ((rc) (DB-open rc))
-        ((rc sql)
-         (let ((conn (DB-open rc)))
-           (DB-query conn sql)
-           conn)))))
+         ((rc) (DB-open rc))
+         ((rc sql)
+          (let ((conn (DB-open rc)))
+            (DB-query conn sql)
+            conn)))))
 
 (define (raw-sql-maker sql rule keys)
   (lambda (rc mode)
@@ -224,12 +224,12 @@
   (define headers `((content-type . (,(mime-guess type)))))
   (define-syntax-rule (-> func the-args) (values (apply func the-args) #:pre-headers headers))
   (define gen-mime
-   (case type
-     ((json jsonp) (lambda (args) (-> ->json-string args)))
-     ((xml) (lambda (args) (-> sxml->xml-string args)))
-     ((csv) (lambda (args) (-> sxml->csv-string args)))
-     ((sxml) (lambda (args) (values (object->string (car args)) #:pre-headers headers)))
-     (else (throw 'artanis-err 500 mime-maker "Invalid type!" type))))
+    (case type
+      ((json jsonp) (lambda (args) (-> ->json-string args)))
+      ((xml) (lambda (args) (-> sxml->xml-string args)))
+      ((csv) (lambda (args) (-> sxml->csv-string args)))
+      ((sxml) (lambda (args) (values (object->string (car args)) #:pre-headers headers)))
+      (else (throw 'artanis-err 500 mime-maker "Invalid type!" type))))
   (lambda (rc . args) (gen-mime args)))
 
 ;; for #:session
@@ -270,10 +270,10 @@
         '()))
   (define (default-success-ret size-list filename-list)
     (call-with-output-string
-     (lambda (port)
-       (for-each (lambda (s f)
-                   (format port "<p>Upload succeeded! ~a: ~a bytes!</p>" s f))
-                 size-list filename-list))))
+      (lambda (port)
+        (for-each (lambda (s f)
+                    (format port "<p>Upload succeeded! ~a: ~a bytes!</p>" s f))
+                  size-list filename-list))))
   (define (default-no-file-ret) "<p>No uploaded files!</p>")
   (define* (store-the-bv rc #:key (uid 33) (gid 33) (path (get-conf '(upload path)))
                          (mode #o664) (path-mode #o775) (sync #f) (simple-ret? #t)
@@ -299,31 +299,14 @@
       ((or #t 'query-string 'qstr) (post->qstr-table rc))
       ('qstr-safe (post->qstr-table rc 'safe))
       ((or 'bv 'bytevector) (rc-body rc))
+      ;; Get mfds and handle it by yourself
+      ;; You may rename the uploaded files, get the key-value from the body
+      ;; or anything you want from mfd.
+      (('get-mfds-op rest ...)
+       (apply get-mfds-op-from-post rc rest))
       ;; upload operation, indeed
       (('store rest ...)
-       (catch 'system-error
-         (lambda ()
-           (apply store-the-bv rc rest))
-         (lambda e
-           (let ((errno (system-error-errno e)))
-             (cond
-              ((= errno ENOMEM)
-               ;; NOTE: Out of memory, call (gc) and throw 507
-               (format (artanis-current-output) "No memory! Run GC now!~%")
-               (gc)
-               (throw 'artanis-err 507 post-handler
-                      "Server is out of RAMs, please extend more RAMs!~%"))
-              ((= errno EIO)
-               ;; NOTE: The storage device was disconnected, just throw 507
-               (throw 'artanis-err 507 post-handler
-                      "Server is not available, maybe storage media was disconnected?~%"))
-              ((= errno ENOSPC)
-               ;; NOTE: no space for uploading, just throw 507
-               (throw 'artanis-err 507 post-handler
-                      "Server has insufficient storage space!~%"))
-              (else
-               ;; nothing noticed, re-throw it to next level.
-               (apply throw e)))))))
+       (handle-upload (lambda () (apply store-the-bv rc rest))))
       (else (throw 'artanis-err 500 post-handler "Invalid mode `~a'!" mode))))
   (define (get-values-from-post pl . keys)
     (apply
@@ -337,6 +320,7 @@
       ('(get) (post-handler rc))
       (('get-vals keys ...) (apply get-values-from-post (post-handler rc) keys))
       ('(store) (post-handler rc))
+      ('(get-mfds-op) (post-handler rc))
       (else (throw 'artanis-err 500 from-post-maker "Invalid cmd `~a'!" cmd)))))
 
 ;; for #:websocket

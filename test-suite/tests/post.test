@@ -17,10 +17,13 @@
 
 (define-module (test post)
   #:use-module (artanis artanis)
+  #:use-module (artanis upload)
   #:use-module (artanis utils)
   #:use-module (ice-9 receive)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 iconv)
   #:use-module (web response)
+  #:use-module (srfi srfi-1)
   #:use-module (test-suite lib)
   #:use-module (test-suite helper))
 
@@ -55,6 +58,38 @@ Content-Disposition: form-data; name=\"note\"\r
 aa.scm\r
 ------WebKitFormBoundaryimGSqF43tiXYkB0c--" name))
 
+(define (gen-req-test5)
+  (format #f
+  "POST /test5 HTTP/1.1\r
+Host: localhost:3000\r
+Connection: keep-alive\r
+Content-Length: 376\r
+Cache-Control: max-age=0\r
+Origin: http://localhost:3000\r
+Upgrade-Insecure-Requests: 1\r
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryQKjwzMkKAKgCu9ny\r
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.119 Safari/537.36\r
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8\r
+Referer: http://localhost:3000/upload\r
+Accept-Encoding: gzip, deflate, br\r
+Accept-Language: en,zh-CN;q=0.9,zh;q=0.8\r
+\r
+------WebKitFormBoundaryQKjwzMkKAKgCu9ny\r
+Content-Disposition: form-data; name=\"upfile\"; filename=\"test.scm\"\r
+Content-Type: text/x-scheme\r
+\r
+(let ((a \"hello\")\r
+      (b \"world\"))\r
+  (display a)\r
+  (newline)\r
+  (dispaly b)\r
+  (newline))\r
+\r
+------WebKitFormBoundaryQKjwzMkKAKgCu9ny\r
+Content-Disposition: form-data; name=\"note\"\r
+\r
+note\r
+------WebKitFormBoundaryQKjwzMkKAKgCu9ny--"))
 ;; TEST1
 (define post-test-1-simple-form
   "POST /test1 HTTP/1.1\r
@@ -151,12 +186,45 @@ aa.scm\r
         (else (format #t "BUG: ~a~%" ret) "BUG!!!")))))
 
 (define test4-expect-body "{\"file\" : \"aa.scm\",\"size\" : 40}")
+
 (define test4-expect-res
   (build-response
    #:version '(1 . 1)
    #:code 200
    #:headers `(,@(make-unified-header '(application/json (charset . "utf-8")))
                (content-length . ,(string-length test4-expect-body)))))
+;; TEST 5
+(define post-test-post-single-file-upload (gen-req-test5))
+
+(define test5-expect-body "{\"note\" : \"note\",\"files\" : [\"test.scm\"],\"size\" : [96]}")
+
+(define test5-expect-res
+  (build-response
+   #:version '(1 . 1)
+   #:code 200
+   #:headers `(,@(make-unified-header '(application/json (charset . "utf-8")))
+               (content-length . ,(string-length test5-expect-body)))))
+(define post-test-5-single-file-upload-advanced (gen-req-test5))
+
+(define (upload-stat sl fl) (list (car fl) (car sl)))
+
+(post "/test5"
+  #:from-post `(get-mfds-op #:path "/tmp/upload3" #:sync #t)
+  #:mime 'json
+  (lambda (rc)
+    (catch #t
+      (lambda ()
+        (let* ((mo (:from-post rc 'get-mfds-op))
+               (note (mfds-op-ref rc mo "note"))
+               (mfds (mfds-operator-mfds mo))
+               (size (filter-map mfd-size mfds))
+               (files (filter-map mfd-filename mfds)))
+          (:mime rc `((note . ,note) (files . ,files) (size . ,size)))))
+      (lambda (k . reason)
+        (format #t "test5 BUG:~a" reason)
+        (let ((msg (format #f "~a" reason)))
+          (:mime rc  `((BUG. ,msg)))))
+      )))
 
 (with-test-prefix "<Methods> POST test"
 
@@ -176,4 +244,7 @@ aa.scm\r
   (pass-if "single file upload store advanced test"
     (receive (r b) (test-from-request post-test-4-single-file-upload-advanced)
              (responses-equal? r b test4-expect-res test4-expect-body)))
+  (pass-if "single file upload store advanced test2"
+           (receive (r b) (test-from-request post-test-5-single-file-upload-advanced)
+                    (equal?  (bytevector->string b  "utf-8")  test5-expect-body)))
   )
