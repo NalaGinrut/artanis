@@ -2,6 +2,7 @@ TOP := $(shell pwd)
 PREFIX := @prefix@
 SRC := @srcdir@
 GUILE := @GUILE@
+GUILD := @GUILD@
 VERSION := @PACKAGE_VERSION@
 SHELL := /bin/bash
 RELEASE_TYPE := stable
@@ -28,7 +29,7 @@ MOD_TARGET_PATH := $(MOD_COMPILED_PATH)
 endif
 
 GUILE_CFLAGS := -Wunsupported-warning -Wunbound-variable -Warity-mismatch -Wduplicate-case-datum -Wbad-case-datum -Wformat
-GUILEC := GUILE_LOAD_COMPILED_PATH=$(TEMP_LIB_PATH) guild compile $(GUILE_CFLAGS)
+GUILEC := GUILE_LOAD_COMPILED_PATH=$(TEMP_LIB_PATH) @GUILD@ compile $(GUILE_CFLAGS)
 ARTANIS_ETC := $(SRC)/etc/artanis
 ARTANIS_PAGES := $(SRC)/pages
 INSTALL := install -c
