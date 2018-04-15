@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2017
+;;  Copyright (C) 2014,2015,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -78,7 +78,7 @@
   (request rc-req rc-req!) ; client request
   ;; FIXME: actually we don't need this redundant path,
   ;;        it's better to get from request.
-  (path rc-path rc-path!) ; path from uri
+  (path rc-path rc-path!) ; path from uri, all the trailing "/" were dropped.
   (qt rc-qt rc-qt!) ; query table
   ;; FIXME: the current Guile inner server treat HEAD as GET, so we
   ;;        need rc-method, but it's trivial when we have new server core.
@@ -98,7 +98,7 @@
 
 (define (new-route-context request body)
   (let* ((uri (request-uri request))
-         (path (uri-path uri))
+         (path (string-trim-right (uri-path uri) #\/))
          (m (valid-method? (request-method request)))
          ;; NOTE: sanitize-response will handle 'HEAD method
          ;;       though rc-method is 'GET when request-method is 'HEAD,
@@ -117,7 +117,7 @@
 
 ;; find & set the key of rule-handler,
 ;; which is used to find the (handler . keys)
-;; FIXME: each method should have a own table
+;; FIXME: each method should have its own table
 ;; FIXME: use better data structure other than hashtable to make it faster
 (define (init-rule-handler-key! rc)
   (define rmtd (rc-method rc))

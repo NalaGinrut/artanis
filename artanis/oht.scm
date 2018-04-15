@@ -69,11 +69,12 @@
              :from-post
              :websocket))
 
-(define (define-handler method rule opts-and-handler)
-  (let ((keys (rule->keys rule))
-        (path-regexp (compile-rule rule))
-        (opts (oah->opts opts-and-handler))
-        (handler (oah->handler opts-and-handler)))
+(define (define-handler method raw-rule opts-and-handler)
+  (let* ((rule (string-trim-right raw-rule #\/))
+         (keys (rule->keys rule))
+         (path-regexp (compile-rule rule))
+         (opts (oah->opts opts-and-handler))
+         (handler (oah->handler opts-and-handler)))
     (hash-set! *handlers-table*
                (cons method path-regexp)
                (make-handler-rc handler keys (new-oht opts #:rule rule #:keys keys)))))
