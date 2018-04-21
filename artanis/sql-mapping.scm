@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2017
+;;  Copyright (C) 2014,2015,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -58,83 +58,72 @@
     ;;('fprm map-table-from-DB)
     (else (throw 'artanis-err 500 sql-mapping-maker "Invalid mode!" mode))))
 
-;; TODO: Should add user customerized unauth page
 (define (auth-maker val rule keys)
-  (define crypto identity)
-  (define mode #f)
-  (define passwd "passwd")
-  (define username "username")
-  (define-syntax-rule (->passwd rc sql)
-    (assoc-ref (DB-get-top-row (DB-query (DB-open rc) sql)) passwd))
-  (define post-data '())
+  (define-syntax-rule (->passwd rc passwd-field sql)
+    (assoc-ref (DB-get-top-row (DB-query (DB-open rc) sql)) passwd-field))
+  (define-syntax-rule (post-ref post-data key) (and=> (assoc-ref post-data key) car))
+  (define (basic-checker rc p sql passwd-field)
+    (DEBUG "basic auth:  ~a, ~a~%" p sql)
+    (string=? p (->passwd rc passwd-field sql)))
   (define (init-post rc)
     (and (rc-body rc)
-         (set! post-data (generate-kv-from-post-qstr (rc-body rc)))))
-  (define (post-ref key) (and=> (assoc-ref post-data key) car))
-  (define (table-checker rc sql)
-    (let ((pw (->passwd rc sql)))
-      (and pw (string=? (crypto (post-ref passwd)) pw))))
-  (define customed-basic-checker #f)
-  (define (basic-checker rc p sql)
-    (DEBUG "~a, ~a~%" p sql)
-    (string=? p (->passwd rc sql)))
-  (define sql
-    (match val
-      (`(table ,table ,username-field ,passwd-field)
-       (set! mode 'table-specified-fields)
-       (set! passwd passwd-field)
-       (set! username username-field)
-       (lambda (u)
-         (->sql select (list passwd) from table (where (string->keyword username) u))))
-      (`(table ,table ,username-field ,passwd-field ,crypto-proc)
-       (set! mode 'table-specified-fields)
-       (set! crypto crypto-proc)
-       (set! passwd passwd-field)
-       (set! username username-field)
-       (lambda (u)
-         (->sql select (list passwd) from table (where (string->keyword username) u))))
-      (`(table ,table ,crypto-proc)
-       (set! mode 'table)
-       (set! crypto crypto-proc)
-       (lambda (u)
-         (->sql select (list passwd) from table (where (string->keyword username) u))))
-      (`(basic ,table ,username-field ,passwd-field)
-       (set! username username-field)
-       (set! passwd passwd-field)
-       (set! mode 'basic)
-       (lambda (u)
-         (->sql select (list passwd) from table (where (string->keyword username) u))))
-      (`(basic ,checker)
-       (set! mode 'basic)
-       (set! customed-basic-checker checker)
-       #f)
-      ((? string? tpl)
-       (set! mode 'tpl)
-       (make-db-string-template tpl))
-      (else (throw 'artanis-err 500 auth-maker "wrong pattern" val))))
+         (generate-kv-from-post-qstr (rc-body rc))))
+  (define* (gen-result rc mode sql post-data
+                       #:key (crypto identity) (checker #f)
+                       (passwd-field "passwd"))
+    (define (table-checker)
+      (let ((pw (->passwd rc passwd-field sql)))
+        (and pw (string=? (crypto (post-ref post-data passwd-field)) pw))))
+    (case mode
+      ((table) (checker))
+      ((table-specified-fields) (checker))
+      ((tpl) (checker))
+      ((basic)
+       (match (get-header rc 'authorization)
+         ;; NOTE: In match `=' opetator, the order of evaluation is from left to right.
+         ;;       So base64-decode will run first.
+         (`(basic . ,(= base64-decode (= (cut string-split <> #\:) up)))
+          (let ((u (car up)) (p (cadr up)))
+            (if checker
+                (checker rc u p)
+                (basic-checker rc p (sql u) passwd-field))))
+         (else #f)))
+      (else (throw 'artanis-err 500 auth-maker
+                   "Fatal BUG! Invalid mode! Shouldn't be here!" mode))))
   (lambda (rc . kargs)
-    (define result
-      (begin
-        (init-post rc) ; init posted data
-        (case mode
-          ((table) (table-checker rc sql))
-          ((table-specified-fields)
-           (let ((u (post-ref username))
-                 (p (post-ref passwd)))
-             (DEBUG "~a: ~a~%" username u)
-             (DEBUG "~a: ~a~%" passwd p)
-             (and u (table-checker rc (sql u)))))
-          ((tpl) (table-checker rc (apply sql kargs)))
-          ((basic)
-           (match (get-header rc 'authorization)
-             (`(basic . ,(= base64-decode (= (cut string-split <> #\:) up)))
-              (let ((u (car up)) (p (cadr up)))
-                (if customed-basic-checker
-                    (customed-basic-checker rc u p)
-                    (basic-checker rc p (sql u)))))
-             (else #f)))
-          (else (throw 'artanis-err 500 auth-maker "Fatal BUG! Invalid mode! Shouldn't be here!" mode)))))
-    (if result
-        (display "Auth ok!\n")
-        (display "Auth failed!\n"))
-    result))
+    (let ((post-data (init-post rc)))
+      (match val
+        (`(table ,table ,username-field ,passwd-field)
+         (let* ((username (post-ref post-data username-field))
+                (passwd (post-ref post-data passwd-field))
+                (sql (->sql select '("passwd") from table
+                            (where (string->keyword username-field)
+                                   username))))
+           (gen-result rc 'table-specified-fields sql post-data
+                       #:passwd-field passwd-field)))
+        (`(table ,table ,username-field ,passwd-field ,crypto-proc)
+         (let* ((username (post-ref post-data username-field))
+                (passwd (post-ref post-data passwd-field))
+                (sql (->sql select '("passwd") from table
+                            (where (string->keyword username-field)
+                                   username))))
+           (gen-result rc 'table-specified-fields sql post-data
+                       #:crypto crypto-proc #:passwd-field passwd-field)))
+        (`(table ,table ,crypto-proc)
+         (let* ((username (car kargs))
+                (passwd (cadr kargs))
+                (sql (->sql select '("passwd") from table
+                            (where #:username username))))
+           (gen-result rc 'table sql post-data #:crypto crypto-proc)))
+        (`(basic ,table ,username-field ,passwd-field)
+         (let* ((username (post-ref post-data username-field))
+                (passwd (post-ref post-data passwd-field))
+                (sql (->sql select (list passwd) from table
+                            (where (string->keyword username-field)
+                                   username))))
+           (gen-result rc 'basic sql post-data #:passwd-field passwd-field)))
+        (`(basic ,table ,checker)
+         (gen-result rc 'basic #f post-data #:checker checker))
+        ((? string? tpl)
+         (make-db-string-template tpl))
+        (else (throw 'artanis-err 500 auth-maker "Wrong pattern ~a" val))))))
