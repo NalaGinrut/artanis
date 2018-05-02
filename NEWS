@@ -1,5 +1,5 @@
 Artanis NEWS --- history of user-visible changes.
-Copyright (C) 2015
+Copyright (C) 2015-2018
 "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 See the end for copying conditions.
 
@@ -7,76 +7,88 @@ Please send bug reports to bug-artanis@gnu.org.
 
 Changes in 0.0.2
 * Notable changes
-  Updated for GNU project.
+Updated for GNU project.
 
 Changes in 0.0.3
 * Notable changes
-  Fixed several bugs.
-  Support JSONP.
+Fixed several bugs.
+Support JSONP.
 
 Changes in 0.1.0
 * Notable changes
-  MVC support.
-  Migration support.
-  Optimized uploading for speed.
-  Command line tools.
-  Fixed many bugs.
-  Add several test cases.
+MVC support.
+Migration support.
+Optimized uploading for speed.
+Command line tools.
+Fixed many bugs.
+Add several test cases.
 
 Changes in 0.1.1
 * Notable changes
-  Added debug-mode, which can reload modules/specified files on the fly.
-  Added inotify support.
-  Fixed several bugs.
-  Updated manual.
+Added debug-mode, which can reload modules/specified files on the fly.
+Added inotify support.
+Fixed several bugs.
+Updated manual.
 
 Changes in 0.1.2
 * Notable changes
-  Rewrited session management. Now support three new backends simple/file/db.
-  Added HTML template caching.
-  Fixed several bugs.
-  Updated manual.
+Rewrited session management. Now support three new backends simple/file/db.
+Added HTML template caching.
+Fixed several bugs.
+Updated manual.
 
 Changes in 0.2
 * Notable changes
-  Brand new server core Ragnarok based on delimited continuations.
-  Good multi-core support.
-  Efficient static file uploading and downloading.
-  Fixed many bugs.
+Brand new server core Ragnarok based on delimited continuations.
+Good multi-core support.
+Efficient static file uploading and downloading.
+Fixed many bugs.
 
 Changes in 0.2.1
 * Notable changes
-  Make Ragnarok server core more robust.
-  Updated manual.
-  fixed argument passing bug when calling artanis-log.
-  fixed: catch exceptions before calling page handler and avoid to stop the server.
-  elaborated exception handling while uploading.
-  fixed many exceptions handling issues in Ragnarok.
-  fixed: catch I/O exceptions in reader and writer to close connection properly.
-  fixed: throw cookie for debug while encounter an invalid cookie.
-  fixed: search session id from cookies list in rc.
-  fixed exception throwing while spawning sessions.
+Make Ragnarok server core more robust.
+Updated manual.
+fixed argument passing bug when calling artanis-log.
+fixed: catch exceptions before calling page handler and avoid to stop the server.
+elaborated exception handling while uploading.
+fixed many exceptions handling issues in Ragnarok.
+fixed: catch I/O exceptions in reader and writer to close connection properly.
+fixed: throw cookie for debug while encounter an invalid cookie.
+fixed: search session id from cookies list in rc.
+fixed exception throwing while spawning sessions.
 
 Changes in 0.2.2
 * Notable changes
-  Failed release.
+Failed release.
 
 Changes in 0.2.3
 * Notebale changes
-  Fixed many bugs.
-  Enable strict URI checking for Ragnarok.
-  Make better exception throwing.
-  Upgrade irregex to v0.9.6.
-  Update guile-json to 0.6.0.
-  Create .gitkeep to make sure the empty folders could be git traced properly.
-  Websocket support (Preliminary).
-  Support LibreJS.
+Fixed many bugs.
+Enable strict URI checking for Ragnarok.
+Make better exception throwing.
+Upgrade irregex to v0.9.6.
+Update guile-json to 0.6.0.
+Create .gitkeep to make sure the empty folders could be git traced properly.
+Websocket support (Preliminary).
+Support LibreJS.
 
 Changes in 0.2.4
 * Notable changes
-  Fixed wrong continuations capturing in Ragnarok.
-  static-page-emitter can be specified dir now.
-  Fixed to avoid crash when encounter bad request.
-  Fixed support query parameters without value.
-  Fixed make sqlite3 work.
-  Fixed avoid bash_completion if it's uninstalled.
+Fixed wrong continuations capturing in Ragnarok.
+static-page-emitter can be specified dir now.
+Fixed to avoid crash when encounter bad request.
+Fixed support query parameters without value.
+Fixed make sqlite3 work.
+Fixed avoid bash_completion if it's uninstalled.
+
+Changes in 0.2.5
+* Notable changes
+Fixed crash bug caused by improper connection shutdown.
+Added new interface for better handling of uploading files.
+Added tests of the new uploading interface.
+Support request connection timeout.
+Replaced old base64 implementation with industria version, the old one has critical bug.
+Fixed typo in admin.tpl to make sure blog example work.
+Changed generated migration filename from filename_timestamp.scm to timestamp_filename.scm, this will be helpful for terminal completion.
+Rewrite authentication module to avoid side-effects.
+Support Fibers server engine.

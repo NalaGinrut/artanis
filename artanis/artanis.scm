@@ -200,7 +200,6 @@
   (default-route-init statics cache-statics? exclude)
   (init-hook)
   (init-config)
-  (init-server-core)
   (check-invalid-config)
   (sigaction SIGPIPE SIG_IGN) ; surpass SIGPIPE signal since we want to handle EPIPE by self
   (set! is-init-server-run? #t))
@@ -263,7 +262,7 @@
                  "[WARN] You're not in application folder, the file motoring is disabled!~%"))))
 
 ;; Invalid use-db? must be (dbd username passwd) or #f
-(define* (run #:key (host #f) (port #f) (debug #f) (use-db? #f) (db-proto #f)
+(define* (run #:key (host #f) (port #f) (debug #f) (use-db? #f) (db-proto #f) (server #f)
               (dbd #f) (db-username #f) (db-passwd #f) (db-name #f) (db-addr #f))
   (define (->proper-body-display body)
     (cond
@@ -284,6 +283,8 @@
     (error "Sorry, but you have to run (init-server) in the begining of you main program!"))
   (and host (conf-set! '(host addr) host))
   (and port (conf-set! '(host port) port))
+  (and server (conf-set! '(server engine) (string->symbol server)))
+  (init-server-core)
   (when debug
     (display "DEBUG: ON\n")
     (init-debug-mode))
@@ -305,10 +306,11 @@
      (format #t "Session with ~:@(~a~) backend init done!~%"
              (get-conf '(session backend)))))
   (run-hook *before-run-hook*)
+  (format #t "Server core: ~a~%" (get-conf '(server engine)))
   (format #t "~a~%" (current-myhost))
   (format #t "Anytime you want to quit just try Ctrl+C, thanks!~%")
   (let ((handler (if debug
-                     (lambda (r b)
+                     (lambda (r b . _)
                        (format #t "[Request] ~a~%[Body] ~a~%" r (->proper-body-display b))
                        (server-handler r b))
                      server-handler)))

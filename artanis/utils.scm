@@ -42,54 +42,57 @@
   #:use-module (web request)
   #:use-module (web uri)
   #:use-module ((rnrs)
-                #:select (get-bytevector-all utf8->string put-bytevector
-                                             bytevector-u8-ref string->utf8 bytevector-length
-                                             make-bytevector bytevector-s32-native-ref bytevector?
-                                             define-record-type record-rtd record-accessor
-                                             get-string-all))
-  #:export (regexp-split hash-keys cat bv-cat get-global-time sanitize-response
+                #:select (get-bytevector-all
+                          utf8->string put-bytevector
+                          bytevector-u8-ref string->utf8 bytevector-length
+                          make-bytevector bytevector-s32-native-ref bytevector?
+                          define-record-type record-rtd record-accessor
+                          get-string-all))
+  #:export (regexp-split
+            hash-keys cat bv-cat get-global-time sanitize-response
 
-                         build-response write-response get-local-time string->md5 unsafe-random
-                         uri-encode uri-decode response-version response-code response-connection
-                         request-headers response-port write-response-body read-request request-uri
-                         request-method request-content-length request-port read-request-body
-                         response-content-length get-file-ext get-global-date get-local-date
-                         string-substitute nfx static-filename remote-info seconds-now local-time-stamp
-                         parse-date write-date make-expires export-all-from-module!
-                         alist->hashtable expires->time-utc local-eval-string
-                         time-expired? valid-method? mmap munmap get-random-from-dev
-                         string->byteslist string->sha-1 list-slice bv-slice uni-basename
-                         checkout-the-path make-string-template guess-mime prepare-headers
-                         new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
-                         stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
-                         queue-empty? list->stack list->queue stack-remove! queue-remove!
-                         queue->list stack->list queue-length stack-length
-                         plist->alist make-db-string-template non-list?
-                         keyword->string range oah->handler oah->opts string->keyword
-                         alist->klist alist->kblist is-hash-table-empty?
-                         symbol-downcase symbol-upcase normalize-column run-before-run!
-                         sxml->xml-string run-after-request! run-before-response!
-                         make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
-                         generate-kv-from-post-qstr handle-proper-owner
-                         generate-data-url verify-ENTRY exclude-dbd
-                         draw-expander remove-ext scan-app-components cache-this-route!
-                         dump-route-from-cache generate-modify-time delete-directory
-                         handle-existing-file check-drawing-method DEBUG
-                         subbv->string subbv=? bv-read-line bv-read-delimited put-bv
-                         bv-u8-index bv-u8-index-right build-bv-lookup-table filesize
-                         plist-remove gen-migrate-module-name try-to-load-migrate-cache
-                         flush-to-migration-cache gen-local-conf-file with-dbd
-                         call-with-sigint define-box-type make-box-type unbox-type
-                         ::define did-not-specify-parameter colorize-string-helper
-                         colorize-string WARN-TEXT ERROR-TEXT REASON-TEXT
-                         NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr request-path
-                         response-keep-alive? request-keep-alive?
-                         procedure-name->string proper-toplevel gen-content-length
-                         make-file-sender file-sender? file-sender-size file-sender-thunk
-                         get-string-all-with-detected-charset make-unstop-exception-handler
-                         artanis-log exception-from-client exception-from-server render-sys-page
-                         bv-copy/share bv-backward artanis-list-matches get-syspage
-                         artanis-sys-response char-predicate handle-upload is-valid-table-name?)
+            build-response write-response get-local-time string->md5 unsafe-random
+            uri-encode uri-decode response-version response-code response-connection
+            request-headers response-port write-response-body read-request request-uri
+            request-method request-content-length request-port read-request-body
+            response-content-length get-file-ext get-global-date get-local-date
+            string-substitute nfx static-filename remote-info seconds-now local-time-stamp
+            parse-date write-date make-expires export-all-from-module!
+            alist->hashtable expires->time-utc local-eval-string
+            time-expired? valid-method? mmap munmap get-random-from-dev
+            string->byteslist string->sha-1 list-slice bv-slice uni-basename
+            checkout-the-path make-string-template guess-mime prepare-headers
+            new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
+            stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
+            queue-empty? list->stack list->queue stack-remove! queue-remove!
+            queue->list stack->list queue-length stack-length
+            plist->alist make-db-string-template non-list?
+            keyword->string range oah->handler oah->opts string->keyword
+            alist->klist alist->kblist is-hash-table-empty?
+            symbol-downcase symbol-upcase normalize-column run-before-run!
+            sxml->xml-string run-after-request! run-before-response!
+            make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
+            generate-kv-from-post-qstr handle-proper-owner
+            generate-data-url verify-ENTRY exclude-dbd
+            draw-expander remove-ext scan-app-components cache-this-route!
+            dump-route-from-cache generate-modify-time delete-directory
+            handle-existing-file check-drawing-method DEBUG
+            subbv->string subbv=? bv-read-line bv-read-delimited put-bv
+            bv-u8-index bv-u8-index-right build-bv-lookup-table filesize
+            plist-remove gen-migrate-module-name try-to-load-migrate-cache
+            flush-to-migration-cache gen-local-conf-file with-dbd
+            call-with-sigint define-box-type make-box-type unbox-type
+            ::define did-not-specify-parameter colorize-string-helper
+            colorize-string WARN-TEXT ERROR-TEXT REASON-TEXT
+            NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr request-path
+            response-keep-alive? request-keep-alive?
+            procedure-name->string proper-toplevel gen-content-length
+            make-file-sender file-sender? file-sender-size file-sender-thunk
+            get-string-all-with-detected-charset make-unstop-exception-handler
+            artanis-log exception-from-client exception-from-server render-sys-page
+            bv-copy/share bv-backward artanis-list-matches get-syspage
+            artanis-sys-response char-predicate handle-upload is-valid-table-name?
+            is-guile-compatible-server-core?)
   #:re-export (the-environment))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
@@ -1288,6 +1291,12 @@
      (format port "[Response] status: ~a, MIME: ~a~%~%" status mime))
     (else (error "artanis-log: Fatal BUG here!"))))
 
+(define *guile-compatible-server-core*
+  '(guile fibers))
+
+(define (is-guile-compatible-server-core? name)
+  (memq name *guile-compatible-server-core*))
+
 (define (render-sys-page blame-who? status request)
   (define-syntax-rule (status->page s)
     (format #f "~a.html" s))
@@ -1300,7 +1309,7 @@
                                       (last-modified . ,mtime)
                                       (content-type . (text/html (charset . ,charset))))))
          (body (syspage-show (status->page status))))
-    (if (eq? (get-conf '(server engine)) 'guile)
+    (if (is-guile-compatible-server-core? (get-conf '(server engine)))
         (values response body)
         (values response body 'exception))))
 

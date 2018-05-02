@@ -80,6 +80,7 @@
     (cond
      ((bytevector? body) body)
      ((string? body) (string->bytevector body (get-conf '(server charset))))
+     ((not body) #vu8())
      (else body))) ; just let it be checked by http-write
   (call-with-values
       (lambda ()
@@ -104,7 +105,7 @@
         ;; NOTE: For inner-server, sanitize-response will handle 'HEAD method
         ;;       though rc-method is 'GET when request-method is 'HEAD,
         ;;       sanitize-response only checks method from request.
-        (if (eq? (get-conf '(server engine)) 'guile)
+        (if (is-guile-compatible-server-core? (get-conf '(server engine)))
             (values response reformed-body)
             (values response reformed-body
                     ;; NOTE: return the status while handling the request.
@@ -140,7 +141,7 @@
    #:status 401
    #:headers '((WWW-Authenticate . "Basic realm=\"Secure Area\""))))
 
-(define (server-handler request request-body)
+(define (server-handler request request-body . _)
   ;; ENHANCE: could put some stat hook here
   (run-after-request-hooks request request-body)
   (work-with-request request request-body))
@@ -187,24 +188,34 @@
            "Static file `~a' doesn't exist!" filename))
   (call-with-values
       (lambda ()
-        (let* ((in (open-input-file filename))
-               (size (stat:size (stat filename))))
+        (cond
+         ((is-guile-compatible-server-core? (get-conf '(server engine)))
           (generate-response-with-file
            filename
-           (make-file-sender
-            size
-            (lambda ()
-              ;; NOTE: In Linux, non-blocking for regular file (not a socket) is basically
-              ;;       unsupported!!! So we have to find a way to make sure the regular file
-              ;;       reading is non-blocking, or the whole Ragnarok will be blocked.
-              ;; TODO: use splice to make a real non-blocking version.
-              ;; TODO: support trunked length requesting for continously downloading.
-              (future
-               (begin
-                 (sendfile out in size)
-                 (force-output out)
-                 (DEBUG "File `~a' sending over!" filename)
-                 (close in))))))))
+           ;; FIXME: For now, guile compatable server-core doesn't provide good method to
+           ;;        support sendfile, so we read then send it. This is OK for small files,
+           ;;        but bad for larger files.
+           (bv-cat filename #f)))
+         (else
+          (let* ((in (open-input-file filename))
+                 (size (stat:size (stat filename))))
+            (generate-response-with-file
+             filename
+             (make-file-sender
+              size
+              (lambda ()
+                ;; NOTE: In Linux, non-blocking for regular file (not a socket) is
+                ;;       basically unsupported!!! So we have to find a way to make sure
+                ;;       the regular file reading is non-blocking, or the whole Ragnarok
+                ;;       will be blocked.
+                ;; TODO: use splice to make a real non-blocking version.
+                ;; TODO: support trunked length requesting for continously downloading.
+                (future
+                 (begin
+                   (sendfile out in size)
+                   (force-output out)
+                   (DEBUG "File `~a' sending over!" filename)
+                   (close in))))))))))
     (lambda (mtime status body mime)
       (cond
        ((= status 200)

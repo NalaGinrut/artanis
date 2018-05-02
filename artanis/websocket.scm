@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -41,7 +41,7 @@
                closing-websocket-handshake
                this-rule-enabled-websocket!
 
-               ; from (artanis websocket frame)
+                                        ; from (artanis websocket frame)
                received-closing-frame?
                send-websocket-closing-frame
 
@@ -71,7 +71,7 @@
       #t)
      ((url-need-websocket? url)
       (cond
-       ((eq? (get-conf '(server engine)) 'guile)
+       ((is-guile-compatible-server-core? (get-conf '(server engine)))
         (throw 'artanis-err 1006 detect-if-connecting-websocket
                "Server engine `guile' doesn't support websocket!"))
        ((not (get-conf '(server websocket)))

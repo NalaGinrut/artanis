@@ -42,6 +42,7 @@
   #:use-module (srfi srfi-9 gnu)
   #:use-module (ice-9 suspendable-ports)
   #:use-module (ice-9 iconv)
+  #:use-module (ice-9 format)
   ;; FIXME: Do we still need threads and mutex? Maybe someone who wants to
   ;;        write their own server core still needs it. So we keep it.
   #:use-module (ice-9 threads)
@@ -385,6 +386,12 @@
    'http
    (list #:port (get-conf '(host port)))))
 
+(define (fibers-server-run handler)
+  ((@ (web server) run-server)
+   handler
+   'fibers
+   (list #:port (get-conf '(host port)))))
+
 (define (get-one-request-from-clients proto server)
   ;;(DEBUG "Prepare to get one request from clients, proto is ~a~%" proto)
   (let ((rq (ragnarok-server-ready-queue server)))
@@ -489,6 +496,15 @@
    (lambda () (DEBUG "The `guile' engine doesn't have resources collector!"))
    guile-builtin-server-run))
 
+(define (new-fibers-engine)
+  (define info "You're using `fiber' engine, which has a managed scheduler, which is out of Artanis control!")
+  (make-ragnarok-engine
+   'fibers
+   (lambda () (DEBUG info))
+   (lambda _ (DEBUG info))
+   (lambda () (DEBUG "The `fiber' engine doesn't have resources collector!"))
+   fibers-server-run))
+
 (define (new-ragnarok-engine)
   (make-ragnarok-engine
    'ragnarok
@@ -510,11 +526,20 @@
 ;; (server-core-name . server-engine)
 (define *server-cores*
   `((ragnarok . ,(new-ragnarok-engine))
-    (guile    . ,(new-guile-engine))))
+    (guile    . ,(new-guile-engine))
+    (fibers   . ,(new-fibers-engine))))
 
 (define (lookup-server-engine engine-name)
   (DEBUG "Loading server engine '~a' ...~%" engine-name)
-  (assoc-ref *server-cores* engine-name))
+  (let ((engine (assoc-ref *server-cores* engine-name)))
+    (when (not engine)
+      (format #t "Unsupported server engine: ~a~%" engine-name)
+      (format #t "Artanis only support these engines: ~{~a~^,~}~%"
+              (map car *server-cores*))
+      (format #t
+              "Feel free to discuss in artanis@gnu.org if you have new core to add!~%")
+      (exit -1))
+    engine))
 
 ;; '(server engine) specified server core, so if it's `ragnarok', Artanis will
 ;; use (artanis server ragnarok). If it's `guile' then Artanis will use
@@ -529,7 +554,7 @@
        ;;       but we provide the possibility for the future customized engine
        ;;       if users don't like rangarok (how is that possible!)
        ((and (eq? (get-conf '(server trigger)) 'edge)
-             (not (eq? (get-conf '(server engine)) 'guile)))
+             (eq? (get-conf '(server engine)) 'ragnarok))
         (DEBUG "Using Non-Blocking I/O~%")
         ;; enable global suspendable ports for non-blocking
         ;; NOTE: only for ragnarok engine, not for Guile built-in engine.
@@ -542,10 +567,17 @@
                                             identity)))
           (DEBUG "Starting `~a' engine loader ...~%" (ragnarok-engine-name engine))
           (loader handler)))
+       ((eq? (get-conf '(server engine)) 'fibers)
+        (DEBUG "Using managed scheduler from Fibers, out of Artanis' control~%")
+        (parameterize ((current-encoder (if (get-conf '(db encodeparams))
+                                            uri-encode
+                                            identity)))
+          (DEBUG "Starting ~a loading ...~%" (ragnarok-engine-name engine))
+          (loader handler)))
        (else
         (DEBUG "Not using Non-Blocking I/O~%")
         ;; not for non-blocking I/O
-        (DEBUG "Starting ~a loader ...~%" engine)
+        (DEBUG "Starting ~a loader ...~%" (ragnarok-engine-name engine))
         (loader handler))))
      (else (error establish-http-gateway
                   "Invalid `server.engine' in artanis.conf" (ragnarok-engine-name engine))))))

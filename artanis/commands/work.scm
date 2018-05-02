@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2016,2017
+;;  Copyright (C) 2015,2016,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -125,10 +125,11 @@
              #:dbd (and=> (->opt 'dbd) string->symbol)
              #:db-name (->opt 'name)
              #:db-username (->opt 'user)
-             #:db-passwd (->opt 'passwd)))))))
+             #:db-passwd (->opt 'passwd)
+             #:server (->opt 'server)))))))
 
 (define help-str
-"
+  "
 Usage:
   art work [options]
 
