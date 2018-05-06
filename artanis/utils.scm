@@ -20,6 +20,7 @@
 (define-module (artanis utils)
   #:use-module (artanis crypto md5)
   #:use-module (artanis crypto sha-1)
+  #:use-module (artanis crypto sha-2)
   #:use-module (artanis crypto base64)
   #:use-module (artanis tpl sxml)
   #:use-module (artanis config)
@@ -60,7 +61,8 @@
             parse-date write-date make-expires export-all-from-module!
             alist->hashtable expires->time-utc local-eval-string
             time-expired? valid-method? mmap munmap get-random-from-dev
-            string->byteslist string->sha-1 list-slice bv-slice uni-basename
+            string->byteslist string->sha-1 string->sha-224 string->sha-256 string->sha-384
+            string->sha-512 list-slice bv-slice uni-basename
             checkout-the-path make-string-template guess-mime prepare-headers
             new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
             stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
@@ -348,8 +350,49 @@
               ((@ (rnrs) string->utf8) str/bv))
              (((@ (rnrs) bytevector?) str/bv)
               str/bv)
-             (else (error "need string or bytevector!" str/bv)))))
+             (else (throw 'artanis-err 500 string->sha-1
+                          "need string or bytevector!" str/bv)))))
     (sha-1->string (sha-1 in))))
+
+(define (string->sha-224 str/bv)
+  (let ((in (cond
+             ((string? str/bv)
+              ((@ (rnrs) string->utf8) str/bv))
+             (((@ (rnrs) bytevector?) str/bv)
+              str/bv)
+             (else (throw 'artanis-err 500 string->sha-224
+                          "need string or bytevector!" str/bv)))))
+    (sha-224->string (sha-224 in))))
+
+(define (string->sha-256 str/bv)
+  (let ((in (cond
+             ((string? str/bv)
+              ((@ (rnrs) string->utf8) str/bv))
+             (((@ (rnrs) bytevector?) str/bv)
+              str/bv)
+             (else (throw 'artanis-err 500 string->sha-256
+                          "need string or bytevector!" str/bv)))))
+    (sha-256->string (sha-256 in))))
+
+(define (string->sha-384 str/bv)
+  (let ((in (cond
+             ((string? str/bv)
+              ((@ (rnrs) string->utf8) str/bv))
+             (((@ (rnrs) bytevector?) str/bv)
+              str/bv)
+             (else (throw 'artanis-err 500 string->sha-384
+                          "need string or bytevector!" str/bv)))))
+    (sha-384->string (sha-384 in))))
+
+(define (string->sha-512 str/bv)
+  (let ((in (cond
+             ((string? str/bv)
+              ((@ (rnrs) string->utf8) str/bv))
+             (((@ (rnrs) bytevector?) str/bv)
+              str/bv)
+             (else (throw 'artanis-err 500 string->sha-512
+                          "need string or bytevector!" str/bv)))))
+    (sha-512->string (sha-512 in))))
 
 (define-syntax list-slice
   (syntax-rules (:)
