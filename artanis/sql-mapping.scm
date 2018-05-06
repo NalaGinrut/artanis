@@ -29,6 +29,7 @@
   #:use-module (artanis crypto base64)
   #:use-module (ice-9 match)
   #:use-module (srfi srfi-26)
+  #:use-module (srfi srfi-11)
   #:export (sql-mapping-maker
             auth-maker))
 
@@ -59,25 +60,32 @@
     (else (throw 'artanis-err 500 sql-mapping-maker "Invalid mode!" mode))))
 
 (define (auth-maker val rule keys)
-  (define-syntax-rule (->passwd rc passwd-field sql)
-    (assoc-ref (DB-get-top-row (DB-query (DB-open rc) sql)) passwd-field))
+  (define-syntax-rule (->passwd rc passwd-field salt-field sql)
+    (let ((ret (DB-get-top-row (DB-query (DB-open rc) sql))))
+      (values (assoc-ref ret passwd-field)
+              (assoc-ref ret salt-field))))
   (define-syntax-rule (post-ref post-data key)
     (let ((ret (assoc-ref post-data key)))
       (if ret
           (car ret)
           "")))
-  (define (basic-checker rc p sql passwd-field)
+  (define (basic-checker rc p sql passwd-field salt-field)
     (DEBUG "basic auth:  ~a, ~a~%" p sql)
-    (string=? p (->passwd rc passwd-field sql)))
+    (string=? p (->passwd rc passwd-field salt-field sql)))
   (define (init-post rc)
     (and (rc-body rc)
          (generate-kv-from-post-qstr (rc-body rc))))
+  (define (default-hmac pw salt)
+    ;; We still have sha384, sha512 to use, but I think sha256 is enough. 
+    (string->sha-256 (string-append pw salt)))
   (define* (gen-result rc mode sql post-data
-                       #:key (crypto identity) (checker #f)
-                       (passwd-field "passwd"))
+                       #:key (hmac default-hmac) (checker #f)
+                       (passwd-field "passwd") (salt-field "salt"))
     (define (table-checker)
-      (let ((pw (->passwd rc passwd-field sql)))
-        (and pw (string=? (crypto (post-ref post-data passwd-field)) pw))))
+      (let-values (((pw salt) (->passwd rc passwd-field salt-field sql)))
+        (string=? (hmac (post-ref post-data passwd-field)
+                        salt)
+                  pw)))
     (define (run-checker)
       (if checker (checker) (table-checker)))
     (case mode
@@ -92,7 +100,7 @@
           (let ((u (car up)) (p (cadr up)))
             (if checker
                 (checker rc u p)
-                (basic-checker rc p (sql u) passwd-field))))
+                (basic-checker rc p (sql u) passwd-field salt-field))))
          (else #f)))
       (else (throw 'artanis-err 500 auth-maker
                    "Fatal BUG! Invalid mode! Shouldn't be here!" mode))))
@@ -102,35 +110,46 @@
        (let* ((post-data (init-post rc))
               (username (post-ref post-data username-field))
               (passwd (post-ref post-data passwd-field))
-              (sql (->sql select '("passwd") from table
+              (sql (->sql select `(,passwd-field salt) from table
                           (where (string->keyword username-field)
                                  username))))
          (gen-result rc 'table-specified-fields sql post-data
                      #:passwd-field passwd-field))))
-    (`(table ,table ,username-field ,passwd-field ,crypto-proc)
+    (`(table ,table ,username-field ,passwd-field ,salt-field ,hmac)
      (lambda (rc . kargs)
        (let* ((post-data (init-post rc))
               (username (post-ref post-data username-field))
               (passwd (post-ref post-data passwd-field))
-              (sql (->sql select '("passwd") from table
+              (sql (->sql select (list passwd-field salt-field) from table
                           (where (string->keyword username-field)
                                  username))))
          (gen-result rc 'table-specified-fields sql post-data
-                     #:crypto crypto-proc #:passwd-field passwd-field))))
-    (`(table ,table ,crypto-proc)
+                     #:hmac hmac #:passwd-field passwd-field
+                     #:salt-field salt-field))))
+    (`(table ,table ,username-field ,passwd-field ,hmac)
+     (lambda (rc . kargs)
+       (let* ((post-data (init-post rc))
+              (username (post-ref post-data username-field))
+              (passwd (post-ref post-data passwd-field))
+              (sql (->sql select `(,passwd-field salt) from table
+                          (where (string->keyword username-field)
+                                 username))))
+         (gen-result rc 'table-specified-fields sql post-data
+                     #:hmac hmac #:passwd-field passwd-field))))
+    (`(table ,table ,hmac)
      (lambda (rc . kargs)
        (let* ((post-data (init-post rc))
               (username (car kargs))
               (passwd (cadr kargs))
-              (sql (->sql select '("passwd") from table
+              (sql (->sql select '(passwd salt) from table
                           (where #:username username))))
-         (gen-result rc 'table sql post-data #:crypto crypto-proc))))
+         (gen-result rc 'table sql post-data #:hmac hmac))))
     (`(basic ,table ,username-field ,passwd-field)
      (lambda (rc . kargs)
        (let* ((post-data (init-post rc))
               (username (post-ref post-data username-field))
               (passwd (post-ref post-data passwd-field))
-              (sql (->sql select (list passwd) from table
+              (sql (->sql select `(,passwd-field salt) from table
                           (where (string->keyword username-field)
                                  username))))
          (gen-result rc 'basic sql post-data #:passwd-field passwd-field))))

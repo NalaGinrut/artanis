@@ -92,3 +92,4 @@ Fixed typo in admin.tpl to make sure blog example work.
 Changed generated migration filename from filename_timestamp.scm to timestamp_filename.scm, this will be helpful for terminal completion.
 Rewrite authentication module to avoid side-effects.
 Support Fibers server engine.
+Use SHA256 as the default HMAC
