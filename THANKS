@@ -17,3 +17,5 @@ Thanks these guys who gave me help:
   Optimized autogen and configure to make the configuring faster.
 * Nikita <yagel.x@gmail.com>
   Reported and helped to fixed many bugs in Ragnarok.
+* jian dong <jian.dong@dorabot.com>
+  Polished upload module.
