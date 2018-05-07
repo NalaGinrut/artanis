@@ -4,8 +4,9 @@ use mmr_blog;
 create table user(
        id integer primary key auto_increment,
        user varchar(15),
-       passwd varchar(32));
-insert into user values (1,"admin","123");
+       salt varchar(10),
+       passwd varchar(64));
+insert into user values (1,"admin","salt","81d40d94fee4fb4eeb1a21bb7adb93c06aad35b929c1a2b024ae33b3a9b79e23");
 create table article(
        aid integer primary key auto_increment,
        title varchar(256),
