@@ -49,7 +49,7 @@ DIRE_GEN := $(BUILD_AUX)/gen-directive.scm
 GNUPLOAD := $(BUILD_AUX)/gnupload
 TEST_SUITE := $(SRC)/test-suite
 TESTS := $(TEST_SUITE)/tests
-CMDCOMP := $(BUILD_AUX)/show-cmds.sh
+CMDCOMP := $(BUILD_AUX)/show-artanis-cmds.sh
 
 ifndef VERBOSE
 V := @ # "V = " for verbose, "V = @" for non-verbose
