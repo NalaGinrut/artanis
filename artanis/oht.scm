@@ -152,9 +152,13 @@
   (match pattern
     ;; disable cache explicitly, sometimes users want to make sure there's no any cache.
     ((#f) non-cache)
-    (('static maxage ...)
-     (lambda (rc)
-       (try-to-cache-static-file rc (static-filename (rc-path rc)) (try-public rc) (->maxage maxage))))
+    (('static maxage0 ...)
+     (lambda* (rc #:key (dir #f) (maxage (->maxage maxage0)))
+       (let ((filename (if dir
+                           (format #f "~a/~a" dir (rc-path rc))
+                           (static-filename (rc-path rc)))))
+         (try-to-cache-static-file rc (static-filename (rc-path rc))
+                                   (try-public rc) maxage))))
     (((? string? file) maxage0 ...)
      (lambda* (rc #:key (maxage (->maxage maxage0)))
        (try-to-cache-static-file rc file (try-public rc) maxage)))
