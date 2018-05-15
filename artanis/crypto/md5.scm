@@ -1,453 +1,349 @@
-;; (md5) -- md5 hashing in scheme
-;; Copyright (C) 2001, 2002, 2003 Free Software Foundation, Inc.
-;; Copyright (C) 2004 Moritz Schulte <moritz@gnu.org>.
+;; -*- mode: scheme; coding: utf-8 -*-
+;; Copyright © 2009, 2010, 2012, 2017, 2018 Göran Weinholt <goran@weinholt.se>
+;; SPDX-License-Identifier: MIT
+;;
+;; Copyright (C) 2018
+;; Mu Lei known as NalaGinrut <mulei@gnu.org>
 
-;; This program is free software: you can redistribute it and/or modify
-;; it under the terms of the GNU Lesser General Public License as
-;; published by the Free Software Foundation, either version 3 of the
-;; License, or (at your option) any later version.
-;; 
-;; This program is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU Lesser General Public License for more details.
-;; 
-;; You should have received a copy of the GNU Lesser General Public
-;; License along with this program.  If not, see
-;; <http://www.gnu.org/licenses/>.
+;; Permission is hereby granted, free of charge, to any person obtaining a
+;; copy of this software and associated documentation files (the "Software"),
+;; to deal in the Software without restriction, including without limitation
+;; the rights to use, copy, modify, merge, publish, distribute, sublicense,
+;; and/or sell copies of the Software, and to permit persons to whom the
+;; Software is furnished to do so, subject to the following conditions:
 
-#!
-;;; Commentary:
-This code is heavily based on the MD5 implementation contained in
-Libgcrypt.  To a certain degree this code is a literal translation from
-referenced C implementation into Scheme.
-;;; Code:
-!#
+;; The above copyright notice and this permission notice shall be included in
+;; all copies or substantial portions of the Software.
 
-(define-module (artanis crypto md5)
-  #:use-module (ice-9 rw)
-  #:export (md5))
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.
 
-;; General helper functions.
+;; The MD5 Message-Digest Algorithm. RFC 1321
 
-(define (buffer->hexstring string)
-  (define (buffer->hexstring-do string-rest string-new)
-    (if (string-null? string-rest)
-	string-new
-	(let ((byte (char->integer (string-ref string-rest 0))))
-	  (buffer->hexstring-do
-	   (substring string-rest 1)
-	   (string-append string-new
-			  (number->string (logand (ash byte -4) #xF) 16)
-			  (number->string (logand (ash byte -0) #xF) 16))))))
-  (buffer->hexstring-do string ""))
+;; MD5 is not recommended for use in new designs!
 
-(define (buffer->word buffer)
-  (logior (ash (char->integer (string-ref buffer 0))  0)
-	  (ash (char->integer (string-ref buffer 1))  8)
-	  (ash (char->integer (string-ref buffer 2)) 16)
-	  (ash (char->integer (string-ref buffer 3)) 24)))
+(library (artanis crypto md5)
+  (export
+   make-md5 md5-update! md5-finish! md5-clear!
+   md5 md5-copy md5-finish
+   md5-length
+   md5-copy-hash! md5-96-copy-hash!
+   md5->bytevector md5->string
+   md5-hash=? md5-96-hash=?
+   hmac-md5)
+  (import
+    (rnrs)
+    (rnrs mutable-strings))
 
-(define (buffer->words buffer n)
-  (define (buffer->words-do buffer i words)
-    (if (= i n)
-	words
-	(buffer->words-do (substring buffer 4)
-			  (+ i 1)
-			  (append words
-				  `(,(buffer->word (substring buffer 0 4)))))))
-  (buffer->words-do buffer 0 `()))
+  (define-syntax define-fx
+    (lambda (x)
+      (syntax-case x ()
+        ((k prefix bit-width op-name fxname bitwise-name)
+         (with-syntax ((name (datum->syntax #'prefix
+                                            (string->symbol
+                                             (string-append
+                                              (symbol->string (syntax->datum #'prefix))
+                                              (symbol->string (syntax->datum #'op-name)))))))
+           #'(define name
+               (if (> (fixnum-width) bit-width)
+                   fxname bitwise-name)))))))
 
-(define (word->buffer word)
-  (let ((buffer (make-string 4 #\nul)))
-    (string-set! buffer 0 (integer->char (logand (ash word  -0) #xFF)))
-    (string-set! buffer 1 (integer->char (logand (ash word  -8) #xFF)))
-    (string-set! buffer 2 (integer->char (logand (ash word -16) #xFF)))
-    (string-set! buffer 3 (integer->char (logand (ash word -24) #xFF)))
-    buffer))
+  (define-syntax define-fixnum-procedures
+    (lambda (x)
+      (syntax-case x ()
+        ((_ prefix bit-width)
+         #'(begin
+             ;; FIXME: not complete.
+             (define-fx prefix bit-width and fxand bitwise-and)
+             (define-fx prefix bit-width xor fxxor bitwise-xor)
+             (define-fx prefix bit-width ior fxior bitwise-ior)
+             (define-fx prefix bit-width not fxnot bitwise-not)
+             (define-fx prefix bit-width + fx+ +)
+             (define-fx prefix bit-width - fx- -)
+             (define-fx prefix bit-width bit-set? fxbit-set? bitwise-bit-set?)
+             (define-fx prefix bit-width arithmetic-shift-right
+               fxarithmetic-shift-right bitwise-arithmetic-shift-right)
+             (define-fx prefix bit-width arithmetic-shift-left
+               fxarithmetic-shift-left bitwise-arithmetic-shift-left)
+             (define-fx prefix bit-width zero? fxzero? zero?)
+             (define-fx prefix bit-width bit-field fxbit-field bitwise-bit-field))))))
 
-;; Some math basics.
+  (define-fixnum-procedures f32 33)
 
-(define f-add +)
-(define f-ash ash)
+  (define (md5-length) 16)
 
-(define (+ . args)
-  (modulo (apply f-add args) #x100000000))
+  (define (vector-copy x) (vector-map (lambda (i) i) x))
 
-(define (ash x n)
-  (modulo (f-ash x n) #x100000000))
+  (define (rol32 n count)
+    (let ((inv-count (fx- 32 count)))
+      (f32ior (f32arithmetic-shift-left (f32bit-field n 0 inv-count)
+                                        count)
+              (f32arithmetic-shift-right n inv-count))))
 
-(define (rol x n)
-  (logior (ash x n)
-	  (ash x (- (- 32 n)))))
+  (define-record-type md5state
+    (nongenerative md5state-v1-bfcb430d-ffa5-4e57-85ad-c7763b3ce83d)
+    (sealed #t)
+    (fields (immutable H)               ;Hash
+            (immutable W)               ;temporary data
+            (immutable m)               ;unprocessed data
+            (mutable pending)           ;length of unprocessed data
+            (mutable processed)))       ;length of processed data
 
-;; Return a new, initialized MD5 context.
-(define (md5-init)
-  (let ((buffer-space (make-string 64 #\nul)))
-    ;; Since this is a mutable state, cons it up
-    (list
-     (cons 'values (list (cons 'a #x67452301)
-                         (cons 'b #xEFCDAB89)
-                         (cons 'c #x98BADCFE)
-                         (cons 'd #x10325476)))
-     (cons 'buffer (list (cons 'space buffer-space)
-                         (cons 'data-size 0)))
-     (cons 'stats (list (cons 'blocks-processed 0))))))
+  (define (make-md5)
+    (let ((H (list->vector initial-hash))
+          (W (make-vector 16 #f))
+          (m (make-bytevector (+ 8 (* 4 16)))))
+      (make-md5state H W m 0 0)))
 
-(define (md5-func-f b c d)
-  (logior (logand b c) (logand (lognot b) d)))
+  (define (md5-copy state)
+    (let ((H (vector-copy (md5state-H state)))
+          (W (make-vector 16 #f))
+          (m (bytevector-copy (md5state-m state))))
+      (make-md5state H W m
+                     (md5state-pending state)
+                     (md5state-processed state))))
 
-(define (md5-func-g b c d)
-  (logior (logand d b) (logand (lognot d) c)))
+  (define (md5-clear! state)
+    (for-each (lambda (i v)
+                (vector-set! (md5state-H state) i v))
+              '(0 1 2 3)
+              initial-hash)
+    (vector-fill! (md5state-W state) #f)
+    (bytevector-fill! (md5state-m state) 0)
+    (md5state-pending-set! state 0)
+    (md5state-processed-set! state 0))
 
-(define (md5-func-h b c d)
-  (logxor b c d))
+  (define initial-hash '(#x67452301 #xEFCDAB89 #x98BADCFE #x10325476))
 
-(define (md5-func-i b c d)
-  (logxor c (logior b (lognot d))))
+  ;; (define g
+  ;;   (list->vector
+  ;;    (map (lambda (t)
+  ;;           (cond ((<= 0 t 15)  t)
+  ;;                 ((<= 16 t 31) (mod (+ (* 5 t) 1) 16))
+  ;;                 ((<= 32 t 47) (mod (+ (* 3 t) 5) 16))
+  ;;                 (else         (mod (* 7 t) 16))))
+  ;;         (iota 64))))
 
-(define-macro (md5-transform-op-round1 a b c d s T)
-  `(begin
-     (set! ,a (+ ,a (md5-func-f ,b ,c ,d) (list-ref words word-idx) ,T))
-     (set! word-idx (+ word-idx 1))
-     (set! ,a (rol ,a ,s))
-     (set! ,a (+ ,a ,b))))
+  (define g '#(0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 1 6 11 0 5 10 15 4 9
+                 14 3 8 13 2 7 12 5 8 11 14 1 4 7 10 13 0 3 6 9 12 15 2 0 7
+                 14 5 12 3 10 1 8 15 6 13 4 11 2 9))
 
-(define-macro (md5-transform-op-round2/3/4 f a b c d k s T)
-  `(begin
-     (set! ,a (+ ,a (,f ,b ,c ,d) (list-ref words ,k) ,T))
-     (set! ,a (rol ,a ,s))
-     (set! ,a (+ ,a ,b))))
+  (define r
+    '#(7 12 17 22  7 12 17 22  7 12 17 22  7 12 17 22
+         5  9 14 20  5  9 14 20  5  9 14 20  5  9 14 20
+         4 11 16 23  4 11 16 23  4 11 16 23  4 11 16 23
+         6 10 15 21  6 10 15 21  6 10 15 21  6 10 15 21))
 
-(define (md5-transform-block context data)
-  (let ((words    (buffer->words data 16))
-	(word-idx 0)
-	(a        (assq-ref (assq-ref context 'values) 'a))
-	(b        (assq-ref (assq-ref context 'values) 'b))
-	(c        (assq-ref (assq-ref context 'values) 'c))
-	(d        (assq-ref (assq-ref context 'values) 'd)))
+  (define k
+    '#(#xd76aa478 #xe8c7b756 #x242070db #xc1bdceee
+                  #xf57c0faf #x4787c62a #xa8304613 #xfd469501
+                  #x698098d8 #x8b44f7af #xffff5bb1 #x895cd7be
+                  #x6b901122 #xfd987193 #xa679438e #x49b40821
+                  #xf61e2562 #xc040b340 #x265e5a51 #xe9b6c7aa
+                  #xd62f105d #x02441453 #xd8a1e681 #xe7d3fbc8
+                  #x21e1cde6 #xc33707d6 #xf4d50d87 #x455a14ed
+                  #xa9e3e905 #xfcefa3f8 #x676f02d9 #x8d2a4c8a
+                  #xfffa3942 #x8771f681 #x6d9d6122 #xfde5380c
+                  #xa4beea44 #x4bdecfa9 #xf6bb4b60 #xbebfbc70
+                  #x289b7ec6 #xeaa127fa #xd4ef3085 #x04881d05
+                  #xd9d4d039 #xe6db99e5 #x1fa27cf8 #xc4ac5665
+                  #xf4292244 #x432aff97 #xab9423a7 #xfc93a039
+                  #x655b59c3 #x8f0ccc92 #xffeff47d #x85845dd1
+                  #x6fa87e4f #xfe2ce6e0 #xa3014314 #x4e0811a1
+                  #xf7537e82 #xbd3af235 #x2ad7d2bb #xeb86d391))
 
-    ;; Round 1.
+  ;; This function transforms a whole 512 bit block.
+  (define (md5-transform! H W m offset)
+    (define (f t x y z)
+      (cond ((fx<=? 0 t 15)
+             (f32ior (f32and x y)
+                     (f32and (f32not x) z)))
+            ((fx<=? 16 t 31)
+             (f32ior (f32and x z)
+                     (f32and (f32not z) y)))
+            ((fx<=? 32 t 47)
+             (f32xor x y z))
+            (else
+             (f32xor y (f32ior (f32not z) x)))))
+    ;; Copy the message block
+    (do ((t 0 (fx+ t 1)))
+        ((fx=? t 16))
+      (vector-set! W t (bytevector-u32-ref m (fx+ (fx* t 4) offset) (endianness little))))
+    ;; Do the hokey pokey
+    (let lp ((A (vector-ref H 0))
+             (B (vector-ref H 1))
+             (C (vector-ref H 2))
+             (D (vector-ref H 3))
+             (t 0))
+      (cond ((fx=? t 64)
+             (vector-set! H 0 (f32and #xffffffff (f32+ A (vector-ref H 0))))
+             (vector-set! H 1 (f32and #xffffffff (f32+ B (vector-ref H 1))))
+             (vector-set! H 2 (f32and #xffffffff (f32+ C (vector-ref H 2))))
+             (vector-set! H 3 (f32and #xffffffff (f32+ D (vector-ref H 3)))))
+            (else
+             (lp D
+                 (f32and #xffffffff
+                         (f32+ B (rol32
+                                  (f32and #xffffffff
+                                          (f32+ (f32+ A (f t B C D))
+                                                (f32+ (vector-ref W (vector-ref g t))
+                                                      (vector-ref k t))))
+                                  (vector-ref r t))))
+                 B
+                 C
+                 (fx+ t 1))))))
 
-    (md5-transform-op-round1 a b c d  7 #xD76AA478)
-    (md5-transform-op-round1 d a b c 12 #xE8C7B756)
-    (md5-transform-op-round1 c d a b 17 #x242070DB)
-    (md5-transform-op-round1 b c d a 22 #xC1BDCEEE)
-    (md5-transform-op-round1 a b c d  7 #xF57C0FAF)
-    (md5-transform-op-round1 d a b c 12 #x4787C62A)
-    (md5-transform-op-round1 c d a b 17 #xA8304613)
-    (md5-transform-op-round1 b c d a 22 #xFD469501)
-    (md5-transform-op-round1 a b c d  7 #x698098D8)
-    (md5-transform-op-round1 d a b c 12 #x8B44F7AF)
-    (md5-transform-op-round1 c d a b 17 #xFFFF5BB1)
-    (md5-transform-op-round1 b c d a 22 #x895CD7BE)
-    (md5-transform-op-round1 a b c d  7 #x6B901122)
-    (md5-transform-op-round1 d a b c 12 #xFD987193)
-    (md5-transform-op-round1 c d a b 17 #xA679438E)
-    (md5-transform-op-round1 b c d a 22 #x49B40821)
+  ;; Add a bytevector to the state. Align your data to whole blocks if
+  ;; you want this to go a little faster.
+  (define md5-update!
+    (case-lambda
+      ((state data start end)
+       (let ((m (md5state-m state))    ;unprocessed data
+             (H (md5state-H state))
+             (W (md5state-W state)))
+         (let lp ((offset start))
+           (cond ((= (md5state-pending state) 64)
+                  ;; A whole block is pending
+                  (md5-transform! H W m 0)
+                  (md5state-pending-set! state 0)
+                  (md5state-processed-set! state (+ 64 (md5state-processed state)))
+                  (lp offset))
+                 ((= offset end)
+                  (values))
+                 ((or (> (md5state-pending state) 0)
+                      (> (+ offset 64) end))
+                  ;; Pending data exists or less than a block remains.
+                  ;; Add more pending data.
+                  (let ((added (min (- 64 (md5state-pending state))
+                                    (- end offset))))
+                    (bytevector-copy! data offset
+                                      m (md5state-pending state)
+                                      added)
+                    (md5state-pending-set! state (+ added (md5state-pending state)))
+                    (lp (+ offset added))))
+                 (else
+                  ;; Consume a whole block
+                  (md5-transform! H W data offset)
+                  (md5state-processed-set! state (+ 64 (md5state-processed state)))
+                  (lp (+ offset 64)))))))
+      ((state data)
+       (md5-update! state data 0 (bytevector-length data)))))
 
-    ;; Round 2.
+  (define zero-block (make-bytevector 64 0))
 
-    (md5-transform-op-round2/3/4 md5-func-g a b c d  1  5 #xF61E2562)
-    (md5-transform-op-round2/3/4 md5-func-g d a b c  6  9 #xC040B340)
-    (md5-transform-op-round2/3/4 md5-func-g c d a b 11 14 #x265E5A51)
-    (md5-transform-op-round2/3/4 md5-func-g b c d a  0 20 #xE9B6C7AA)
-    (md5-transform-op-round2/3/4 md5-func-g a b c d  5  5 #xD62F105D)
-    (md5-transform-op-round2/3/4 md5-func-g d a b c 10  9 #x02441453)
-    (md5-transform-op-round2/3/4 md5-func-g c d a b 15 14 #xD8A1E681)
-    (md5-transform-op-round2/3/4 md5-func-g b c d a  4 20 #xE7D3FBC8)
-    (md5-transform-op-round2/3/4 md5-func-g a b c d  9  5 #x21E1CDE6)
-    (md5-transform-op-round2/3/4 md5-func-g d a b c 14  9 #xC33707D6)
-    (md5-transform-op-round2/3/4 md5-func-g c d a b  3 14 #xF4D50D87)
-    (md5-transform-op-round2/3/4 md5-func-g b c d a  8 20 #x455A14ED)
-    (md5-transform-op-round2/3/4 md5-func-g a b c d 13  5 #xA9E3E905)
-    (md5-transform-op-round2/3/4 md5-func-g d a b c  2  9 #xFCEFA3F8)
-    (md5-transform-op-round2/3/4 md5-func-g c d a b  7 14 #x676F02D9)
-    (md5-transform-op-round2/3/4 md5-func-g b c d a 12 20 #x8D2A4C8A)
+  ;; Finish the state by adding a 1, zeros and the counter.
+  (define (md5-finish! state)
+    ;; TODO: the rfc has a prettier way to do this.
+    (let ((m (md5state-m state))
+          (pending (+ (md5state-pending state) 1)))
+      (bytevector-u8-set! m (md5state-pending state) #x80)
+      (cond ((> pending 56)
+             (bytevector-copy! zero-block 0
+                               m pending
+                               (- 64 pending))
+             (md5-transform! (md5state-H state)
+                             (md5state-W state)
+                             m
+                             0)
+             (bytevector-fill! m 0))
+            (else
+             (bytevector-copy! zero-block 0
+                               m pending
+                               (- 64 pending))))
+      ;; Number of bits in the data
+      (bytevector-u64-set! m 56
+                           (* (+ (md5state-processed state)
+                                 (- pending 1))
+                              8)
+                           (endianness little))
+      (md5-transform! (md5state-H state)
+                      (md5state-W state)
+                      m
+                      0)))
 
-    ;; Round 3.
+  (define (md5-finish state)
+    (let ((copy (md5-copy state)))
+      (md5-finish! copy)
+      copy))
 
-    (md5-transform-op-round2/3/4 md5-func-h a b c d  5  4 #xFFFA3942)
-    (md5-transform-op-round2/3/4 md5-func-h d a b c  8 11 #x8771F681)
-    (md5-transform-op-round2/3/4 md5-func-h c d a b 11 16 #x6D9D6122)
-    (md5-transform-op-round2/3/4 md5-func-h b c d a 14 23 #xFDE5380C)
-    (md5-transform-op-round2/3/4 md5-func-h a b c d  1  4 #xA4BEEA44)
-    (md5-transform-op-round2/3/4 md5-func-h d a b c  4 11 #x4BDECFA9)
-    (md5-transform-op-round2/3/4 md5-func-h c d a b  7 16 #xF6BB4B60)
-    (md5-transform-op-round2/3/4 md5-func-h b c d a 10 23 #xBEBFBC70)
-    (md5-transform-op-round2/3/4 md5-func-h a b c d 13  4 #x289B7EC6)
-    (md5-transform-op-round2/3/4 md5-func-h d a b c  0 11 #xEAA127FA)
-    (md5-transform-op-round2/3/4 md5-func-h c d a b  3 16 #xD4EF3085)
-    (md5-transform-op-round2/3/4 md5-func-h b c d a  6 23 #x04881D05)
-    (md5-transform-op-round2/3/4 md5-func-h a b c d  9  4 #xD9D4D039)
-    (md5-transform-op-round2/3/4 md5-func-h d a b c 12 11 #xE6DB99E5)
-    (md5-transform-op-round2/3/4 md5-func-h c d a b 15 16 #x1FA27CF8)
-    (md5-transform-op-round2/3/4 md5-func-h b c d a  2 23 #xC4AC5665)
+  ;; Find the MD5 of the concatenation of the given bytevectors.
+  (define (md5 . data)
+    (let ((state (make-md5)))
+      (for-each (lambda (d) (md5-update! state d))
+                data)
+      (md5-finish! state)
+      state))
 
-    ;; Round 4.
-    
-    (md5-transform-op-round2/3/4 md5-func-i a b c d  0  6 #xF4292244)
-    (md5-transform-op-round2/3/4 md5-func-i d a b c  7 10 #x432AFF97)
-    (md5-transform-op-round2/3/4 md5-func-i c d a b 14 15 #xAB9423A7)
-    (md5-transform-op-round2/3/4 md5-func-i b c d a  5 21 #xFC93A039)
-    (md5-transform-op-round2/3/4 md5-func-i a b c d 12  6 #x655B59C3)
-    (md5-transform-op-round2/3/4 md5-func-i d a b c  3 10 #x8F0CCC92)
-    (md5-transform-op-round2/3/4 md5-func-i c d a b 10 15 #xFFEFF47D)
-    (md5-transform-op-round2/3/4 md5-func-i b c d a  1 21 #x85845DD1)
-    (md5-transform-op-round2/3/4 md5-func-i a b c d  8  6 #x6FA87E4F)
-    (md5-transform-op-round2/3/4 md5-func-i d a b c 15 10 #xFE2CE6E0)
-    (md5-transform-op-round2/3/4 md5-func-i c d a b  6 15 #xA3014314)
-    (md5-transform-op-round2/3/4 md5-func-i b c d a 13 21 #x4E0811A1)
-    (md5-transform-op-round2/3/4 md5-func-i a b c d  4  6 #xF7537E82)
-    (md5-transform-op-round2/3/4 md5-func-i d a b c 11 10 #xBD3AF235)
-    (md5-transform-op-round2/3/4 md5-func-i c d a b  2 15 #x2AD7D2BB)
-    (md5-transform-op-round2/3/4 md5-func-i b c d a  9 21 #xEB86D391)
+  (define (copy-hash! state bv off len)
+    (do ((i 0 (+ i 1)))
+        ((= i len))
+      (bytevector-u32-set! bv (+ off (* 4 i))
+                           (vector-ref (md5state-H state) i)
+                           (endianness little))))
 
-    (assq-set! (assq-ref context 'values)
-	       'a
-	       (+ (assq-ref (assq-ref context 'values) 'a)
-		  a))
-    (assq-set! (assq-ref context 'values)
-	       'b
-	       (+ (assq-ref (assq-ref context 'values) 'b)
-		  b))
-    (assq-set! (assq-ref context 'values)
-	       'c
-	       (+ (assq-ref (assq-ref context 'values) 'c)
-		  c))
-    (assq-set! (assq-ref context 'values)
-	       'd
-	       (+ (assq-ref (assq-ref context 'values) 'd)
-		  d))))
+  (define (md5-copy-hash! state bv off)
+    (copy-hash! state bv off 4))
 
-(define (md5-write-do context data data-size)
+  (define (md5-96-copy-hash! state bv off)
+    (copy-hash! state bv off 3))
 
-  (if (= (assq-ref (assq-ref context 'buffer) 'data-size) 64)
-      ;; Flush the buffer.
-      (begin
-	(md5-transform-block context (assq-ref (assq-ref context 'buffer)
-					       'space))
-	(assq-set! (assq-ref context 'buffer) 'data-size 0)
-	(assq-set! (assq-ref context 'stats)
-		   'blocks-processed
-		   (+ (assq-ref (assq-ref context 'stats) 'blocks-processed)
-		      1))))
+  (define (md5->bytevector state)
+    (let ((ret (make-bytevector (* 4 4))))
+      (md5-copy-hash! state ret 0)
+      ret))
 
-  (if (> data-size 0)
-      (begin
+  (define (md5->string state)
+    (define hex "0123456789abcdef")
+    (do ((ret (make-string 32))
+         (H (md5state-H state))
+         (i 0 (fx+ i 1)))
+        ((fx=? i 32) ret)
+      (let ((n (bitwise-and (bitwise-arithmetic-shift-right
+                             (vector-ref H (fxarithmetic-shift-right i 3))
+                             (fx* 4 (fxand (fxxor 1 i) #b111)))
+                            #xf)))
+        (string-set! ret i (string-ref hex n)))))
 
-	(if (> (assq-ref (assq-ref context 'buffer)
-			 'data-size)
-	       0)
-	    ;; Fill buffer.
-	    (while (and (> data-size
-			   0)
-			(< (assq-ref (assq-ref context 'buffer)
-				     'data-size)
-			   64))
-		   (begin
-		     (string-set! (assq-ref (assq-ref context 'buffer)
-					    'space)
-				  (assq-ref (assq-ref context 'buffer)
-					    'data-size)
-				  (string-ref data 0))
-		     (assq-set! (assq-ref context 'buffer)
-				'data-size
-				(+ (assq-ref (assq-ref context 'buffer)
-					     'data-size)
-				   1))
-		     (set! data (substring data 1))
-		     (set! data-size (- data-size 1)))))
+  ;; Compare an SHA-1 state with a bytevector. It is supposed to not
+  ;; terminate early in order to not leak timing information. Assumes
+  ;; that the bytevector's length is ok.
+  (define (cmp state bv len)
+    (do ((i 0 (fx+ i 1))
+         (diff 0 (+ diff
+                    (bitwise-xor
+                     (bytevector-u32-ref bv (* 4 i) (endianness little))
+                     (vector-ref (md5state-H state) i)))))
+        ((fx=? i len)
+         (zero? diff))))
 
-	;; Transform whole blocks.
-	(while (>= data-size 64)
-	       (begin
-		 (md5-transform-block context data)
-		 (assq-set! (assq-ref context 'stats)
-			    'blocks-processed
-			    (+ (assq-ref (assq-ref context 'stats)
-					 'blocks-processed)
-			       1))
-		 (set! data-size (- data-size 64))
-		 (set! data (substring data 64))))
+  (define (md5-hash=? state bv) (cmp state bv 4))
 
-	;; Fill buffer.
-	(while (and (> data-size
-		       0)
-		    (< (assq-ref (assq-ref context 'buffer)
-				 'data-size)
-		       64))
-	       (begin
-		 (string-set! (assq-ref (assq-ref context 'buffer)
-					'space)
-			      (assq-ref (assq-ref context 'buffer)
-					'data-size)
-			      (string-ref data 0))
-		 (assq-set! (assq-ref context 'buffer)
-			    'data-size
-			    (+ (assq-ref (assq-ref context 'buffer)
-					 'data-size)
-			       1))
-		 (set! data-size (- data-size 1))
-		 (set! data (substring data 1)))))))
+  (define (md5-96-hash=? state bv) (cmp state bv 3))
 
-;; Write data to context.
-(define (md5-write context data data-size)
-  (md5-write-do context data data-size))
-
-;; Finalize context, return hash.
-(define (md5-finalize context)
-  (let ((t   0)
-	(msb 0)
-	(lsb 0))
-
-    (md5-write-do context "" 0)
-
-    (set! t (assq-ref (assq-ref context 'stats)
-		      'blocks-processed))
-    (set! lsb (ash t   6))
-    (set! msb (ash t -26))
-
-    (set! t lsb)
-    (set! lsb (+ lsb (assq-ref (assq-ref context 'buffer)
-			       'data-size)))
-    (if (< lsb t)
-	(set! msb (+ msb 1)))
-
-    (set! t lsb)
-    (set! lsb (ash lsb 3))
-    (set! msb (ash msb 3))
-    (set! msb (logior msb (ash t -29)))
-
-    (if (< (assq-ref (assq-ref context 'buffer) 'data-size) 56)
-	(begin
-	  (string-set! (assq-ref (assq-ref context 'buffer)
-				 'space)
-		       (assq-ref (assq-ref context 'buffer)
-				 'data-size)
-		       (integer->char #x80))
-	  (assq-set! (assq-ref context 'buffer)
-		     'data-size
-		     (+ (assq-ref (assq-ref context 'buffer)
-				  'data-size)
-			1))
-
-	  (while (< (assq-ref (assq-ref context 'buffer)
-			      'data-size)
-		    56)
-		 (begin
-		   (string-set! (assq-ref (assq-ref context 'buffer)
-					  'space)
-				(assq-ref (assq-ref context 'buffer)
-					  'data-size)
-				#\nul)
-		   (assq-set! (assq-ref context 'buffer)
-			      'data-size
-			      (+ (assq-ref (assq-ref context 'buffer)
-					   'data-size)
-				 1)))))
-	(begin
-	  (string-set! (assq-ref (assq-ref 'context 'buffer)
-				 'space)
-		       (assq-ref (assq-ref 'context 'buffer)
-				 'data-size)
-		       (integer->char #x80))
-	  (while (< (assq-ref (assq-ref context 'buffer)
-			      'data-size)
-		    64)
-		 (begin
-		   (string-set! (assq-ref (assq-ref context 'buffer)
-					  'space)
-				(assq-ref (assq-ref context 'buffer)
-					  'data-size)
-				0)
-		   (assq-set! (assq-ref context 'buffer)
-			      'data-size
-			      (+ (assq-ref (assq-ref context 'buffer)
-					   'data-size)
-				 1))))
-	  (md5-write-do context "" 0)
-	  (substring-fill! (assq-ref (assq-ref context 'buffer)
-				     'space)
-			   0
-			   56
-			   #\nul)))
-
-    (let ((final-string (map (lambda (x)
-			       (integer->char (logand x #xFF)))
-			     `(,lsb
-			       ,(ash lsb  -8)
-			       ,(ash lsb -16)
-			       ,(ash lsb -24)
-			       ,msb
-			       ,(ash msb  -8)
-			       ,(ash msb -16)
-			       ,(ash msb -24))))
-	  (buffer (assq-ref (assq-ref context 'buffer) 'space)))
-      (string-set! buffer 56 (list-ref final-string 0))
-      (string-set! buffer 57 (list-ref final-string 1))
-      (string-set! buffer 58 (list-ref final-string 2))
-      (string-set! buffer 59 (list-ref final-string 3))
-      (string-set! buffer 60 (list-ref final-string 4))
-      (string-set! buffer 61 (list-ref final-string 5))
-      (string-set! buffer 62 (list-ref final-string 6))
-      (string-set! buffer 63 (list-ref final-string 7)))
-
-    (md5-transform-block context (assq-ref (assq-ref context 'buffer)
-					   'space))
-
-    (buffer->hexstring
-     (string-append (word->buffer (assq-ref (assq-ref context 'values) 'a))
-		    (word->buffer (assq-ref (assq-ref context 'values) 'b))
-		    (word->buffer (assq-ref (assq-ref context 'values) 'c))
-		    (word->buffer (assq-ref (assq-ref context 'values) 'd))))))
-
-(define (general-read-string!/partial buffer port)
-  (if (file-port? port)
-      (read-string!/partial buffer port)
-      (let ((max-index (- (string-length buffer) 1)))
-        (let loop ((ch (read-char port))
-                   (read 0))
-          (if (eof-object? ch)
-              (if (= read 0)
-                  #f
-                  read)
-              (begin 
-                (string-set! buffer read ch)
-                (if (< read max-index)
-                    (loop (read-char port) (+ read 1))
-                    (+ read 1))))))))
-              
-(define (md5 . port)
-  "Reads data from @var{port}, and returns a string containing the calculated
-md5 hash of the data.  If @var{port} is not given, then the default input
-port is used."  
-  (define (process-data buffer port callback arg)
-    (define (process-data-do)
-      (let ((bytes-read (general-read-string!/partial buffer port)))
-	(if (not bytes-read)
-	    #t
-	    (begin
-	      (callback arg buffer bytes-read)
-	      (process-data-do)))))
-    (process-data-do))
-
-  (define (process-data-callback arg data data-size)
-    (md5-write arg data data-size))
-
-  (if (null? port)
-      (set! port (current-input-port))
-      (set! port (car port)))
-
-  (let* ((context     (md5-init))
-	 (buffer-size 4096)
-	 (buffer      (make-string buffer-size #\nul)))
-    (process-data buffer port process-data-callback context)
-    (md5-finalize context)))
-
-(define (string->md5 str)
-  (call-with-input-string str md5))
-
-(define (bytevector->md5 bv)
-  (call-with-input-string ((@ (rnrs) utf8->string) bv) md5))
-;; arch-tag: 03A57FCF-F9E7-11D8-A6BC-000A95CD5044
+  (define (hmac-md5 secret . data)
+    ;; RFC 2104.
+    (if (> (bytevector-length secret) 64)
+        (apply hmac-md5 (md5->bytevector (md5 secret)) data)
+        (let ((k-ipad (make-bytevector 64 0))
+              (k-opad (make-bytevector 64 0)))
+          (bytevector-copy! secret 0 k-ipad 0 (bytevector-length secret))
+          (bytevector-copy! secret 0 k-opad 0 (bytevector-length secret))
+          (do ((i 0 (fx+ i 1)))
+              ((fx=? i 64))
+            (bytevector-u8-set! k-ipad i (fxxor #x36 (bytevector-u8-ref k-ipad i)))
+            (bytevector-u8-set! k-opad i (fxxor #x5c (bytevector-u8-ref k-opad i))))
+          (let ((state (make-md5)))
+            (md5-update! state k-ipad)
+            (for-each (lambda (d) (md5-update! state d)) data)
+            (md5-finish! state)
+            (let ((digest (md5->bytevector state)))
+              (md5-clear! state)
+              (md5-update! state k-opad)
+              (md5-update! state digest)
+              (md5-finish! state)
+              state))))))

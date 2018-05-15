@@ -93,3 +93,7 @@ Changed generated migration filename from filename_timestamp.scm to timestamp_fi
 Rewrite authentication module to avoid side-effects.
 Support Fibers server engine.
 Use SHA256 as the default HMAC
+
+Changes in 0.2.6
+* Notable changes
+Replace md5 with a better version from Gran Weinholt <goran@weinholt.se>, this fixed strange bugs in previous implementation.
