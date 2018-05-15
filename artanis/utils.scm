@@ -224,9 +224,6 @@
         (display bv out)
         bv)))
 
-(define (string->md5 str)
-  (call-with-input-string str md5))
-
 ;; 35147 is the length of GPLv3 in bytes
 (define* (unsafe-random #:optional (n 35147))
   (random n (random-state-from-platform)))
@@ -343,6 +340,16 @@
      ((zero? (modulo i step))
       (lp (cons (string->number (substring/shared str i (+ i step)) base) ret) (1+ i)))
      (else (lp ret (1+ i))))))
+
+(define (string->md5 str/bv)
+  (let ((in (cond
+             ((string? str/bv)
+              ((@ (rnrs) string->utf8) str/bv))
+             (((@ (rnrs) bytevector?) str/bv)
+              str/bv)
+             (else (throw 'artanis-err 500 string->sha-1
+                          "need string or bytevector!" str/bv)))))
+    (md5->string (md5 in))))
 
 (define (string->sha-1 str/bv)
   (let ((in (cond
@@ -1252,7 +1259,9 @@
 (define (get-addr)
   (let ((host (get-conf '(host addr)))
         (family (get-family)))
-    (inet-pton family host)))
+    (if (and host (not (string=? host "127.0.0.1")))
+        (inet-pton family host)
+        INADDR_LOOPBACK)))
 
 (define (request-path req)
   (uri-path (request-uri req)))
