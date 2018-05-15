@@ -20,6 +20,7 @@
 (define-module (artanis tpl parser)
   #:use-module (artanis utils)
   #:use-module (artanis env)
+  #:use-module (artanis config)
   #:use-module (artanis tpl utils)
   #:use-module (artanis tpl lexer)
   #:use-module (system base lalr)
@@ -29,23 +30,24 @@
   (make-reader make-parser make-tpl-tokenizer port))
 
 (define (gen-command cmd args)
-  (case cmd
-    ((include)
-     (let ((filename (string-trim-both
-                      (format #f "~a/pub/~a" (current-toplevel) args))))
-       (if (file-exists? filename)
-           (format #f "~s" (cat filename #f))
-           (throw 'artanis-err 500 gen-command
-                  "Included file `~a' in template doesn't exist!" filename))))
-    ((css)
-     (format #f "\"<link rel=\\\"stylesheet\\\" href=\\\"/pub/css/~a\\\">\"" args))
-    ((icon)
-     (format #f "\"<link rel=\\\"icon\\\" href=\\\"/pub/img/~a\\\" type=\\\"image/x-icon\\\">\"" args))
-    ((js)
-     (format #f "\"<script type=\\\"text/javascript\\\" src=\\\"/pub/js/~a\\\"> </script>\"" args))
-    (else
-     (throw 'artanis-err 500 gen-command
-            "Invalid command `~a' in template!" cmd))))
+  (let ((pub (get-conf '(server pub))))
+    (case cmd
+      ((include)
+       (let ((filename (string-trim-both
+                        (format #f "~a/pub/~a" (current-toplevel) args))))
+         (if (file-exists? filename)
+             (format #f "~s" (cat filename #f))
+             (throw 'artanis-err 500 gen-command
+                    "Included file `~a' in template doesn't exist!" filename))))
+      ((css)
+       (format #f "\"<link rel=\\\"stylesheet\\\" href=\\\"~a/css/~a\\\">\"" pub args))
+      ((icon)
+       (format #f "\"<link rel=\\\"icon\\\" href=\\\"~a/img/~a\\\" type=\\\"image/x-icon\\\">\"" pub args))
+      ((js)
+       (format #f "\"<script type=\\\"text/javascript\\\" src=\\\"~a/js/~a\\\"> </script>\"" pub args))
+      (else
+       (throw 'artanis-err 500 gen-command
+              "Invalid command `~a' in template!" cmd)))))
 
 (define (make-parser)
   (lalr-parser

@@ -81,6 +81,7 @@
     ;;       Allows mutiple servers to listen to the same socket port, say 8080.
     ((server multi) #t)
     ((server websocket) #t)
+    ((server pub) "pub") ; the public directory
 
     ;; for WebSocket
     ((websocket maxpayload) ,(1- (ash 1 64))) ; in bytes (only for fragment)
@@ -197,6 +198,7 @@
     (('multi multi) (conf-set! '(server multi) (->bool multi)))
     (('engine engine) (conf-set! '(server engine) (->symbol engine)))
     (('websocket websocket) (conf-set! '(server websocket) (->bool websocket)))
+    (('pub pub) (conf-set! '(server pub) (basename pub)))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 
 (define (parse-namespace-websocket item)
