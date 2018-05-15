@@ -227,6 +227,9 @@
        (else (response-emit body #:status status))))))
 
 ;; When you don't want to use cache, use static-page-emitter.
-(define* (static-page-emitter rc #:key (dir ""))
-  (emit-response-with-file (string-append dir (static-filename (rc-path rc)))
-                           (request-port (rc-req rc))))
+(define* (static-page-emitter rc #:key (dir #f))
+  (let ((filename (if dir
+                      (format #f "~a/~a" dir (rc-path rc))
+                      (static-filename (rc-path rc)))))
+    (emit-response-with-file filename
+                             (request-port (rc-req rc)))))
