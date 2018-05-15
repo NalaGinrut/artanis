@@ -384,13 +384,17 @@
   ((@ (web server) run-server)
    handler
    'http
-   (list #:port (get-conf '(host port)))))
+   (list #:port (get-conf '(host port))
+         #:family (get-family)
+         #:addr (get-addr))))
 
 (define (fibers-server-run handler)
   ((@ (web server) run-server)
    handler
    'fibers
-   (list #:port (get-conf '(host port)))))
+   (list #:port (get-conf '(host port))
+         #:family (get-family)
+         #:addr (get-addr))))
 
 (define (get-one-request-from-clients proto server)
   ;;(DEBUG "Prepare to get one request from clients, proto is ~a~%" proto)
