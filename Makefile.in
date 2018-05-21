@@ -19,9 +19,9 @@ TEMP_LIB_PATH := $(OBJ)
 MOD_COMPILED_PATH := $(shell $(GUILE) -c "(display (%site-ccache-dir))")
 
 ifdef DESTDIR
-INFO_DIR := $(DESTDIR)/share/info/
-MOD_PATH := $(DESTDIR)/$(shell $(GUILE) -c "(display (%site-dir))")
-MOD_TARGET_PATH := $(DESTDIR)/$(MOD_COMPILED_PATH)
+INFO_DIR := $(DESTDIR)/$(PREFIX)/share/info/
+MOD_PATH := $(DESTDIR)/$(PREFIX)/$(shell $(GUILE) -c "(display (%site-dir))")
+MOD_TARGET_PATH := $(DESTDIR)/$(PREFIX)/$(MOD_COMPILED_PATH)
 else
 INFO_DIR := $(PREFIX)/share/info/
 MOD_PATH := $(shell $(GUILE) -c "(display (%site-dir))")
