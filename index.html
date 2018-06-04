@@ -1,43 +1,43 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html>
-<head>
-<title>GNU Artanis web-framework</title>
-<meta http-equiv="Content-Style-Type" content="text/css" />
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="description" content="The light-weight and fastest web-framework of Scheme language" />
-<meta name="keywords" content="guile tutorial,scheme tutorial,guile scheme,guile,web,web app,framework,scheme language,scheme" />
-<link href="css/highlight.css" rel="stylesheet" type="text/css" />
-<link href="css/common.css" rel="stylesheet" type="text/css" /></head>
-<link rel="icon" type="image/ico" href="favicon.ico" />
-<body>
-<div id="side">
-<div class="wrap">
-<h1>Artanis home</h1>
-<h2 id="slogan1">A fast monolithic web-framework</h2>
-<h2 id="slogan2">of <a id="slogan2" href="scheme.html">Scheme</a></h2>
-<ul id="links">
-<li><a href="index.html" class="active">Home</a></li>
-<li><a href="about.html">About</a></li>
-<li><a href="http://gnu.org/software/artanis/manual">Documents</a></li>
-<li><a href="http://ftp.gnu.org/gnu/artanis/">Download</a></li>
-<li class="last"><a href="#">Donate</a></li></ul>
-<p id="honor">2013 Lisp in summer projects</p>
-<p><a id="honor" href="http://LispInSummerProjects.org/awesome-projects">certificated awesome project</a></p>
-<h3 id="the-author">Authored by <a id="the-author" href="http://nalaginrut.com">NalaGinrut</a></h3><a href="http://gnu.org/s/artanis"><img src="http://www.gnu.org/graphics/heckert_gnu.small.png" height="80" width="80" /></a><a href="http://szdiy.org"><img src="http://wiki.szdiy.org/skins/common/images/szdiy.png" height="100" width="100" /></a>
-<br /><a id="counter" href="http://www.hitwebcounter.com/" target="_blank"><img src="http://hitwebcounter.com/counter/counter.php?page=5071476&amp;style=0006&amp;nbdigits=9&amp;type=page&amp;initCount=0" title="counter with different designs" Alt="counter with different designs" border="0" /></a></div></div>
-<div id="main" class="home">
-<div class="wrap">
-<pre><code>
-<h3 id="sailing-to-devnull">Sailing to /dev/null</h3>
-<p>That is no future for mediocre coder.</p>
-<p>The hacker is one another's arm. Codes in the editors.</p>
-<p>Those dying generations - at their song.</p>
-<pre><tt class="highlight scheme-language"><span class="paren1">(<span class="default">use-modules <span class="paren2">(<span class="default">artanis artanis</span>)</span></span>)</span>
+    <head>
+        <title>GNU Artanis web-framework</title>
+        <meta http-equiv="Content-Style-Type" content="text/css" />
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta name="description" content="The light-weight and fastest web-framework of Scheme language" />
+        <meta name="keywords" content="guile tutorial,scheme tutorial,guile scheme,guile,web,web app,framework,scheme language,scheme" />
+        <link href="css/highlight.css" rel="stylesheet" type="text/css" />
+        <link href="css/common.css" rel="stylesheet" type="text/css" /></head>
+        <link rel="icon" type="image/ico" href="favicon.ico" />
+        <body>
+            <div id="side">
+                <div class="wrap">
+                    <h1>Artanis home</h1>
+                    <h2 id="slogan1">A fast monolithic web-framework</h2>
+                    <h2 id="slogan2">of <a id="slogan2" href="scheme.html">Scheme</a></h2>
+                    <ul id="links">
+                        <li><a href="index.html" class="active">Home</a></li>
+                        <li><a href="about.html">About</a></li>
+                        <li><a href="https://gnu.org/software/artanis/manual">Documents</a></li>
+                        <li><a href="http://ftp.gnu.org/gnu/artanis/">Download</a></li>
+                        <li class="last"><a href="#">Donate</a></li></ul>
+                    <p id="honor">2013 Lisp in summer projects</p>
+                    <p><a id="honor" href="http://LispInSummerProjects.org/awesome-projects">certificated awesome project</a></p>
+                    <h3 id="the-author">Authored by <a id="the-author" href="https://nalaginrut.com">NalaGinrut</a></h3><a href="https://gnu.org/s/artanis"><img src="https://www.gnu.org/graphics/heckert_gnu.small.png" height="80" width="80" /></a><a href="https://szdiy.org"><img src="https://wiki.szdiy.org/skins/common/images/szdiy.png" height="100" width="100" /></a>
+                </div></div>
+                <div id="main" class="home">
+                    <div class="wrap">
+                        <pre><code>
+                            <h3 id="sailing-to-devnull">Sailing to /dev/null</h3>
+                            <p>That is no future for mediocre coder.</p>
+                            <p>The hacker is one another's arm. Codes in the editors.</p>
+                            <p>Those dying generations - at their song.</p>
+                            <pre><tt class="highlight scheme-language"><span class="paren1">(<span class="default">use-modules <span class="paren2">(<span class="default">artanis artanis</span>)</span></span>)</span>
 
-<span class="paren1">(<span class="default">get <span class="string">&quot;/hello&quot;</span>
- <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default"></span>)</span> <span class="string">&quot;hello world&quot;</span></span>)</span></span>)</span>
-<span class="comment">;; run it 
-</span><span class="paren1">(<span class="default">run <span class="keyword">#:port</span> 8080</span>)</span></tt></pre>
-<pre><tt class="highlight sh-language">curl localhost:8080/hello
-==&gt; hello world</tt></pre></code></pre></div>
-<p class="foot up"><a href="http://gnu.org/software/artanis">Copyright  2015-2018 Free Software Foundation, Inc.</a> Source: <a href="https://gitlab.com/NalaGinrut/artanis">Artanis </a>powered by <a href="http://www.gnu.org/software/guile/">GNU Guile </a>This page is Powered by <a href="http://wiki.call-cc.org/eggref/4/hyde">Hyde of Chicken Scheme</a></p></div><a id="forkme" href="https://gitlab.com/NalaGinrut/artanis">Fork me on GitLab</a></body></html>
+                                <span class="paren1">(<span class="default">get <span class="string">&quot;/hello&quot;</span>
+                                    <span class="paren2">(<span class="default"><i><span class="symbol">lambda</span></i> <span class="paren3">(<span class="default"></span>)</span> <span class="string">&quot;hello world&quot;</span></span>)</span></span>)</span>
+                                <span class="comment">;; run it
+                                </span><span class="paren1">(<span class="default">run <span class="keyword">#:port</span> 8080</span>)</span></tt></pre>
+                            <pre><tt class="highlight sh-language">curl localhost:8080/hello
+                                ==&gt; hello world</tt></pre></code></pre></div>
+                    <p class="foot up"><a href="https://gnu.org/software/artanis">Copyright  2015-2018 Free Software Foundation, Inc.</a> Source: <a href="httpss://gitlab.com/NalaGinrut/artanis">Artanis </a>powered by <a href="https://www.gnu.org/software/guile/">GNU Guile </a>This page is Powered by <a href="http://wiki.call-cc.org/eggref/4/hyde">Hyde of Chicken Scheme</a></p></div><a id="forkme" href="https://gitlab.com/NalaGinrut/artanis">Fork me on GitLab</a></body></html>
