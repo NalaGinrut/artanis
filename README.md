@@ -10,7 +10,7 @@ GNU Artanis needs a logo, contribution is welcome!
 
 NOTICE
 =========
-Since Jun 4th 2018, Microsoft has aquired GitHub, then GNU Artanis will never try to organize community on GigHub, nor maintain any new code on GitHub, please visit GitLab:
+Since Jun 4th 2018, Microsoft has aquired GitHub, so that I reject to maintain GNU Artanis on GitHub. That means GNU Artanis will never try to organize community on GigHub, nor maintain any new code on GitHub, please visit GitLab:
 
 https://gitlab.com/NalaGinrut/artanis
 
