@@ -5,15 +5,11 @@
 [![X86+ARM](https://img.shields.io/badge/architecture-X86+ARM-red.png)](https://gitlab.com/NalaGinrut/artanis)
 [![Travis CI](https://travis-ci.org/NalaGinrut/artanis.png)](https://travis-ci.org/NalaGinrut/artanis)
 
-GNU Artanis needs a logo, contribution is welcome!
+Since Jun 4th 2018, Microsoft has aquired GitHub, so that I reject to maintain GNU Artanis on GitHub. That means GNU Artanis will never try to organize community on GigHub, nor maintain any new code on GitHub, please visit GitLab: https://gitlab.com/NalaGinrut/artanis
 =========
 
 NOTICE
 =========
-Since Jun 4th 2018, Microsoft has aquired GitHub, so that I reject to maintain GNU Artanis on GitHub. That means GNU Artanis will never try to organize community on GigHub, nor maintain any new code on GitHub, please visit GitLab:
-
-https://gitlab.com/NalaGinrut/artanis
-
 According to [GNU Ethical Repository Criteria Evaluations](https://www.gnu.org/software/repo-criteria-evaluation.html). GNU Artanis as GNU official project is not proper to be maintained on GitHub.
 So I **will not** do maintenance work for GNU Artanis on github to show my position on free software.
 That means I **will not** response to issues or pull requests on GitHub. Until GitHub show some respect to freedom of users on these issues:
