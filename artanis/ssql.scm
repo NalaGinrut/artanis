@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016
+;;  Copyright (C) 2013,2014,2015,2016,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -32,16 +32,16 @@
 
 (define (->string obj) (if (string? obj) obj (object->string obj)))
 
-;; ENHANCE: 
+;; ENHANCE:
 ;; 1. conds should be expanded from s-expr
 ;; e.g (select * from 'table where "name='nala' and age=15")
 ;; expect: (select * from 'table where '(and (name "nale") (age 15)))
-;; 
+;;
 ;; 2. order-by should be expanded from s-expr
 ;; e.g: (select * from 'table order by "column asc")
 ;; expect: (select * from 'table order by '(column asc))
 ;; above all accept only strings at present, it's not so elegant.
- 
+
 (define-syntax ->
   (syntax-rules (end)
     ((_ end fmt args ...)
@@ -73,13 +73,13 @@
   (define (->op2 op a1 a2) (-> "~a~a~s" a1 op a2))
   (define (->opn opn . ll) (-> "~a ~{~s~^ ~}" opn ll))
   (match lst
-   (() "")
-   (('and ll ...) (->logical 'and ll))
-   (('or ll ...) (->logical 'or ll))
-   ((op2 a1 a2) (->op2 op2 a1 (->string a2)))
-   ((opn ll ...) (->opn opn ll))
-   (((l1 ...) ll ...) (map ->cond (cons l1 ll)))
-   (else (throw 'artanis-err 500 "invalid sql syntax!" lst))))
+    (() "")
+    (('and ll ...) (->logical 'and ll))
+    (('or ll ...) (->logical 'or ll))
+    ((op2 a1 a2) (->op2 op2 a1 (->string a2)))
+    ((opn ll ...) (->opn opn ll))
+    (((l1 ...) ll ...) (map ->cond (cons l1 ll)))
+    (else (throw 'artanis-err 500 "invalid sql syntax!" lst))))
 
 (define-syntax-rule (->combine col col* ...)
   (if (list? col)
@@ -157,7 +157,7 @@
     ((_ into table fields values lst)
      (-> "into ~a (~{~a~^,~}) values (~{~s~^,~})" table fields lst))
     ((_ into table fields values lst select rest ...)
-     (-> "into ~a (~{~a~^,~}) values (~{~s~^,~}) select ~a" 
+     (-> "into ~a (~{~a~^,~}) values (~{~s~^,~}) select ~a"
          table fields lst (sql-select rest ...)))))
 
 (define-syntax sql-update
@@ -193,8 +193,8 @@
      (-> end "create table if exists ~a (~{~a~^,~}) ~a"
          name (->combine columns columns* ...) (->engine engine ...)))
     ((_ table if not exists name (columns columns* ...) engine ...)
-       (-> end "create table if not exists ~a (~{~a~^,~}) ~a"
-           name (->combine columns columns* ...) (->engine engine ...)))
+     (-> end "create table if not exists ~a (~{~a~^,~}) ~a"
+         name (->combine columns columns* ...) (->engine engine ...)))
     ;;(->sql create view 'mmr select '(a b) from 'tmp where "a=1 and b=2")
     ((_ view name as select rest ...)
      (-> end "create view ~a as select ~a" (sql-select rest ...)))
@@ -206,18 +206,18 @@
       'mysql
       (-> end "create database if not exists ~a" db)))
     ((_ index iname on tname (columns columns* ...) engine ...)
-       (-> end "create index ~a on ~a(~{~a~^,~}) ~a"
-           iname tname (->combine columns columns* ...) (->engine engine ...)))
+     (-> end "create index ~a on ~a(~{~a~^,~}) ~a"
+         iname tname (->combine columns columns* ...) (->engine engine ...)))
     ((_ unique index iname on tname (columns columns* ...) engine ...)
-       (-> end "create unique index ~a on ~a(~{~a~^,~}) ~a"
-           iname tname (->combine columns columns* ...) (->engine engine ...)))))
+     (-> end "create unique index ~a on ~a(~{~a~^,~}) ~a"
+         iname tname (->combine columns columns* ...) (->engine engine ...)))))
 
 (define-syntax sql-alter
   (syntax-rules (table rename to add modify drop column as select
-                 primary key change index)
+                       primary key change index)
     ((_ table old-name rename to new-name)
      (-> "table ~a rename to ~a" old-name new-name))
-    ((_ table name add cname ctype) 
+    ((_ table name add cname ctype)
      ;; e.g: (->sql alter table 'mmr add 'cname 'varchar(50))
      (-> "table ~a add ~a ~a" name cname ctype))
     ((_ table name modify column cname ctype)
@@ -294,7 +294,13 @@
     ((_ drop rest ...)
      (->end 'drop (sql-drop rest ...)))
     ((_ use db)
-     (-> end "use ~a" db))))
+     (->end "use ~a" db))
+    ((_ open db)
+     ;; NOTE: This is only for SQLite3 for it's lacking of `use'
+     ;;       statement. And MUSTN'T be end with `;'.
+     (with-dbd
+      'sqlite3
+      (-> ".open ~a" db)))))
 
 ;; 'where' is used to generate condition string of SQL
 ;; There're several modes in it, and can be composited.
@@ -334,7 +340,7 @@
          (let ((k (symbol->string key)))
            (if (list? v)
                (format #f " ~a ~{~a~^, ~} " k v)
-               (string-concatenate (list " " k " " v " "))))) 
+               (string-concatenate (list " " k " " v " ")))))
         (else (format #f "~a'~a'" key v)))))
   (match conds
     (() "")
@@ -347,7 +353,7 @@
     (((? string? stpl) (? keyword? k) . vals)
      (apply (make-db-string-template (string-concatenate (list (get-prefix) stpl))) (cons k vals)))
     ;; AND mode:
-    ;; (where #:name 'John #:age 15 #:email "john@artanis.com") 
+    ;; (where #:name 'John #:age 15 #:email "john@artanis.com")
     ;; ==> name="John" and age="15" and email="john@artanis.com"
     (((? keyword? key) (? non-list? val) . rest)
      (let* ((k (->key/pred key))
