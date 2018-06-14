@@ -27,7 +27,7 @@
 
 (library (artanis crypto base64)
   (export base64-encode base64-decode)
-  (import (rnrs))
+  (import (guile) (rnrs))
 
   (define base64-alphabet
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
@@ -223,5 +223,6 @@
   (define (base64-encode str/bv)
     (%base64-encode (if (string? str/bv) (string->utf8 str/bv) str/bv)))
 
-  (define (base64-decode str/bv)
-    (%base64-decode (if (string? str/bv) (string->utf8 str/bv) str/bv))))
+  (define* (base64-decode str/bv #:optional (bv? #t))
+    (let ((ret (if bv? identity utf8->string)))
+      (ret (%base64-decode (if (bytevector? str/bv) (utf8->string str/bv) str/bv))))))
