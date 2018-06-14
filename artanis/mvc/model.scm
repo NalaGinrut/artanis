@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015
+;;  Copyright (C) 2015,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -66,7 +66,7 @@
 
 (define (general-field-handler name . opts)
   (define (get-maxlen lst) (get-kw-val #:maxlen lst))
-  (define (get-diswidth lst) (get-kw-val #:diswidth lst))    
+  (define (get-diswidth lst) (get-kw-val #:diswidth lst))
   (case name
     ;; Auto index field
     ((auto) (list 'serial (opts-add '(#:no-edit #:not-null #:primary-key) opts)))
@@ -102,7 +102,7 @@
 ;; handler returns a list contains the valid field type in certain DBD
 (define (model-field-add! name handler)
   (set! *model-field-handlers*
-        (assoc-set! *model-field-handlers* name handler)))
+    (assoc-set! *model-field-handlers* name handler)))
 
 ;; NOTE: Different from auto_now* in Django, we allow users pass new value
 ;;       even auto_now* was specified.
@@ -111,8 +111,8 @@
 (define (fixed-date-field-val cmd meta k)
   (define (gen-local-date-str)
     (call-with-output-string
-     (lambda (port)
-       (write-date (get-local-time) port))))
+      (lambda (port)
+        (write-date (get-local-time) port))))
   (let ((info (hashq-ref meta k)))
     (cond
      ((opts-ref (cddr info) #:auto-now #t)
@@ -122,19 +122,20 @@
       ;; Set the field to now only once when the object is first created.
       (if (eq? cmd 'create)
           (meta-update! #:auto-now-once meta k)
-          (throw 'artanis-err 500
-                 "fixed-date-field-val: #:auto-now-once should be used with `create' cmd"))
+          (throw 'artanis-err 500 fixed-date-field-val
+                 "#:auto-now-once should be used with `create' command"))
       (gen-local-date-str))
-     (else (throw 'artanis-err 500
-                  "fixed-date-field-val: Shouldn't be here, why no default setting?")))))
+     (else (throw 'artanis-err 500 fixed-date-field-val
+                  "Shouldn't be here, why no default setting?")))))
 
 (define-syntax-rule (check-field-value type r)
   (unless r
-          (throw 'artanis-err 500
-                 (format #f "~a check failed: ~a" type r))))
+    (throw 'artanis-err 500
+           (format #f "~a check failed: ~a" type r))))
 
 (define (auto-field-validator v)
-  (throw 'artanis-err 500 "AUTO field: you shouldn't set it manually!"))
+  (throw 'artanis-err 500 auto-field-validator
+         "AUTO field: you shouldn't set it manually!"))
 
 (define BIGINT_MAX 9223372036854775808)
 (define (big-integer-validator v)
@@ -176,7 +177,7 @@
 
 (define (field-validator-add! type validator)
   (set! *field-validators*
-        (assoc-set! *field-validators* type validator)))
+    (assoc-set! *field-validators* type validator)))
 
 (define (general-field-validator v)
   ;; TODO: maybe do some security check?
@@ -188,7 +189,7 @@
     => (lambda (h) (h v)))
    (else (general-field-validator v))))
 
-;; Don't use it directly, since there's no existance-check in meta here. 
+;; Don't use it directly, since there's no existance-check in meta here.
 (define (return-default-val cmd meta k)
   (let ((info (hashq-ref meta k)))
     (cond
@@ -208,10 +209,13 @@
         => (lambda (opts)
              (cond
               ((assoc-ref opts #:no-edit)
-               (throw 'artanis-err 500 "fix-val: Field can't be edited!" k))
+               (throw 'artanis-err 500 gen-default-val
+                      "Field `~a' can't be edited!" k))
               ((hashq-ref meta k) => (lambda (info) (return-default-val cmd meta k)))
-              (else (throw 'artanis-err 500 "fix-val: Field doesn't exist!" k)))))
-       (else (throw 'artanis-err 500 "fix-val: No such field!" k))))
+              (else (throw 'artanis-err 500 gen-default-val
+                           "Field `~a' doesn't exist!" k)))))
+       (else (throw 'artanis-err 500 gen-default-val
+                    "No such field!" k))))
     (let lp((kl (hash-map->list cons meta)) (al args) (ret '()))
       (cond
        ((null? kl) `(,(reverse ret) ,@al)) ; append condition string if possible
@@ -230,13 +234,15 @@
     (let ((h (assoc-ref *model-field-handlers* type)))
       (if h
           (apply h type opts)
-          (throw 'artanis-err 500 "parse-raw-fields: Invalid field type!" type))))
+          (throw 'artanis-err 500 parse-raw-fields
+                 "Invalid field type `~a'!" type))))
   (let lp((next lst) (ret '()))
     (match next
       (() (reverse ret))
       ((((? symbol? name) (? symbol? type) (opts ...)) rest ...)
        (lp rest (cons `(,name ,@(->type type opts)) ret)))
-      (else (throw 'artanis-err 500 "parse-raw-fields: Invalid field definition!" next)))))
+      (else (throw 'artanis-err 500 parse-raw-fields
+                   "Invalid field definition!" next)))))
 
 ;; For example:
 ;; (define-person
@@ -258,22 +264,22 @@
              #:use-module (artanis fprm))
            (define-syntax #,(datum->syntax #'name (symbol-append 'define- (syntax->datum #'name)))
              (syntax-rules ::: ()
-               ((_ rest rest* :::)
-                (define-public #,(datum->syntax #'name (symbol-append '$ (syntax->datum #'name)))
-                  (let* ((raw (parse-raw-fields (list `rest `rest* :::)))
-                         (mt (map-table-from-DB (current-connection)))
-                         (meta (create-model-meta (list `rest `rest* :::))))
-                    (lambda (cmd . args)
-                      (apply mt cmd 'name (fix-fields cmd args meta))))))))
+                           ((_ rest rest* :::)
+                            (define-public #,(datum->syntax #'name (symbol-append '$ (syntax->datum #'name)))
+                              (let* ((raw (parse-raw-fields (list `rest `rest* :::)))
+                                     (mt (map-table-from-DB (current-connection)))
+                                     (meta (create-model-meta (list `rest `rest* :::))))
+                                (lambda (cmd . args)
+                                  (apply mt cmd 'name (fix-fields cmd args meta))))))))
            (try-to-load-migrate-cache 'name))))))
 
 (define (gen-model-header name)
   (call-with-output-string
-   (lambda (port)
-     (format port ";; Model ~a definition of ~a~%" name (current-appname))
-     (display ";; Please add your license header here.\n" port)
-     (display ";; This file is generated automatically by GNU Artanis.\n" port)
-     (format port "(create-artanis-model ~a) ; DO NOT REMOVE THIS LINE!!!~%~%" name))))
+    (lambda (port)
+      (format port ";; Model ~a definition of ~a~%" name (current-appname))
+      (display ";; Please add your license header here.\n" port)
+      (display ";; This file is generated automatically by GNU Artanis.\n" port)
+      (format port "(create-artanis-model ~a) ; DO NOT REMOVE THIS LINE!!!~%~%" name))))
 
 ;; NOTE: Whole list of types:
 ;;       integer
