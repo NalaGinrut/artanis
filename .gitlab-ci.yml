@@ -1,0 +1,37 @@
+before_script:
+  - date -u
+  - uname -a
+  - lsb_release -a
+  - sudo apt-get -qq update
+  - time sudo apt-get -qq -y build-dep guile-2.0
+  - time sudo apt-get -qq -y install automake autoconf libtool libmysqlclient-dev libmysqld-dev
+  - wget -c https://ftp.gnu.org/gnu/guile/guile-2.2.2.tar.gz
+  - tar xvzf guile-2.2.2.tar.gz
+  - cd guile-2.2.2
+  - ./configure --prefix=/usr && make
+  - sudo make install
+  - cd ..
+  - wget -c https://github.com/yagelix/guile-dbi/archive/guile-dbi-2.1.6.tar.gz
+  - tar xvzf guile-dbi-2.1.6.tar.gz
+  - cd guile-dbi-guile-dbi-2.1.6 && ./autogen.sh && ./configure --prefix=/usr && make
+  - sudo make install
+  - cd ..
+  - wget -c http://ftp.gnu.org/gnu/automake/automake-1.15.tar.xz
+  - tar xvf automake-1.15.tar.xz
+  - cd automake-1.15
+  - ./configure --prefix=/usr && make
+  - sudo make install
+  - cd ..
+test:
+  stage: test
+  script:
+   - ./autogen.sh
+   - mkdir -p build && cd build && ../configure
+   - make V=
+   - sudo make install
+   - make test
+   - guile -c '(display (@ (artanis artanis) artanis-version))'
+  only:
+    - master
+stages:
+  - test
