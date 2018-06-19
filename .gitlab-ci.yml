@@ -8,7 +8,7 @@ before_script:
   - apt-get -qq -y install automake autoconf libtool libmariadbclient-dev libmariadbd-dev
   - wget -c https://ftp.gnu.org/gnu/guile/guile-2.2.3.tar.gz
   - tar xvzf guile-2.2.3.tar.gz
-  - cd guile-2.2.2
+  - cd guile-2.2.3
   - ./configure --prefix=/usr && make
   - make install
   - cd ..
