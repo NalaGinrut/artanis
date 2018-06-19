@@ -1,3 +1,5 @@
+image: buildpack-deps:stretch
+
 before_script:
   - apt-get -qq update
   - apt-get -qq -y build-dep guile-2.0
