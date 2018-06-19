@@ -1,7 +1,4 @@
 before_script:
-  - date -u
-  - uname -a
-  - lsb_release -a
   - sudo apt-get -qq update
   - time sudo apt-get -qq -y build-dep guile-2.0
   - time sudo apt-get -qq -y install automake autoconf libtool libmysqlclient-dev libmysqld-dev
