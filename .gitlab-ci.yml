@@ -5,7 +5,7 @@ before_script:
   - echo "deb-src http://mirrors.ustc.edu.cn/debian stretch main contrib non-free" >> /etc/apt/sources.list
   - apt-get -qq update
   - apt-get -qq -y build-dep guile-2.0
-  - apt-get -qq -y install automake autoconf libtool libmysqlclient-dev libmysqld-dev
+  - apt-get -qq -y install automake autoconf libtool libmariadbclient-dev libmariadbd-dev
   - wget -c https://ftp.gnu.org/gnu/guile/guile-2.2.3.tar.gz
   - tar xvzf guile-2.2.3.tar.gz
   - cd guile-2.2.2
