@@ -428,12 +428,12 @@
   (define (->group-by group-by)
     (match group-by
       ((? list columns)
-       (format #f " ~{~a~^,~} " columns))
+       (format #f " group by ~{~a~^,~} " columns))
       (_ #f)))
   (define (->order-by order-by)
     (match order-by
       ((columns ... (? (cut memq <> '(asc desc)) m))
-       (format #f " ~{~a~^,~} ~a " columns m))
+       (format #f " order by ~{~a~^,~} ~a " columns m))
       (_ #f)))
   (define (->opts ret group-by order-by cnd foreach)
     (define-syntax-rule (-> x tox)
