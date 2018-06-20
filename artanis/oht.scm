@@ -143,7 +143,7 @@
         ('top (DB-get-top-row r))
         ((? positive? n) (DB-get-n-rows r n))
         (else (throw 'artanis-err 500 raw-sql-maker
-                     "Invalid mode!" mode))))))
+                     "Invalid mode `~a'!" mode))))))
 
 ;; for #:cache
 (define (cache-maker pattern rule keys)
