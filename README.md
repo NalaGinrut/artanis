@@ -1,10 +1,3 @@
-[![GitHub version](https://badge.fury.io/gh/nalaginrut%2Fartanis.svg)](https://gitlab.com/NalaGinrut/artanis/tags)
-[![GPLv3](https://img.shields.io/badge/License-GPLv3-blue.png)](https://www.gnu.org/copyleft/gpl.html)
-[![LGPLv3](https://img.shields.io/badge/License-LGPLv3-blue.png)](https://www.gnu.org/copyleft/lgpl.html)
-[![GNU Guile](https://img.shields.io/badge/Guile-2.2.2-yellow.png)](https://www.gnu.org/s/guile/)
-[![X86+ARM](https://img.shields.io/badge/architecture-X86+ARM-red.png)](https://gitlab.com/NalaGinrut/artanis)
-[![Travis CI](https://travis-ci.org/NalaGinrut/artanis.png)](https://travis-ci.org/NalaGinrut/artanis)
-
 GNU Artanis needs a logo, contribution is welcome!
 =========
 
