@@ -157,6 +157,17 @@
    ((symbol? x) x)
    (else (error "Invalid value, should be string or symbol!" x))))
 
+(define-syntax-rule (->dbname x)
+  (if (string-null? x )
+      #f
+      x))
+
+(define-syntax-rule (->dbd x)
+  (let ((d (->symbol x)))
+    (if (eq? 'mariadb)
+        'mysql
+        d)))
+
 (define *pool-modes* '(increase fixed))
 (define-syntax-rule (->pool-mode x)
   (let ((p (string->symbol x)))
@@ -169,11 +180,11 @@
 (define (parse-namespace-db item)
   (match item
     (('enable usedb) (conf-set! 'use-db? (->bool usedb)))
-    (('dbd dbd) (conf-set! '(db dbd) (->symbol dbd)))
+    (('dbd dbd) (conf-set! '(db dbd) (->dbd dbd)))
     (('proto proto) (conf-set! '(db proto) (->symbol proto)))
     (('socketfile socketfile) (conf-set! '(db socketfile) (->none/boolean socketfile)))
     (('addr addr) (conf-set! '(db addr) addr))
-    (('name name) (conf-set! '(db name) name))
+    (('name name) (conf-set! '(db name) (->dbname name)))
     (('username username) (conf-set! '(db username) username))
     (('passwd passwd) (conf-set! '(db passwd) passwd))
     (('engine engine) (conf-set! '(db engine) engine))
