@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -259,12 +259,12 @@
 (define-macro (->sql-type name-and-args)
   `(or (apply ->sql-general-type ,name-and-args)
        (apply ,(symbol-append '-> (->symbol (get-conf '(db dbd))) '-type)
-        ,name-and-args)))
+              ,name-and-args)))
 
 (define (make-table-dropper rc/conn)
   (define conn
     (cond
-     ((route-context? rc/conn) (rc-conn rc/conn))
+     ((route-context? rc/conn) (DB-open rc/conn))
      ((<connection>? rc/conn) rc/conn)
      (else (throw 'artanis-err 500 make-table-dropper "Invalid rc or conn!" rc/conn))))
   (lambda* (name #:key (dump #f))
@@ -301,11 +301,10 @@
                 "Invalid opts `~a' for MySQL table definition!" x)))))
 
 (define (->postgresql-opts dbd opts)
-  (format #t "PostgreSQL migration hasn't been supported yet!~%")
-  #t)
+  (format #t "PostgreSQL migration hasn't been supported yet!~%"))
+
 (define (->sqlite3-opts dbd opts)
-  (format #t "SQLite3 migration hasn't been supported yet!~%")
-  #t)
+  (format #t "SQLite3 migration hasn't been supported yet!~%"))
 
 (define *table-builder-opts-handler*
   `((mysql . ,->mysql-opts)
@@ -324,9 +323,10 @@
 (define* (make-table-builder rc/conn)
   (define conn
     (cond
-     ((route-context? rc/conn) (rc-conn rc/conn))
+     ((route-context? rc/conn) (DB-open rc/conn))
      ((<connection>? rc/conn) rc/conn)
-     (else (throw 'artanis-err 500 make-table-builder "Invalid rc or conn!" rc/conn))))
+     (else (throw 'artanis-err 500 make-table-builder
+                  "Invalid rc or conn `~a'!" rc/conn))))
   (define (table-drop! tname)
     (DB-query conn (->sql drop table if exists tname)))
   (define (->opts opts)
@@ -342,7 +342,8 @@
     (match x
       ((types ... (opts ...)) (values types (if (null? opts) "" (->opts opts))))
       ((types ...) (values types ""))
-      (else (throw 'artanis-err 500 ->type/opts "Invalid definition of the table!" x))))
+      (else (throw 'artanis-err 500 ->type/opts
+                   "Invalid definition of the table `~a'!" x))))
   (define (->types x)
     (call-with-values
         (lambda () (->type/opts x))
@@ -373,7 +374,7 @@
             ('(drop-primary-keys)
              (DB-query conn (->sql alter table tname drop primary key)))
             ;; TODO
-            (_ (throw 'artanis-err 500 make-table-builder "Invalid cmd!" cmd)))))
+            (_ (throw 'artanis-err 500 make-table-builder "Invalid cmd `~a'!" cmd)))))
        (else sql)))))
 
 ;; make-table-setter could be mapped to UPDATE or INSERT, depends on condition.
@@ -395,7 +396,7 @@
         (((? string? wcond))
          (lp (cdr next) kvs wcond))
         (() (values kvs w))
-        (else (throw 'artanis-err 500 make-table-setter "Invalid kargs" next)))))
+        (else (throw 'artanis-err 500 make-table-setter "Invalid kargs `~a'" next)))))
   (define (->kv kvp) (srfi-1:unzip2 kvp))
   (define (guard vl)
     (map (lambda (s)
@@ -413,9 +414,10 @@
                      ;;       you should use INSERT.
                      (->sql update tname set kvp wcond)))
             (conn (cond
-                   ((route-context? rc/conn) (rc-conn rc/conn))
+                   ((route-context? rc/conn) (DB-open rc/conn))
                    ((<connection>? rc/conn) rc/conn)
-                   (else (throw 'artanis-err 500 make-table-setter "Invalid rc or conn!" rc/conn)))))
+                   (else (throw 'artanis-err 500 make-table-setter
+                                "Invalid rc or conn `~a'!" rc/conn)))))
         (DB-query conn sql)))))
 
 (define (make-table-getter rc/conn)
@@ -441,9 +443,9 @@
     (define-syntax-rule (cond-combine c lst)
       (cond
        ((not (string? c))
-        (throw 'artanis-err 500 make-table-getter "Invalid #:condition" c))
+        (throw 'artanis-err 500 make-table-getter "Invalid #:condition `~a'" c))
        ((not (list? lst))
-        (throw 'artanis-err 500 make-table-getter "Invalid #:foreach" lst))
+        (throw 'artanis-err 500 make-table-getter "Invalid #:foreach `~a'" lst))
        (else
         (match lst
           (() c)
@@ -453,7 +455,7 @@
                    column vals))
           (_
            (throw 'artanis-err 500 make-table-getter
-                  "Invalid #:foreach, should be (column (val1 val2 val3 ...))"
+                  "Invalid #:foreach `~a', should be (column (val1 val2 val3 ...))"
                   lst))))))
     (string-concatenate
      (list (-> group-by ->group-by)
@@ -500,10 +502,10 @@
     (let ((sql (format #f "select ~{~a~^,~} from ~a ~a;"
                        (->mix columns functions) tname (->opts ret group-by order-by condition foreach)))
           (conn (cond
-                 ((route-context? rc/conn) (rc-conn rc/conn))
+                 ((route-context? rc/conn) (DB-open rc/conn))
                  ((<connection>? rc/conn) rc/conn)
                  (else (throw 'artanis-err 500 make-table-getter
-                              "Invalid rc or conn!" rc/conn)))))
+                              "Invalid rc or conn `~a'!" rc/conn)))))
       (cond
        ((not dump)
         (DB-query conn sql)
@@ -521,12 +523,14 @@
       ((postgresql) (->sql alter table tname alter column col t))
       ((sqlite3) (throw 'artanis-err 500 table-alter
                         "SQLite3 doesn't support table modification!"))
-      (else (throw 'artanis-err 500 table-alter " Unsupported DBD!" (get-conf '(db dbd))))))
+      (else (throw 'artanis-err 500 table-alter " Unsupported DBD `~a'!"
+                   (get-conf '(db dbd))))))
   (define (table-rename tname new)
     (case (get-conf '(db dbd))
       ((mysql) (->sql alter table tname rename new))
       ((postgresql sqlite3) (->sql alter table tname rename to new))
-      (else (throw 'artanis-err 500 table-rename "Unsupported DBD!" (get-conf '(db dbd))))))
+      (else (throw 'artanis-err 500 table-rename "Unsupported DBD `~a'!"
+                   (get-conf '(db dbd))))))
   (define (column-drop tname cname)
     (case (get-conf '(db dbd))
       ((mysql postgresql) (->sql alter table tname drop column cname))
@@ -541,7 +545,7 @@
       ((sqlite3) (throw 'artanis-err 500 column-rename
                         "SQLite3 doesn't support table column modification!"))
       (else (throw 'artanis-err 500 column-rename
-                   "Unsupported DBD!" (get-conf '(db dbd))))))
+                   "Unsupported DBD `~a'!" (get-conf '(db dbd))))))
   (define (index-rename tname old new)
     (case (get-conf '(db dbd))
       ((mysql) (->sql alter table tname index old rename to new))
@@ -549,7 +553,7 @@
       ((sqlite3) (throw 'artanis-err 500 index-rename
                         "SQLite3 doesn't support table column modification!"))
       (else (throw 'artanis-err 500 index-rename
-                   "Unsupported DBD!" (get-conf '(db dbd))))))
+                   "Unsupported DBD `~a'!" (get-conf '(db dbd))))))
   (define (gen-sql tname op args)
     (case op
       ((add) (apply table-add tname args))
@@ -560,24 +564,24 @@
       ((column-rename) (apply column-rename tname args))
       ((index-rename) (apply index-rename args))
       (else (throw 'artanis-err 500 make-table-modifier
-                   "Invalid op!" op))))
+                   "Invalid op `~a'!" op))))
   (lambda (tname op . args)
     (let ((sql (gen-sql tname op args))
           (conn (cond
-                 ((route-context? rc/conn) (rc-conn rc/conn))
+                 ((route-context? rc/conn) (DB-open rc/conn))
                  ((<connection>? rc/conn) rc/conn)
                  (else (throw 'artanis-err 500 make-table-modifier
-                              "Invalid rc or conn!" rc/conn)))))
+                              "Invalid rc or conn `~a'!" rc/conn)))))
       (DB-query conn sql))))
 
 ;; NOTE: the name of columns is charactar-caseless, at least in MySQL/MariaDB.
 (define (map-table-from-DB rc/conn)
   (define conn
     (cond
-     ((route-context? rc/conn) (rc-conn rc/conn))
+     ((route-context? rc/conn) (DB-open rc/conn))
      ((<connection>? rc/conn) rc/conn)
      (else (throw 'artanis-err 500 map-table-from-DB
-                  "Invalid rc/conn" rc/conn))))
+                  "Invalid rc/conn `~a'" rc/conn))))
   (define getter (make-table-getter conn))
   (define setter (make-table-setter conn))
   (define builder (make-table-builder conn))
@@ -630,14 +634,13 @@
       ((schema) (get-table-schema tname))
       ((mod) (->call modifier))
       (else (throw 'artanis-err 500 map-table-from-DB
-                   "Invalid cmd" cmd)))))
+                   "Invalid cmd: `~a'" cmd)))))
 
 (define* (fprm-find mt tname val #:key (id 'id))
   (mt 'get tname #:condition (where (symbol->keyword id) val)))
 
 (define *table-mapper-handlers*
-  `((find . ,fprm-find)
-    ))
+  `((find . ,fprm-find)))
 
 (define (create-table-mapper tname rc/conn)
   (let ((mt (map-table-from-DB rc/conn)))
