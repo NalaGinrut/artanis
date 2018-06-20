@@ -61,9 +61,9 @@
 (define (->mysql mysql)
   (match mysql
     (($ <mysql> ($ <db> _ username passwd) dbname addr #f)
-     (format #f "~a:~a::tcp:~a" username passwd addr))
+     (format #f "~a:~a:~a:tcp:~a" username passwd dbname addr))
     (($ <mysql> ($ <db> _ username passwd) dbname #f socketfile)
-     (format #f "~a:~a::socket:~a" username passwd socketfile))
+     (format #f "~a:~a:~a:socket:~a" username passwd dbname socketfile))
     (else (error 'mysql "Wrong connection config!" mysql))))
 
 (define-record-type <sqlite3>
@@ -125,16 +125,16 @@
 ;; e.g: (connect-db "mysql" "root:123:artanis:tcp:localhost:3306")
 (define connect-db
   (case-lambda*
-   ((dbd str) (%do-connect dbd str))
-   ((dbd #:key (db-name "artanis") (db-username "root") (db-passwd "")
-         (addr "localhost:3306") (proto 'tcp))
-    (let ((str (case dbd
-                 ((mysql) (format #f "~a:~a:~a:~a:~a"
-                                  db-username db-passwd db-name proto addr))
-                 ((postgresql) (format #f "~a:~a:~a:~a:~a"
-                                       db-username db-passwd db-name proto addr))
-                 ((sqlite3) (format #f "~a" db-name)))))
-      (%do-connect dbd str)))))
+      ((dbd str) (%do-connect dbd str))
+    ((dbd #:key (db-name "artanis") (db-username "root") (db-passwd "")
+          (addr "localhost:3306") (proto 'tcp))
+     (let ((str (case dbd
+                  ((mysql) (format #f "~a:~a:~a:~a:~a"
+                                   db-username db-passwd db-name proto addr))
+                  ((postgresql) (format #f "~a:~a:~a:~a:~a"
+                                        db-username db-passwd db-name proto addr))
+                  ((sqlite3) (format #f "~a" db-name)))))
+       (%do-connect dbd str)))))
 
 (define (new-DB)
   ;; TODO:
@@ -157,14 +157,10 @@
       (else (error new-DB "Something is wrong, invalid db!" db)))))
 
 (define (create-new-DB-conn)
-  (let ((conn (DB-do-conn! (new-DB)))
-        (dbd (get-conf '(db dbd)))
-        (db-name (get-conf '(db name))))
+  (let ((conn (DB-do-conn! (new-DB))))
     (when (not (db-conn-success? conn))
       (error init-connection-pool "Database connect failed: "
              (db-conn-failed-reason conn)))
-    (when (not (eq? dbd 'sqlite3)) ; sqlite3 doesn't support 'USE' statement
-      (DB-query conn (->sql use db-name)))
     conn))
 
 (define (get-conn-from-pool)
