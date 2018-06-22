@@ -70,8 +70,12 @@
 (define (init-before-response-hook)
   (run-before-response! rc-conn-recycle))
 
+(define (init-startup-hook)
+  #t)
+
 ;; NOTE: If you want to add hook during initialization time, put them here.
 (define (init-hook)
+  (init-startup-hook)
   (init-after-request-hook)
   (init-before-response-hook))
 

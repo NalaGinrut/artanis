@@ -72,7 +72,7 @@
             keyword->string range oah->handler oah->opts string->keyword
             alist->klist alist->kblist is-hash-table-empty?
             symbol-downcase symbol-upcase normalize-column run-before-run!
-            sxml->xml-string run-after-request! run-before-response!
+            sxml->xml-string run-after-request! run-before-response! run-when-DB-init!
             make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
             generate-kv-from-post-qstr handle-proper-owner
             generate-data-url verify-ENTRY exclude-dbd
@@ -702,6 +702,9 @@
 
 (define (run-before-run! proc)
   (add-hook! *before-run-hook* proc))
+
+(define (run-when-DB-init! proc)
+  (add-hook! *DB-conn-init-hook* proc))
 
 ;; NOTE: For `pipeline' methodology, please read my post:
 ;; http://nalaginrut.com/archives/2014/04/25/oba-pipeline-style%21

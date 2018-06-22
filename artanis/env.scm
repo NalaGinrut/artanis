@@ -32,6 +32,7 @@
             *before-response-hook*
             *after-request-hook*
             *before-run-hook*
+            *DB-conn-init-hook*
             *sql-mapping-lookup-table*
             *artanis-entry*
             %current-toplevel
@@ -81,6 +82,7 @@
 (define *before-response-hook* (make-hook 2))
 (define *after-request-hook* (make-hook 2))
 (define *before-run-hook* (make-hook))
+(define *DB-conn-init-hook* (make-hook 1))
 
 ;; TODO: I don't have much time for it but it should be RB-Tree in the future
 (define *sql-mapping-lookup-table* (make-hash-table))
