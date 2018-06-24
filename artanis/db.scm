@@ -161,6 +161,7 @@
     (when (not (db-conn-success? conn))
       (error init-connection-pool "Database connect failed: "
              (db-conn-failed-reason conn)))
+    (run-hook *DB-conn-init-hook* conn)
     conn))
 
 (define (get-conn-from-pool)
@@ -202,10 +203,7 @@
     (set! *conn-pool*
       (let ((dbconns
              (map
-              (lambda (_)
-                (let ((conn (create-new-DB-conn)))
-                  (run-hook *DB-conn-init-hook* conn)
-                  conn))
+              (lambda (_) (create-new-DB-conn))
               (iota poolsize))))
         (list->queue dbconns)))
     (display "DB pool init ok!\n")
