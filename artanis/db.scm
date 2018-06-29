@@ -212,10 +212,13 @@
 ;; ---------------------conn operations-------------------------------
 ;; Actually, it's not `open', but get a conn from pool.
 (define (DB-open rc)
-  (let ((conn (get-conn-from-pool)))
-    (<connection>-status-set! conn 'open)
-    (rc-conn! rc conn)
-    conn))
+  (let ((cur-conn (rc-conn rc)))
+    (if cur-conn
+        cur-conn
+        (let ((conn (get-conn-from-pool)))
+          (<connection>-status-set! conn 'open)
+          (rc-conn! rc conn)
+          conn))))
 
 (define (db-query-debug-info sql)
   (when (get-conf 'debug-mode)
