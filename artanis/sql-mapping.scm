@@ -72,7 +72,6 @@
   (define (basic-checker rc p sql passwd-field salt-field)
     (string=? p (->passwd rc passwd-field salt-field sql)))
   (define (init-post rc)
-    (DEBUG "post-data: ~a~%" (rc-body rc))
     (and (rc-body rc)
          (generate-kv-from-post-qstr (rc-body rc))))
   (define (default-hmac pw salt)

@@ -95,7 +95,8 @@
             bv-copy/share bv-backward artanis-list-matches get-syspage
             artanis-sys-response char-predicate handle-upload is-valid-table-name?
             is-guile-compatible-server-core?)
-  #:re-export (the-environment))
+  #:re-export (the-environment
+               utf8->string))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
 (define* (get-random-from-dev #:key (length 8) (uppercase #f))
@@ -754,7 +755,7 @@
     (match lst
       ((k v) (list (key-converter k) ((current-encoder) v)))
       (else (throw 'artanis-err 500 generate-kv-from-post-qstr
-                   "Fatal! Can't be here!" lst))))
+                   "Fatal! Can't be here `~a'!" lst))))
   (define (-> x)
     (string-trim-both x (lambda (c) (member c '(#\sp #\: #\return)))))
   (map (lambda (x)
