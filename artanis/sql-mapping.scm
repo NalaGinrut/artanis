@@ -57,7 +57,7 @@
      (sql-mapping-tpl-add name sql-tpl)
      sql-mapping-fetch)
     ;;('fprm map-table-from-DB)
-    (else (throw 'artanis-err 500 sql-mapping-maker "Invalid mode!" mode))))
+    (else (throw 'artanis-err 500 sql-mapping-maker "Invalid mode `~a'!" mode))))
 
 (define (auth-maker val rule keys)
   (define-syntax-rule (->passwd rc passwd-field salt-field sql)
@@ -72,10 +72,11 @@
   (define (basic-checker rc p sql passwd-field salt-field)
     (string=? p (->passwd rc passwd-field salt-field sql)))
   (define (init-post rc)
+    (DEBUG "post-data: ~a~%" (rc-body rc))
     (and (rc-body rc)
          (generate-kv-from-post-qstr (rc-body rc))))
   (define (default-hmac pw salt)
-    ;; We still have sha384, sha512 to use, but I think sha256 is enough. 
+    ;; We still have sha384, sha512 to use, but I think sha256 is enough.
     (string->sha-256 (string-append pw salt)))
   (define* (gen-result rc mode sql post-data
                        #:key (hmac default-hmac) (checker #f)
@@ -95,7 +96,7 @@
        (match (get-header rc 'authorization)
          ;; NOTE: In match `=' opetator, the order of evaluation is from left to right.
          ;;       So base64-decode will run first.
-         (`(basic . ,(= base64-decode (= (cut string-split <> #\:) up)))
+         (`(basic . ,(= base64-decode-as-string (= (cut string-split <> #\:) up)))
           (let ((u (car up)) (p (cadr up)))
             (if checker
                 (checker rc u p)
