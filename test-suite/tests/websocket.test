@@ -20,9 +20,20 @@
 
 (define-module (test websocket)
   #:use-module (artanis utils)
+  #:use-module (artanis websocket)
   #:use-module (artanis websocket handshake)
   #:use-module (artanis websocket frame)
+  #:use-module ((ice-9 iconv) #:select (string->bytevector))
+  #:use-module ((rnrs) #:select (open-bytevector-input-port))
   #:use-module (test-suite lib))
+
+(define websocket-echo-read (@@ (artanis websocket protocols) websocket-echo-read))
+
+(define (websocket-decode-body-string str)
+  (let* ((bv (string->bytevector str "iso8859-1"))
+         (port (open-bytevector-input-port bv "iso8859-1"))
+         (ws-frame (read-websocket-frame websocket-echo-read port)))
+    (websocket-echo-read ws-frame)))
 
 (with-test-prefix "websocket test"
 
@@ -31,7 +42,7 @@
       (string=? ts "HSmrc0sMlYUkAGmm5OPpG2HaGWk=")))
 
   (pass-if "websocket one frame as string decode"
-    (let ((str (websocket:decode-body-string "\x81\x8cÿ¸½½·ÝÑÑ\x90\x98êÒ\x8dÔÙ\x9c")))
+    (let ((str (websocket-decode-body-string "\x81\x8cÿ¸½½·ÝÑÑ\x90\x98êÒ\x8dÔÙ\x9c")))
       (string=? str "Hello World!")))
 
   ;; TODO: fill other tests

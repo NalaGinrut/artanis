@@ -50,7 +50,7 @@
 (define (this-rule-enabled-websocket! rule protocol)
   ;;(DEBUG "this-rule-enabled-websocket!~%")
   (set! *rules-with-websocket*
-        (cons (cons (string->irregex rule) protocol) *rules-with-websocket*)))
+    (cons (cons (string->irregex rule) protocol) *rules-with-websocket*)))
 
 (define (get-websocket-protocol rule)
   ;;(DEBUG "get-websocket-protocol~%")
