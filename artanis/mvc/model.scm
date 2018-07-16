@@ -239,7 +239,7 @@
   (let lp((next lst) (ret '()))
     (match next
       (() (reverse ret))
-      ((((? symbol? name) (? symbol? type) (opts ...)) rest ...)
+      ((((? symbol? name) (? symbol? type) . (or (? null? opts) ((opts ...)))) rest ...)
        (lp rest (cons `(,name ,@(->type type opts)) ret)))
       (else (throw 'artanis-err 500 parse-raw-fields
                    "Invalid field definition!" next)))))
