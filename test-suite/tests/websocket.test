@@ -31,7 +31,7 @@
 
 (define (websocket-decode-body-string str)
   (let* ((bv (string->bytevector str "iso8859-1"))
-         (port (open-bytevector-input-port bv "iso8859-1"))
+         (port (open-bytevector-input-port bv))
          (ws-frame (read-websocket-frame websocket-echo-read port)))
     (websocket-echo-read ws-frame)))
 
