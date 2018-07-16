@@ -67,6 +67,7 @@
 (define (general-field-handler name . opts)
   (define (get-maxlen lst) (get-kw-val #:maxlen lst))
   (define (get-diswidth lst) (get-kw-val #:diswidth lst))
+  (define (get-integer-fractional-part lst) (get-kw-val #:integer-fractional lst))
   (case name
     ;; Auto index field
     ((auto) (list 'serial (opts-add '(#:no-edit #:not-null #:primary-key) opts)))
@@ -79,6 +80,10 @@
     ;; Raw binary data
     ;; ((binary) (list 'longblob opts)) ; longblob for mysql
     ((boolean) (list 'boolean opts))
+    ;; Integer part is the total number of digits.
+    ;; Fractional part is the number of digits following the decimal point.
+    ((float) `(float ,@(get-integer-fractional-part opts)))
+    ((double) `(double ,@(get-integer-fractional-part opts)))
     ((char-field) `(varchar ,@(get-maxlen opts)))))
 
 (define (date-field-handler now . opts)
@@ -164,6 +169,9 @@
 
 (define (tinyint-validator v) v)
 (define (smallint-validator v) v)
+(define (float-validator v)
+  ;; TODO: Is it possible to check integer-fractional by definition in migration?
+  v)
 
 ;; FIXME: Shoud we check type validation in Scheme level? Or leave it as DB work.
 (define *field-validators*
@@ -172,6 +180,8 @@
     (small-integer . ,smallint-validator)
     (big-integer . ,big-integer-validator)
     (boolean . ,boolean-validator)
+    (float . ,float-validator)
+    (double . ,float-validator)
     (date . ,date-validator)
     (datetime . ,datetime-validator)))
 
@@ -269,6 +279,12 @@
                               (let* ((raw (parse-raw-fields (list `rest `rest* :::)))
                                      (mt (map-table-from-DB (current-connection)))
                                      (meta (create-model-meta (list `rest `rest* :::))))
+                                (when (not (mt 'table-exists? name))
+                                  (format (artanis-current-output)
+                                          "Creating table `~a' defined in model......"
+                                          name)
+                                  (mt 'try-create name raw)
+                                  (format (artanis-current-output) "Done.~%"))
                                 (lambda (cmd . args)
                                   (apply mt cmd 'name (fix-fields cmd args meta))))))))
            (try-to-load-migrate-cache 'name))))))

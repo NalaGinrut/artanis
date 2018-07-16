@@ -59,6 +59,14 @@
 (define (->n n m)
   (format #f "~a(~{'~a'~^,~}) ~{~a~^ ~}" n (car m) (cdr m)))
 
+(define (float-args-is-valid? args)
+  (if (< (length args) 2)
+      #f
+      (let ((i (car args))
+            (f (cadr args)))
+        (and (and (integer? i) (positive? i))
+             (and (integer? f) (positive? f))))))
+
 (define (->mysql-type name . args)
   (case name
     ;; Text types:
@@ -101,11 +109,19 @@
     ;; FLOAT(size,d) A small number with a floating decimal point.
     ;; The maximum number of digits may be specified in the size parameter.
     ;; The maximum number of digits to the right of the decimal point is specified in the d parameter
-    ((float) (->2 name args))
+    ((float)
+     (if (float-args-is-valid? args)
+         (->2 name args)
+         (throw 'artanis-err 500 ->mysql-type
+                "Invalid definition: `~a'" (->2 name args))))
     ;; DOUBLE(size,d) A large number with a floating decimal point.
     ;; The maximum number of digits may be specified in the size parameter.
     ;; The maximum number of digits to the right of the decimal point is specified in the d parameter
-    ((double) (->2 name args))
+    ((double)
+     (if (float-args-is-valid? args)
+         (->2 name args)
+         (throw 'artanis-err 500 ->mysql-type
+                "Invalid definition: `~a'" (->2 name args))))
     ;; DECIMAL(size,d) A DOUBLE stored as a string , allowing for a fixed decimal point.
     ;; The maximum number of digits may be specified in the size parameter.
     ;; The maximum number of digits to the right of the decimal point is specified in the d parameter
@@ -134,7 +150,7 @@
     ;; NOTE: Values allowed in four-digit format: 1901 to 2155.
     ;;       Values allowed in two-digit format: 70 to 69, representing years from 1970 to 2069
     ((year) (->0 name args))
-    (else (throw 'artanis-err 500 ->mysql-type "Invalid type name" name))))
+    (else (throw 'artanis-err 500 ->mysql-type "Invalid type name `~a'" name))))
 
 (define (->postgresql-type name . args)
   (case name
@@ -207,7 +223,7 @@
     ;; Composite Types
     ;; TODO: do we really need this?
 
-    (else (throw 'artanis-err 500 ->postgresql-type "Invalid type name" name))))
+    (else (throw 'artanis-err 500 ->postgresql-type "Invalid type name `~a'" name))))
 
 (define (->sql-general-type name . args)
   (case name
@@ -231,7 +247,11 @@
     ((numeric) (->2 name args)) ; NUMERIC(p,s) Exact numerical, precision p, scale s. (Same as DECIMAL)
     ;; FLOAT(p) Approximate numerical, mantissa precision p. A floating number in base 10 exponential notation.
     ;; The size argument for this type consists of a single number specifying the minimum precision
-    ((float) (if (null? args) (->0 name args) (->1 name args)))
+    ((float)
+     (cond
+      ((null? args) (->0 name args))
+      ((float-args-is-valid? args) #f) ; trigger DBD specific float definition
+      (else (->1 name args))))
     ((real) (->0 name args)) ; REAL Approximate numerical, mantissa precision 7
     ;; DOUBLE PRECISION Approximate numerical, mantissa precision 16
     ((double-precision) (->0 "double precision" args))
@@ -498,6 +518,10 @@
                   ;; NOTE: This is useful to avoid N+1 query problem.
                   (dump #f)
                   ;; Dump SQL to a string as result, when #:dump set to #t, it won't do query operation.
+                  (mode 'raw)
+                  ;; The return value;
+                  ;; 1. 'raw: returns all rows
+                  ;; 2. 'getter: return a getter as a function
                   )
     (let ((sql (format #f "select ~{~a~^,~} from ~a ~a;"
                        (->mix columns functions) tname (->opts ret group-by order-by condition foreach)))
@@ -509,7 +533,14 @@
       (cond
        ((not dump)
         (DB-query conn sql)
-        (DB-get-all-rows conn))
+        (let ((ret (DB-get-all-rows conn)))
+          (case mode
+            ((raw) ret)
+            ((getter)
+             (lambda (k)
+               (assoc-ref (car ret) k)))
+            (else (throw 'artanis-err 500 make-table-getter
+                         "Invalid mode `~a'" mode)))))
        (else sql)))))
 
 (define (make-table-modifier rc/conn)
@@ -611,6 +642,7 @@
     (and (srfi-1:every (lambda (x) (memq x schema)) (-> args)) #t))
   (define (table-exists? tname)
     (DB-query rc/conn (format #f "show tables like '~a';" tname))
+    ;; If there's no result, dbi will return #f as the result.
     (DB-get-top-row rc/conn))
   (lambda (cmd tname . args)
     (define-syntax-rule (->call func)
