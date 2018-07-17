@@ -64,8 +64,8 @@
       #f
       (let ((i (car args))
             (f (cadr args)))
-        (and (and (integer? i) (positive? i))
-             (and (integer? f) (positive? f))))))
+        (and (positive-integer? i)
+             (negative-integer? f)))))
 
 (define (->mysql-type name . args)
   (case name

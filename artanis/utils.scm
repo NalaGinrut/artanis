@@ -94,7 +94,7 @@
             artanis-log exception-from-client exception-from-server render-sys-page
             bv-copy/share bv-backward artanis-list-matches get-syspage
             artanis-sys-response char-predicate handle-upload is-valid-table-name?
-            is-guile-compatible-server-core?)
+            is-guile-compatible-server-core? positive-integer? negative-integer?)
   #:re-export (the-environment
                utf8->string))
 
@@ -1498,3 +1498,9 @@
 (define is-valid-table-name?
   (lambda (name)
     (not (string-any invalid-char-set? name))))
+
+(define (positive-integer? x)
+  (and (integer? x) (positive? x)))
+
+(define (negative-integer? x)
+  (and (integer? x) (negative? x)))

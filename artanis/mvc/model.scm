@@ -67,7 +67,11 @@
 (define (general-field-handler name . opts)
   (define (get-maxlen lst) (get-kw-val #:maxlen lst))
   (define (get-diswidth lst) (get-kw-val #:diswidth lst))
-  (define (get-integer-fractional-part lst) (get-kw-val #:integer-fractional lst))
+  (define (get-integer-fractional-part lst)
+    (match (get-kw-val #:integer-fractional lst)
+      ;; We don't check the type here, deley to let FPRM check it.
+      (((i f)) (list i f))
+      (else '())))
   (case name
     ;; Auto index field
     ((auto) (list 'serial (opts-add '(#:no-edit #:not-null #:primary-key) opts)))
