@@ -331,7 +331,7 @@
                    (format #f "[SQL]~a: invalid range" (get-prefix))
                    lst))))
   (define (get-the-conds-str key val)
-    (let ((v (if (list? val) (->range val) (->string val))))
+    (let ((v (if (list? val) (->range val) val)))
       (match key
         ;; These are reversed key in SQL, we use string-concatenate for efficiency
         ('limit
@@ -339,9 +339,9 @@
          ;; (artanis-check-if-current-DB-support key)
          (let ((k (symbol->string key)))
            (if (list? v)
-               (format #f " ~a ~{~a~^, ~} " k v)
-               (string-concatenate (list " " k " " v " ")))))
-        (else (format #f "~a'~a'" key v)))))
+               (format #f " ~a ~{~s~^, ~} " k v)
+               (format #f " ~a ~s " k v))))
+        (else (format #f "~a~s" key v)))))
   (match conds
     (() "")
     (((? string? c1) (? string? c2) . rest)
@@ -354,7 +354,7 @@
      (apply (make-db-string-template (string-concatenate (list (get-prefix) stpl))) (cons k vals)))
     ;; AND mode:
     ;; (where #:name 'John #:age 15 #:email "john@artanis.com")
-    ;; ==> name="John" and age="15" and email="john@artanis.com"
+    ;; ==> name="John" and age=15 and email="john@artanis.com"
     (((? keyword? key) (? non-list? val) . rest)
      (let* ((k (->key/pred key))
             (str (get-the-conds-str k val)))
@@ -368,7 +368,7 @@
      (let* ((kp (->key/pred key))
             (fmt (string-concatenate `(,(get-prefix) "~{" ,kp "'~a'~^" ,(->or/and kp) "~}"))))
        (format #f fmt vals)))
-    (else (throw 'artanis-err 500
+    (else (throw 'artanis-err 500 gen-cond
                  (format #f "[SQL]~a: invalid condition pattern" (get-prefix))
                  conds))))
 

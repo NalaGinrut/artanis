@@ -36,7 +36,7 @@
   
   (pass-if "SELECT & WHERE test1"
     (string=? (->sql select * from 'Persons (where (/and #:age> 15 #:age< 30)))
-              "select * from Persons where age>'15' and age<'30';"))
+              "select * from Persons where age>15 and age<30;"))
 
   (pass-if "WHERE group test1"
     (string=? (where #:age<> '(1 2))
