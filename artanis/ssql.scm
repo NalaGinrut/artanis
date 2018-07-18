@@ -327,7 +327,7 @@
     (match lst
       (((? integer? from) (? integer? to))
        (map ->string lst))
-      (else (throw 'artanis-err 500
+      (else (throw 'artanis-err 500 gen-cond
                    (format #f "[SQL]~a: invalid range" (get-prefix))
                    lst))))
   (define (get-the-conds-str key val)
@@ -394,5 +394,5 @@
   (match lst
     (() "")
     ((column (? list? vals))
-     (format #f " ~a in (~{'~a'~^,~}) " column vals))
+     (format #f " ~a in (~{~s~^,~}) " column vals))
     (else (throw 'artanis-err 500 "/in: Invalid args" lst))))
