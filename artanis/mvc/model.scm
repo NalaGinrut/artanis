@@ -70,7 +70,7 @@
   (define (get-integer-fractional-part lst)
     (match (get-kw-val #:integer-fractional lst)
       ;; We don't check the type here, deley to let FPRM check it.
-      (((i f)) (list i f))
+      (((i f) . _) (list i f))
       (else '())))
   (case name
     ;; Auto index field
@@ -87,7 +87,7 @@
     ;; Integer part is the total number of digits.
     ;; Fractional part is the number of digits following the decimal point.
     ((float) `(float ,@(get-integer-fractional-part opts)))
-    ((double) `(double ,@(get-integer-fractional-part opts)))
+    ((double) (pk "double"`(double ,@(get-integer-fractional-part opts))))
     ((char-field) `(varchar ,@(get-maxlen opts)))))
 
 (define (date-field-handler now . opts)
