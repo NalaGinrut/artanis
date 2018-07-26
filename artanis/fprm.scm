@@ -538,7 +538,8 @@
             ((raw) ret)
             ((getter)
              (lambda (k)
-               (assoc-ref (car ret) k)))
+               (and (not (null? ret))
+                    (assoc-ref (car ret) k))))
             (else (throw 'artanis-err 500 make-table-getter
                          "Invalid mode `~a'" mode)))))
        (else sql)))))
