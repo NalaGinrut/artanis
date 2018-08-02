@@ -70,6 +70,9 @@
 (define (init-before-response-hook)
   (run-before-response! rc-conn-recycle))
 
+(define (init-after-websocket-hook)
+  (run-after-websocket-handshake! register-websocket-pipe!))
+
 (define (init-startup-hook)
   #t)
 
@@ -77,7 +80,8 @@
 (define (init-hook)
   (init-startup-hook)
   (init-after-request-hook)
-  (init-before-response-hook))
+  (init-before-response-hook)
+  (init-after-websocket-hook))
 
 (define (handler-render handler rc)
   (define (->bytevector body)

@@ -1,0 +1,54 @@
+<html>
+    <head>
+
+        <script type="text/javascript">
+         function WebSocketTest()
+         {
+             if ("WebSocket" in window)
+                 {
+                     document.write("<p>WebSocket is supported by your Browser!</p>");
+
+                     // Let us open a web socket
+                     var ws = new WebSocket("ws://localhost:3000/robot?artanis_named_pipe=robot-1");
+
+                     ws.onopen = function()
+                     {
+                         // Web Socket is connected, send data using send()
+                         ws.send("hello world");
+                         document.write("<p>Message is sent...</p>");
+                     };
+
+                     ws.onmessage = function (evt)
+                     {
+                         var received_msg = evt.data;
+                         document.write("<p>hello welcome..." + received_msg + "</p>");
+                     };
+
+                     ws.onclose = function()
+                     {
+                         // websocket is closed.
+                         document.write("<p>Connection is closed...</p>");
+                     };
+
+                     window.onbeforeunload = function(event) {
+                         socket.close();
+                     };
+                 }
+
+             else
+                 {
+                     // The browser doesn't support WebSocket
+                     document.write("<p>WebSocket NOT supported by your Browser!</p>");
+                 }
+         }
+        </script>
+
+    </head>
+    <body>
+
+        <div id="sse">
+            <a href="javascript:WebSocketTest()">Run WebSocket</a>
+        </div>
+
+    </body>
+</html>

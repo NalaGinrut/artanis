@@ -50,8 +50,7 @@
                           define-record-type record-rtd record-accessor
                           get-string-all))
   #:export (regexp-split
-            hash-keys cat bv-cat get-global-time sanitize-response
-
+            hash-keys cat bv-cat get-global-time sanitize-response uri-query
             build-response write-response get-local-time string->md5 unsafe-random
             uri-encode uri-decode response-version response-code response-connection
             request-headers response-port write-response-body read-request request-uri
@@ -74,7 +73,7 @@
             symbol-downcase symbol-upcase normalize-column run-before-run!
             sxml->xml-string run-after-request! run-before-response! run-when-DB-init!
             make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
-            generate-kv-from-post-qstr handle-proper-owner
+            generate-kv-from-post-qstr handle-proper-owner run-after-websocket-handshake!
             generate-data-url verify-ENTRY exclude-dbd
             draw-expander remove-ext scan-app-components cache-this-route!
             dump-route-from-cache generate-modify-time delete-directory
@@ -110,6 +109,7 @@
 
 (define uri-decode (@ (web uri) uri-decode))
 (define uri-encode (@ (web uri) uri-encode))
+(define uri-query (@ (web uri) uri-query))
 (define parse-date (@@ (web http) parse-date))
 (define write-date (@@ (web http) write-date))
 (define build-response (@ (web response) build-response))
@@ -706,6 +706,9 @@
 
 (define (run-when-DB-init! proc)
   (add-hook! *DB-conn-init-hook* proc))
+
+(define (run-after-websocket-handshake! proc)
+  (add-hook! *after-websocket-handshake-hook* proc))
 
 ;; NOTE: For `pipeline' methodology, please read my post:
 ;; http://nalaginrut.com/archives/2014/04/25/oba-pipeline-style%21

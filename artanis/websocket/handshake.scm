@@ -45,7 +45,7 @@
 (define (url-need-websocket? url)
   ;;(DEBUG "url-need-websocket?~%")
   (any (lambda (rule)
-         (irregex-search (car rule) url)) *rules-with-websocket*))
+         (irregex-match (car rule) url)) (pk "rws" *rules-with-websocket*)))
 
 (define (this-rule-enabled-websocket! rule protocol)
   ;;(DEBUG "this-rule-enabled-websocket!~%")
@@ -103,6 +103,9 @@
              "Websocket subprotocol `~a' is unacceptable from client ~a"
              protocol (client-ip client))))))
 
+(define (run-after-websocket-handshake-hooks req client)
+  (run-hook *after-websocket-handshake-hook* req client))
+
 ;; NOTE: Although we can get `port' from `request', we still need `client' for IP address.
 (define (do-websocket-handshake req server client)
   (define-syntax-rule (->protocols pl)
@@ -132,6 +135,7 @@
             "[Websocket] Initializing `~a' protocol for Websocket ..."
             proto)
     (register-websocket-protocol! server client proto port)
+    (run-after-websocket-handshake-hooks req client)
     (format (artanis-current-output) " done~%")
     (write-response res port)
     (force-output port)

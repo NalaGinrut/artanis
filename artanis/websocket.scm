@@ -24,26 +24,30 @@
   #:use-module (artanis server server-context)
   #:use-module (artanis websocket handshake)
   #:use-module (artanis websocket frame)
+  #:use-module (ice-9 format)
+  #:use-module ((ice-9 iconv)
+                #:select (string->bytevector))
   #:use-module ((rnrs)
                 #:select (make-bytevector
                           bytevector-u8-set!
+                          bytevector?
                           utf8->string
-                          string->bytevector
                           bytevector-length
                           bytevector-u8-ref
                           bytevector-u8-ref
                           bytevector-u8-ref))
   #:export (detect-if-connecting-websocket
             websocket-read
-            websocket-write)
+            websocket-write
+            register-websocket-pipe!
+            send-to-websocket-named-pipe)
   #:re-export (; from (artanis websocket handshake)
                do-websocket-handshake
                closing-websocket-handshake
                this-rule-enabled-websocket!
 
-                                        ; from (artanis websocket frame)
+               ;; from (artanis websocket frame)
                received-closing-frame?
-               send-websocket-closing-frame
 
                make-websocket-frame
                websocket-frame?
@@ -90,6 +94,35 @@
 
   ;; return 401 or 3xx redirection if authentication failed
   #t)
+
+(define *websocket-named-pipe* (make-hash-table))
+(define *named-pipe-re*
+  (string->sre "artanis_named_pipe=(.*)"))
+(define (register-websocket-pipe! req client)
+  (let ((m (irregex-match *named-pipe-re* (uri-query (request-uri req)))))
+    (cond
+     ((not m)
+      (DEBUG "The websocket is not an artanis-named-pipe, don't register it!~%"))
+     (else
+      (let ((name (irregex-match-substring m 1)))
+        (hash-set! *websocket-named-pipe* name client))))))
+
+(define (send-to-websocket-named-pipe name data)
+  (let ((client (hash-ref *websocket-named-pipe* name))
+        (frame (new-websocket-frame/client
+                'text #t
+                (cond
+                 ((string? data) (string->bytevector data "iso-8859-1"))
+                 ((bytevector? data) data)
+                 (else (throw 'artanis-err 500
+                              "Wrong type of websocket data, should be string or bv `~a'"
+                              data))))))
+    (cond
+     (client
+      (parameterize ((current-client client))
+        (write-websocket-frame/client (client-sockport client) frame)))
+     (else
+      (DEBUG "Invalid pipe name `~a'" name)))))
 
 ;; TODO: Register protobuf handler to ragnarok-server when server start.
 (::define (websocket-read req server client)

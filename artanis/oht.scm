@@ -332,6 +332,15 @@
 ;;
 (define (websocket-maker mode rule keys)
   (match mode
+    ('send-only
+     ;; NOTE: send-only is used for sending messages to registed websocket connection by
+     ;;       the specified pipe name. If you use this option, then the rule will not init
+     ;;       a websocket handshake. It's just for sending messages.
+     ;; NOTE; If you use this option, you can only send messages, but other can't send
+     ;;       message to you. That is to say, it's one-way transimission.
+     ;; NOTE: Other options could be bi-direction transmission without specified 'send/recv
+     ;;       explicitly.
+     (DEBUG "~a is registered to be named-pipe send only rule!" rule))
     (((or #t 'raw))
      (this-rule-enabled-websocket! rule 'raw))
     (('proto (? symbol? proto))
@@ -360,10 +369,10 @@
      (this-rule-enabled-websocket! rule 'proxy))
     (else (throw 'artanis-err 500 websocket-maker "Invalid type `~a'!" mode)))
   (lambda (rc . cmd)
-    ;; NOTE: :websocket is not for read/write, it's only used for changing status.
     (match cmd
       ('(payload) (websocket-frame-payload (rc-body rc)))
       ('(frame) (rc-body rc))
+      (`(send ,name ,data) (send-to-websocket-named-pipe name data))
       (else (throw 'artanis-err 500 websocket-maker "Invalid cmd `~a'!" cmd)))))
 
 ;; ---------------------------------------------------------------------------------
