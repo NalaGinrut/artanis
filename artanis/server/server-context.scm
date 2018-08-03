@@ -80,6 +80,8 @@
             task-keepalive? task-keepalive?-set!
             task-kont task-kont-set!
             task-prio task-prio-set!
+            is-task-timeout?
+            update-task-time!
 
             new-ragnarok-client
             ragnarok-client?
@@ -217,6 +219,16 @@
    (mutable keepalive?) ; if keep it alive
    (mutable kont) ; delimited continuation
    (mutable prio))) ; priority
+
+(define (is-task-timeout? task)
+  (let ((start-time (task-touch-time task))
+        (timeout (task-timeout task)))
+    (if (zero? timeout)
+        #f ; timeout = 0 means disable connection timeout
+        (>= (- (current-time) start-time) timeout))))
+
+(define (update-task-time! task)
+  (task-touch-time-set! task (current-time)))
 
 (define-box-type ragnarok-client)
 (define (new-ragnarok-client v)

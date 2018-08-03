@@ -130,16 +130,6 @@
     (task-kont task)
     ragnarok-scheduler))
 
-(define (is-task-timeout? task)
-  (let ((start-time (task-touch-time task))
-        (timeout (task-timeout task)))
-    (if (zero? timeout)
-        #f ; timeout = 0 means disable connection timeout
-        (>= (- (current-time) start-time) timeout))))
-
-(define (update-task-time! task)
-  (task-touch-time-set! task (current-time)))
-
 (define (resources-collector)
   (define (remove-timemout-connections)
     (let ((wt (work-table-content (current-work-table (current-server))))

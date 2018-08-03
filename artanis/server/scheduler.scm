@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016,2017
+;;  Copyright (C) 2016,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -72,6 +72,7 @@
   (let* ((wt (current-work-table server))
          (task (current-task)))
     (task-kont-set! task k)
+    (update-task-time! task) ; we update task timestamp each time it's blocked
     (task-prio-set! task (compute-prio proto client server))
     (DEBUG "Save current task ~a!~%" client)
     (add-a-task-to-work-table! wt client task)
@@ -90,9 +91,9 @@
 
 (define-syntax-rule (register-new-scheduler! body ...)
   (set! customized-scheduler
-        (lambda (cmd)
-          (match cmd
-            body ...))))
+    (lambda (cmd)
+      (match cmd
+        body ...))))
 
 ;; NOTE: We don't call prompt in this scheduler again, since we will get
 ;;       new task from outside. That means the scheduler doesn't bump new
