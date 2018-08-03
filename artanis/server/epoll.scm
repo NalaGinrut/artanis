@@ -77,6 +77,15 @@
 ;; Set exclusive wakeup mode for the target file descriptor.
 (define-public EPOLLEXCLUSIVE (ash 1 28))
 
+(define-public *error-event* (logior EPOLLRDHUP EPOLLHUP))
+(define-public *read-event* EPOLLIN)
+(define-public (gen-read-event) (logior *read-event* (get-trigger)))
+(define-public *rw-event* (logior EPOLLIN EPOLLOUT))
+(define-public (gen-rw-event) (logior *error-event* (get-trigger) *rw-event*))
+(define-public *write-event* EPOLLOUT)
+(define-public (gen-write-event) (logior *error-event* (get-trigger) *write-event*))
+(define-public (gen-oneshot-event) (logior EPOLLONESHOT (gen-rw-event)))
+
 (define-public epoll-data-meta (list '* int uint32 uint64))
 (define-public epoll-data-size (sizeof epoll-data-meta))
 

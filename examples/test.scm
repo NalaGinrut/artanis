@@ -81,8 +81,8 @@
 (define (result->html r)
   (if r
       (call-with-output-string
-	(lambda (port)
-	  (for-each (lambda (e) (format port "<p>~a: ~a</p>" (car e) (cdr e))) r)))
+        (lambda (port)
+          (for-each (lambda (e) (format port "<p>~a: ~a</p>" (car e) (cdr e))) r)))
       "no result"))
 
 ;; 5
@@ -123,7 +123,7 @@
 (get "/json" #:mime 'json
      (lambda (rc)
        (let ((j (json (object ("name" "nala") ("age" "15")))))
-	 (:mime rc j))))
+         (:mime rc j))))
 
 ;; 9.1
 ;; JSONP test
@@ -165,25 +165,25 @@
 (get "/bauth" #:auth `(basic ,(lambda (rc u p) (and (string=? u "mmr") (string=? p "123"))))
      (lambda (rc)
        (if (:auth rc)
-	   "auth ok"
-	   (throw-auth-needed))))
+           "auth ok"
+           (throw-auth-needed))))
 
 ;; 16
 ;; test for more complicated auth
 (post "/auth" #:auth '(table user "user" "passwd") #:session #t
       (lambda (rc)
-	(cond
-	 ((:session rc 'check) "auth ok (session)")
-	 ((:auth rc) (:session rc 'spawn))
-	 (else (redirect-to rc "/login?login_failed=true")))))
+        (cond
+         ((:session rc 'check) "auth ok (session)")
+         ((:auth rc) (:session rc 'spawn))
+         (else (redirect-to rc "/login?login_failed=true")))))
 
 ;; 16.1
 ;; test for login successful
 (get "/enter" #:session #t
      (lambda (rc)
        (cond
-	((:session rc 'check) "yes login!")
-	(else (redirect-to rc "/login?login_failed=true")))))
+        ((:session rc 'check) "yes login!")
+        (else (redirect-to rc "/login?login_failed=true")))))
 
 ;; 17
 (get "/login"
@@ -203,15 +203,13 @@
      (lambda (rc)
        (:websocket rc 'payload)))
 
-(get "/robot" #:websocket '(proto echo)
-     (lambda (rc)
-       "This test is read only, you can't send!"))
+(get "/robot" #:websocket '(proto echo) named-pipe-event-loop)
 
 (get "/welcome/:whom/:what" #:websocket 'send-only
-  (lambda (rc)
-    (:websocket rc 'send (params rc "whom") (params rc "what"))
-    "ok"))
- 
+     (lambda (rc)
+       (:websocket rc 'send (params rc "whom") (params rc "what"))
+       "ok"))
+
 (run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-passwd "123" #:debug #t)
 
 ;;(run)

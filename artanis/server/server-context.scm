@@ -20,6 +20,7 @@
 (define-module (artanis server server-context)
   #:use-module (artanis utils)
   #:use-module (artanis env)
+  #:use-module (artanis server epoll)
   #:use-module (ice-9 threads)
   #:use-module ((rnrs) #:select (define-record-type))
   #:export (make-ragnarok-engine
@@ -85,6 +86,7 @@
 
             new-ragnarok-client
             ragnarok-client?
+            oneshot-mention!
             client-sockport
             client-sockport-decriptor
             client-connecting-port
@@ -234,6 +236,13 @@
 (define (new-ragnarok-client v)
   (DEBUG "make ragnarok client ~a~%" v)
   (make-box-type ragnarok-client v))
+
+(::define (oneshot-mention! c)
+  (:anno: (ragnarok-client) -> ANY)
+  (let* ((fd (client-sockport-decriptor c))
+         (epfd (ragnarok-server-epfd (current-server)))
+         (event (make-epoll-event fd (gen-oneshot-event))))
+    (epoll-ctl epfd EPOLL_CTL_MOD fd event)))
 
 ;; for emacs:
 ;; (put '::define 'scheme-indent-function 1)

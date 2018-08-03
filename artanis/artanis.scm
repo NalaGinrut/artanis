@@ -165,6 +165,9 @@
                store-uploaded-files
                upload-files-to
 
+               ;; websocket
+               named-pipe-event-loop
+
                ;; server
                schedule-task
 

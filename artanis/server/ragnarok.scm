@@ -75,14 +75,6 @@
   (DEBUG "generating work-table~%")
   (make-work-table (make-hash-table) (make-mutex)))
 
-(define *error-event* (logior EPOLLRDHUP EPOLLHUP))
-(define *read-event* EPOLLIN)
-(define (gen-read-event) (logior *read-event* (get-trigger)))
-(define *rw-event* (logior EPOLLIN EPOLLOUT))
-(define (gen-rw-event) (logior *error-event* (get-trigger) *rw-event*))
-(define *write-event* EPOLLOUT)
-(define (gen-write-event) (logior *error-event* (get-trigger) *write-event*))
-
 ;; Ragnarok server will establish a http-gateway, and support various protocols
 ;; based on websocket.
 ;; NOTE: Different from other ragnarok interfaces, ragnarok-open is not going to
