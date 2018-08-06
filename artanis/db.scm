@@ -159,7 +159,8 @@
 (define (create-new-DB-conn)
   (let ((conn (DB-do-conn! (new-DB))))
     (when (not (db-conn-success? conn))
-      (error init-connection-pool "Database connect failed: "
+      (throw 'artanis-err 500 create-new-DB-conn
+             "Database connect failed: "
              (db-conn-failed-reason conn)))
     (run-hook *DB-conn-init-hook* conn)
     conn))
@@ -192,6 +193,9 @@
 
 (define (db-conn-success? conn)
   (zero? (%db-conn-stat conn car)))
+
+(define (db-conn-is-closed? conn)
+  (%db-conn-stat conn (lambda (s) (string=? s "invalid module handle"))))
 
 (define (db-conn-failed-reason conn)
   (%db-conn-stat conn cdr))
@@ -240,14 +244,20 @@
    (else
     (db-query-debug-info sql)
     (dbi-query (<connection>-conn conn) sql)
-    (when (not (db-conn-success? conn))
-      (format (current-error-port) "SQL: ~a~%" sql)
-      (if check?
-          (format (current-error-port) "DB-query check failed: ~a"
-                  (db-conn-failed-reason conn))
-          (throw 'artanis-err 500 DB-query "failed reason: `~a'~%"
-                 (db-conn-failed-reason conn))))
-    conn)))
+    (cond
+     ((db-conn-success? conn)
+      conn)
+     (else
+      (cond
+       ((db-conn-is-closed? conn)
+        (DB-query (create-new-DB-conn) sql #:check? check?))
+       (else
+        (format (current-error-port) "SQL: ~a~%" sql)
+        (if check?
+            (format (current-error-port) "DB-query check failed: ~a"
+                    (db-conn-failed-reason conn))
+            (throw 'artanis-err 500 DB-query "failed reason: `~a'~%"
+                   (db-conn-failed-reason conn))))))))))
 
 ;; NOTE: actually it'll never close the connection, just recycle it.
 (define (DB-close conn)
