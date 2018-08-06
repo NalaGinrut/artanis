@@ -195,7 +195,9 @@
   (zero? (%db-conn-stat conn car)))
 
 (define (db-conn-is-closed? conn)
-  (%db-conn-stat conn (lambda (s) (string=? s "invalid module handle"))))
+  ;; FIXME: Enable this line after Linas applied my patch in guile-dbd-mysql
+  ;;(%db-conn-stat conn (lambda (s) (= (car s) 2006)))
+  #t)
 
 (define (db-conn-failed-reason conn)
   (%db-conn-stat conn cdr))
