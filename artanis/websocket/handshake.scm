@@ -45,7 +45,7 @@
 (define (url-need-websocket? url)
   ;;(DEBUG "url-need-websocket?~%")
   (any (lambda (rule)
-         (irregex-match (car rule) url)) (pk "rws" *rules-with-websocket*)))
+         (irregex-match (car rule) url)) *rules-with-websocket*))
 
 (define (this-rule-enabled-websocket! rule protocol)
   ;;(DEBUG "this-rule-enabled-websocket!~%")
