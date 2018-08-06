@@ -132,7 +132,7 @@
          (catch 'resources-collector
            (lambda ()
              (when (is-task-timeout? t)
-               (throw 'resources-collector 408 serve-one-request
+               (throw 'resources-collector 408 remove-timemout-connections
                       "The request is timeout!")))
            (lambda e
              (call-with-values
