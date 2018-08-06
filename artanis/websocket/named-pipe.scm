@@ -28,7 +28,7 @@
   #:use-module ((rnrs) #:select (bytevector? define-record-type))
   #:export (register-websocket-pipe!
             send-to-websocket-named-pipe
-            named-pipe-event-loop))
+            named-pipe-subscribe))
 
 (define-record-type named-pipe
   (fields name client task-queue))
@@ -91,7 +91,7 @@
       (throw 'artanis-err 400 send-to-websocket-named-pipe
              "Invalid pipe name `~a'" name)))))
 
-(define (named-pipe-event-loop rc)
+(define (named-pipe-subscribe rc)
   (let* ((name (detect-pipe-name (rc-req rc)))
          (task-queue (get-pipe-task-queue name)))
     (let lp ()

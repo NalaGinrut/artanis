@@ -166,7 +166,7 @@
                upload-files-to
 
                ;; websocket
-               named-pipe-event-loop
+               named-pipe-subscribe
 
                ;; server
                schedule-task
