@@ -30,7 +30,7 @@
   (make-reader make-parser make-tpl-tokenizer port))
 
 (define (gen-command cmd args)
-  (let ((pub (get-conf '(server pub))))
+  (let ((pub (basename (get-conf '(server pub)))))
     (case cmd
       ((include)
        (let ((filename (string-trim-both
@@ -40,11 +40,11 @@
              (throw 'artanis-err 500 gen-command
                     "Included file `~a' in template doesn't exist!" filename))))
       ((css)
-       (format #f "\"<link rel=\\\"stylesheet\\\" href=\\\"~a/css/~a\\\">\"" pub args))
+       (format #f "\"<link rel=\\\"stylesheet\\\" href=\\\"/~a/css/~a\\\">\"" pub args))
       ((icon)
-       (format #f "\"<link rel=\\\"icon\\\" href=\\\"~a/img/~a\\\" type=\\\"image/x-icon\\\">\"" pub args))
+       (format #f "\"<link rel=\\\"icon\\\" href=\\\"/~a/img/~a\\\" type=\\\"image/x-icon\\\">\"" pub args))
       ((js)
-       (format #f "\"<script type=\\\"text/javascript\\\" src=\\\"~a/js/~a\\\"> </script>\"" pub args))
+       (format #f "\"<script type=\\\"text/javascript\\\" src=\\\"/~a/js/~a\\\"> </script>\"" pub args))
       (else
        (throw 'artanis-err 500 gen-command
               "Invalid command `~a' in template!" cmd)))))
