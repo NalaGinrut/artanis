@@ -118,8 +118,7 @@
 
 (define (send-websocket-closing-frame port)
   (let ((close-frame (new-websocket-frame/client 'close #t #vu8(0))))
-    (write-websocket-frame/client port close-frame)
-    (close-task)))
+    (write-websocket-frame/client port close-frame)))
 
 (define *opcode-list*
   '(continuation         ; #x0
@@ -147,7 +146,7 @@
   (bytevector-u16-ref (%read-bytevector port 2) 0 'big))
 
 (define-syntax-rule (get-mask port)
- (%read-bytevector port 4))
+  (%read-bytevector port 4))
 
 (define-syntax-rule (%get-opcode head)
   (ash (logand head #x0f00) -8))
@@ -315,14 +314,14 @@
   (:anno: (websocket-frame) -> ANY)
   (call-with-output-string
     (lambda (port)
-     (let* ((head (websocket-frame-head frame))
-            (opcode (%get-opcode head))
-            (payload (websocket-frame-payload frame))
-            (size (pk "---size"(websocket-frame-payload-length frame)))
-            (mask (websocket-frame-mask frame)))
-       (format port "<websocket-frame:~%")
-       (format port "~10thead: ~a~%" head)
-       (format port "~10tfinal?: ~a~%" (is-final-frame? head))
-       (format port "~10ttype: ~a~%" (list-ref *opcode-list* opcode))
-       (format port "~10tpayload-size: ~a~%" size)
-       (format port "~10tpayload: ~a>" payload)))))
+      (let* ((head (websocket-frame-head frame))
+             (opcode (%get-opcode head))
+             (payload (websocket-frame-payload frame))
+             (size (pk "---size"(websocket-frame-payload-length frame)))
+             (mask (websocket-frame-mask frame)))
+        (format port "<websocket-frame:~%")
+        (format port "~10thead: ~a~%" head)
+        (format port "~10tfinal?: ~a~%" (is-final-frame? head))
+        (format port "~10ttype: ~a~%" (list-ref *opcode-list* opcode))
+        (format port "~10tpayload-size: ~a~%" size)
+        (format port "~10tpayload: ~a>" payload)))))

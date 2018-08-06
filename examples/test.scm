@@ -203,7 +203,7 @@
      (lambda (rc)
        (:websocket rc 'payload)))
 
-(get "/robot" #:websocket '(proto echo) named-pipe-event-loop)
+(get "/robot" #:websocket '(proto echo) named-pipe-subscribe)
 
 (get "/welcome/:whom/:what" #:websocket 'send-only
      (lambda (rc)

@@ -28,10 +28,12 @@
                      {
                          // websocket is closed.
                          document.write("<p>Connection is closed...</p>");
+                         WebsocketTest();
+                         document.write("<p>reconnect</p>");
                      };
 
                      window.onbeforeunload = function(event) {
-                         socket.close();
+                         ws.close();
                      };
                  }
 
