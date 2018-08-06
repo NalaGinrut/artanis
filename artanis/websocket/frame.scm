@@ -274,9 +274,11 @@
 (::define (write-websocket-frame/client port frame)
   (:anno: (port websocket-frame/client) -> ANY)
   (define (write-payload-size port len)
-    (if (and (> len 126) (< len 16bit-size))
-        (put-bytevector port (uint-list->bytevector (list len) 'big 2))
-        (put-bytevector port (uint-list->bytevector (list len) 'big 8))))
+    (cond
+     ((< len 16bit-size) (put-bytevector port (uint-list->bytevector (list len) 'big 2)))
+     ((< len 64bit-size) (put-bytevector port (uint-list->bytevector (list len) 'big 8)))
+     (else (throw 'artanis-err 500 write-payload-size
+                  "The payload size `~a' exceeded 64bit!" len))))
   (let* ((final? (websocket-frame/client-final? frame))
          (type (websocket-frame/client-type frame))
          (len (websocket-frame/client-length frame))
@@ -286,7 +288,7 @@
     (put-u8 port head1)
     (put-u8 port head2)
     (when (> len 126)
-      (write-payload-size port head2)) ; head2 is actually the size since mask must be 0
+      (write-payload-size port len))
     (put-bytevector port (websocket-frame/client-payload frame))
     (force-output port)))
 
