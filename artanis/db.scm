@@ -250,6 +250,7 @@
      (else
       (cond
        ((db-conn-is-closed? conn)
+        (DEBUG "DB connection was closed, reconnect it ...~%")
         (DB-query (create-new-DB-conn) sql #:check? check?))
        (else
         (format (current-error-port) "SQL: ~a~%" sql)
