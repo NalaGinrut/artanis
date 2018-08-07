@@ -1,24 +1,26 @@
 ;;; (json builder) --- Guile JSON implementation.
 
-;; Copyright (C) 2013 Aleix Conchillo Flaque <aconchillo@gmail.com>
+;; Copyright (C) 2013-2018 Aleix Conchillo Flaque <aconchillo@gmail.com>
 ;; Copyright (C) 2015,2016 Jan Nieuwenhuizen <janneke@gnu.org>
 ;;
 ;; This file is part of guile-json.
 ;;
 ;; guile-json is free software; you can redistribute it and/or
-;; modify it under the terms of the GNU Lesser General Public
-;; License as published by the Free Software Foundation; either
-;; version 3 of the License, or (at your option) any later version.
+;; modify it under the terms of the GNU General Public License and
+;; the GNU Lesser General Public License as published by the Free
+;; Software Foundation; either version 3 of the License, or (at your
+;; option) any later version.
 ;;
 ;; guile-json is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; Lesser General Public License for more details.
+;; General Public License and the GNU Lesser General Public License
+;; for more details.
 ;;
-;; You should have received a copy of the GNU Lesser General Public
-;; License along with guile-json; if not, write to the Free Software
-;; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-;; 02110-1301 USA
+;; You should have received a copy of the GNU General Public License
+;; and the GNU Lesser General Public License along with guile-json;
+;; if not, write to the Free Software Foundation, Inc.,
+;; 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 ;;; Commentary:
 
@@ -26,7 +28,7 @@
 
 ;;; Code:
 
-(define-module (artanis third-party json upstream builder)
+(define-module (json builder)
   #:use-module (ice-9 format)
   #:use-module (srfi srfi-1)
   #:use-module (rnrs bytevectors)
@@ -72,6 +74,14 @@
                          (u8v-2->unicode bv)
                          (u8v-3->unicode bv))))
         (unicode->string unicode)))
+     ;; A 4 byte UTF-8 needs to output as \uHHHH\uHHHH
+     ((eq? len 4)
+      (let ((bv4 (string->utf16 (string c))))
+        (string-append
+         (unicode->string (+ (ash (bytevector-u8-ref bv4 0) 8)
+                             (bytevector-u8-ref bv4 1)))
+         (unicode->string (+ (ash (bytevector-u8-ref bv4 2) 8)
+                             (bytevector-u8-ref bv4 3))))))
      ;; Anything else should wrong, hopefully.
      (else (throw 'json-invalid)))))
 
@@ -119,7 +129,6 @@
   (and (pair? x)
        (let loop ((x x))
          (or (null? x)
-             (null? (car x))
              (and (pair? (car x)) (atom? (caar x))
                   (loop (cdr x)))))))
 
