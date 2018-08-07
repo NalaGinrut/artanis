@@ -141,7 +141,6 @@
                json-string->scm
                json-parser?
                json-parser-port
-               json
 
                ;; upload
                mfd-simple-dump

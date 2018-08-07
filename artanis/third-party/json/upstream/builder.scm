@@ -28,7 +28,7 @@
 
 ;;; Code:
 
-(define-module (json builder)
+(define-module (artanis third-party json upstream builder)
   #:use-module (ice-9 format)
   #:use-module (srfi srfi-1)
   #:use-module (rnrs bytevectors)

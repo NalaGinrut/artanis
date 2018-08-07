@@ -27,7 +27,6 @@
   #:use-module (artanis env)
   #:use-module (artanis third-party json upstream builder)
   #:use-module (artanis third-party json upstream parser)
-  #:use-module (artanis third-party json upstream syntax)
   #:use-module (artanis irregex)
   #:use-module (srfi srfi-1)
   #:export (->json-string
@@ -38,8 +37,7 @@
                json->scm
                json-string->scm
                json-parser?
-               json-parser-port
-               json))
+               json-parser-port))
 
 (define *word-re* (string->irregex "^[a-zA-Z0-9_]+$"))
 
