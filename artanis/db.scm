@@ -214,7 +214,6 @@
 (define (db-conn-failed-reason conn)
   (%db-conn-stat conn cdr))
 
-
 (define (init-connection-pool)
   (display "connection pools are initilizing...")
   (let ((poolsize (get-conf '(db poolsize))))
