@@ -195,9 +195,21 @@
   (zero? (%db-conn-stat conn car)))
 
 (define (db-conn-is-closed? conn)
-  ;; FIXME: Enable this line after Linas applied my patch in guile-dbd-mysql
-  ;;(%db-conn-stat conn (lambda (s) (= (car s) 2006)))
-  #t)
+  ;; NOTE: This feature requires guile-dbd-mysql-2.1.7 or higher
+  ;; https://github.com/opencog/guile-dbi
+  (%db-conn-stat conn (lambda (s)
+                        (case (get-conf '(db dbd))
+                          ((mysql mariadb)
+                           (= (car s) 2006))
+                          ((postgresql)
+                           ;; TODO
+                           #f)
+                          ((sqlite3)
+                           ;; TODO
+                           #f)
+                          (else
+                           (throw 'artanis-err 500 db-conn-is-closed?
+                                  "Unsupported DBD `~a'" (get-conf '(db dbd))))))))
 
 (define (db-conn-failed-reason conn)
   (%db-conn-stat conn cdr))
