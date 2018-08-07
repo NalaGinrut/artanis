@@ -199,7 +199,7 @@
   ;; https://github.com/opencog/guile-dbi
   (%db-conn-stat conn (lambda (s)
                         (case (get-conf '(db dbd))
-                          ((mysql mariadb)
+                          ((mysql)
                            (= (car s) 2006))
                           ((postgresql)
                            ;; TODO
