@@ -38,6 +38,7 @@
   #:use-module (artanis third-party csv)
   #:use-module (artanis server scheduler)
   #:use-module (artanis irregex)
+  #:use-module (artanis lpc)
   #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
@@ -67,7 +68,8 @@
              :auth
              :session
              :from-post
-             :websocket))
+             :websocket
+             :lpc))
 
 (define (define-handler method raw-rule opts-and-handler)
   (let* ((rule (string-trim-right raw-rule #\/))
@@ -375,6 +377,18 @@
       (`(send ,name ,data) (send-to-websocket-named-pipe name data))
       (else (throw 'artanis-err 500 websocket-maker "Invalid cmd `~a'!" cmd)))))
 
+;; for #:lpc
+;; Local Persistent Cache
+(define (lpc-maker mode rule keys)
+  (match mode
+    (`(backend . ,args)
+     (let ((lpc (apply new-lpc args)))
+       (lambda (rc . cmd)
+         (match cmd
+           (`(set ,key ,val) (lpc-set! lpc key val))
+           (`(ref ,key) (lpc-ref lpc key))
+           (else (throw 'artanis-err 500 lpc-maker "Invalid cmd `~a'!" cmd))))))))
+
 ;; ---------------------------------------------------------------------------------
 
 ;; NOTE: these short-cut-maker should never be exported!
@@ -540,6 +554,7 @@
 (meta-handler-register session)
 (meta-handler-register from-post)
 (meta-handler-register websocket)
+(meta-handler-register lpc)
 
 (define-syntax-rule (:cookies-set! rc ck k v)
   ((:cookies rc 'set) ck k v))

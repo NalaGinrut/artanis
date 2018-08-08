@@ -75,6 +75,7 @@
                :session
                :from-post
                :websocket
+               :lpc
 
                ;; db module
                DB-open
