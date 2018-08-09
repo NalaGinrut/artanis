@@ -380,14 +380,20 @@
 ;; for #:lpc
 ;; Local Persistent Cache
 (define (lpc-maker mode rule keys)
+  (define (gen-lpc-handler lpc)
+    (lambda (rc . cmd)
+      (match cmd
+        (`(set ,key ,val) (lpc-set! lpc key val))
+        (((or 'ref 'get) key) (lpc-ref lpc key))
+        (else (throw 'artanis-err 500 gen-lpc-handler "Invalid cmd `~a'!" cmd)))))
   (match mode
-    (`(backend . ,args)
-     (let ((lpc (apply new-lpc args)))
-       (lambda (rc . cmd)
-         (match cmd
-           (`(set ,key ,val) (lpc-set! lpc key val))
-           (`(ref ,key) (lpc-ref lpc key))
-           (else (throw 'artanis-err 500 lpc-maker "Invalid cmd `~a'!" cmd))))))))
+    (#t
+     (let ((lpc ((new-lpc))))
+       (gen-lpc-handler lpc)))
+    ((backend . args)
+     (let ((lpc (apply (new-lpc #:backend backend) args)))
+       (gen-lpc-handler lpc)))
+    (else (throw 'artanis-err 500 lpc-maker "Invalid pattern `~a'!" mode))))
 
 ;; ---------------------------------------------------------------------------------
 
@@ -535,7 +541,16 @@
     ;;       No protocol handling at all, just redirecting the data without cooking.
     ;;    b. cooked proxy
     ;;       There's a bound protocol instance for it.
-    (#:websocket . ,websocket-maker)))
+    (#:websocket . ,websocket-maker)
+
+    ;; Apply an instance of Local Persistent Cache
+    ;; This is useful when you want to store some key-value stuffs.
+    ;; There're 2 cases:
+    ;; 1. #t
+    ;;    Initialize lpc with default configuration, the backend is Redis, write-able.
+    ;; 2. (backend . args)
+    ;;    Specify the avalailable backend, and the args as the configuare options.
+    (#:lpc . ,lpc-maker)))
 
 (define-macro (meta-handler-register what)
   `(define-syntax-rule (,(symbol-append ': what) rc args ...)

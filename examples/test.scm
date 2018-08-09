@@ -122,14 +122,14 @@
 ;; various format tests
 (get "/json" #:mime 'json
      (lambda (rc)
-       (let ((j (json (object ("name" "nala") ("age" "15")))))
+       (let ((j (scm->json-string '(("name" "nala") ("age" "15")))))
          (:mime rc j))))
 
 ;; 9.1
 ;; JSONP test
 (get "/jsonp/:callback" #:mime 'jsonp
      (lambda (rc)
-       (:mime rc (json (object ("name" "nala") ("age" "15"))) #:jsonp (params rc "callback"))))
+       (:mime rc (scm->json-string '(("name" "nala") ("age" "15"))) #:jsonp (params rc "callback"))))
 
 ;; 10
 (get "/csv" #:mime 'csv
@@ -209,6 +209,14 @@
      (lambda (rc)
        (:websocket rc 'send (params rc "whom") (params rc "what"))
        "ok"))
+
+(get "/lpc/set/:what" #:lpc #t
+     (lambda (rc)
+       (:lpc rc 'set "test" (params rc "what"))))
+
+(get "/lpc/get/" #:lpc #t
+     (lambda (rc)
+       (:lpc rc 'get "test")))
 
 (run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-passwd "123" #:debug #t)
 
