@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -17,7 +17,7 @@
 ;;  and GNU Lesser General Public License along with this program.
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
-;;  Django style embedded-template, it's different from tpl->html which 
+;;  Django style embedded-template, it's different from tpl->html which
 ;;  is based on SXML.
 ;;  If you want to embed the template into HTML code, say:
 ;;  <html>
@@ -51,8 +51,8 @@
                        (proper-toplevel) (dirname ofile)))
          (cfile (string-append cdir (basename ofile) ".cache")))
     (when (not (file-exists? cdir))
-          (DEBUG "Create cache directory ~a~%" cdir)
-          (checkout-the-path cdir))
+      (DEBUG "Create cache directory ~a~%" cdir)
+      (checkout-the-path cdir))
     (when (file-exists? cfile) (delete-file cfile))
     (DEBUG "Refresh tpl cache ~a~%" cfile)
     (call-with-output-file cfile
@@ -64,9 +64,9 @@
   (let ((expr (tpl->expr tpl)))
     (cache-the-file expr cache-file)
     (call-with-output-string
-     (lambda (port)
-       (parameterize ((current-output-port port))
-         (local-eval-string expr e))))))
+      (lambda (port)
+        (parameterize ((current-output-port port))
+          (local-eval-string expr e))))))
 
 (define-syntax-rule (tpl-render-from-file file e)
   (cond
@@ -77,4 +77,5 @@
    ((file-exists? file)
     (DEBUG "Render tpl from file ~a~%" file)
     (tpl-render (cat file #f) e file))
-   (else (throw 'artanis-err 500 "No such a tpl file" file))))
+   (else (throw 'artanis-err 500 tpl-render-from-file
+                "No such a tpl file `~a'" file))))
