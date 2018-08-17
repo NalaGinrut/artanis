@@ -583,6 +583,12 @@
          (or (eqv? errno ENOMEM) ; no memory
              (eqv? errno ENOBUFS))))) ; no buffer could be allocated
 
+(define (out-of-system-resources? e)
+  (cond
+   ((eqv? e EMFILE)
+    "permit system open more files by `ulimit -n")
+   (else #f)))
+
 (define (make-io-exception-handler type)
   (lambda e
     (DEBUG "ragnarok-~a exception: ~a~%" type e)
@@ -608,6 +614,12 @@
       (gc)
       (throw 'artanis-err 503 make-io-exception-handler
              "Ragnarok-~a: we run out of RAMs!~%" type))
+     ((out-of-system-resources? e)
+      => (lambda (reason)
+           (let ((shout (format #f
+                                "Out of system resources, maybe you should ~a!" reason)))
+             (display (WARN-TEXT shout) (artanis-current-output))
+             (break-task))))
      (else
       (DEBUG "Not an I/O exception, throw it to upper level~%")
       ;; not a exception should be handled here, re-throw it to the next level
