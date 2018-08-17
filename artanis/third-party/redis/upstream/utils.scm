@@ -1,23 +1,25 @@
-;;; (artanis third-party redis upstream utils) --- redis module for Guile.
+;;; (redis utils) --- redis module for Guile.
 
-;; Copyright (C) 2013 Aleix Conchillo Flaque <aconchillo@gmail.com>
+;; Copyright (C) 2013-2018 Aleix Conchillo Flaque <aconchillo@gmail.com>
 ;;
 ;; This file is part of guile-redis.
 ;;
 ;; guile-redis is free software; you can redistribute it and/or
-;; modify it under the terms of the GNU Lesser General Public
-;; License as published by the Free Software Foundation; either
-;; version 3 of the License, or (at your option) any later version.
+;; modify it under the terms of the GNU General Public License and
+;; the GNU Lesser General Public License as published by the Free
+;; Software Foundation; either version 3 of the License, or (at your
+;; option) any later version.
 ;;
 ;; guile-redis is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; Lesser General Public License for more details.
+;; General Public License and the GNU Lesser General Public License
+;; for more details.
 ;;
-;; You should have received a copy of the GNU Lesser General Public
-;; License along with guile-redis; if not, write to the Free Software
-;; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-;; 02110-1301 USA
+;; You should have received a copy of the GNU General Public License
+;; and the GNU Lesser General Public License along with guile-redis;
+;; if not, write to the Free Software Foundation, Inc.,
+;; 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 ;;; Commentary:
 
@@ -27,7 +29,7 @@
 
 (define-module (artanis third-party redis upstream utils)
   #:use-module (artanis third-party redis upstream connection)
-  #:use-module (artanis third-party redis upstream commands define)
+  #:use-module (artanis third-party redis upstream commands)
   #:use-module (ice-9 rdelim)
   #:use-module (rnrs bytevectors)
   #:use-module (srfi srfi-9)
