@@ -586,7 +586,7 @@
 (define (out-of-system-resources? e)
   (cond
    ((eqv? e EMFILE)
-    "permit system open more files by `ulimit -n")
+    "permit system open more files by `ulimit -n'")
    (else #f)))
 
 (define (make-io-exception-handler type)
