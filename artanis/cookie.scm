@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2017
+;;  Copyright (C) 2013,2014,2015,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -22,7 +22,6 @@
   #:use-module (artanis config)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
-  #:use-module (web request)
   #:export (make-cookie
             cookie?
             cookie-set!
@@ -68,8 +67,8 @@
 (define (nvp->string nvp)
   (let ((v (cdr nvp)))
     (if (boolean? v)
-         (and v (car nvp))
-         (format #f "~a=~a" (car nvp) v))))
+        (and v (car nvp))
+        (format #f "~a=~a" (car nvp) v))))
 
 (define *cookie-keywords*
   '("Expires" "Path" "Domain" "Secure" "HttpOnly"))
@@ -85,10 +84,10 @@
     (and val (car val))))
 
 (define (header-string->cookie str)
-  (let* ((ll (map (lambda (e) 
-                    (if (string-contains e "=") 
-                        (map string-trim-both (string-split e #\=)) 
-                        (string-trim-both e))) 
+  (let* ((ll (map (lambda (e)
+                    (if (string-contains e "=")
+                        (map string-trim-both (string-split e #\=))
+                        (string-trim-both e)))
                   (string-split str #\;)))
          (nvp (let lp((rest ll) (result '()))
                 (cond ((or (null? rest) (is-cookie-keywords? (car rest)))
@@ -110,13 +109,13 @@
         (secure (cookie-secure cookie))
         (http-only (cookie-httponly cookie)))
     (call-with-output-string
-     (lambda (port)
-       (format port "~a" nvps)
-       (and expir (format port ";Expires=~a" expir))
-       (and domain (format port ";Domain=~a" domain))
-       (and path (format port ";Path=~a" path))
-       (and secure (display ";Secure" port))
-       (and http-only (display ";HttpOnly" port))))))
+      (lambda (port)
+        (format port "~a" nvps)
+        (and expir (format port ";Expires=~a" expir))
+        (and domain (format port ";Domain=~a" domain))
+        (and path (format port ";Path=~a" path))
+        (and secure (display ";Secure" port))
+        (and http-only (display ";HttpOnly" port))))))
 
 (define (generate-cookies cookies)
   (map (lambda (c) `(set-cookie . ,(cookie->header-string c))) cookies))
@@ -129,14 +128,14 @@
   (let ((e (cond ((integer? expires) (make-expires expires))
                  (else #f)))) ; else #f for no expires
     (make-cookie npv e domain path secure http-only)))
-    
+
 (define (cookie-set! cookie name value)
   (let ((nvp (cookie-nvp cookie)))
     (cookie-nvp! cookie (assoc-set! nvp name value))))
 
 (define (cookie-ref cookie name)
   (when (not (cookie? cookie))
-   (throw 'artanis-err 500 cookie-ref "BUG: Invalid cookie: ~a!" cookie))
+    (throw 'artanis-err 500 cookie-ref "BUG: Invalid cookie: ~a!" cookie))
   (let ((nvp (cookie-nvp cookie)))
     (assoc-ref nvp name)))
 

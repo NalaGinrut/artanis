@@ -24,7 +24,6 @@
   #:use-module (artanis db)
   #:use-module (artanis fprm)
   #:use-module (artanis config)
-  #:use-module (srfi srfi-9)
   #:use-module ((rnrs) #:select (define-record-type))
   #:use-module (web request)
   #:use-module (ice-9 format)
@@ -97,7 +96,7 @@
    name ; symbol
    meta ; anything necessary for a specific backend
    init ; -> session-backend
-   store! ; -> session-backend -> string -> hash-table 
+   store! ; -> session-backend -> string -> hash-table
    destory! ; -> session-backend -> string
    restore ; -> session-backend -> string
    set! ; -> session-backend -> string -> string -> object
@@ -189,7 +188,7 @@
     => (lambda (ss) (hash-set! ss k v)))
    (else
     (throw 'artanis-err 500 backend:session-restore/simple
-     (format #f "Session id (~a) doesn't hit anything!~%" sid)))))
+           (format #f "Session id (~a) doesn't hit anything!~%" sid)))))
 
 (define (backend:session-ref/simple sb sid k)
   (cond
@@ -290,7 +289,7 @@
   ((session-backend-set! (current-session-backend))
    (current-session-backend)
    k v))
-  
+
 (define (session-ref sid k)
   ((session-backend-ref (current-session-backend))
    (current-session-backend)
@@ -340,7 +339,7 @@
 
 (define (add-new-session-backend name maker)
   (set! *session-backend-table*
-        (assoc-set! *session-backend-table* name maker)))
+    (assoc-set! *session-backend-table* name maker)))
 
 (define (session-init)
   (cond

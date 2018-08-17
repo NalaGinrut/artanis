@@ -24,8 +24,6 @@
   #:use-module (artanis irregex)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
-  #:use-module (web uri)
-  #:use-module (web request)
   #:export (make-handler-rc
             handler-rc?
             handler-rc-handler
