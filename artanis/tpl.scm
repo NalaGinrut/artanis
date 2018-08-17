@@ -77,5 +77,5 @@
    ((file-exists? file)
     (DEBUG "Render tpl from file ~a~%" file)
     (tpl-render (cat file #f) e file))
-   (else (throw 'artanis-err 500 tpl-render-from-file
+   (else (throw 'artanis-err 500 'tpl-render-from-file
                 "No such a tpl file `~a'" file))))
