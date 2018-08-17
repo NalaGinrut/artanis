@@ -110,7 +110,7 @@
 (define uri-decode (@ (web uri) uri-decode))
 (define uri-encode (@ (web uri) uri-encode))
 (define uri-query (@ (web uri) uri-query))
-(define uri-path (@ (web uri) uri-query))
+(define uri-path (@ (web uri) uri-path))
 (define parse-date (@@ (web http) parse-date))
 (define write-date (@@ (web http) write-date))
 (define build-response (@ (web response) build-response))
