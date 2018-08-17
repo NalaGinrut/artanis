@@ -50,7 +50,7 @@
                           define-record-type record-rtd record-accessor
                           get-string-all))
   #:export (regexp-split
-            hash-keys cat bv-cat get-global-time sanitize-response uri-query
+            hash-keys cat bv-cat get-global-time sanitize-response uri-query uri-path
             build-response write-response get-local-time string->md5 unsafe-random
             uri-encode uri-decode response-version response-code response-connection
             request-headers response-port write-response-body read-request request-uri
@@ -110,6 +110,7 @@
 (define uri-decode (@ (web uri) uri-decode))
 (define uri-encode (@ (web uri) uri-encode))
 (define uri-query (@ (web uri) uri-query))
+(define uri-path (@ (web uri) uri-query))
 (define parse-date (@@ (web http) parse-date))
 (define write-date (@@ (web http) write-date))
 (define build-response (@ (web response) build-response))
@@ -851,9 +852,8 @@
     (format port ";; Do not touch anything!!!~%")
     (format port ";; All things here should be automatically handled properly!!!~%"))
   (define route-cache (string-append (current-toplevel) "/tmp/cache/route.cache"))
-  (when (or (not (file-exists? route-cache))
-            (and (not url) (not meta))) ; for regenerating route cache
-    (format (artanis-current-output) "Route cache is missing, regenerating...~%")
+  (when (not (file-exists? route-cache))
+    (format (artanis-current-output) "Regenerating route cache ...~%")
     (call-with-output-file route-cache
       (lambda (port) (write-header port) (write '() port))))
   (when (and url meta)
