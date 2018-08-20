@@ -1,6 +1,6 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
 ;;  === Post tests ===
-;;  Copyright (C) 2015
+;;  Copyright (C) 2015,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -182,7 +182,7 @@ aa.scm\r
       (match ret
         ((file size)
          (format #t "~a, ~a~%" file size)
-         (:mime rc (json (object ("file" ,file) ("size" ,size)))))
+         (:mime rc `(("file" . ,file) ("size" . ,size))))
         (else (format #t "BUG: ~a~%" ret) "BUG!!!")))))
 
 (define test4-expect-body "{\"file\" : \"aa.scm\",\"size\" : 40}")
@@ -219,12 +219,11 @@ aa.scm\r
                (mfds (mfds-operator-mfds mo))
                (size (filter-map mfd-size mfds))
                (files (filter-map mfd-filename mfds)))
-          (:mime rc `((note . ,note) (files . ,files) (size . ,size)))))
+          (:mime rc `(("note" . ,note) ("files" . ,files) ("size" . ,size)))))
       (lambda (k . reason)
         (format #t "test5 BUG:~a" reason)
         (let ((msg (format #f "~a" reason)))
-          (:mime rc  `((BUG. ,msg)))))
-      )))
+          (:mime rc  `((BUG . ,msg))))))))
 
 (with-test-prefix "<Methods> POST test"
 
@@ -243,7 +242,7 @@ aa.scm\r
 
   (pass-if "single file upload store advanced test"
     (receive (r b) (test-from-request post-test-4-single-file-upload-advanced)
-             (responses-equal? r b test4-expect-res test4-expect-body)))
+             (responses-equal? r (bytevector->string b "utf-8") test4-expect-res test4-expect-body)))
   (pass-if "single file upload store advanced test2"
            (receive (r b) (test-from-request post-test-5-single-file-upload-advanced)
                     (equal?  (bytevector->string b  "utf-8")  test5-expect-body)))

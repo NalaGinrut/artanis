@@ -1,6 +1,6 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
 ;;  === MIME tests ===
-;;  Copyright (C) 2015,2017
+;;  Copyright (C) 2015,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML,
 
 (get "/jsonp/:jsonp" #:mime 'jsonp
   (lambda (rc)
-    (:mime rc (json (object ("age" "15") ("name" "nala"))) #:jsonp (params rc "jsonp"))))
+    (:mime rc '(("name" . "nala") ("age" . "15")) #:jsonp (params rc "jsonp"))))
 
 (define test1-expect-body
   (string->bytevector "func({\"name\" : \"nala\",\"age\" : \"15\"})" "utf-8"))
@@ -55,7 +55,7 @@ User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML,
 ")
 (define test2-expect-status 400)
 ;; =================================================================================
- 
+
 (with-test-prefix "MIME test"
 
   (pass-if "JSONP simple test"
