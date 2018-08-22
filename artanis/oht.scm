@@ -321,6 +321,8 @@
      (map
       (lambda (k) (post-ref pl k))
       keys)))
+  (define (return-json-mapping j)
+    (lambda (k) (hash-ref j k)))
   (lambda (rc . cmd)
     (match cmd
       (`(get ,key) (post-ref (post-handler rc) key))
@@ -328,6 +330,7 @@
       (('get-vals keys ...) (apply get-values-from-post (post-handler rc) keys))
       ('(store) (post-handler rc))
       ('(get-mfds-op) (post-handler rc))
+      ('json (return-json-mapping (rc-body rc)))
       (else (throw 'artanis-err 500 from-post-maker "Invalid cmd `~a'!" cmd)))))
 
 ;; for #:websocket
