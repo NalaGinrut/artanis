@@ -301,9 +301,12 @@
        (throw 'artanis-err 500 store-the-bv
               "Impossible status! please report bug!"))))
   (define (post-ref plst key) (and=> (assoc-ref plst key) car))
+  (define (return-json-mapping j)
+    (lambda (k) (hash-ref j k)))
   (define (post-handler rc)
     (match mode
       ((or #t 'query-string 'qstr) (post->qstr-table rc))
+      ('json (return-json-mapping (rc-body rc)))
       ('qstr-safe (post->qstr-table rc 'safe))
       ((or 'bv 'bytevector) (rc-body rc))
       ;; Get mfds and handle it by yourself
@@ -321,8 +324,6 @@
      (map
       (lambda (k) (post-ref pl k))
       keys)))
-  (define (return-json-mapping j)
-    (lambda (k) (hash-ref j k)))
   (lambda (rc . cmd)
     (match cmd
       (`(get ,key) (post-ref (post-handler rc) key))
@@ -330,7 +331,6 @@
       (('get-vals keys ...) (apply get-values-from-post (post-handler rc) keys))
       ('(store) (post-handler rc))
       ('(get-mfds-op) (post-handler rc))
-      ('json (return-json-mapping (rc-body rc)))
       (else (throw 'artanis-err 500 from-post-maker "Invalid cmd `~a'!" cmd)))))
 
 ;; for #:websocket
