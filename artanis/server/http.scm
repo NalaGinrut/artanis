@@ -22,12 +22,17 @@
   #:use-module (artanis env)
   #:use-module (artanis config)
   #:use-module (artanis websocket)
+  #:use-module (artanis websocket named-pipe)
   #:use-module (artanis server server-context)
   #:use-module (artanis server epoll)
   #:use-module (artanis server scheduler)
-  #:use-module ((rnrs) #:select (put-bytevector bytevector? get-bytevector-n!
-                                                bytevector-length make-bytevector))
+  #:use-module (artanis server ragnarok)
+  #:use-module ((rnrs) #:select (put-bytevector
+                                 bytevector?
+                                 get-bytevector-n!
+                                 bytevector-length make-bytevector))
   #:use-module (ice-9 format)
+  #:use-module (ice-9 futures)
   #:export (new-http-protocol))
 
 (define (clean-current-conn-fd server client peer-shutdown?)
@@ -55,7 +60,9 @@
           (shutdown conn 0) ; Stop receiving data
           (DEBUG "Shutdown ~a successfully~%" conn)
           (force-output conn)
-          (DEBUG "Force-output ~a successfully~%" conn))
+          (DEBUG "Force-output ~a successfully~%" conn)
+          (remove-redirector! server client) ; iff redirector was registered
+          (remove-if-the-connection-is-websocket! client))
         list)))) ; I don't care if the connection is still alive anymore, so ignore errors.
 
 ;; NOTE: Close operation must follow these steps:
@@ -170,7 +177,7 @@
              (websocket-write type body server client))))))
    (else
     (let* ((res (write-response response (client-sockport client)))
-           (port (response-port res)))  ; return the continued port
+           (port (response-port res))) ; return the continued port
       ;; send body to regular HTTP client
       (cond
        ((not body) 'no-body) ; pass
@@ -178,7 +185,17 @@
         (write-response-body res body)
         (force-output port))
        ((file-sender? body)
-        ((file-sender-thunk body)))
+        (let ((fut (make-future (file-sender-thunk body))))
+          (let lp ()
+            (cond
+             ((eq? 'done ((@@ (ice-9 futures) future-state) fut))
+              (touch fut)
+              (%%raw-close-connection server client #f)
+              (simply-quit))
+             (else
+              (oneshot-mention! client)
+              (break-task)
+              (lp))))))
        (else
         (throw 'artanis-err 500 http-write
                "Expected a bytevector for body" body)))))))
