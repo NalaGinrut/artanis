@@ -383,21 +383,24 @@
 ;; for #:lpc
 ;; Local Persistent Cache
 (define (lpc-maker mode rule keys)
-  (define (gen-lpc-handler lpc)
-    (lambda (rc . cmd)
-      (when (not (rc-lpc rc))
-        (rc-lpc! rc lpc))
+  (define (gen-lpc-handler rc cmd)
+    (let ((lpc (rc-lpc rc)))
       (match cmd
         (`(set ,key ,val) (lpc-set! lpc key val))
         (((or 'ref 'get) key) (lpc-ref lpc key))
         (else (throw 'artanis-err 500 gen-lpc-handler "Invalid cmd `~a'!" cmd)))))
   (match mode
     (#t
-     (let ((lpc ((new-lpc))))
-       (gen-lpc-handler lpc)))
+     (lambda (rc . cmd)
+       (when (not (rc-lpc rc))
+         (rc-lpc! rc ((new-lpc))))
+       (gen-lpc-handler rc cmd)))
     ((backend . args)
-     (let ((lpc (apply (new-lpc #:backend backend) args)))
-       (gen-lpc-handler lpc)))
+     (lambda (rc . cmd)
+       (when (not (rc-lpc rc))
+         (let ((lpc (apply (new-lpc #:backend backend) args)))
+           (rc-lpc! rc lpc)))
+       (gen-lpc-handler rc cmd)))
     (else (throw 'artanis-err 500 lpc-maker "Invalid pattern `~a'!" mode))))
 
 ;; ---------------------------------------------------------------------------------
