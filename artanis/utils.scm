@@ -568,7 +568,7 @@
   (mime-guess (get-file-ext filename)))
 
 (define (bytevector-null? bv)
-  ((@ (rnrs bytevectors) bytevector=?) bv #u8()))
+  ((@ (rnrs bytevectors) bytevector=?) bv #vu8()))
 
 (define (generate-modify-time t)
   (get-local-date (cons (time-second t) (time-nanosecond t))))
@@ -1357,18 +1357,18 @@
   (memq name *guile-compatible-server-core*))
 
 (define (render-sys-page blame-who? status request)
-  (define-syntax-rule (status->page s)
-    (format #f "~a.html" s))
   (artanis-log blame-who? status 'text/html #:request request)
-  (let* ((charset (get-conf '(server charset)))
+  (let* ((filename (format #f "~a.html" status))
+         (charset (get-conf '(server charset)))
          (mtime (generate-modify-time (current-time)))
+         (guile-compt-serv? (is-guile-compatible-server-core? (get-conf '(server engine))))
          (response
           (build-response #:code status
                           #:headers `((server . ,(get-conf '(server info)))
                                       (last-modified . ,mtime)
                                       (content-type . (text/html (charset . ,charset))))))
-         (body (syspage-show (status->page status))))
-    (if (is-guile-compatible-server-core? (get-conf '(server engine)))
+         (body (syspage-show filename)))
+    (if guile-compt-serv?
         (values response body)
         (values response body 'exception))))
 
