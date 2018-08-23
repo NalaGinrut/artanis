@@ -220,12 +220,10 @@
                 ;;       will be blocked.
                 ;; TODO: use splice to make a real non-blocking version.
                 ;; TODO: support trunked length requesting for continously downloading.
-                (future
-                 (begin
-                   (sendfile out in size)
-                   (force-output out)
-                   (DEBUG "File `~a' sending over!" filename)
-                   (close in))))))))))
+                (sendfile out in size)
+                (force-output out)
+                (DEBUG "File `~a' sent over!" filename)
+                (close in))))))))
     (lambda (mtime status body mime)
       (cond
        ((= status 200)
@@ -241,5 +239,4 @@
   (let ((filename (if dir
                       (format #f "~a/~a" dir (rc-path rc))
                       (static-filename (rc-path rc)))))
-    (emit-response-with-file filename
-                             (request-port (rc-req rc)))))
+    (emit-response-with-file filename (request-port (rc-req rc)))))
