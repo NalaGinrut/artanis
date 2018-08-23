@@ -28,7 +28,15 @@
   #:use-module ((rnrs) #:select (bytevector? define-record-type))
   #:export (register-websocket-pipe!
             send-to-websocket-named-pipe
-            named-pipe-subscribe))
+            named-pipe-subscribe
+            remove-if-the-connection-is-websocket!))
+
+;; NOTE: named-pipe and client is 1:1 relation, we also make a table
+;;       for getting name from client. It's worth since every client can
+;;       register a named-pipe, and there're too many named-pipe to be
+;;       traversed to close when the client refresh the page.
+(define *client-to-named-pipe* (make-hash-table))
+(define *websocket-named-pipe* (make-hash-table))
 
 (define-record-type named-pipe
   (fields name client task-queue))
@@ -36,16 +44,25 @@
 (define (new-named-pipe name client)
   (make-named-pipe name client (new-queue)))
 
+(define (client->pipe-name client)
+  (hashq-ref *client-to-named-pipe* client))
+
+(define (remove-if-the-connection-is-websocket! client)
+  (let ((name (client->pipe-name client)))
+    (when name
+      (DEBUG "Removing named-pipe `~a' since client is closed......")
+      (hash-remove! *websocket-named-pipe* name)
+      (hashq-remove! *client-to-named-pipe* client)
+      (DEBUG "Done~%"))))
+
 (define (get-named-pipe name)
   (hash-ref *websocket-named-pipe* name))
 
 (define (get-pipe-client name)
-  (named-pipe-client (get-named-pipe name)))
+  (and=> (get-named-pipe name) named-pipe-client))
 
 (define (get-pipe-task-queue name)
-  (named-pipe-task-queue (get-named-pipe name)))
-
-(define *websocket-named-pipe* (make-hash-table))
+  (and=> (get-named-pipe name) named-pipe-task-queue))
 
 (define *named-pipe-re*
   (string->sre "artanis_named_pipe=(.*)"))
@@ -59,7 +76,8 @@
   (let ((name (detect-pipe-name req)))
     (cond
      (name
-      (hash-set! *websocket-named-pipe* name (new-named-pipe name client)))
+      (hash-set! *websocket-named-pipe* name (new-named-pipe name client))
+      (hash-set! *client-to-named-pipe* client name))
      (else
       (DEBUG "The websocket is not an artanis-named-pipe, don't register it!~%")))))
 
@@ -82,20 +100,23 @@
         ;;       awakend.
         ;; NOTE: The task queue will be handled in named-pipe-event-loop to send the data
         ;;       one by one.
-        (queue-in! task-queue
-                   (lambda ()
-                     (parameterize ((current-client client))
-                       (write-websocket-frame/client (client-sockport client) frame))))
-        (oneshot-mention! client)))
+        (when task-queue
+          (queue-in! task-queue
+                     (lambda ()
+                       (parameterize ((current-client client))
+                         (write-websocket-frame/client (client-sockport client) frame))))
+          (oneshot-mention! client))))
      (else
       (throw 'artanis-err 400 send-to-websocket-named-pipe
-             "Invalid pipe name `~a'" name)))))
+             "Invalid pipe name `~a' or it's closed by client!" name)))))
 
 (define (named-pipe-subscribe rc)
   (let* ((name (detect-pipe-name (rc-req rc)))
          (task-queue (get-pipe-task-queue name)))
     (let lp ()
       (cond
+       ((not task-queue)
+        (DEBUG "Named-pipe `~a' was closed, we drop this connection!" name))
        ((queue-empty? task-queue)
         (DEBUG "Named-pipe: task queue is empty, we scheduled!~%"))
        (else
