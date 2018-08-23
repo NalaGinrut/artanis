@@ -170,5 +170,6 @@
 
 (define (rc-lpc-close rc body)
   (let ((lpc (rc-lpc rc)))
-    (lpc-flush! lpc)
-    (lpc-destroy! lpc)))
+    (when lpc
+      (lpc-flush! lpc)
+      (lpc-destroy! lpc))))
