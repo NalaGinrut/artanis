@@ -23,6 +23,7 @@
 
 (define-module (artanis lpc)
   #:use-module (artanis config)
+  #:use-module (artanis route)
   #:use-module (artanis third-party json)
   #:use-module (artanis third-party redis)
   #:use-module ((rnrs) #:select (define-record-type))
@@ -39,7 +40,9 @@
             lpc-set!
             lpc-ref
             lpc-remove!
-            lpc-flush!))
+            lpc-flush!
+
+            rc-lpc-close))
 
 (define (lpc-prefix key)
   (string-append "__artanis_lpc_" (get-conf '(db name)) "_" key))
@@ -164,3 +167,8 @@
 (define (lpc-flush! lpc)
   (let ((backend (lpc-backend lpc)))
     (lpc-backend-flush! backend)))
+
+(define (rc-lpc-close rc body)
+  (let ((lpc (rc-lpc rc)))
+    (lpc-flush! lpc)
+    (lpc-destroy! lpc)))

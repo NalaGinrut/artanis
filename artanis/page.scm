@@ -22,6 +22,7 @@
   #:use-module (artanis env)
   #:use-module (artanis config)
   #:use-module (artanis cookie)
+  #:use-module (artanis lpc)
   #:use-module (artanis tpl)
   #:use-module (artanis tpl sxml)
   #:use-module (artanis db)
@@ -68,7 +69,8 @@
   #t)
 
 (define (init-before-response-hook)
-  (run-before-response! rc-conn-recycle))
+  (run-before-response! rc-conn-recycle)
+  (run-before-response! rc-lpc-close))
 
 (define (init-after-websocket-hook)
   (run-after-websocket-handshake! register-websocket-pipe!))

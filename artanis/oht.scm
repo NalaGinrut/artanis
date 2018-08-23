@@ -385,6 +385,8 @@
 (define (lpc-maker mode rule keys)
   (define (gen-lpc-handler lpc)
     (lambda (rc . cmd)
+      (when (not (rc-lpc rc))
+        (rc-lpc! rc lpc))
       (match cmd
         (`(set ,key ,val) (lpc-set! lpc key val))
         (((or 'ref 'get) key) (lpc-ref lpc key))
