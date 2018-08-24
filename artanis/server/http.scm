@@ -60,10 +60,11 @@
           (shutdown conn 0) ; Stop receiving data
           (DEBUG "Shutdown ~a successfully~%" conn)
           (force-output conn)
-          (DEBUG "Force-output ~a successfully~%" conn)
-          (remove-redirector! server client) ; iff redirector was registered
-          (remove-if-the-connection-is-websocket! client))
-        list)))) ; I don't care if the connection is still alive anymore, so ignore errors.
+          (DEBUG "Force-output ~a successfully~%" conn))
+        list))
+    (remove-redirector! server client) ; iff redirector was registered
+    (remove-if-the-connection-is-websocket! client)
+    )) ; I don't care if the connection is still alive anymore, so ignore errors.
 
 ;; NOTE: Close operation must follow these steps:
 ;; 1. remove fd from epoll event
