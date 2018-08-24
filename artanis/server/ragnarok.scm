@@ -210,7 +210,6 @@
                 (DEBUG "New connection ~a~%" e)
                 (accept-them-all (ragnarok-server-listen-socket server)))
                ((is-peer-shutdown? e)
-                (format #t "------peer shutdown~%")
                 (DEBUG "Peer shutdown ~a~%" e)
                 (parameterize ((must-close-connection? #t))
                   (ragnarok-close
@@ -312,15 +311,17 @@
                              (DEBUG "Ragnarok: write client~%")
                              (ragnarok-write proto server client response body
                                              (eq? 'HEAD (request-method request)))
-                             (cond
-                              ((or (eq? request-status 'exception)
-                                   (not (response-keep-alive? response))
-                                   (not (task-keepalive? (current-task))))
-                               (ragnarok-close proto server client #f))
-                              (else
-                               (DEBUG "Client ~a keep alive, status: ~a~%"
-                                      (client-sockport client) request-status)
-                               (kont)))))))))
+                             (let ((keepalive? (or (response-keep-alive? response)
+                                                   (task-keepalive? (current-task)))))
+                               (cond
+                                ((or (eq? request-status 'exception)
+                                     (not keepalive?))
+                                 (parameterize ((must-close-connection? (not keepalive?)))
+                                   (ragnarok-close proto server client #f)))
+                                (else
+                                 (DEBUG "Client ~a keep alive, status: ~a~%"
+                                        (client-sockport client) request-status)
+                                 (kont))))))))))
              (conn (client-sockport client))
              (prio #t) ; TODO: we don't have prio yet
              (bufsize (get-conf '(server bufsize)))
