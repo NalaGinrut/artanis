@@ -29,7 +29,7 @@
   #:export (register-websocket-pipe!
             send-to-websocket-named-pipe
             named-pipe-subscribe
-            remove-if-the-connection-is-websocket!))
+            remove-named-pipe-if-the-connection-is-websocket!))
 
 ;; NOTE: named-pipe and client is 1:1 relation, we also make a table
 ;;       for getting name from client. It's worth since every client can
@@ -47,7 +47,7 @@
 (define (client->pipe-name client)
   (hashq-ref *client-to-named-pipe* client))
 
-(define (remove-if-the-connection-is-websocket! client)
+(define (remove-named-pipe-if-the-connection-is-websocket! client)
   (let ((name (client->pipe-name client)))
     (when name
       (DEBUG "Removing named-pipe `~a' since client is closed......")
