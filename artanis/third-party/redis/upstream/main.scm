@@ -42,7 +42,9 @@ defaults to 6379. Returns a redis connection."
 
 (define (redis-close connection)
   "Close the @var{connection} to the redis server."
-  (shutdown (redis-socket connection) 2))
+  (let ((conn (redis-socket connection)))
+    (shutdown conn 2)
+    (close conn)))
 
 (define (redis-send connection commands)
   "Send the given list of @var{commands} to the redis
