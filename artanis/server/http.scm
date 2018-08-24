@@ -61,7 +61,10 @@
           (DEBUG "Shutdown ~a successfully~%" conn)
           (force-output conn)
           (DEBUG "Force-output ~a successfully~%" conn))
-        list)))) ; I don't care if the connection is still alive anymore, so ignore errors.
+        list))
+    ;; I don't care if the connection is still alive anymore, so ignore errors.
+    (DEBUG "Close connection ~a from ~a." (client-sockport client) (client-ip client))
+    (when (must-close-connection?) (close conn))))
 
 ;; NOTE: Close operation must follow these steps:
 ;; 1. remove fd from epoll event
@@ -188,7 +191,8 @@
             (cond
              ((eq? 'done ((@@ (ice-9 futures) future-state) fut))
               (touch fut)
-              (http-close server client #f))
+              (%%raw-close-connection server client #f)
+              (simply-quit))
              (else
               (oneshot-mention! client)
               (break-task)
