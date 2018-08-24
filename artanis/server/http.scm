@@ -40,6 +40,12 @@
         (conn-fd (client-sockport-decriptor client))
         (epfd (ragnarok-server-epfd server)))
     (DEBUG "Clean connected fd ~a~%" conn-fd)
+    (remove-redirector! server client) ; iff redirector was registered
+    ;; NOTE:
+    ;; Websocket protocol demands a closing frame when the connection is going to
+    ;; close, so there's oneshot writing operation before shutdown. Then we have to
+    ;; clean websocket before actual shutdown
+    (remove-if-the-connection-is-websocket! client)
     ;; NOTE:
     ;; In kernel versions before 2.6.9, the EPOLL_CTL_DEL operation required a
     ;; non-null pointer in event, even though this argument is ignored. Since
@@ -61,10 +67,7 @@
           (DEBUG "Shutdown ~a successfully~%" conn)
           (force-output conn)
           (DEBUG "Force-output ~a successfully~%" conn))
-        list))
-    (remove-redirector! server client) ; iff redirector was registered
-    (remove-if-the-connection-is-websocket! client)
-    )) ; I don't care if the connection is still alive anymore, so ignore errors.
+        list)))) ; I don't care if the connection is still alive anymore, so ignore errors.
 
 ;; NOTE: Close operation must follow these steps:
 ;; 1. remove fd from epoll event
