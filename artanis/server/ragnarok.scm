@@ -463,194 +463,194 @@
                    (cond
                     ((eqv? (cadr e) 408)
                      (format (artanis-current-output)
-                             "Client `~a from ~a` was timeout, closed by server!"
+                             "Client `~a(~a)` was timeout, closed by server!"
                              (client-sockport client) (client-ip client))
                      (ragnarok-close http server client #f))
                     (else
                      (ragnarok-write http server client r b #f)
-                     (ragnarok-close http server client #f))))))
-             (DEBUG "Serve one done~%"))
-           (lambda ()
-             ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
-             ;; NOTE: The parameters will be lost when exception raised here, so we can't
-             ;;       use any of current-task/server/client/proto in the exception handler
-             (DEBUG "Prepare to close connection ~a~%" (client-ip client))
-             (ragnarok-close http server client #f)))
-         (DEBUG "main-loop again~%")
-         (main-loop (get-one-request-from-clients http server))))))
+                     (ragnarok-close http server client #f)))))))
+           (DEBUG "Serve one done~%"))
+         (lambda ()
+           ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
+           ;; NOTE: The parameters will be lost when exception raised here, so we can't
+           ;;       use any of current-task/server/client/proto in the exception handler
+           (DEBUG "Prepare to close connection ~a~%" (client-ip client))
+           (ragnarok-close http server client #f)))
+        (DEBUG "main-loop again~%")
+        (main-loop (get-one-request-from-clients http server))))))
 
-  ;; NOTE: we don't schedule guile-engine, although it provides naive mechanism for scheduling.
-  (define (new-guile-engine)
-    (define info "You're using `guile' engine, which has no scheduler yet!")
-    (make-ragnarok-engine
-     'guile
-     (lambda () (DEBUG info))
-     (lambda _ (DEBUG info))
-     (lambda () (DEBUG "The `guile' engine doesn't have resources collector!"))
-     guile-builtin-server-run))
+;; NOTE: we don't schedule guile-engine, although it provides naive mechanism for scheduling.
+(define (new-guile-engine)
+  (define info "You're using `guile' engine, which has no scheduler yet!")
+  (make-ragnarok-engine
+   'guile
+   (lambda () (DEBUG info))
+   (lambda _ (DEBUG info))
+   (lambda () (DEBUG "The `guile' engine doesn't have resources collector!"))
+   guile-builtin-server-run))
 
-  (define (new-fibers-engine)
-    (define info "You're using `fiber' engine, which has a managed scheduler, which is out of Artanis control!")
-    (make-ragnarok-engine
-     'fibers
-     (lambda () (DEBUG info))
-     (lambda _ (DEBUG info))
-     (lambda () (DEBUG "The `fiber' engine doesn't have resources collector!"))
-     fibers-server-run))
+(define (new-fibers-engine)
+  (define info "You're using `fiber' engine, which has a managed scheduler, which is out of Artanis control!")
+  (make-ragnarok-engine
+   'fibers
+   (lambda () (DEBUG info))
+   (lambda _ (DEBUG info))
+   (lambda () (DEBUG "The `fiber' engine doesn't have resources collector!"))
+   fibers-server-run))
 
-  (define (new-ragnarok-engine)
-    (make-ragnarok-engine
-     'ragnarok
-     break-task
-     run-task
-     resources-collector
-     ragnarok-http-gateway-run))
+(define (new-ragnarok-engine)
+  (make-ragnarok-engine
+   'ragnarok
+   break-task
+   run-task
+   resources-collector
+   ragnarok-http-gateway-run))
 
-  (define-syntax-rule (get-task-breaker)
-    (ragnarok-engine-breaker
-     (lookup-server-engine
-      (get-conf '(server engine)))))
+(define-syntax-rule (get-task-breaker)
+  (ragnarok-engine-breaker
+   (lookup-server-engine
+    (get-conf '(server engine)))))
 
-  (define-syntax-rule (get-resources-collector)
-    (ragnarok-engine-collector
-     (lookup-server-engine
-      (get-conf '(server engine)))))
+(define-syntax-rule (get-resources-collector)
+  (ragnarok-engine-collector
+   (lookup-server-engine
+    (get-conf '(server engine)))))
 
-  ;; (server-core-name . server-engine)
-  (define *server-cores*
-    `((ragnarok . ,(new-ragnarok-engine))
-      (guile    . ,(new-guile-engine))
-      (fibers   . ,(new-fibers-engine))))
+;; (server-core-name . server-engine)
+(define *server-cores*
+  `((ragnarok . ,(new-ragnarok-engine))
+    (guile    . ,(new-guile-engine))
+    (fibers   . ,(new-fibers-engine))))
 
-  (define (lookup-server-engine engine-name)
-    (DEBUG "Loading server engine '~a' ...~%" engine-name)
-    (let ((engine (assoc-ref *server-cores* engine-name)))
-      (when (not engine)
-        (format #t "Unsupported server engine: ~a~%" engine-name)
-        (format #t "Artanis only support these engines: ~{~a~^,~}~%"
-                (map car *server-cores*))
-        (format #t
-                "Feel free to discuss in artanis@gnu.org if you have new core to add!~%")
-        (exit -1))
-      engine))
+(define (lookup-server-engine engine-name)
+  (DEBUG "Loading server engine '~a' ...~%" engine-name)
+  (let ((engine (assoc-ref *server-cores* engine-name)))
+    (when (not engine)
+      (format #t "Unsupported server engine: ~a~%" engine-name)
+      (format #t "Artanis only support these engines: ~{~a~^,~}~%"
+              (map car *server-cores*))
+      (format #t
+              "Feel free to discuss in artanis@gnu.org if you have new core to add!~%")
+      (exit -1))
+    engine))
 
-  ;; '(server engine) specified server core, so if it's `ragnarok', Artanis will
-  ;; use (artanis server ragnarok). If it's `guile' then Artanis will use
-  ;; (web server), say, Guile built-in server.
-  (define (establish-http-gateway handler)
-    (let* ((engine (lookup-server-engine (get-conf '(server engine))))
-           (loader (ragnarok-engine-loader engine)))
-      (cond
-       (loader
-        (cond
-         ;; NOTE: Guile inner engine is not ready for non-blocking yet,
-         ;;       but we provide the possibility for the future customized engine
-         ;;       if users don't like rangarok (how is that possible!)
-         ((and (eq? (get-conf '(server trigger)) 'edge)
-               (eq? (get-conf '(server engine)) 'ragnarok))
-          (DEBUG "Using Non-Blocking I/O~%")
-          ;; enable global suspendable ports for non-blocking
-          ;; NOTE: only for ragnarok engine, not for Guile built-in engine.
-          (install-suspendable-ports!)
-          (DEBUG "Installed suspendable ports~%")
-          (parameterize ((current-read-waiter async-read-waiter)
-                         (current-write-waiter async-write-waiter)
-                         (current-encoder (if (get-conf '(db encodeparams))
-                                              uri-encode
-                                              identity)))
-            (DEBUG "Starting `~a' engine loader ...~%" (ragnarok-engine-name engine))
-            (loader handler)))
-         ((eq? (get-conf '(server engine)) 'fibers)
-          (DEBUG "Using managed scheduler from Fibers, out of Artanis' control~%")
-          (parameterize ((current-encoder (if (get-conf '(db encodeparams))
-                                              uri-encode
-                                              identity)))
-            (DEBUG "Starting ~a loading ...~%" (ragnarok-engine-name engine))
-            (loader handler)))
-         (else
-          (DEBUG "Not using Non-Blocking I/O~%")
-          ;; not for non-blocking I/O
-          (DEBUG "Starting ~a loader ...~%" (ragnarok-engine-name engine))
-          (loader handler))))
-       (else (error establish-http-gateway
-                    "Invalid `server.engine' in artanis.conf" (ragnarok-engine-name engine))))))
-
-  ;; WARNING: Don't use = here, must use eqv? since it's not always numbers
-  (define (io-exception:peer-is-shutdown? e)
-    (and (eq? (car e) 'system-error)
-         (let ((errno (system-error-errno e)))
-           (or (eqv? errno EPIPE) ; broken pipe
-               (eqv? errno EIO) ; write to a closed socket
-               (eqv? errno ECONNRESET))))) ; shutdown by peer
-
-  ;; WARNING: Don't use = here, must use eqv? since it's not always numbers
-  (define (io-exception:out-of-memory? e)
-    (and (eq? (car e) 'system-error)
-         (let ((errno (system-error-errno e)))
-           (or (eqv? errno ENOMEM) ; no memory
-               (eqv? errno ENOBUFS))))) ; no buffer could be allocated
-
-  (define (out-of-system-resources? e)
+;; '(server engine) specified server core, so if it's `ragnarok', Artanis will
+;; use (artanis server ragnarok). If it's `guile' then Artanis will use
+;; (web server), say, Guile built-in server.
+(define (establish-http-gateway handler)
+  (let* ((engine (lookup-server-engine (get-conf '(server engine))))
+         (loader (ragnarok-engine-loader engine)))
     (cond
-     ((eqv? e EMFILE)
-      "permit system open more files by `ulimit -n'")
-     (else #f)))
-
-  (define (make-io-exception-handler type)
-    (lambda e
-      (DEBUG "ragnarok-~a exception: ~a~%" type e)
+     (loader
       (cond
-       ((io-exception:peer-is-shutdown? e)
-        ;; NOTE: peer has been shutdown for reasons, we just let them be checked by epoll
-        ;;       in next round loop, and close the connection by Ragnarok.
-        ;; WARN: Don't call (close-task) directly, since we'll lose the chance to remove
-        ;;       it from epoll. Although epoll will remove closed fd automatically, it won't
-        ;;       remove the fd until it's closed completely, so does half-closed connection!
-        ;;       Be careful.
-        (DEBUG "Peer is shutdown, just schedule and wait for closing it later ~%")
-        (break-task)
-        (DEBUG "Peer ~a is still open, we close it explicitly at the end!"
-               (client-sockport (current-client)))
-        (close-task))
-       ((io-exception:out-of-memory? e)
-        ;; NOTE: out of memory, and throw 503 to let client try again. We can't just schedule
-        ;;       for next round loop, since some data read from request would be lost because
-        ;;       of lack of memory. The safe way is to tell the client that server is busy
-        ;;       so try again.
-        ;; FIXME: Is it proper to call (gc) here?
-        (gc)
-        (throw 'artanis-err 503 make-io-exception-handler
-               "Ragnarok-~a: we run out of RAMs!~%" type))
-       ((out-of-system-resources? e)
-        => (lambda (reason)
-             (let ((shout (format #f
-                                  "Out of system resources, maybe you should ~a!" reason)))
-               (display (WARN-TEXT shout) (artanis-current-output))
-               (break-task))))
+       ;; NOTE: Guile inner engine is not ready for non-blocking yet,
+       ;;       but we provide the possibility for the future customized engine
+       ;;       if users don't like rangarok (how is that possible!)
+       ((and (eq? (get-conf '(server trigger)) 'edge)
+             (eq? (get-conf '(server engine)) 'ragnarok))
+        (DEBUG "Using Non-Blocking I/O~%")
+        ;; enable global suspendable ports for non-blocking
+        ;; NOTE: only for ragnarok engine, not for Guile built-in engine.
+        (install-suspendable-ports!)
+        (DEBUG "Installed suspendable ports~%")
+        (parameterize ((current-read-waiter async-read-waiter)
+                       (current-write-waiter async-write-waiter)
+                       (current-encoder (if (get-conf '(db encodeparams))
+                                            uri-encode
+                                            identity)))
+          (DEBUG "Starting `~a' engine loader ...~%" (ragnarok-engine-name engine))
+          (loader handler)))
+       ((eq? (get-conf '(server engine)) 'fibers)
+        (DEBUG "Using managed scheduler from Fibers, out of Artanis' control~%")
+        (parameterize ((current-encoder (if (get-conf '(db encodeparams))
+                                            uri-encode
+                                            identity)))
+          (DEBUG "Starting ~a loading ...~%" (ragnarok-engine-name engine))
+          (loader handler)))
        (else
-        (DEBUG "Not an I/O exception, throw it to upper level~%")
-        ;; not a exception should be handled here, re-throw it to the next level
-        (apply throw e)))))
+        (DEBUG "Not using Non-Blocking I/O~%")
+        ;; not for non-blocking I/O
+        (DEBUG "Starting ~a loader ...~%" (ragnarok-engine-name engine))
+        (loader handler))))
+     (else (error establish-http-gateway
+                  "Invalid `server.engine' in artanis.conf" (ragnarok-engine-name engine))))))
 
-  (::define (ragnarok-read proto server client)
-    (:anno: (ragnarok-protocol ragnarok-server ragnarok-client) -> ANY)
-    (DEBUG "ragnarok-read ~a~%" (client-ip client))
-    (catch #t
-      (lambda ()
-        ((ragnarok-protocol-read proto) server client))
-      (make-io-exception-handler 'read)))
+;; WARNING: Don't use = here, must use eqv? since it's not always numbers
+(define (io-exception:peer-is-shutdown? e)
+  (and (eq? (car e) 'system-error)
+       (let ((errno (system-error-errno e)))
+         (or (eqv? errno EPIPE) ; broken pipe
+             (eqv? errno EIO) ; write to a closed socket
+             (eqv? errno ECONNRESET))))) ; shutdown by peer
 
-  (::define (ragnarok-write proto server client response body method-is-head?)
-    (:anno: (ragnarok-protocol ragnarok-server ragnarok-client <response> ANY boolean) -> ANY)
-    (DEBUG "ragnarok-write ~a~%" (client-ip client))
-    (catch #t
-      (lambda ()
-        ((ragnarok-protocol-write proto) server client response body method-is-head?))
-      (make-io-exception-handler 'write)))
+;; WARNING: Don't use = here, must use eqv? since it's not always numbers
+(define (io-exception:out-of-memory? e)
+  (and (eq? (car e) 'system-error)
+       (let ((errno (system-error-errno e)))
+         (or (eqv? errno ENOMEM) ; no memory
+             (eqv? errno ENOBUFS))))) ; no buffer could be allocated
 
-  ;; NOTE: The parameters will be lost when exception raised here, so we can't
-  ;;       use any of current-task/server/client/proto in this function.
-  (::define (ragnarok-close proto server client peer-shutdown?)
-    (:anno: (ragnarok-protocol ragnarok-server ragnarok-client boolean) -> ANY)
-    (DEBUG "ragnarok-close ~a~%" (client-ip client))
-    ((ragnarok-protocol-close proto) server client peer-shutdown?))
+(define (out-of-system-resources? e)
+  (cond
+   ((eqv? e EMFILE)
+    "permit system open more files by `ulimit -n'")
+   (else #f)))
+
+(define (make-io-exception-handler type)
+  (lambda e
+    (DEBUG "ragnarok-~a exception: ~a~%" type e)
+    (cond
+     ((io-exception:peer-is-shutdown? e)
+      ;; NOTE: peer has been shutdown for reasons, we just let them be checked by epoll
+      ;;       in next round loop, and close the connection by Ragnarok.
+      ;; WARN: Don't call (close-task) directly, since we'll lose the chance to remove
+      ;;       it from epoll. Although epoll will remove closed fd automatically, it won't
+      ;;       remove the fd until it's closed completely, so does half-closed connection!
+      ;;       Be careful.
+      (DEBUG "Peer is shutdown, just schedule and wait for closing it later ~%")
+      (break-task)
+      (DEBUG "Peer ~a is still open, we close it explicitly at the end!"
+             (client-sockport (current-client)))
+      (close-task))
+     ((io-exception:out-of-memory? e)
+      ;; NOTE: out of memory, and throw 503 to let client try again. We can't just schedule
+      ;;       for next round loop, since some data read from request would be lost because
+      ;;       of lack of memory. The safe way is to tell the client that server is busy
+      ;;       so try again.
+      ;; FIXME: Is it proper to call (gc) here?
+      (gc)
+      (throw 'artanis-err 503 make-io-exception-handler
+             "Ragnarok-~a: we run out of RAMs!~%" type))
+     ((out-of-system-resources? e)
+      => (lambda (reason)
+           (let ((shout (format #f
+                                "Out of system resources, maybe you should ~a!" reason)))
+             (display (WARN-TEXT shout) (artanis-current-output))
+             (break-task))))
+     (else
+      (DEBUG "Not an I/O exception, throw it to upper level~%")
+      ;; not a exception should be handled here, re-throw it to the next level
+      (apply throw e)))))
+
+(::define (ragnarok-read proto server client)
+  (:anno: (ragnarok-protocol ragnarok-server ragnarok-client) -> ANY)
+  (DEBUG "ragnarok-read ~a~%" (client-ip client))
+  (catch #t
+    (lambda ()
+      ((ragnarok-protocol-read proto) server client))
+    (make-io-exception-handler 'read)))
+
+(::define (ragnarok-write proto server client response body method-is-head?)
+  (:anno: (ragnarok-protocol ragnarok-server ragnarok-client <response> ANY boolean) -> ANY)
+  (DEBUG "ragnarok-write ~a~%" (client-ip client))
+  (catch #t
+    (lambda ()
+      ((ragnarok-protocol-write proto) server client response body method-is-head?))
+    (make-io-exception-handler 'write)))
+
+;; NOTE: The parameters will be lost when exception raised here, so we can't
+;;       use any of current-task/server/client/proto in this function.
+(::define (ragnarok-close proto server client peer-shutdown?)
+  (:anno: (ragnarok-protocol ragnarok-server ragnarok-client boolean) -> ANY)
+  (DEBUG "ragnarok-close ~a~%" (client-ip client))
+  ((ragnarok-protocol-close proto) server client peer-shutdown?))
