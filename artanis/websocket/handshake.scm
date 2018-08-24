@@ -154,6 +154,8 @@
     (format (artanis-current-output)
             "[Websocket] Closed by peer `~a'.~%" (client-ip client)))
    (else
+    (format (artanis-current-output)
+            "[Websocket] Client `~a' was closed by server.~%" (client-ip client))
     (send-websocket-closing-frame (client-sockport client))
     (if (received-closing-frame? (client-sockport client))
         (format (artanis-current-output)
