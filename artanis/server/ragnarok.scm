@@ -440,6 +440,7 @@
                      ;; NOTE: eqv? is necessary since system-error-errno on a
                      ;;       non-system-erro will be non-integer, so don't use
                      ;;       = to check.
+                     (ragnarok-close http server client #f)
                      (main-loop (get-one-request-from-clients http server)))
                     (else
                      (call-with-values
