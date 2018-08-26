@@ -22,6 +22,8 @@
 ;; -----------------------------------------
 
 (define-module (artanis lpc)
+  #:use-module (artanis env)
+  #:use-module (artanis utils)
   #:use-module (artanis config)
   #:use-module (artanis route)
   #:use-module (artanis third-party json)
@@ -42,7 +44,10 @@
             lpc-remove!
             lpc-flush!
 
-            rc-lpc-close))
+            get-lpc-instance!
+            intern-lpc-instance!
+            lpc-instance-recycle
+            init-lpc))
 
 (define (lpc-prefix key)
   (string-append "__artanis_lpc_" (get-conf '(db name)) "_" key))
@@ -142,34 +147,60 @@
                   ((json) new-lpc-backend/json))))
       (make-lpc (apply ctor args) read-only?))))
 
-(define (lpc-destroy! lpc)
+(::define (lpc-destroy! lpc)
+  (:anno: (lpc) -> ANY)
   (let ((backend (lpc-backend lpc)))
     (lpc-backend-destroy! backend)))
 
-(define (lpc-set! lpc key value)
+(::define (lpc-set! lpc key value)
+  (:anno: (lpc string ANY) -> ANY)
   (when (lpc-read-only? lpc)
     (throw 'artanis-err 500 lpc-set!
            "LPC is read only. please check your code."))
   (let ((backend (lpc-backend lpc)))
     (lpc-backend-set! backend key value)))
 
-(define (lpc-ref lpc key)
+(::define (lpc-ref lpc key)
+  (:anno: (lpc string) -> ANY)
   (let ((backend (lpc-backend lpc)))
     (lpc-backend-ref backend key)))
 
-(define (lpc-remove! lpc key)
+(::define (lpc-remove! lpc key)
+  (:anno: (lpc string) -> ANY)
   (when (lpc-read-only? lpc)
     (throw 'artanis-err 500 lpc-remove!
            "LPC is read only!!! please check your code!!!"))
   (let ((backend (lpc-backend lpc)))
     (lpc-backend-remove! backend key)))
 
-(define (lpc-flush! lpc)
+(::define (lpc-flush! lpc)
+  (:anno: (lpc) -> ANY)
   (let ((backend (lpc-backend lpc)))
     (lpc-backend-flush! backend)))
 
-(define (rc-lpc-close rc body)
-  (let ((lpc (rc-lpc rc)))
-    (when lpc
-      (lpc-flush! lpc)
-      (lpc-destroy! lpc))))
+(::define (get-lpc-instance!)
+  (:anno: () -> lpc)
+  (when (not *lpc-instance-pool*)
+    (error "LPC is not enabled. Please check out your config!"))
+  (and (not (queue-empty? *lpc-instance-pool*))
+       (queue-out! *lpc-instance-pool*)))
+
+(::define (intern-lpc-instance! lpc)
+  (:anno: (lpc) -> lpc)
+  (when (not *lpc-instance-pool*)
+    (error "LPC is not enabled. Please check out your config!"))
+  (DEBUG "Intern a new lpc instance!~%")
+  (queue-in! *lpc-instance-pool* lpc)
+  lpc)
+
+;; NOTE: We only keep one instance in the queue as possible,
+(define (lpc-instance-recycle lpc)
+  (cond
+   ((queue-empty? *lpc-instance-pool*)
+    (intern-lpc-instance! lpc))
+   (else
+    (lpc-flush! lpc)
+    (lpc-destroy! lpc))))
+
+(define (init-lpc)
+  (set! *lpc-instance-pool* (new-queue)))
