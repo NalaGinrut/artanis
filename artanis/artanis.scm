@@ -35,6 +35,7 @@
   #:use-module (artanis third-party json)
   #:use-module (artanis server)
   #:use-module (artanis websocket)
+  #:use-module (artanis lpc)
   #:use-module (artanis version)
   #:use-module (web server)
   #:use-module (srfi srfi-1)
@@ -203,6 +204,7 @@
   (default-route-init statics cache-statics? exclude)
   (init-hook)
   (init-config)
+  (init-lpc)
   (check-invalid-config)
   (sigaction SIGPIPE SIG_IGN) ; surpass SIGPIPE signal since we want to handle EPIPE by self
   (set! is-init-server-run? #t))
