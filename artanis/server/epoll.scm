@@ -275,7 +275,7 @@
           (begin
             (DEBUG "Peer ~a is half-closed, but we can still read, close it next time!~%"
                    e)
-            #f) ; yes peer is shutdown but we return false for reading more data
+            'half-read) ; yes peer is shutdown but we return false for reading more data
           (begin
             (DEBUG "Peer ~a is completely closed!~%" e)
             #t)) ; yes peer shutdown is true
