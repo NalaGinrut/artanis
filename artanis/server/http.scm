@@ -63,8 +63,7 @@
           (DEBUG "Force-output ~a successfully~%" conn))
         list))
     ;; I don't care if the connection is still alive anymore, so ignore errors.
-    (DEBUG "Close connection ~a from ~a." (client-sockport client) (client-ip client))
-    (when (must-close-connection?) (close conn))))
+    (DEBUG "Close connection ~a from ~a.~%" (client-sockport client) (client-ip client))))
 
 ;; NOTE: Close operation must follow these steps:
 ;; 1. remove fd from epoll event
@@ -76,7 +75,8 @@
   (clean-current-conn-fd server client peer-shutdown?)
   ;; ((@@ (artanis server ragnarok) print-work-table) server)
   ;; clean from work-table
-  (close-current-task! server client peer-shutdown?))
+  (close-current-task! server client peer-shutdown?)
+  (when (must-close-connection?) (close (client-sockport client))))
 
 ;; NOTE: HTTP service is established by default, so it's unecessary to do any
 ;;       openning work.
@@ -141,7 +141,6 @@
           ;; NOTE: Each time the body is the content from client. The content is parsed
           ;;       from the frame in websocket-read. And the payload is parsed by the
           ;;       registered parser. Users don't have to call parser explicitly.
-          ;; NOTE: Now, schedule and wait for data
           (values req (websocket-read req server client)))
          (else (values req body))))))))
 
@@ -190,9 +189,10 @@
           (let lp ()
             (cond
              ((eq? 'done ((@@ (ice-9 futures) future-state) fut))
-              (touch fut)
-              (%%raw-close-connection server client #f)
-              (simply-quit))
+              (parameterize ((must-close-connection? #t))
+                (touch fut)
+                (%%raw-close-connection server client #f)
+                (simply-quit)))
              (else
               (oneshot-mention! client)
               (break-task)
@@ -219,13 +219,30 @@
            ;; close, so there's oneshot writing operation before shutdown. Then we have to
            ;; clean websocket before actual shutdown
            (remove-named-pipe-if-the-connection-is-websocket! client)
-           (closing-websocket-handshake server client peer-shutdown?)
-           (%%raw-close-connection server client peer-shutdown?))))
+           (cond
+            ((half-closed-to-read?)
+             ;; NOTE: We have to give it one more chance to finish the reading.
+             ;;       So we can't actually close it here.
+             (DEBUG "Half-closed websocket ~a from ~a~%"
+                    (client-sockport client) (client-ip client))
+             (closing-websocket-handshake server client peer-shutdown?))
+            (else
+             ;; full-closed
+             (DEBUG "Full-closed websocket ~a from ~a~%"
+                    (client-sockport client) (client-ip client))
+             (%%raw-close-connection server client peer-shutdown?))))))
    (else
     (DEBUG "do close connection~%")
     ;; NOTE: Don't use simply-quit here, since there's no valid installed prompt
     ;;       to be aborted from now on.
-    (%%raw-close-connection server client peer-shutdown?))))
+    (cond
+     ((half-closed-to-read?)
+      (DEBUG "Half-closed connection ~a from ~a~%"
+             (client-sockport client) (client-ip client)))
+     (else
+      (DEBUG "Full-closed connection ~a from ~a~%"
+             (client-sockport client) (client-ip client))
+      (%%raw-close-connection server client peer-shutdown?))))))
 
 (define (new-http-protocol)
   (make-ragnarok-protocol 'http http-open http-read http-write http-close))

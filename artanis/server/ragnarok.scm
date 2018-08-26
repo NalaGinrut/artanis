@@ -193,7 +193,7 @@
   (define (is-listenning-fd? e)
     (DEBUG "listenning-port? ~a~%" e)
     (let ((listen-socket (ragnarok-server-listen-socket server)))
-      (DEBUG "listen-socket: ~a = ~a~%" (car e) listen-socket)
+      (DEBUG "Is listen-socket? ~a ?= ~a~%" (car e) listen-socket)
       (= (car e) (port->fdes listen-socket))))
   ;;(DEBUG "Start to fill ready queue~%")
   ;;(print-work-table server)
@@ -210,15 +210,18 @@
                 (DEBUG "New connection ~a~%" e)
                 (accept-them-all (ragnarok-server-listen-socket server)))
                ((is-peer-shutdown? e)
-                (DEBUG "Peer shutdown ~a~%" e)
-                (parameterize ((must-close-connection? #t))
-                  (ragnarok-close
-                   proto
-                   server
-                   (restore-working-client (current-work-table server) (car e))
-                   #t)
-                  (DEBUG "Closed ~a~%" e)
-                  #f))
+                => (lambda (s)
+                     (parameterize ((must-close-connection? #t)
+                                    (half-closed-to-read? (eq? 'half-read s)))
+                       (ragnarok-close
+                        proto
+                        server
+                        (restore-working-client (current-work-table server) (car e))
+                        #t)
+                       (if (half-closed-to-read?)
+                           (DEBUG "Half-closed ~a~%" e)
+                           (DEBUG "Full-closed ~a~%" e))
+                       #f)))
                (else
                 (DEBUG "Restore working client ~a~%" e)
                 (restore-working-client (current-work-table server) (car e))))))
@@ -230,7 +233,7 @@
            (DEBUG "Restored client ~a~%" (client-ip client))
            (ready-queue-in! rq client))
           (else
-           (DEBUG "The client ~a was shutdown~%" e)))))
+           (DEBUG "The client ~a is ready to shutdown~%" e)))))
      (epoll-wait epfd events timeout))))
 
 (define (handle-request handler request request-body)
@@ -265,7 +268,7 @@
   (DEBUG "Register ~a as RW event~%" conn-port)
   (epoll-ctl epfd EPOLL_CTL_ADD (port->fdes conn-port)
              (make-epoll-event (port->fdes conn-port) (gen-rw-event))
-             #:keep-alive? #t)
+             #:keep-alive? (allow-long-live-connection?))
   (DEBUG "register End~%"))
 
 (::define (serve-one-request handler proto server client)
@@ -301,7 +304,8 @@
                          (call-with-values
                              (lambda ()
                                (let ((task (current-task)))
-                                 (when (request-keep-alive? request)
+                                 (when (and (allow-long-live-connection?)
+                                            (request-keep-alive? request))
                                    (task-keepalive?-set! task #t)))
                                (handle-request handler request body))
                            (lambda (response body request-status)
@@ -311,12 +315,13 @@
                              (DEBUG "Ragnarok: write client~%")
                              (ragnarok-write proto server client response body
                                              (eq? 'HEAD (request-method request)))
-                             (let ((keepalive? (or (response-keep-alive? response)
-                                                   (task-keepalive? (current-task)))))
+                             (let ((keepalive? (and (allow-long-live-connection?)
+                                                    (or (response-keep-alive? response)
+                                                        (task-keepalive? (current-task))))))
                                (cond
                                 ((or (eq? request-status 'exception)
                                      (not keepalive?))
-                                 (parameterize ((must-close-connection? (not keepalive?)))
+                                 (parameterize ((must-close-connection? #t))
                                    (ragnarok-close proto server client #f)))
                                 (else
                                  (DEBUG "Client ~a keep alive, status: ~a~%"
@@ -447,8 +452,21 @@
                          (lambda ()
                            (apply (make-unstop-exception-handler (exception-from-server)) e))
                        (lambda (r b s)
-                         (ragnarok-write http server client r b #f)
-                         (ragnarok-close http server client #f))))))))
+                         (catch #t
+                           (lambda ()
+                             ;; NOTE: If we come here, then it's out of the task prompt,
+                             ;;       we must hold every kind of exception here to prevent
+                             ;;       the server down. Since it's out of the valid server
+                             ;;       continuation, we have no way to manage exceptions here
+                             ;;       but only ignore them.
+                             (ragnarok-write http server client r b #f)
+                             (ragnarok-close http server client #f))
+                           (lambda e
+                             (DEBUG "An error occured outside of the task prmpt, ")
+                             (DEBUG "we have no choice but ignore it.~%")
+                             ;; NOTE: The error task must be removed here.
+                             (close-current-task! server client)
+                             (close (client-sockport client)))))))))))
              (lambda (k . e)
                (call-with-values
                    (lambda ()
@@ -575,27 +593,6 @@
         (loader handler))))
      (else (error establish-http-gateway
                   "Invalid `server.engine' in artanis.conf" (ragnarok-engine-name engine))))))
-
-;; WARNING: Don't use = here, must use eqv? since it's not always numbers
-(define (io-exception:peer-is-shutdown? e)
-  (and (eq? (car e) 'system-error)
-       (let ((errno (system-error-errno e)))
-         (or (eqv? errno EPIPE) ; broken pipe
-             (eqv? errno EIO) ; write to a closed socket
-             (eqv? errno ECONNRESET))))) ; shutdown by peer
-
-;; WARNING: Don't use = here, must use eqv? since it's not always numbers
-(define (io-exception:out-of-memory? e)
-  (and (eq? (car e) 'system-error)
-       (let ((errno (system-error-errno e)))
-         (or (eqv? errno ENOMEM) ; no memory
-             (eqv? errno ENOBUFS))))) ; no buffer could be allocated
-
-(define (out-of-system-resources? e)
-  (cond
-   ((eqv? e EMFILE)
-    "permit system open more files by `ulimit -n'")
-   (else #f)))
 
 (define (make-io-exception-handler type)
   (lambda e

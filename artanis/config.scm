@@ -60,6 +60,7 @@
     ;;       twice in the client-side, since some requests may be sent from browsers, and
     ;;       they're already encoded.
     ((db encodeparams) #f)
+    ((db lpc) #f) ; enable LPC, this may require Redis
 
     ;; for server namespace
     ((server info) ,artanis-version)
@@ -71,7 +72,7 @@
     ((server wqlen) 64) ; work queue maxlen
     ((server trigger) edge)
     ((server engine) ragnarok)
-    ((server timeout) 60) ; in seconds
+    ((server timeout) 60) ; in seconds, zero for always short live connections.
     ((server polltimeout) 500) ; in miliseconds
     ;; From "HOP, A Fast Server for the Diffuse Web", Serrano.
     ((server bufsize) 12288) ; in Bytes
@@ -191,6 +192,7 @@
     (('poolsize poolsize) (conf-set! '(db poolsize) (->integer poolsize)))
     (('pool pool) (conf-set! '(db pool) (->pool-mode pool)))
     (('encodeparams encodeparams) (conf-set! '(db encodeparams) (->bool encodeparams)))
+    (('lpc lpc) (conf-set! '(db lpc) lpc) (->bool lpc))
     (else (error parse-namespace-db "Config: Invalid item" item))))
 
 (define (parse-namespace-server item)

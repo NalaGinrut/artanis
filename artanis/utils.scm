@@ -93,7 +93,9 @@
             artanis-log exception-from-client exception-from-server render-sys-page
             bv-copy/share bv-backward artanis-list-matches get-syspage
             artanis-sys-response char-predicate handle-upload is-valid-table-name?
-            is-guile-compatible-server-core? positive-integer? negative-integer?)
+            is-guile-compatible-server-core? positive-integer? negative-integer?
+            io-exception:peer-is-shutdown? io-exception:out-of-memory?
+            out-of-system-resources? allow-long-live-connection?)
   #:re-export (the-environment
                utf8->string))
 
@@ -1507,3 +1509,27 @@
 
 (define (negative-integer? x)
   (and (integer? x) (negative? x)))
+
+;; WARNING: Don't use = here, must use eqv? since it's not always numbers
+(define (io-exception:peer-is-shutdown? e)
+  (and (eq? (car e) 'system-error)
+       (let ((errno (system-error-errno e)))
+         (or (eqv? errno EPIPE) ; broken pipe
+             (eqv? errno EIO) ; write to a closed socket
+             (eqv? errno ECONNRESET))))) ; shutdown by peer
+
+;; WARNING: Don't use = here, must use eqv? since it's not always numbers
+(define (io-exception:out-of-memory? e)
+  (and (eq? (car e) 'system-error)
+       (let ((errno (system-error-errno e)))
+         (or (eqv? errno ENOMEM) ; no memory
+             (eqv? errno ENOBUFS))))) ; no buffer could be allocated
+
+(define (out-of-system-resources? e)
+  (cond
+   ((eqv? e EMFILE)
+    "permit system open more files by `ulimit -n'")
+   (else #f)))
+
+(define (allow-long-live-connection?)
+  (> (get-conf '(server timeout)) 0))

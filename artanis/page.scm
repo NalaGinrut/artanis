@@ -59,6 +59,9 @@
 (define (rc-conn-recycle rc body)
   (and=> (rc-conn rc) DB-close))
 
+(define (rc-lpc-recycle rc body)
+  (and=> (rc-lpc rc) lpc-instance-recycle))
+
 (define (run-after-request-hooks rq body)
   (run-hook *after-request-hook* rq body))
 
@@ -70,7 +73,7 @@
 
 (define (init-before-response-hook)
   (run-before-response! rc-conn-recycle)
-  (run-before-response! rc-lpc-close))
+  (run-before-response! rc-lpc-recycle))
 
 (define (init-after-websocket-hook)
   (run-after-websocket-handshake! register-websocket-pipe!))
@@ -214,16 +217,20 @@
              (make-file-sender
               size
               (lambda ()
-                ;; NOTE: In Linux, non-blocking for regular file (not a socket) is
-                ;;       basically unsupported!!! So we have to find a way to make sure
-                ;;       the regular file reading is non-blocking, or the whole Ragnarok
-                ;;       will be blocked.
-                ;; TODO: use splice to make a real non-blocking version.
-                ;; TODO: support trunked length requesting for continously downloading.
-                (sendfile out in size)
-                (force-output out)
-                (DEBUG "File `~a' sent over!" filename)
-                (close in))))))))
+                (catch #t
+                  (lambda ()
+                    ;; NOTE: In Linux, non-blocking for regular file (not a socket) is
+                    ;;       basically unsupported!!! So we have to find a way to make sure
+                    ;;       the regular file reading is non-blocking, or the whole Ragnarok
+                    ;;       will be blocked.
+                    ;; TODO: use splice to make a real non-blocking version.
+                    ;; TODO: support trunked length requesting for continously downloading.
+                    (sendfile out in size)
+                    (force-output out)
+                    ;;(DEBUG "File `~a' sent over!" filename)
+                    (close in))
+                  (lambda _
+                    (close in))))))))))
     (lambda (mtime status body mime)
       (cond
        ((= status 200)
