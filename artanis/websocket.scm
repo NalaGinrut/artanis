@@ -113,7 +113,7 @@
 
 (::define (websocket-write type body server client)
   (:anno: (symbol ANY ragnarok-server ragnarok-client) -> ANY)
-  (DEBUG "Enter websocket-read~%")
+  (DEBUG "Enter websocket-write~%")
   (let* ((redirector (get-the-redirector-of-websocket server client))
          (writer (redirector-writer redirector)) ; writer: record-type -> bytevector
          (frame (new-websocket-frame/client 'text #t (writer body)))
