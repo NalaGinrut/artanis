@@ -239,10 +239,11 @@
 
 (::define (oneshot-mention! c)
   (:anno: (ragnarok-client) -> ANY)
-  (let* ((fd (client-sockport-decriptor c))
-         (epfd (ragnarok-server-epfd (current-server)))
-         (event (make-epoll-event fd (gen-oneshot-event))))
-    (epoll-ctl epfd EPOLL_CTL_MOD fd event)))
+  (when (not (port-closed? (client-sockport c)))
+    (let* ((fd (client-sockport-decriptor c))
+           (epfd (ragnarok-server-epfd (current-server)))
+           (event (make-epoll-event fd (gen-oneshot-event))))
+      (epoll-ctl epfd EPOLL_CTL_MOD fd event))))
 
 ;; for emacs:
 ;; (put '::define 'scheme-indent-function 1)
