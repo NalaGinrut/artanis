@@ -214,6 +214,7 @@
     => (lambda (redirector)
          (let ((type (redirector-type redirector))
                (ip (client-ip client)))
+           (remove-redirector! server client)
            (DEBUG "Closing `~a' client `~a' registered as websocket...~%" type ip)
            ;; NOTE:
            ;; Websocket protocol demands a closing frame when the connection is going to

@@ -53,7 +53,6 @@
       (DEBUG "Removing named-pipe `~a' since client is closed......" name)
       (hash-remove! *websocket-named-pipe* name)
       (hashq-remove! *client-to-named-pipe* client)
-      (remove-redirector! (current-server) client)
       (DEBUG "Done~%"))))
 
 (define (get-named-pipe name)
