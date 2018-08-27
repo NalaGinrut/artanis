@@ -132,18 +132,27 @@
          (catch 'resources-collector
            (lambda ()
              (when (is-task-timeout? t)
+               (format (artanis-current-output)
+                       "Collecting task ~a~%" t)
                (throw 'resources-collector 408 remove-timemout-connections
                       "The request is timeout!")))
            (lambda e
              (call-with-values
                  (lambda ()
-                   (apply (make-unstop-exception-handler (exception-from-server)) e))
+                   (parameterize ((resources-collecting? #t))
+                     (apply (make-unstop-exception-handler (exception-from-server)) e)))
                (lambda (r b s)
-                 (ragnarok-write http server (task-client t) r b #f)
-                 (ragnarok-close http server (task-client t) #f))))))
+                 (catch #t
+                   (lambda ()
+                     (ragnarok-write http server (task-client t) r b #f)
+                     (ragnarok-close http server (task-client t) #f))
+                   (lambda _
+                     ;; ignore any error since there's no resource to handle.
+                     (close-current-task! server (task-client t))
+                     (close (client-sockport (task-client t))))))))))
        wt)))
   ;; TODO: add more collectors
-  (when (> (get-conf '(server timeout)) 0)
+  (when (>= (get-conf '(server timeout)) 0)
     ;; If timeout is 0 then don't check timeout connections
     (remove-timemout-connections)))
 
@@ -159,7 +168,8 @@
 (define (no-available-port-to-allocate? e)
   (and (eq? (car e) 'system-error)
        (let ((errno (system-error-errno e)))
-         (= errno EADDRNOTAVAIL)))) ; no available port for connecting socket
+         (or (eqv? errno EADDRNOTAVAIL) ; no available port for connecting socket
+             (eqv? errno EMFILE))))) ; Too many opened files
 
 ;; NOTE: We will call `accept' if it's listenning socket. Logically, it's
 ;;       impossible to encounter listenning socket again while polling.
@@ -176,13 +186,16 @@
                      ((no-available-port-to-allocate? e)
                       (format (artanis-current-output)
                               "Ragnarok can't accept request. ~a~%"
-                              (strerror EADDRNOTAVAIL))
+                              (strerror (system-error-errno e)))
+                      (format (artanis-current-output)
+                              "Start resource collecting......")
                       (parameterize ((current-proto proto)
                                      (current-server server))
                         ;; When there's no available port for new requests,
                         ;; we call resources-collector to recycle timeout
                         ;; requests.
                         (resources-collector))
+                      (format (artanis-current-output) "done~%")
                       #f)
                      (else
                       (DEBUG "Get ~a new connections.~%" (length ret))
@@ -212,13 +225,13 @@
                ((is-peer-shutdown? e)
                 => (lambda (s)
                      (parameterize ((must-close-connection? #t)
-                                    (half-closed-to-read? (eq? 'half-read s)))
+                                    (half-closed? s))
                        (ragnarok-close
                         proto
                         server
                         (restore-working-client (current-work-table server) (car e))
                         #t)
-                       (if (half-closed-to-read?)
+                       (if (half-closed?)
                            (DEBUG "Half-closed ~a~%" e)
                            (DEBUG "Full-closed ~a~%" e))
                        #f)))
@@ -416,85 +429,98 @@
     (let main-loop((client (get-one-request-from-clients http server)))
       (let ((proto-name (detect-client-protocol client)))
         (DEBUG "Enter main-loop, protocol is ~a~%" proto-name)
-        (call-with-sigint
-         ;; handle C-c to break the server loop properly
-         (lambda ()
-           (DEBUG "Prepare to serve one request ~a~%" (client-sockport client))
-           (catch 'uri-error
-             ;; NOTE: We make it very strict according to RFC 3986.
-             ;;       For example:
-             ;;       =======================3.3 Path============================
-             ;;       If a URI does not contain an authority component,
-             ;;       then the path cannot begin with two slash characters ("//").
-             ;;       ===========================================================
-             ;;       It means we will not accept the URL like:
-             ;;       http://localhost:3000//hello
-             ;;       And GNU Artanis will reply a warning page to tell
-             ;;       the client what's wrong with the URL.
-             ;;       Most mainstream server just try to make the client
-             ;;       happier even if the URL is wrong. I don't think
-             ;;       it's a good way to go. Make it strict to avoid
-             ;;       potential security risk is better.
+        (catch #t
+          (lambda ()
+            (call-with-sigint
+             ;; handle C-c to break the server loop properly
              (lambda ()
-               (catch 'artanis-err
+               (DEBUG "Prepare to serve one request ~a~%" (client-sockport client))
+               (catch 'uri-error
+                 ;; NOTE: We make it very strict according to RFC 3986.
+                 ;;       For example:
+                 ;;       =======================3.3 Path============================
+                 ;;       If a URI does not contain an authority component,
+                 ;;       then the path cannot begin with two slash characters ("//").
+                 ;;       ===========================================================
+                 ;;       It means we will not accept the URL like:
+                 ;;       http://localhost:3000//hello
+                 ;;       And GNU Artanis will reply a warning page to tell
+                 ;;       the client what's wrong with the URL.
+                 ;;       Most mainstream server just try to make the client
+                 ;;       happier even if the URL is wrong. I don't think
+                 ;;       it's a good way to go. Make it strict to avoid
+                 ;;       potential security risk is better.
                  (lambda ()
-                   ;;(print-work-table server)
-                   (serve-one-request handler http server client))
-                 (lambda e
-                   (cond
-                    ((eqv? ETIMEDOUT (system-error-errno e))
-                     ;; NOTE: eqv? is necessary since system-error-errno on a
-                     ;;       non-system-erro will be non-integer, so don't use
-                     ;;       = to check.
-                     (main-loop (get-one-request-from-clients http server)))
-                    (else
-                     (call-with-values
-                         (lambda ()
-                           (apply (make-unstop-exception-handler (exception-from-server)) e))
-                       (lambda (r b s)
-                         (catch #t
-                           (lambda ()
-                             ;; NOTE: If we come here, then it's out of the task prompt,
-                             ;;       we must hold every kind of exception here to prevent
-                             ;;       the server down. Since it's out of the valid server
-                             ;;       continuation, we have no way to manage exceptions here
-                             ;;       but only ignore them.
-                             (ragnarok-write http server client r b #f)
-                             (ragnarok-close http server client #f))
-                           (lambda e
-                             (DEBUG "An error occured outside of the task prmpt, ")
-                             (DEBUG "we have no choice but ignore it.~%")
-                             ;; NOTE: The error task must be removed here.
-                             (close-current-task! server client)
-                             (close (client-sockport client)))))))))))
-             (lambda (k . e)
-               (call-with-values
-                   (lambda ()
-                     (let* ((reason (apply format #f e))
-                            (warn-page (get-syspage "warn-the-client.tpl"))
-                            (reason-page (string->bytevector
-                                          (tpl->html warn-page (the-environment))
-                                          (get-conf '(server charset))))
-                            (response (artanis-sys-response
-                                       400 (client-sockport client) reason-page)))
-                       (values response reason-page #f)))
-                 (lambda (r b s)
-                   (cond
-                    ((eqv? (cadr e) 408)
-                     (format (artanis-current-output)
-                             "Client `~a(~a)` was timeout, closed by server!"
-                             (client-sockport client) (client-ip client))
-                     (ragnarok-close http server client #f))
-                    (else
-                     (ragnarok-write http server client r b #f)
-                     (ragnarok-close http server client #f)))))))
-           (DEBUG "Serve one done~%"))
-         (lambda ()
-           ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
-           ;; NOTE: The parameters will be lost when exception raised here, so we can't
-           ;;       use any of current-task/server/client/proto in the exception handler
-           (DEBUG "Prepare to close connection ~a~%" (client-ip client))
-           (ragnarok-close http server client #f)))
+                   (catch 'artanis-err
+                     (lambda ()
+                       ;;(print-work-table server)
+                       (serve-one-request handler http server client))
+                     (lambda e
+                       (cond
+                        ((eqv? ETIMEDOUT (system-error-errno e))
+                         ;; NOTE: eqv? is necessary since system-error-errno on a
+                         ;;       non-system-erro will be non-integer, so don't use
+                         ;;       = to check.
+                         (main-loop (get-one-request-from-clients http server)))
+                        (else
+                         (call-with-values
+                             (lambda ()
+                               (apply (make-unstop-exception-handler (exception-from-server)) e))
+                           (lambda (r b s)
+                             (catch #t
+                               (lambda ()
+                                 ;; NOTE: If we come here, then it's out of the task prompt,
+                                 ;;       we must hold every kind of exception here to prevent
+                                 ;;       the server down. Since it's out of the valid server
+                                 ;;       continuation, we have no way to manage exceptions here
+                                 ;;       but only ignore them.
+                                 (parameterize ((out-of-task-prompt? #t))
+                                   (ragnarok-write http server client r b #f)
+                                   (ragnarok-close http server client #f)))
+                               (lambda e
+                                 (DEBUG "An error occured outside of the task prmpt, ")
+                                 (DEBUG "we have no choice but ignore it.~%")
+                                 ;; NOTE: The error task must be removed here.
+                                 (close-current-task! server client)
+                                 (close (client-sockport client)))))))))))
+                 (lambda (k . e)
+                   (call-with-values
+                       (lambda ()
+                         (let* ((reason (apply format #f e))
+                                (warn-page (get-syspage "warn-the-client.tpl"))
+                                (reason-page (string->bytevector
+                                              (tpl->html warn-page (the-environment))
+                                              (get-conf '(server charset))))
+                                (response (artanis-sys-response
+                                           400 (client-sockport client) reason-page)))
+                           (values response reason-page #f)))
+                     (lambda (r b s)
+                       (cond
+                        ((eqv? (cadr e) 408)
+                         (format (artanis-current-output)
+                                 "Client `~a(~a)` was timeout, closed by server!"
+                                 (client-sockport client) (client-ip client))
+                         (ragnarok-close http server client #f))
+                        (else
+                         (ragnarok-write http server client r b #f)
+                         (ragnarok-close http server client #f)))))))
+               (DEBUG "Serve one done~%"))
+             (lambda ()
+               ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
+               ;; NOTE: The parameters will be lost when exception raised here, so we can't
+               ;;       use any of current-task/server/client/proto in the exception handler
+               (DEBUG "Prepare to close connection ~a~%" (client-ip client))
+               (ragnarok-close http server client #f))))
+          (lambda e
+            (cond
+             ((out-of-system-resources? e)
+              (parameterize ((current-server server))
+                (close-current-task! server client)
+                (close (client-sockport client))
+                (resources-collector)))
+             (else
+              (format (artanis-current-output)
+                      "Error: ~a~%" (strerror (system-error-errno e)))))))
         (DEBUG "main-loop again~%")
         (main-loop (get-one-request-from-clients http server))))))
 
@@ -624,6 +650,7 @@
            (let ((shout (format #f
                                 "Out of system resources, maybe you should ~a!" reason)))
              (display (WARN-TEXT shout) (artanis-current-output))
+             (resources-collector)
              (break-task))))
      (else
       (DEBUG "Not an I/O exception, throw it to upper level~%")

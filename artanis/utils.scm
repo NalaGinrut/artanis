@@ -1369,7 +1369,9 @@
                           #:headers `((server . ,(get-conf '(server info)))
                                       (last-modified . ,mtime)
                                       (content-type . (text/html (charset . ,charset))))))
-         (body (syspage-show filename)))
+         (body (if (resources-collecting?)
+                   #vu8(0) ; Don't open any file since we don't have resources now.
+                   (syspage-show filename))))
     (if guile-compt-serv?
         (values response body)
         (values response body 'exception))))
@@ -1523,13 +1525,12 @@
   (and (eq? (car e) 'system-error)
        (let ((errno (system-error-errno e)))
          (or (eqv? errno ENOMEM) ; no memory
-             (eqv? errno ENOBUFS))))) ; no buffer could be allocated
+             (eqv? errno ENOBUFS)))))  ; no buffer could be allocated
 
 (define (out-of-system-resources? e)
-  (cond
-   ((eqv? e EMFILE)
-    "permit system open more files by `ulimit -n'")
-   (else #f)))
+  (and (eq? (car e) 'system-error)
+       (let ((errno (system-error-errno e)))
+         (eqv? errno EMFILE)))) ; no more file could be opened
 
 (define (allow-long-live-connection?)
   (> (get-conf '(server timeout)) 0))

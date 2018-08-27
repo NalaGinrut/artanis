@@ -52,7 +52,7 @@
             protocol-add!
             lookup-protocol
             must-close-connection?
-            half-closed-to-read?
+            half-closed?
             %os-kernel
             %os-distro
             %kernel-version
@@ -61,7 +61,9 @@
             linux-version>=?
             is-init-server-run?
             current-encoder
-            *lpc-instance-pool*))
+            *lpc-instance-pool*
+            out-of-task-prompt?
+            resources-collecting?))
 
 ;; WARNING:
 ;; For concurrency in green-thread, all these stuffs should be immutable
@@ -149,7 +151,7 @@
 
 (define must-close-connection? (make-parameter #f))
 
-(define half-closed-to-read? (make-parameter #f))
+(define half-closed? (make-parameter #f))
 
 (define (%os-kernel)
   (vector-ref (uname) 0))
@@ -207,3 +209,7 @@
 (define current-encoder (make-parameter identity))
 
 (define *lpc-instance-pool* #f)
+
+(define out-of-task-prompt? (make-parameter #f))
+
+(define resources-collecting? (make-parameter #f))

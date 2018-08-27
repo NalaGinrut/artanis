@@ -76,7 +76,8 @@
   ;; ((@@ (artanis server ragnarok) print-work-table) server)
   ;; clean from work-table
   (close-current-task! server client peer-shutdown?)
-  (when (must-close-connection?) (close (client-sockport client))))
+  (when (must-close-connection?) (close (client-sockport client)))
+  )
 
 ;; NOTE: HTTP service is established by default, so it's unecessary to do any
 ;;       openning work.
@@ -185,18 +186,18 @@
         (write-response-body res body)
         (force-output port))
        ((file-sender? body)
-        (let ((fut (make-future (file-sender-thunk body))))
-          (let lp ()
-            (cond
-             ((eq? 'done ((@@ (ice-9 futures) future-state) fut))
-              (parameterize ((must-close-connection? #t))
+        (parameterize ((must-close-connection? #t))
+          (let ((fut (make-future (file-sender-thunk body))))
+            (let lp ()
+              (cond
+               ((eq? 'done ((@@ (ice-9 futures) future-state) fut))
                 (touch fut)
                 (%%raw-close-connection server client #f)
-                (simply-quit)))
-             (else
-              (oneshot-mention! client)
-              (break-task)
-              (lp))))))
+                (simply-quit))
+               (else
+                (oneshot-mention! client)
+                (break-task)
+                (lp)))))))
        (else
         (throw 'artanis-err 500 http-write
                "Expected a bytevector for body" body)))))))
@@ -220,12 +221,15 @@
            ;; clean websocket before actual shutdown
            (remove-named-pipe-if-the-connection-is-websocket! client)
            (cond
-            ((half-closed-to-read?)
+            ((eq? 'half-write (half-closed?))
              ;; NOTE: We have to give it one more chance to finish the reading.
              ;;       So we can't actually close it here.
-             (DEBUG "Half-closed websocket ~a from ~a~%"
+             (DEBUG "Half-write websocket ~a from ~a~%"
                     (client-sockport client) (client-ip client))
              (closing-websocket-handshake server client peer-shutdown?))
+            ((eq? 'half-read (half-closed?))
+             (DEBUG "Half-read websocket ~a from ~a~%"
+                    (client-sockport client) (client-ip client)))
             (else
              ;; full-closed
              (DEBUG "Full-closed websocket ~a from ~a~%"
@@ -236,7 +240,7 @@
     ;; NOTE: Don't use simply-quit here, since there's no valid installed prompt
     ;;       to be aborted from now on.
     (cond
-     ((half-closed-to-read?)
+     ((half-closed?)
       (DEBUG "Half-closed connection ~a from ~a~%"
              (client-sockport client) (client-ip client)))
      (else
