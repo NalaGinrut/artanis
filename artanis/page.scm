@@ -229,8 +229,9 @@
                     (force-output out)
                     ;;(DEBUG "File `~a' sent over!" filename)
                     (close in))
-                  (lambda _
-                    (close in))))))))))
+                  (lambda e
+                    (close in)
+                    (apply throw e))))))))))
     (lambda (mtime status body mime)
       (cond
        ((= status 200)
