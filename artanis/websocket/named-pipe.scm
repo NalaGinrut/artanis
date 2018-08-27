@@ -107,6 +107,7 @@
                          (write-websocket-frame/client (client-sockport client) frame))))
           (oneshot-mention! client))))
      (else
+      (remove-named-pipe-if-the-connection-is-websocket! client)
       (throw 'artanis-err 400 send-to-websocket-named-pipe
              "Invalid pipe name `~a' or it's closed by client!" name)))))
 
