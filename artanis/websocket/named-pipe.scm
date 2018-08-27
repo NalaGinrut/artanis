@@ -107,7 +107,6 @@
                          (write-websocket-frame/client (client-sockport client) frame))))
           (oneshot-mention! client))))
      (else
-      (remove-named-pipe-if-the-connection-is-websocket! client)
       (throw 'artanis-err 400 send-to-websocket-named-pipe
              "Invalid pipe name `~a' or it's closed by client!" name)))))
 
@@ -117,12 +116,15 @@
     (let lp ()
       (cond
        ((not task-queue)
-        (DEBUG "Named-pipe `~a' was closed, we drop this connection!" name))
+        (throw 'artanis-err 400 named-pipe-subscribe
+               "Named-pipe `~a' was closed, we drop this connection!" name))
        ((queue-empty? task-queue)
-        (DEBUG "Named-pipe: task queue is empty, we scheduled!~%"))
+        (DEBUG "Named-pipe: task queue is empty, we scheduled!~%")
+        (break-task)
+        (lp))
        (else
         (let ((t (queue-out! task-queue)))
           (DEBUG "Named-pipe: run a task ~a" t)
-          (t))))
-      (break-task)
-      (lp))))
+          (t)
+          (break-task)
+          (lp)))))))
