@@ -36,6 +36,7 @@
   #:use-module (artanis server server-context)
   #:use-module (artanis server scheduler)
   #:use-module (artanis server aio)
+  #:use-module (artanis websocket named-pipe)
   #:use-module ((srfi srfi-1) #:select (fold))
   #:use-module (system repl error-handling)
   #:use-module (srfi srfi-9)
@@ -148,6 +149,7 @@
                      (ragnarok-close http server (task-client t) #f))
                    (lambda _
                      ;; ignore any error since there's no resource to handle.
+                     (remove-named-pipe-if-the-connection-is-websocket! (task-client t))
                      (close-current-task! server (task-client t))
                      (close (client-sockport (task-client t))))))))))
        wt)))
@@ -481,6 +483,7 @@
                                  (DEBUG "An error occured outside of the task prmpt, ")
                                  (DEBUG "we have no choice but ignore it.~%")
                                  ;; NOTE: The error task must be removed here.
+                                 (remove-named-pipe-if-the-connection-is-websocket! client)
                                  (close-current-task! server client)
                                  (close (client-sockport client)))))))))))
                  (lambda (k . e)
@@ -512,15 +515,18 @@
                (DEBUG "Prepare to close connection ~a~%" (client-ip client))
                (ragnarok-close http server client #f))))
           (lambda e
+            (format (artanis-current-output)
+                    "Error: ~a~%" (strerror (system-error-errno e)))
             (cond
              ((out-of-system-resources? e)
               (parameterize ((current-server server))
+                (remove-named-pipe-if-the-connection-is-websocket! client)
                 (close-current-task! server client)
                 (close (client-sockport client))
                 (resources-collector)))
              (else
               (format (artanis-current-output)
-                      "Error: ~a~%" (strerror (system-error-errno e)))))))
+                      "Ingore it to avoid Ragnarok crash.~%")))))
         (DEBUG "main-loop again~%")
         (main-loop (get-one-request-from-clients http server))))))
 
