@@ -226,7 +226,7 @@
   (let ((start-time (task-touch-time task))
         (timeout (task-timeout task)))
     (if (zero? timeout)
-        #f ; timeout = 0 means disable connection timeout
+        #t ; timeout = 0 means disable long live connection
         (>= (- (current-time) start-time) timeout))))
 
 (define (update-task-time! task)
