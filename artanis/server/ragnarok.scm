@@ -125,9 +125,9 @@
 
 (define (resources-collector)
   (define (remove-timemout-connections)
-    (let ((wt (work-table-content (current-work-table (current-server))))
-          (http (current-proto))
-          (server (current-server)))
+    (let* ((server (current-server))
+           (wt (work-table-content (current-work-table server)))
+           (http (current-proto)))
       (hash-for-each
        (lambda (_ t)
          (catch 'resources-collector
@@ -408,6 +408,15 @@
       ;; with one epoll query.
       ;;(DEBUG "ready queue is empty~%")
       (fill-ready-queue-from-service proto server)
+      (when (null? rq)
+        (format (artanis-current-output)
+                "Start resource collecting......")
+        (parameterize ((current-proto proto)
+                       (current-server server))
+          ;; When there's no any request, the resources-collector will be triggered.
+          ;; This is necessary, since the timeouted connections can get 408 timely.
+          (resources-collector))
+        (format (artanis-current-output) "done~%"))
       ;;(DEBUG "fill ready queue from service~%")
       (get-one-request-from-clients proto server))
      (else

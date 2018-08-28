@@ -86,6 +86,7 @@
       ;; NOTE: We have to do handshake here, since we have no chance to know
       ;;       if it's not registered in http-read without twice detection.
       (DEBUG "Register `~a' to use websocket for rule `~a'~%" (client-ip client) url)
+      (task-timeout-set! (current-task) (get-conf '(websocket timeout)))
       (do-websocket-handshake req server client)
       #t)
      (else #f))))

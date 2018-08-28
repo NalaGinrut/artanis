@@ -76,8 +76,8 @@
   ;; ((@@ (artanis server ragnarok) print-work-table) server)
   ;; clean from work-table
   (close-current-task! server client peer-shutdown?)
-  (when (must-close-connection?) (close (client-sockport client)))
-  )
+  ;; FIXEME: We may not need this line to close.
+  (when (must-close-connection?) (close (client-sockport client))))
 
 ;; NOTE: HTTP service is established by default, so it's unecessary to do any
 ;;       openning work.

@@ -76,7 +76,7 @@
             make-task
             task?
             task-client
-            task-timeout
+            task-timeout task-timeout-set!
             task-touch-time task-touch-time-set!
             task-keepalive? task-keepalive?-set!
             task-kont task-kont-set!
@@ -191,13 +191,13 @@
 
 (::define (get-the-redirector-of-websocket server client)
   (:anno: (ragnarok-server ragnarok-client) -> redirector)
-  (hashv-ref
+  (hashq-ref
    (ragnarok-server-services server)
-   (client-sockport-decriptor client)))
+   (client-sockport client)))
 
 (define (register-redirector! server client reader writer type port)
-  (hashv-set! (ragnarok-server-services server)
-              (client-sockport-decriptor client)
+  (hashq-set! (ragnarok-server-services server)
+              (client-sockport client)
               (make-redirector
                reader
                writer
@@ -207,8 +207,8 @@
                (make-mutex))))
 
 (define (remove-redirector! server client)
-  (hashv-remove! (ragnarok-server-services server)
-                 (client-sockport-decriptor client)))
+  (hashq-remove! (ragnarok-server-services server)
+                 (client-sockport client)))
 
 (define (is-proxy? redirector)
   (eq? (redirector-type redirector) 'proxy))
@@ -217,7 +217,7 @@
   (fields
    client ; connecting client: <port, opt>
    (mutable touch-time) ; refresh when the connection is handled each time
-   timeout ; timeout of task
+   (mutable timeout) ; timeout of task
    (mutable keepalive?) ; if keep it alive
    (mutable kont) ; delimited continuation
    (mutable prio))) ; priority
@@ -226,7 +226,7 @@
   (let ((start-time (task-touch-time task))
         (timeout (task-timeout task)))
     (if (zero? timeout)
-        #t ; timeout = 0 means disable long live connection
+        #f ; timeout = 0 means disable long live connection, then no timeout at all.
         (>= (- (current-time) start-time) timeout))))
 
 (define (update-task-time! task)
@@ -289,8 +289,7 @@
   (:anno: (work-table ragnarok-client boolean) -> ANY)
   (DEBUG "Removed task ~a~%" (client-sockport client))
   (hashv-remove! (work-table-content wt) (client-sockport-decriptor client))
-  (when (not peer-shutdown?)
-    (close (client-sockport client))))
+  (close (client-sockport client)))
 
 (::define (add-a-task-to-work-table! wt client task)
   (:anno: (work-table ragnarok-client task) -> ANY)
