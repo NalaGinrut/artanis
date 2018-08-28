@@ -35,19 +35,33 @@
   (:anno: (bv) -> bv)
   bv)
 
+(::define (websocket-pipe-read frame)
+  (:anno: (websocket-frame) -> bv)
+  (throw 'artanis-err 500 websocket-pipe-read))
+
+(::define (websocket-pipe-write bv)
+  (:anno: (bv) -> bv)
+  bv)
+
+(::define (websocket-pipe-read bv)
+  (:anno: (bv) -> bv)
+  (throw 'artanis-err 500 websocket-pipe-read
+         "The named-pipe is single way and shouldn't be read"))
+
 (define *websocket-redirector-constructors*
-  `((echo ,websocket-echo-read ,websocket-echo-write)))
+  `((echo ,websocket-echo-read ,websocket-echo-write)
+    (named-pipe ,websocket-pipe-read ,websocket-pipe-write)))
 
 (::define (register-websocket-protocol! server client proto-name remote-port)
   (:anno: (ragnarok-server ragnarok-client symbol) -> redirector)
   (let* ((info (assq-ref *websocket-redirector-constructors* proto-name))
          (reader (car info))
          (writer (cadr info)))
-   (register-redirector!
-    server
-    client
-    reader
-    writer
-    proto-name
-    ;; NOTE: For non-proxy, the remote-port is always #f
-    (if (eq? proto-name 'proxy) remote-port #f))))
+    (register-redirector!
+     server
+     client
+     reader
+     writer
+     proto-name
+     ;; NOTE: For non-proxy, the remote-port is always #f
+     (if (eq? proto-name 'proxy) remote-port #f))))
