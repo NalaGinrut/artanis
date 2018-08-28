@@ -83,12 +83,14 @@
     ((server multi) #t)
     ((server websocket) #t)
     ((server pub) "pub") ; the public directory
+    ((server sendfile) #f)
 
     ;; for WebSocket
     ((websocket maxpayload) ,(1- (ash 1 64))) ; in bytes (only for fragment)
     ((websocket minpayload) 1) ; enlarge it to avoid slow 1-byte attack (only for fragment)
     ((websocket fragment) 4096) ; the fragment size in bytes
     ((websocket maxsize) ,(ash 1 10)) ; in bytes, the upload size from websocket
+    ((websocket timeout) 64) ; timeout in websocket connnection, in seconds
 
     ;; for host namespace
     ((host name) #f)
@@ -212,6 +214,7 @@
     (('engine engine) (conf-set! '(server engine) (->symbol engine)))
     (('websocket websocket) (conf-set! '(server websocket) (->bool websocket)))
     (('pub pub) (conf-set! '(server pub) (basename pub)))
+    (('sendfile v) (conf-set! '(server sendfile) (->bool v)))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 
 (define (parse-namespace-websocket item)
@@ -220,6 +223,7 @@
     (('minpayload minpayload) (conf-set! '(websocket minpayload) (->ws-payload minpayload)))
     (('fragment fragment) (conf-set! '(websocket fragment) (->ws-payload fragment)))
     (('maxsize maxsize) (conf-set! '(websocket maxsize) (->integer maxsize)))
+    (('timeout timeout) (conf-set! '(websocket timeout) (->integer timeout)))
     (else (error parse-namespace-websocket "Config: Invalid item" item))))
 
 (define (parse-namespace-host item)
