@@ -202,7 +202,8 @@
   (call-with-values
       (lambda ()
         (cond
-         ((is-guile-compatible-server-core? (get-conf '(server engine)))
+         ((or (not (get-conf '(server sendfile)))
+              (is-guile-compatible-server-core? (get-conf '(server engine))))
           (generate-response-with-file
            filename
            ;; FIXME: For now, guile compatable server-core doesn't provide good method to
