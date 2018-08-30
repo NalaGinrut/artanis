@@ -209,21 +209,23 @@
   (hash-map->list (lambda (k v) k) ht))
 
 ;; WARN: besure that you've already checked the file exists before!!!
-(define* (cat file/port #:optional (out (current-output-port)))
+(define* (cat filename #:optional (out (current-output-port)))
   (define get-string-all (@ (rnrs io ports) get-string-all))
-  (let ((str (if (port? file/port)
-                 (get-string-all file/port)
-                 (call-with-input-file file/port get-string-all))))
+  (let ((str (if (port? filename)
+                 (throw 'artanis-err 500 cat
+                        "BUG: Shouldn't be port here (~a)!" filename)
+                 (call-with-input-file filename get-string-all))))
     (if out
         (display str out)
         str)))
 
 ;; WARN: besure that you've already checked the file existtance before!!!
-(define* (bv-cat file/port #:optional (out (current-output-port)))
+(define* (bv-cat filename #:optional (out (current-output-port)))
   (define get-bytevector-all (@ (rnrs io ports) get-bytevector-all))
-  (let ((bv (if (port? file/port)
-                (get-bytevector-all file/port)
-                (call-with-input-file file/port get-bytevector-all))))
+  (let ((bv (if (port? filename)
+                (throw 'artanis-err 500 bv-cat
+                       "BUG: Shouldn't be port here (~a)!" filename)
+                (call-with-input-file filename get-bytevector-all))))
     (if out
         (display bv out)
         bv)))
