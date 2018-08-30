@@ -29,7 +29,12 @@
   #:export (register-websocket-pipe!
             send-to-websocket-named-pipe
             named-pipe-subscribe
-            remove-named-pipe-if-the-connection-is-websocket!))
+            remove-named-pipe-if-the-connection-is-websocket!
+            detect-pipe-name
+            get-named-pipe
+            new-named-pipe
+            named-pipe-client named-pipe-client-set!
+            named-pipe-task-queue-set!))
 
 ;; NOTE: named-pipe and client is 1:1 relation, we also make a table
 ;;       for getting name from client. It's worth since every client can
@@ -39,10 +44,13 @@
 (define *websocket-named-pipe* (make-hash-table))
 
 (define-record-type named-pipe
-  (fields name client task-queue))
+  (fields
+   name
+   (mutable client)
+   task-queue))
 
-(define (new-named-pipe name client)
-  (make-named-pipe name client (new-queue)))
+(define* (new-named-pipe name client #:optional (task-queue (new-queue)))
+  (make-named-pipe name client task-queue))
 
 (define (client->pipe-name client)
   (hashq-ref *client-to-named-pipe* client))
@@ -72,14 +80,12 @@
     (and m
          (irregex-match-substring m 1))))
 
-(define (register-websocket-pipe! req client)
-  (let ((name (detect-pipe-name req)))
-    (cond
-     (name
-      (hash-set! *websocket-named-pipe* name (new-named-pipe name client))
-      (hash-set! *client-to-named-pipe* client name))
-     (else
-      (DEBUG "The websocket is not an artanis-named-pipe, don't register it!~%")))))
+(::define (register-websocket-pipe! named-pipe)
+  (:anno: (named-pipe) -> ANY)
+  (hash-set! *websocket-named-pipe* (named-pipe-name named-pipe) named-pipe)
+  (hash-set! *client-to-named-pipe*
+             (named-pipe-client named-pipe)
+             (named-pipe-name named-pipe)))
 
 (define (send-to-websocket-named-pipe name data)
   (let ((client (get-pipe-client name))

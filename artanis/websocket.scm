@@ -61,7 +61,12 @@
                ;; from (artanis websocket named-pipe)
                register-websocket-pipe!
                send-to-websocket-named-pipe
-               named-pipe-subscribe))
+               named-pipe-subscribe
+               detect-pipe-name
+               get-named-pipe
+               new-named-pipe
+               named-pipe-client named-pipe-client-set!
+               named-pipe-task-queue-set!))
 
 ;; If the URL hit and haven't registered, then register it.
 ;; NOTE: The hook requires (req body) two parameters, so we can't pass server/client

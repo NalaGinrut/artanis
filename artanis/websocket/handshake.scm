@@ -148,7 +148,6 @@
 ;;       waiting for the closing-frame from the client, then close the connection.
 ;; TODO: Finish all other exceptions which need close operation.
 (define (closing-websocket-handshake server client peer-shutdown?)
-  (remove-redirector! server client)
   (cond
    (peer-shutdown?
     (format (artanis-current-output)

@@ -29,6 +29,7 @@
   #:use-module (artanis route)
   #:use-module (artanis websocket)
   #:use-module (artanis server http)
+  #:use-module (artanis server server-context)
   #:use-module (srfi srfi-19)
   #:use-module (web uri)
   #:use-module (web http)
@@ -62,6 +63,24 @@
 (define (rc-lpc-recycle rc body)
   (and=> (rc-lpc rc) lpc-instance-recycle))
 
+(define (try-to-register-websocket-pipe! req new-client)
+  (let ((name (detect-pipe-name req)))
+    (cond
+     ((get-named-pipe name)
+      => (lambda (named-pipe)
+           (let ((old-client (named-pipe-client named-pipe))
+                 (server (current-server)))
+             ;; NOTE: If the same name was specified, we close the old one then register the
+             ;;       new one. This is because some clients/browswers have bugs to not close
+             ;;       connection when refresh the page/webapi, so we close it positively to
+             ;;       avoid further problem.
+             ;; FIXME: We should detect secure token here first.
+             (%%raw-close-connection server old-client #t)
+             (closing-websocket-handshake server old-client #t)
+             (named-pipe-client-set! named-pipe new-client)
+             (register-websocket-pipe! named-pipe))))
+     (else (register-websocket-pipe! (new-named-pipe name new-client))))))
+
 (define (run-after-request-hooks rq body)
   (run-hook *after-request-hook* rq body))
 
@@ -76,7 +95,7 @@
   (run-before-response! rc-lpc-recycle))
 
 (define (init-after-websocket-hook)
-  (run-after-websocket-handshake! register-websocket-pipe!))
+  (run-after-websocket-handshake! try-to-register-websocket-pipe!))
 
 (define (init-startup-hook)
   #t)

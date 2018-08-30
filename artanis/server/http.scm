@@ -33,7 +33,8 @@
                                  bytevector-length make-bytevector))
   #:use-module (ice-9 format)
   #:use-module (ice-9 futures)
-  #:export (new-http-protocol))
+  #:export (new-http-protocol
+            %%raw-close-connection))
 
 (define (clean-current-conn-fd server client peer-shutdown?)
   (let ((conn (client-sockport client))
