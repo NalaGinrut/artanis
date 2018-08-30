@@ -7,8 +7,6 @@
 
 * Support kqueue
 
-* Use sendfile on static files, this may need new server-core.
-
 * In MySQL, delete huge data in product environment will cause halt. There're two ways:
   1. limit 1000 and loop
   2. use store procedure
