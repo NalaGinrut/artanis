@@ -72,7 +72,7 @@
            (let ((old-client (named-pipe-client named-pipe))
                  (server (current-server)))
              (DEBUG "Replace existing websocket ~a with ~a in named-pipe ~a~%"
-                    old-client new-client name)
+                    (client-sockport old-client) (client-sockport new-client) name)
              ;; NOTE: If the same name was specified, we close the old one then register the
              ;;       new one. This is because some clients/browswers have bugs to not close
              ;;       connection when refresh the page/webapi, so we close it positively to
