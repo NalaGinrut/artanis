@@ -303,14 +303,7 @@
 
 (::define (restore-working-client wt fd)
   (:anno: (work-table int) -> ragnarok-client)
-  (let ((task (hashv-ref (work-table-content wt) fd)))
-    (cond
-     (task
-      ;; NOTE: Don't remove the task here, we will remove it later
-      (task-client task))
-     (else
-      (throw 'artanis-err 500 restore-working-client
-             "BUG: No such client ~a%" fd)))))
+  (hashv-ref (work-table-content wt) fd))
 
 ;; This is a table to record client and proto pairs (CP pairs), client is the
 ;; key while protocol name is the value.
