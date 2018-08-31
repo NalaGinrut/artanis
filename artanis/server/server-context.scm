@@ -1,3 +1,127 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  Copyright (C) 2016,2017,2018
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License and GNU
+;;  Lesser General Public License published by the Free Software
+;;  Foundation, either version 3 of the License, or (at your option)
+;;  any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License and GNU Lesser General Public License
+;;  for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  and GNU Lesser General Public License along with this program.
+;;  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (artanis server server-context)
+  #:use-module (artanis utils)
+  #:use-module (artanis env)
+  #:use-module (artanis server epoll)
+  #:use-module (ice-9 threads)
+  #:use-module ((rnrs) #:select (define-record-type))
+  #:export (make-ragnarok-engine
+            ragnarok-engine?
+            ragnarok-engine-name
+            ragnarok-engine-breaker
+            ragnarok-engine-runner
+            ragnarok-engine-collector
+            ragnarok-engine-loader
+
+            make-ragnarok-server
+            ragnarok-server?
+            ragnarok-server-epfd
+            ragnarok-server-listen-socket
+            ragnarok-server-work-table ; get work-table
+            ragnarok-server-ready-queue
+            ragnarok-server-event-set
+            ragnarok-server-services
+            current-work-table ; get work-table from specified server
+
+            new-ready-queue
+            ready-queue?
+            ready-queue-empty?
+            ready-queue-in!
+            ready-queue-out!
+
+            make-work-table
+            work-table?
+            work-table-content
+            work-table-mutex
+
+            make-ragnarok-protocol
+            ragnarok-protocol?
+            ragnarok-protocol-name
+            ragnarok-protocol-open
+            ragnarok-protocol-read
+            ragnarok-protocol-write
+            ragnarok-protocol-close
+
+            make-redirector
+            redirector?
+            redirector-reader
+            redirector-writer
+            redirector-type
+            redirector-remote-port
+            redirector-count
+            redirector-mutex
+            register-redirector!
+            remove-redirector!
+            get-the-redirector-of-websocket
+            is-proxy?
+
+            make-task
+            task?
+            task-client
+            task-timeout task-timeout-set!
+            task-touch-time task-touch-time-set!
+            task-keepalive? task-keepalive?-set!
+            task-kont task-kont-set!
+            task-prio task-prio-set!
+            is-task-timeout?
+            update-task-time!
+
+            new-ragnarok-client
+            ragnarok-client?
+            oneshot-mention!
+            client-sockport
+            client-sockport-descriptor
+            client-connecting-port
+            client-ip
+            address->ip
+
+            remove-from-work-table!
+            add-a-task-to-work-table!
+            get-task-from-work-table
+            restore-working-client
+
+            specified-proto?
+            register-proto!
+
+            current-task
+            current-proto
+            current-server
+            current-client))
+
+(define-record-type ragnarok-engine
+  (fields
+   name
+   breaker
+   runner
+   collector
+   loader))
+
+(define-record-type ragnarok-server
+  (fields
+   epfd
+   listen-socket
+   work-table  ; a table contains continuations
+   ready-queue ; a queue contains connect socket
+   event-set
+   services))  ; a table to hold all redirectors (int -> redirector)
 
 (define-box-type ready-queue)
 
