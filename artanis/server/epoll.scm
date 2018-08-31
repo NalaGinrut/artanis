@@ -196,7 +196,7 @@
                       (dynamic-func "epoll_ctl" (dynamic-link))
                       (list int int int '*) #:return-errno? #t))
 
-(define* (epoll-ctl epfd op fd event #:key (keep-alive? #f))
+(define* (epoll-ctl epfd op fd event #:key (check-exists? #f))
   (call-with-values
       (lambda ()
         (%epoll-ctl epfd op fd (if event
@@ -205,14 +205,19 @@
     (lambda (ret errno)
       (cond
        ((zero? ret) ret)
-       ((and (= ret EEXIST) keep-alive?)
+       (check-exists?
         (DEBUG "The event ~a exist and kept alive~%" fd)
-        0)
+        (= ret EEXIST))
        (else
         (throw 'artanis-err 500 epoll-ctl "~a: ~a"
                (list epfd op fd event (strerror errno))
                (list errno)))))))
 (export epoll-ctl)
+
+(define-public (exists-in-epoll? epfd fd)
+  (let ((ret (epoll-ctl epfd EPOLL_CTL_ADD fd #f #:check-exists? #t)))
+    (epoll-ctl epfd EPOLL_CTL_DEL fd #f)
+    ret))
 
 ;; NOTE: do NOT use this function outside this module!!!
 (define (epoll-event-set->list ees nfds)
