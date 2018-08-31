@@ -238,9 +238,16 @@
                            (DEBUG "Half-closed ~a~%" e)
                            (DEBUG "Full-closed ~a~%" e))
                        #f)))
+               ((restore-working-client (current-work-table server) (car e))
+                => (lambda (client)
+                     (DEBUG "Restore working client ~a~%" e)
+                     client))
+               ((exists-in-epoll? (ragnarok-server-epfd server) (car e))
+                (throw 'artanis-err 500 fill-ready-queue-from-service
+                       "BUG: The fd ~a in still in epoll but not task for it!" (car e)))
                (else
-                (DEBUG "Restore working client ~a~%" e)
-                (restore-working-client (current-work-table server) (car e))))))
+                (throw 'artanis-err 500 fill-ready-queue-from-service
+                       "BUG: The fd ~a is neither in epoll, nor task for it!" (car e))))))
          (cond
           ((list? client)
            (DEBUG "New coming connections: ~a~%" (length client))
@@ -283,8 +290,7 @@
 (define (register-connecting-socket epfd conn-port)
   (DEBUG "Register ~a as RW event~%" conn-port)
   (epoll-ctl epfd EPOLL_CTL_ADD (port->fdes conn-port)
-             (make-epoll-event (port->fdes conn-port) (gen-rw-event))
-             #:keep-alive? (allow-long-live-connection?))
+             (make-epoll-event (port->fdes conn-port) (gen-rw-event)))
   (DEBUG "register End~%"))
 
 (::define (serve-one-request handler proto server client)
