@@ -243,11 +243,11 @@
                      (DEBUG "Restore working client ~a~%" e)
                      client))
                ((exists-in-epoll? (ragnarok-server-epfd server) (car e))
-                (throw 'artanis-err 500 fill-ready-queue-from-service
-                       "BUG: The fd ~a in still in epoll but not task for it!" (car e)))
+                (DEBUG "The fd ~a in still in epoll but not task for it, just ignore!"
+                       (car e)))
                (else
-                (throw 'artanis-err 500 fill-ready-queue-from-service
-                       "BUG: The fd ~a is neither in epoll, nor task for it!" (car e))))))
+                (DEBUG "The fd ~a is neither in epoll, nor task for it, just ignore!"
+                       (car e))))))
          (cond
           ((list? client)
            (DEBUG "New coming connections: ~a~%" (length client))
