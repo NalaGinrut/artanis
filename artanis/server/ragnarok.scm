@@ -655,11 +655,10 @@
       ;;       it from epoll. Although epoll will remove closed fd automatically, it won't
       ;;       remove the fd until it's closed completely, so does half-closed connection!
       ;;       Be careful.
-      (DEBUG "Peer is shutdown, just schedule and wait for closing it later ~%")
-      (break-task)
-      (DEBUG "Peer ~a is still open, we close it explicitly at the end!"
-             (client-sockport (current-client)))
-      (close-task))
+      (let ((conn-fd (client-sockport-decriptor (current-client))))
+        (DEBUG "The closed peer ~a is going to be shut right now!~%" conn-fd)
+        (epoll-ctl epfd EPOLL_CTL_DEL conn-fd #f) ; #f means %null-pointer here
+        (close-task)))
      ((io-exception:out-of-memory? e)
       ;; NOTE: out of memory, and throw 503 to let client try again. We can't just schedule
       ;;       for next round loop, since some data read from request would be lost because
