@@ -379,4 +379,5 @@
            (lp (read-line fp))))
      (else (error init-config "Invalid line" line))))
   (init-inner-config-items)
+  (close fp)
   (display "done.\n" (artanis-current-output)))
