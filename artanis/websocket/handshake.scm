@@ -72,11 +72,11 @@
     #f)
   (let* ((headers (request-headers req))
          (upgrade (car (assoc-ref headers 'upgrade)))
-         (connection (car (assoc-ref headers 'connection)))
+         (connection (assoc-ref headers 'connection))
          (version (assoc-ref headers 'sec-websocket-version))
          (origin (assoc-ref headers 'origin)))
     (cond
-     ((not (eq? connection 'upgrade))
+     ((not (memq 'upgrade connection))
       (throw 'artanis-err 426 validate-websocket-request
              "Invalid connection `~a' request from ~a, expect 'upgrade!"
              connection (client-ip client)))
