@@ -81,6 +81,11 @@
              (register-websocket-pipe! named-pipe))))
      (else (register-websocket-pipe! (new-named-pipe name new-client))))))
 
+(define (print-request-info rq body)
+  (let ((path (request-path rq))
+        (method (request-method rq)))
+    (format (artanis-current-output) "[Client] ~a ~a~%" method path)))
+
 (define (run-after-request-hooks rq body)
   (run-hook *after-request-hook* rq body))
 
@@ -88,7 +93,7 @@
   (run-hook *before-response-hook* rc body))
 
 (define (init-after-request-hook)
-  #t)
+  (run-after-request! print-request-info))
 
 (define (init-before-response-hook)
   (run-before-response! rc-conn-recycle)
