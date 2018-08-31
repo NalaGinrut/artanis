@@ -244,10 +244,12 @@
                      client))
                ((exists-in-epoll? (ragnarok-server-epfd server) (car e))
                 (DEBUG "The fd ~a in still in epoll but not task for it, just ignore!"
-                       (car e)))
+                       (car e))
+                (close (car e)))
                (else
                 (DEBUG "The fd ~a is neither in epoll, nor task for it, just ignore!"
-                       (car e))))))
+                       (car e))
+                (close (car e))))))
          (cond
           ((list? client)
            (DEBUG "New coming connections: ~a~%" (length client))
