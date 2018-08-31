@@ -235,8 +235,8 @@
       ((json jsonp) (lambda (args) (-> ->json-string args)))
       ((xml) (lambda (args) (-> sxml->xml-string args)))
       ((csv) (lambda (args) (-> sxml->csv-string args)))
-      ((sxml) (lambda (args) (values (object->string (car args)) #:pre-headers headers)))
-      (else (throw 'artanis-err 500 mime-maker "Invalid type!" type))))
+      ((sxml) (lambda (args) (-> object->string args)))
+      (else (throw 'artanis-err 500 mime-maker "Invalid type: ~a!" type))))
   (lambda (rc . args) (gen-mime args)))
 
 ;; for #:session
