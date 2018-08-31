@@ -34,7 +34,8 @@
   #:use-module (ice-9 format)
   #:use-module (ice-9 futures)
   #:export (new-http-protocol
-            %%raw-close-connection))
+            %%raw-close-connection
+            http-close))
 
 (define (clean-current-conn-fd server client peer-shutdown?)
   (let ((conn (client-sockport client))
