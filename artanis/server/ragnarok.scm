@@ -245,10 +245,20 @@
                ((exists-in-epoll? (ragnarok-server-epfd server) (car e))
                 (DEBUG "The fd ~a in still in epoll but not task for it, just ignore!~%"
                        (car e))
+                (ragnarok-close
+                 proto
+                 server
+                 (new-ragnarok-client (car e))
+                 #f)
                 #f)
                (else
                 (DEBUG "The fd ~a is neither in epoll, nor task for it, just ignore!~%"
                        (car e))
+                (ragnarok-close
+                 proto
+                 server
+                 (new-ragnarok-client (car e))
+                 #f)
                 #f))))
          (cond
           ((list? client)
