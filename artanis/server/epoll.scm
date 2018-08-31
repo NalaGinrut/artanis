@@ -215,7 +215,8 @@
 (export epoll-ctl)
 
 (define-public (exists-in-epoll? epfd fd)
-  (let ((ret (epoll-ctl epfd EPOLL_CTL_ADD fd #f #:check-exists? #t)))
+  (let* ((ees (make-epoll-event-set))
+         (ret (epoll-ctl epfd EPOLL_CTL_ADD fd ees #:check-exists? #t)))
     (epoll-ctl epfd EPOLL_CTL_DEL fd #f)
     ret))
 
