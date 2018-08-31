@@ -38,7 +38,7 @@
 
 (define (clean-current-conn-fd server client peer-shutdown?)
   (let ((conn (client-sockport client))
-        (conn-fd (client-sockport-decriptor client))
+        (conn-fd (client-sockport-descriptor client))
         (epfd (ragnarok-server-epfd server)))
     (DEBUG "Clean connected fd ~a~%" conn-fd)
     ;; NOTE:

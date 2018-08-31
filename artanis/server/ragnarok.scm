@@ -150,8 +150,7 @@
                    (lambda _
                      ;; ignore any error since there's no resource to handle.
                      (remove-named-pipe-if-the-connection-is-websocket! (task-client t))
-                     (close-current-task! server (task-client t))
-                     (close (client-sockport (task-client t))))))))))
+                     (close-current-task! server (task-client t)))))))))
        wt)))
   ;; TODO: add more collectors
   (when (>= (get-conf '(server timeout)) 0)
@@ -288,7 +287,7 @@
 
 (define (is-listenning-socket? server client)
   (let ((listen-socket (ragnarok-server-listen-socket server)))
-    (= (port->fdes listen-socket) (client-sockport-decriptor client))))
+    (= (port->fdes listen-socket) (client-sockport-descriptor client))))
 
 (define (register-connecting-socket epfd conn-port)
   (DEBUG "Register ~a as RW event~%" conn-port)
@@ -502,8 +501,7 @@
                                  (DEBUG "we have no choice but ignore it.~%")
                                  ;; NOTE: The error task must be removed here.
                                  (remove-named-pipe-if-the-connection-is-websocket! client)
-                                 (close-current-task! server client)
-                                 (close (client-sockport client)))))))))))
+                                 (close-current-task! server client))))))))))
                  (lambda (k . e)
                    (call-with-values
                        (lambda ()
@@ -649,13 +647,10 @@
     (DEBUG "ragnarok-~a exception: ~a~%" type e)
     (cond
      ((io-exception:peer-is-shutdown? e)
-      ;; NOTE: peer has been shutdown for reasons, we just let them be checked by epoll
-      ;;       in next round loop, and close the connection by Ragnarok.
-      ;; WARN: Don't call (close-task) directly, since we'll lose the chance to remove
-      ;;       it from epoll. Although epoll will remove closed fd automatically, it won't
-      ;;       remove the fd until it's closed completely, so does half-closed connection!
+      ;; WARN: Although epoll will remove closed fd automatically, it won't remove the fd
+      ;;       until it's closed completely, so does half-closed connection!
       ;;       Be careful.
-      (let ((conn-fd (client-sockport-decriptor (current-client)))
+      (let ((conn-fd (client-sockport-descriptor (current-client)))
             (epfd (ragnarok-server-epfd (current-server))))
         (DEBUG "The closed peer ~a is going to be shut right now!~%" conn-fd)
         (epoll-ctl epfd EPOLL_CTL_DEL conn-fd #f) ; #f means %null-pointer here

@@ -88,7 +88,7 @@
             ragnarok-client?
             oneshot-mention!
             client-sockport
-            client-sockport-decriptor
+            client-sockport-descriptor
             client-connecting-port
             client-ip
             address->ip
@@ -240,7 +240,7 @@
 (::define (oneshot-mention! c)
   (:anno: (ragnarok-client) -> ANY)
   (when (not (port-closed? (client-sockport c)))
-    (let* ((fd (client-sockport-decriptor c))
+    (let* ((fd (client-sockport-descriptor c))
            (epfd (ragnarok-server-epfd (current-server)))
            (event (make-epoll-event fd (gen-oneshot-event))))
       (epoll-ctl epfd EPOLL_CTL_MOD fd event))))
@@ -254,7 +254,7 @@
   ;;(DEBUG "client-sockport: ~a~%" (unbox-type c))
   (car (unbox-type c)))
 
-(::define (client-sockport-decriptor c)
+(::define (client-sockport-descriptor c)
   (:anno: (ragnarok-client) -> int)
   (port->fdes (client-sockport c)))
 
@@ -288,18 +288,18 @@
 (::define (remove-from-work-table! wt client peer-shutdown?)
   (:anno: (work-table ragnarok-client boolean) -> ANY)
   (DEBUG "Removed task ~a~%" (client-sockport client))
-  (hashv-remove! (work-table-content wt) (client-sockport-decriptor client))
+  (hashv-remove! (work-table-content wt) (client-sockport-descriptor client))
   (close (client-sockport client)))
 
 (::define (add-a-task-to-work-table! wt client task)
   (:anno: (work-table ragnarok-client task) -> ANY)
   (DEBUG "Add new task ~a == ~a~%"
          (client-sockport client) (client-sockport (task-client task)))
-  (hashv-set! (work-table-content wt) (client-sockport-decriptor client) task))
+  (hashv-set! (work-table-content wt) (client-sockport-descriptor client) task))
 
 (::define (get-task-from-work-table wt client)
   (:anno: (work-table ragnarok-client) -> task)
-  (hashv-ref (work-table-content wt) (client-sockport-decriptor client)))
+  (hashv-ref (work-table-content wt) (client-sockport-descriptor client)))
 
 (::define (restore-working-client wt fd)
   (:anno: (work-table int) -> ragnarok-client)
@@ -311,11 +311,11 @@
 (define *proto-conn-table* (make-hash-table))
 
 (define (specified-proto? client)
-  (and=> (hashv-ref *proto-conn-table* (client-sockport-decriptor client))
+  (and=> (hashv-ref *proto-conn-table* (client-sockport-descriptor client))
          lookup-protocol))
 
 (define (register-proto! client protoname)
-  (hashv-set! *proto-conn-table* (client-sockport-decriptor client) protoname))
+  (hashv-set! *proto-conn-table* (client-sockport-descriptor client) protoname))
 
 
 ;; NOTE: We need this null-task as a placeholder to let task scheduling loop
