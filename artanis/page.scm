@@ -65,20 +65,23 @@
 
 (define (try-to-register-websocket-pipe! req new-client)
   (let ((name (detect-pipe-name req)))
+    (DEBUG "Register named-pipe: ~a~%" name)
     (cond
      ((get-named-pipe name)
       => (lambda (named-pipe)
            (let ((old-client (named-pipe-client named-pipe))
                  (server (current-server)))
+             (DEBUG "Replace existing websocket ~a with ~a in named-pipe ~a~%"
+                    old-client new-client name)
              ;; NOTE: If the same name was specified, we close the old one then register the
              ;;       new one. This is because some clients/browswers have bugs to not close
              ;;       connection when refresh the page/webapi, so we close it positively to
              ;;       avoid further problem.
              ;; FIXME: We should detect secure token here first.
-             (%%raw-close-connection server old-client #t)
              ;; NOTE: Because WS connection was closed then reopened, so we MUST pass
              ;;       peer-shutdown? as #f here, or it'll close the new WS connection.
              (closing-websocket-handshake server old-client #f)
+             (%%raw-close-connection server old-client #t)
              (named-pipe-client-set! named-pipe new-client)
              (register-websocket-pipe! named-pipe))))
      (else (register-websocket-pipe! (new-named-pipe name new-client))))))
