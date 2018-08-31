@@ -134,7 +134,9 @@
     (format (artanis-current-output)
             "[Websocket] Initializing `~a' protocol for Websocket ..."
             proto)
+    (DEBUG "run-after-websocket-handshake-hooks~%")
     (run-after-websocket-handshake-hooks req client)
+    (DEBUG "register-websocket-protocol!~%")
     (register-websocket-protocol! server client proto port)
     (format (artanis-current-output) " done~%")
     (write-response res port)

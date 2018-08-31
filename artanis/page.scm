@@ -80,10 +80,14 @@
              ;; FIXME: We should detect secure token here first.
              ;; NOTE: Because WS connection was closed then reopened, so we MUST pass
              ;;       peer-shutdown? as #f here, or it'll close the new WS connection.
+             (DEBUG "Closing handshake of replaced WS connection~%")
              (closing-websocket-handshake server old-client #f)
+             (DEBUG "Closing replaced WS connection~%")
              (%%raw-close-connection server old-client #t)
+             (DEBUG "Replace existing named-pipe ~a ...~%" name)
              (named-pipe-client-set! named-pipe new-client)
-             (register-websocket-pipe! named-pipe))))
+             (register-websocket-pipe! named-pipe)
+             (DEBUG "done."))))
      (else (register-websocket-pipe! (new-named-pipe name new-client))))))
 
 (define (print-request-info rq body)
