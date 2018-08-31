@@ -114,7 +114,7 @@
           (oneshot-mention! client))))
      (else
       (throw 'artanis-err 400 send-to-websocket-named-pipe
-             "Invalid pipe name `~a' or it's closed by client!" name)))))
+             "Pipe name `~a' hasn't been registered, or it's closed by client!" name)))))
 
 (define (named-pipe-subscribe rc)
   (let* ((name (detect-pipe-name (rc-req rc)))
