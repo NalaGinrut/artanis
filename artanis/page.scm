@@ -77,7 +77,7 @@
              ;; FIXME: We should detect secure token here first.
              (%%raw-close-connection server old-client #t)
              ;; NOTE: Because WS connection was closed then reopened, so we MUST pass
-             ;;       peer-shutdown? as #f here, or it'll close the new connection.
+             ;;       peer-shutdown? as #f here, or it'll close the new WS connection.
              (closing-websocket-handshake server old-client #f)
              (named-pipe-client-set! named-pipe new-client)
              (register-websocket-pipe! named-pipe))))

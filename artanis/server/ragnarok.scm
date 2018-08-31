@@ -222,9 +222,10 @@
        (let ((client
               (cond
                ((is-listenning-fd? e)
-                (DEBUG "New connection ~a~%" e)
+                (DEBUG "New connection from listening socket ~a~%" e)
                 (accept-them-all (ragnarok-server-listen-socket server)))
                ((is-peer-shutdown? e)
+                (DEBUG "Connecting socket ~a was shutdown!~%" e)
                 => (lambda (s)
                      (parameterize ((must-close-connection? #t)
                                     (half-closed? s))
