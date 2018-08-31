@@ -303,7 +303,7 @@
 
 (::define (restore-working-client wt fd)
   (:anno: (work-table int) -> ragnarok-client)
-  (hashv-ref (work-table-content wt) fd))
+  (and=> (hashv-ref (work-table-content wt) fd) task-client))
 
 ;; This is a table to record client and proto pairs (CP pairs), client is the
 ;; key while protocol name is the value.
