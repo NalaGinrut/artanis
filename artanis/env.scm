@@ -51,7 +51,6 @@
             current-session-backend
             protocol-add!
             lookup-protocol
-            must-close-connection?
             half-closed?
             %os-kernel
             %os-distro
@@ -148,8 +147,6 @@
 
 (define (lookup-protocol name)
   (hashq-ref *proto-table* name))
-
-(define must-close-connection? (make-parameter #f))
 
 (define half-closed? (make-parameter #f))
 

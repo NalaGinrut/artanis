@@ -76,9 +76,7 @@
   (clean-current-conn-fd server client peer-shutdown?)
   ;; ((@@ (artanis server ragnarok) print-work-table) server)
   ;; clean from work-table
-  (close-current-task! server client peer-shutdown?)
-  ;; FIXEME: We may not need this line to close.
-  (when (must-close-connection?) (close (client-sockport client))))
+  (close-current-task! server client peer-shutdown?))
 
 ;; NOTE: HTTP service is established by default, so it's unecessary to do any
 ;;       openning work.
@@ -187,18 +185,17 @@
         (write-response-body res body)
         (force-output port))
        ((file-sender? body)
-        (parameterize ((must-close-connection? #t))
-          (let ((fut (make-future (file-sender-thunk body))))
-            (let lp ()
-              (cond
-               ((eq? 'done ((@@ (ice-9 futures) future-state) fut))
-                (touch fut)
-                (%%raw-close-connection server client #f)
-                (simply-quit))
-               (else
-                (oneshot-mention! client)
-                (break-task)
-                (lp)))))))
+        (let ((fut (make-future (file-sender-thunk body))))
+          (let lp ()
+            (cond
+             ((eq? 'done ((@@ (ice-9 futures) future-state) fut))
+              (touch fut)
+              (%%raw-close-connection server client #f)
+              (simply-quit))
+             (else
+              (oneshot-mention! client)
+              (break-task)
+              (lp))))))
        (else
         (throw 'artanis-err 500 http-write
                "Expected a bytevector for body" body)))))))
@@ -210,8 +207,7 @@
   (:anno: (ragnarok-server ragnarok-client boolean) -> ANY)
   (DEBUG "http close ~a~%" (client-sockport client))
   (cond
-   ((and (not (must-close-connection?))
-         (get-the-redirector-of-websocket server client))
+   ((get-the-redirector-of-websocket server client)
     => (lambda (redirector)
          (let ((type (redirector-type redirector))
                (ip (client-ip client)))

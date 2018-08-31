@@ -227,8 +227,7 @@
                ((is-peer-shutdown? e)
                 => (lambda (s)
                      (DEBUG "Connecting socket ~a was shutdown!~%" e)
-                     (parameterize ((must-close-connection? #t)
-                                    (half-closed? s))
+                     (parameterize ((half-closed? s))
                        (ragnarok-close
                         proto
                         server
@@ -245,20 +244,12 @@
                ((exists-in-epoll? (ragnarok-server-epfd server) (car e))
                 (DEBUG "The fd ~a in still in epoll but not task for it, just ignore!~%"
                        (car e))
-                (ragnarok-close
-                 proto
-                 server
-                 (new-ragnarok-client (car e))
-                 #f)
+                (close (car e))
                 #f)
                (else
                 (DEBUG "The fd ~a is neither in epoll, nor task for it, just ignore!~%"
                        (car e))
-                (ragnarok-close
-                 proto
-                 server
-                 (new-ragnarok-client (car e))
-                 #f)
+                (close (car e))
                 #f))))
          (cond
           ((list? client)
@@ -355,8 +346,7 @@
                                (cond
                                 ((or (eq? request-status 'exception)
                                      (not keepalive?))
-                                 (parameterize ((must-close-connection? #t))
-                                   (ragnarok-close proto server client #f)))
+                                 (ragnarok-close proto server client #f))
                                 (else
                                  (DEBUG "Client ~a keep alive, status: ~a~%"
                                         (client-sockport client) request-status)
