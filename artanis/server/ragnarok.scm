@@ -655,7 +655,8 @@
       ;;       it from epoll. Although epoll will remove closed fd automatically, it won't
       ;;       remove the fd until it's closed completely, so does half-closed connection!
       ;;       Be careful.
-      (let ((conn-fd (client-sockport-decriptor (current-client))))
+      (let ((conn-fd (client-sockport-decriptor (current-client)))
+            (epfd (ragnarok-server-epfd (current-server))))
         (DEBUG "The closed peer ~a is going to be shut right now!~%" conn-fd)
         (epoll-ctl epfd EPOLL_CTL_DEL conn-fd #f) ; #f means %null-pointer here
         (close-task)))
