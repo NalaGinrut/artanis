@@ -286,4 +286,4 @@
                 #t))) ; yes peer shutdown is true
       (begin
         (DEBUG "Peer ~a is still alive!~%" e)
-        #f)))                         ; no peer is not shutdown
+        #f))) ; peer is not shutdown

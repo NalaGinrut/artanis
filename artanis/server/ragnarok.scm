@@ -225,8 +225,8 @@
                 (DEBUG "New connection from listening socket ~a~%" e)
                 (accept-them-all (ragnarok-server-listen-socket server)))
                ((is-peer-shutdown? e)
-                (DEBUG "Connecting socket ~a was shutdown!~%" e)
                 => (lambda (s)
+                     (DEBUG "Connecting socket ~a was shutdown!~%" e)
                      (parameterize ((must-close-connection? #t)
                                     (half-closed? s))
                        (ragnarok-close
