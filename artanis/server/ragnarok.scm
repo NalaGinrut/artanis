@@ -525,7 +525,7 @@
                (ragnarok-close http server client #f))))
           (lambda e
             (format (artanis-current-output)
-                    "Error: ~a~%" (strerror (system-error-errno e)))
+                    "Error: ~a~%" (or (and=> (system-error-errno e) strerror) e))
             (cond
              ((out-of-system-resources? e)
               (parameterize ((current-server server))
