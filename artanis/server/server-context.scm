@@ -191,24 +191,24 @@
 
 (::define (get-the-redirector-of-websocket server client)
   (:anno: (ragnarok-server ragnarok-client) -> redirector)
-  (hashq-ref
+  (hash-ref
    (ragnarok-server-services server)
    client))
 
 (define (register-redirector! server client reader writer type port)
-  (hashq-set! (ragnarok-server-services server)
-              client
-              (make-redirector
-               reader
-               writer
-               type
-               port
-               0
-               (make-mutex))))
+  (hash-set! (ragnarok-server-services server)
+             client
+             (make-redirector
+              reader
+              writer
+              type
+              port
+              0
+              (make-mutex))))
 
 (define (remove-redirector! server client)
-  (hashq-remove! (ragnarok-server-services server)
-                 client))
+  (hash-remove! (ragnarok-server-services server)
+                client))
 
 (define (is-proxy? redirector)
   (eq? (redirector-type redirector) 'proxy))
