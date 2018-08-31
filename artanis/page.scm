@@ -87,7 +87,7 @@
   (let ((path (request-path rq))
         (method (request-method rq))
         (port (request-port rq)))
-    (format (artanis-current-output) "[Client] ~a ~a~%" method path port)))
+    (format (artanis-current-output) "[Client] ~a ~a ~a~%" method path port)))
 
 (define (run-after-request-hooks rq body)
   (run-hook *after-request-hook* rq body))
