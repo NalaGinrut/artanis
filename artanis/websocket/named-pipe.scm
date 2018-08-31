@@ -53,7 +53,7 @@
   (make-named-pipe name client task-queue))
 
 (define (client->pipe-name client)
-  (hashq-ref *client-to-named-pipe* client))
+  (hash-ref *client-to-named-pipe* client))
 
 (define (remove-named-pipe-if-the-connection-is-websocket! client)
   (let ((name (client->pipe-name client)))
