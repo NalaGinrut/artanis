@@ -232,8 +232,7 @@
             (else
              ;; full-closed
              (DEBUG "Full-closed websocket ~a from ~a~%"
-                    (client-sockport client) (client-ip client))
-             (%%raw-close-connection server client peer-shutdown?))))))
+                    (client-sockport client) (client-ip client)))))))
    (else
     (DEBUG "do close connection~%")
     ;; NOTE: Don't use simply-quit here, since there's no valid installed prompt
@@ -244,8 +243,8 @@
              (client-sockport client) (client-ip client)))
      (else
       (DEBUG "Full-closed connection ~a from ~a~%"
-             (client-sockport client) (client-ip client))
-      (%%raw-close-connection server client peer-shutdown?))))))
+             (client-sockport client) (client-ip client))))))
+  (%%raw-close-connection server client peer-shutdown?))
 
 (define (new-http-protocol)
   (make-ragnarok-protocol 'http http-open http-read http-write http-close))
