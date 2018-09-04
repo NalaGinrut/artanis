@@ -304,7 +304,8 @@
   (define (return-json-mapping j)
     (let ((jt (if (bytevector? j)
                   (json-string->scm (utf8->string j))
-                  (throw 'artanis-err 400 "Invalid body type ~a~%" (detect-type-name j)))))
+                  (throw 'artanis-err 400 return-json-mapping
+                         "Invalid body type ~a~%" (detect-type-name j)))))
       (lambda (k)
         (hash-ref jt k))))
   (define (post-handler rc)
