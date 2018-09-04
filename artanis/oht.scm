@@ -302,7 +302,11 @@
               "Impossible status! please report bug!"))))
   (define (post-ref plst key) (and=> (assoc-ref plst key) car))
   (define (return-json-mapping j)
-    (lambda (k) (hash-ref j k)))
+    (let ((jt (if (bytevector? j)
+                  (json-string->scm (utf8->string j))
+                  (throw 'artanis-err 400 "Invalid body type ~a~%" (detect-type-name j)))))
+      (lambda (k)
+        (hash-ref jt k))))
   (define (post-handler rc)
     (match mode
       ((or #t 'query-string 'qstr) (post->qstr-table rc))
