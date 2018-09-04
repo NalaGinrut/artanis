@@ -284,7 +284,7 @@
 (define-syntax-rule (remote-info req)
   (if (get-conf '(server nginx))
       (assoc-ref (request-headers req) 'x-real-ip)
-      (request-ip req)))
+      (and=> (request-ip req) "Unknown IP")))
 
 (define *methods-list* '(HEAD GET POST PUT PATCH DELETE))
 (define (allowed-method? method)
