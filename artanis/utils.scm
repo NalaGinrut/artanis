@@ -41,6 +41,7 @@
   #:use-module (ice-9 control)
   #:use-module (web http)
   #:use-module (web request)
+  #:use-module (web response)
   #:use-module (web uri)
   #:use-module ((rnrs)
                 #:select (get-bytevector-all
@@ -50,18 +51,15 @@
                           define-record-type record-rtd record-accessor
                           get-string-all))
   #:export (regexp-split
-            hash-keys cat bv-cat get-global-time sanitize-response uri-query uri-path
-            build-response write-response get-local-time string->md5 unsafe-random
-            uri-encode uri-decode response-version response-code response-connection
-            request-headers response-port write-response-body read-request request-uri
-            request-method request-content-length request-port read-request-body
-            response-content-length get-file-ext get-global-date get-local-date
+            hash-keys cat bv-cat get-global-time sanitize-response
+            get-local-time string->md5 unsafe-random parse-date write-date
+            get-file-ext get-global-date get-local-date
             string-substitute nfx static-filename remote-info seconds-now local-time-stamp
-            parse-date write-date make-expires export-all-from-module!
+            make-expires export-all-from-module!
             alist->hashtable expires->time-utc local-eval-string
             time-expired? valid-method? mmap munmap get-random-from-dev
             string->byteslist string->sha-1 string->sha-224 string->sha-256 string->sha-384
-            string->sha-512 list-slice bv-slice uni-basename
+            string->sha-512 list-slice bv-slice uni-basename detect-type-name
             checkout-the-path make-string-template guess-mime prepare-headers
             new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
             stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
@@ -97,7 +95,34 @@
             io-exception:peer-is-shutdown? io-exception:out-of-memory?
             out-of-system-resources? allow-long-live-connection?)
   #:re-export (the-environment
-               utf8->string))
+               utf8->string
+               bytevector?
+
+               uri-decode
+               uri-encode
+               uri-query
+               uri-path
+
+               build-response
+               write-response
+               write-response-body
+
+               response-version
+               response-code
+               response-connection
+               response-port
+               write-response-body
+               response-content-length
+               read-request
+               read-request-body
+               request-uri
+               request-headers
+               request-method
+               request-content-length
+               request-port))
+
+(define parse-date (@@ (web http) parse-date))
+(define write-date (@@ (web http) write-date))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
 (define* (get-random-from-dev #:key (length 8) (uppercase #f))
@@ -108,28 +133,6 @@
         (if uppercase
             (string-upcase str)
             str)))))
-
-(define uri-decode (@ (web uri) uri-decode))
-(define uri-encode (@ (web uri) uri-encode))
-(define uri-query (@ (web uri) uri-query))
-(define uri-path (@ (web uri) uri-path))
-(define parse-date (@@ (web http) parse-date))
-(define write-date (@@ (web http) write-date))
-(define build-response (@ (web response) build-response))
-(define write-response (@ (web response) write-response))
-(define response-version (@ (web response) response-version))
-(define response-code (@ (web response) response-code))
-(define response-connection (@ (web response) response-connection))
-(define response-port (@ (web response) response-port))
-(define write-response-body (@ (web response) write-response-body))
-(define response-content-length (@ (web response) response-content-length))
-(define read-request (@ (web request) read-request))
-(define read-request-body (@ (web request) read-request-body))
-(define request-uri (@ (web request) request-uri))
-(define request-headers (@ (web request) request-headers))
-(define request-method (@ (web request) request-method))
-(define request-content-length (@ (web request) request-content-length))
-(define request-port (@ (web request) request-port))
 
 (define-syntax-rule (local-eval-string str e)
   (local-eval
