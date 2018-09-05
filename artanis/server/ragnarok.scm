@@ -223,23 +223,25 @@
                ((is-listenning-fd? e)
                 (DEBUG "New connection from listening socket ~a~%" e)
                 (accept-them-all (ragnarok-server-listen-socket server)))
-               ((is-peer-shutdown? e)
-                => (lambda (s)
-                     (DEBUG "Connecting socket ~a was shutdown!~%" e)
-                     (parameterize ((half-closed? s))
-                       (ragnarok-close
-                        proto
-                        server
-                        (restore-working-client (current-work-table server) (car e))
-                        #t)
-                       (if (half-closed?)
-                           (DEBUG "Half-closed ~a~%" e)
-                           (DEBUG "Full-closed ~a~%" e))
-                       #f)))
                ((restore-working-client (current-work-table server) (car e))
                 => (lambda (client)
-                     (DEBUG "Restore working client ~a~%" e)
-                     client))
+                     (cond
+                      ((is-peer-shutdown? e)
+                       => (lambda (s)
+                            (DEBUG "Connecting socket ~a was shutdown!~%" e)
+                            (parameterize ((half-closed? s))
+                              (ragnarok-close
+                               proto
+                               server
+                               client
+                               #t)
+                              (if (half-closed?)
+                                  (DEBUG "Half-closed ~a~%" e)
+                                  (DEBUG "Full-closed ~a~%" e))
+                              #f)))
+                      (else
+                       (DEBUG "Restore working client ~a~%" e)
+                       client))))
                ((exists-in-epoll? (ragnarok-server-epfd server) (car e))
                 (DEBUG "The fd ~a in still in epoll but not task for it, just ignore!~%"
                        (car e))
