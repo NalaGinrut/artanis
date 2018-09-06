@@ -478,9 +478,9 @@
                   "Invalid #:foreach `~a', should be (column (val1 val2 val3 ...))"
                   lst))))))
     (string-concatenate
-     (list (-> group-by ->group-by)
+     (list (cond-combine cnd foreach)
+           (-> group-by ->group-by)
            (-> order-by ->order-by)
-           (cond-combine cnd foreach)
            (-> ret ->ret))))
   (define (->mix columns functions)
     `(,@columns ,@(map (lambda (f) (format #f "~a(~{~a~^,~})" (car f) (cdr f))) functions)))
