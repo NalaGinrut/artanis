@@ -100,12 +100,21 @@
         ((? list?) (format #f "~{~a~^,~}" v))
         (else v)))
     (define (->cstr ctb)
+      (define (->comments str)
+        (call-with-input-string
+         str
+         (lambda (port)
+           (let lp ((rst-string "")
+                    (line (read-line port)))
+             (if (eof-object? line)
+                 rst-string
+                 (lp (string-append rst-string "## " line "\n") (read-line port)))))))
       (call-with-output-string
        (lambda (port)
          (for-each (lambda (c)
                      (match c
-                       ((ns val)
-                        (format port "~{~a~^.~} = ~a~%" ns (->proper val)))
+                       ((ns val comments)
+                        (format port "~%~a~{~a~^.~} = ~a~%" (->comments comments) ns (->proper val)))
                        (else (error create-local-config "BUG: Invalid conf value!" c))))
                    ctb))))
     (let* ((ctb ((@@ (artanis config) default-conf-values)))
