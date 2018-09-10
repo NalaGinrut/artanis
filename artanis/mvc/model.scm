@@ -255,6 +255,8 @@
   (let lp((next lst) (ret '()))
     (match next
       (() (reverse ret))
+      (((? keyword? k) v rest ...)
+       (lp rest (list v k ret)))
       ((((? symbol? name) (? symbol? type) . (or (? null? opts) ((opts ...)))) rest ...)
        (lp rest (cons `(,name ,@(->type type opts)) ret)))
       (else (throw 'artanis-err 500 parse-raw-fields
