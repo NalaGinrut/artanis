@@ -293,8 +293,8 @@
   (when debug
     (display "DEBUG: ON\n")
     (init-debug-mode))
-  (when (or use-db? (get-conf 'use-db?))
-    (conf-set! 'use-db? #t)
+  (when (or use-db? (get-conf '(db enable)))
+    (conf-set! '(db enable) #t)
     (display "User wants to use Database, initializing...\n")
     (init-database-config dbd db-username db-passwd db-name db-addr db-proto)
     (init-DB)
@@ -304,7 +304,7 @@
       (display "Session with DB backend init done!\n")))
   (case (get-conf '(session backend))
     ((db)
-     (when (not (get-conf 'use-db?))
+     (when (not (get-conf '(db enable)))
        (error "Session with DB backend init failed because you didn't enable DB!")))
     (else
      (session-init)

@@ -44,79 +44,79 @@
 ;;       `->list' anywhere.
 (define (default-conf-values)
   `(;; for DB namespace
-    ((db enable) #f)
-    ((db dbd) mysql)
-    ((db proto) tcp)
-    ((db addr) "127.0.0.1:3306")
-    ((db socketfile) #f)
-    ((db username) "root")
-    ((db passwd) "")
-    ((db name) ,(or (current-appname) "artanis"))
-    ((db engine) InnoDB)
-    ((db poolsize) 64)
-    ((db pool) increase) ; increase or fixed
+    ((db enable) #f "")
+    ((db dbd) mysql "")
+    ((db proto) tcp "")
+    ((db addr) "127.0.0.1:3306" "")
+    ((db socketfile) #f "")
+    ((db username) "root" "")
+    ((db passwd) "" "")
+    ((db name) ,(or (current-appname) "artanis") "")
+    ((db engine) InnoDB "")
+    ((db poolsize) 64 "")
+    ((db pool) increase "") ; increase or fixed
     ;; whether to encode params each time
     ;; NOTE: If you enable db.encodeparams then it's better to decode the related value
     ;;       twice in the client-side, since some requests may be sent from browsers, and
     ;;       they're already encoded.
-    ((db encodeparams) #f)
-    ((db lpc) #f) ; enable LPC, this may require Redis
+    ((db encodeparams) #f "")
+    ((db lpc) #f "") ; enable LPC, this may require Redis
 
     ;; for server namespace
-    ((server info) ,artanis-version)
-    ((server nginx) #f)
-    ((server charset) "utf-8")
+    ((server info) ,artanis-version "")
+    ((server nginx) #f "")
+    ((server charset) "utf-8" "")
     ;; FIXME: use local pages
-    ((server syspage path) "/etc/artanis/pages")
-    ((server backlog) 128)
-    ((server wqlen) 64) ; work queue maxlen
-    ((server trigger) edge)
-    ((server engine) ragnarok)
-    ((server timeout) 60) ; in seconds, zero for always short live connections.
-    ((server polltimeout) 500) ; in miliseconds
+    ((server syspage path) "/etc/artanis/pages" "")
+    ((server backlog) 128 "")
+    ((server wqlen) 64 "") ; work queue maxlen
+    ((server trigger) edge "")
+    ((server engine) ragnarok "")
+    ((server timeout) 60 "") ; in seconds, zero for always short live connections.
+    ((server polltimeout) 500 "") ; in miliseconds
     ;; From "HOP, A Fast Server for the Diffuse Web", Serrano.
-    ((server bufsize) 12288) ; in Bytes
+    ((server bufsize) 12288 "") ; in Bytes
     ;; NOTE: Only for Linux-3.9+
     ;;       One kernel features is necessary:
     ;;       SO_REUSEPORT (since 3.9)
     ;;       Allows mutiple servers to listen to the same socket port, say 8080.
-    ((server multi) #t)
-    ((server websocket) #t)
-    ((server pub) "pub") ; the public directory
-    ((server sendfile) #f)
+    ((server multi) #t "")
+    ((server websocket) #t "")
+    ((server pub) "pub" "") ; the public directory
+    ((server sendfile) #f "")
 
     ;; for WebSocket
-    ((websocket maxpayload) ,(1- (ash 1 64))) ; in bytes (only for fragment)
-    ((websocket minpayload) 1) ; enlarge it to avoid slow 1-byte attack (only for fragment)
-    ((websocket fragment) 4096) ; the fragment size in bytes
-    ((websocket maxsize) ,(ash 1 10)) ; in bytes, the upload size from websocket
-    ((websocket timeout) 64) ; timeout in websocket connnection, in seconds
+    ((websocket maxpayload) ,(1- (ash 1 64)) "") ; in bytes (only for fragment)
+    ((websocket minpayload) 1 "") ; enlarge it to avoid slow 1-byte attack (only for fragment)
+    ((websocket fragment) 4096 "") ; the fragment size in bytes
+    ((websocket maxsize) ,(ash 1 10) "") ; in bytes, the upload size from websocket
+    ((websocket timeout) 64 "") ; timeout in websocket connnection, in seconds
 
     ;; for host namespace
-    ((host name) #f)
-    ((host addr) "127.0.0.1")
+    ((host name) #f "")
+    ((host addr) "127.0.0.1" "")
 
-    ((host port) 3000)
-    ((host family) ipv4)
+    ((host port) 3000 "")
+    ((host family) ipv4 "")
 
     ;; for session namespace
-    ((session path) "session")
-    ((session backend) simple)
+    ((session path) "session" "")
+    ((session backend) simple "")
 
     ;; for upload namespace
-    ((upload types) (jpg png gif))
-    ((upload path) "upload")
-    ((upload size) 5242880) ; 5M
+    ((upload types) (jpg png gif) "")
+    ((upload path) "upload" "")
+    ((upload size) 5242880 "") ; 5M
 
     ;; for mail namespace
     ;; ((mail sender) "/usr/sbin/sendmail")
 
     ;; for cache namespace
-    ((cache maxage) 3600) ; in seconds
+    ((cache maxage) 3600 "") ; in seconds
 
     ;; for debug mode
-    ((debug enable) #f)
-    ((debug monitor) ()))) ; user specified monitoring paths
+    ((debug enable) #f "")
+    ((debug monitor) () ""))) ; user specified monitoring paths
 
 ;; Init all fields with default values
 (for-each (lambda (x) (conf-set! (car x) (cadr x))) (default-conf-values))
@@ -167,7 +167,7 @@
 
 (define-syntax-rule (->dbd x)
   (let ((d (->symbol x)))
-    (if (eq? 'mariadb)
+    (if (eq? 'mariadb d)
         'mysql
         d)))
 
@@ -182,7 +182,7 @@
 
 (define (parse-namespace-db item)
   (match item
-    (('enable usedb) (conf-set! 'use-db? (->bool usedb)))
+    (('enable usedb) (conf-set! '(db enable) (->bool usedb)))
     (('dbd dbd) (conf-set! '(db dbd) (->dbd dbd)))
     (('proto proto) (conf-set! '(db proto) (->symbol proto)))
     (('socketfile socketfile) (conf-set! '(db socketfile) (->none/boolean socketfile)))
@@ -325,7 +325,7 @@
    (else (error init-inner-database-item "Fatal: Invalid database config"))))
 
 (define (init-inner-config-items)
-  (and (get-conf 'use-db?) (init-inner-database-item)))
+  (and (get-conf '(db enable)) (init-inner-database-item)))
 
 (define (init-database-config dbd user passwd db-name db-addr db-proto)
   (define (default-addr)
