@@ -167,7 +167,7 @@
 
 (define-syntax-rule (->dbd x)
   (let ((d (->symbol x)))
-    (if (eq? 'mariadb)
+    (if (eq? 'mariadb d)
         'mysql
         d)))
 
@@ -182,7 +182,7 @@
 
 (define (parse-namespace-db item)
   (match item
-    (('enable usedb) (conf-set! 'use-db? (->bool usedb)))
+    (('enable usedb) (conf-set! '(db enable) (->bool usedb)))
     (('dbd dbd) (conf-set! '(db dbd) (->dbd dbd)))
     (('proto proto) (conf-set! '(db proto) (->symbol proto)))
     (('socketfile socketfile) (conf-set! '(db socketfile) (->none/boolean socketfile)))
@@ -325,7 +325,7 @@
    (else (error init-inner-database-item "Fatal: Invalid database config"))))
 
 (define (init-inner-config-items)
-  (and (get-conf 'use-db?) (init-inner-database-item)))
+  (and (get-conf '(db enable)) (init-inner-database-item)))
 
 (define (init-database-config dbd user passwd db-name db-addr db-proto)
   (define (default-addr)
