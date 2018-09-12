@@ -105,7 +105,7 @@
 
     ;; for upload namespace
     ((upload types) (jpg png gif) "")
-    ((upload path "") "upload" "")
+    ((upload path) "upload" "")
     ((upload size) 5242880 "") ; 5M
 
     ;; for mail namespace
