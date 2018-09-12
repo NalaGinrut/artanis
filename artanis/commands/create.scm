@@ -18,6 +18,7 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis commands create)
+  #:use-module (artanis config)
   #:use-module (artanis utils)
   #:use-module (artanis env)
   #:use-module (artanis commands)
@@ -27,6 +28,7 @@
   #:use-module (ice-9 match))
 
 (define %summary "Create a new Artanis project.")
+(define *current-conf-file* (gen-local-conf-file))
 
 (define (show-help)
   (display announce-head)
@@ -99,6 +101,12 @@
         ((or #f 'false 'off 'no) 'false)
         ((? list?) (format #f "~{~a~^,~}" v))
         (else v)))
+    (define (read-config-val k val)
+      (let ((usr-val (get-conf k)))
+        (if (or (not (file-exists? *current-conf-file*))
+             (not usr-val))
+            val
+            usr-val)))
     (define (->cstr ctb)
       (define (->comments str)
         (call-with-input-string
@@ -114,7 +122,7 @@
          (for-each (lambda (c)
                      (match c
                        ((ns val comments)
-                        (format port "~%~a~{~a~^.~} = ~a~%" (->comments comments) ns (->proper val)))
+                        (format port "~%~a~{~a~^.~} = ~a~%" (->comments comments) ns (->proper (read-config-val ns val))))
                        (else (error create-local-config "BUG: Invalid conf value!" c))))
                    ctb))))
     (let* ((ctb ((@@ (artanis config) default-conf-values)))
@@ -211,6 +219,12 @@
   (gen-readme)
   ;; TODO
   )
+;;Upgrade config from old version to the new one with comments
+(define (upgrade-config)
+  (current-conf-file *current-conf-file*)
+  (current-conf-file)
+  (init-config)
+  (conf-handler "conf"))
 
 (define (create-project name)
   (define (within-another-app?)
@@ -238,6 +252,7 @@
   (define (validname? x)
     (irregex-search "^-.*" x))
   (match args
+    (("create" "--upgrade") (upgrade-config))
     (("create" (or () (? validname?) "help" "--help" "-help" "-h")) (show-help))
     (("create" name) (create-project name))
     (else (show-help))))
