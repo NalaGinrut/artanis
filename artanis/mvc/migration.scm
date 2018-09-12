@@ -86,7 +86,7 @@
   (let ((raw ((@@ (artanis mvc model) parse-raw-fields) fl))
         (mt (map-table-from-DB (current-connection))))
     (format (artanis-current-output) "Creating table `~a'......" name)
-    (mt 'try-create name raw)
+    (apply mt 'try-create name raw)
     (format (artanis-current-output) "Regenerating migration cache......")
     (flush-to-migration-cache name fl)
     (display "DONE.\n" (artanis-current-output))))
