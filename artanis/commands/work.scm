@@ -30,7 +30,8 @@
   #:use-module (ice-9 getopt-long)
   #:use-module (ice-9 regex)
   #:use-module (ice-9 format)
-  #:use-module (ice-9 match))
+  #:use-module (ice-9 match)
+  #:use-module (srfi srfi-1))
 
 ;; `art work' command is used to run the server and make the site/app work
 ;; for clients/browsers.
@@ -51,6 +52,18 @@
     ;; NOTE: this is used for new server-core in the future,
     ;;       but now it's just useless.
     (server (single-char #\s) (value #t))))
+
+
+(define hidden-option-spec
+  '((options-list (value #f))))
+
+(define (option-spec-str)
+  (fold (lambda (value acc) (string-append acc " --" (symbol->string (car value))))
+        (string-append "--" (symbol->string (caar option-spec)))
+        (cdr option-spec)))
+
+(define (display-it x)
+  (format #t "~a\n" x))
 
 (define (try-load-entry)
   (let ((entry (string-append (current-toplevel) "/" *artanis-entry*)))
@@ -108,12 +121,13 @@
   (load-rules))
 
 (define (work . args)
-  (let ((options (if (null? args) '() (getopt-long args option-spec))))
+  (let ((options (if (null? args) '() (getopt-long args (append option-spec hidden-option-spec)))))
     (define-syntax-rule (->opt k) (option-ref options k #f))
     (define-syntax-rule (get-conf-file)
       (or (->opt 'config) (gen-local-conf-file)))
     (cond
      ((->opt 'help) (show-help))
+     ((->opt 'options-list) (display-it (option-spec-str)))
      (else
       (parameterize ((current-conf-file (get-conf-file)))
         (try-load-entry)

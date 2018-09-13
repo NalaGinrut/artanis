@@ -99,10 +99,18 @@
     ((up down create) #t)
     (else #f)))
 
+(define (show-operator-str)
+  (for-each (lambda (op) (display op) (display " ")) *operators*))
+
+(define (show-options-str)
+  (display "VERSION= --debug\n"))
+
 (define (do-migrate . args)
   (define (validname? x)
     (irregex-search "^-.*" x))
   (match args
+    (("migrate" "--operators") (show-operator-str))
+    (("migrate" "--options-list") (show-options-str))
     (("migrate" (or () (? validname?) "help" "--help" "-help" "-h")) (show-help))
     (("migrate" (? valid-operator? op) name . opts)
      (add-to-load-path (current-toplevel))
@@ -115,3 +123,4 @@
 
 (define %summary "DB migration tools.")
 (define main do-migrate)
+
