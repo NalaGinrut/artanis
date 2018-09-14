@@ -83,9 +83,14 @@
                        (passwd-field "passwd") (salt-field "salt"))
     (define (table-checker)
       (let-values (((stored-pw salt) (->passwd rc passwd-field salt-field sql)))
-        (string=? (hmac (post-ref post-data passwd-field)
-                        salt)
-                  stored-pw)))
+        (cond
+         ((or (not stored-pw) (not salt))
+          (DEBUG "Stored PW: ~a, Salt: ~a, SQL: ~a~%" stored-pw salt sql)
+          #f)
+         (else
+          (string=? (hmac (post-ref post-data passwd-field)
+                          salt)
+                    stored-pw)))))
     (define (run-checker)
       (if checker (checker) (table-checker)))
     (case mode
