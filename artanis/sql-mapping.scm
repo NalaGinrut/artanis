@@ -82,10 +82,10 @@
                        #:key (hmac default-hmac) (checker #f)
                        (passwd-field "passwd") (salt-field "salt"))
     (define (table-checker)
-      (let-values (((pw salt) (->passwd rc passwd-field salt-field sql)))
+      (let-values (((stored-pw salt) (->passwd rc passwd-field salt-field sql)))
         (string=? (hmac (post-ref post-data passwd-field)
                         salt)
-                  pw)))
+                  stored-pw)))
     (define (run-checker)
       (if checker (checker) (table-checker)))
     (case mode
