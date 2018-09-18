@@ -57,6 +57,11 @@ _art()
                 COMPREPLY=($(compgen -W "$res" -- "$cur"));
                 return 0;
                 ;;
+            "migrate")
+               local res=`art migrate --scandir-list`
+                COMPREPLY=($(compgen -W "$res" -- "$cur"));
+                return 0;
+                ;;
         esac
     elif [ "$COMP_CWORD" -ge 4 ]; then
         local second=${COMP_WORDS[1]}
