@@ -46,7 +46,7 @@
   (lambda (rc)
     (let ((failed (params rc "login_failed")))
       (tpl->response "login.tpl" (the-environment)))))
-
+(import (artanis irregex))
 (post "/auth" #:auth '(table user "user" "passwd") #:session #t #:from-post #t
   (lambda (rc)
     (cond
@@ -54,7 +54,12 @@
           (and (:auth rc)
                (if (:from-post rc 'get "remember_me")
                    (:session rc 'spawn))))
-      (tpl->response "admin.tpl" (the-environment)))
+      (let* ((headers (request-headers (rc-req rc)))
+             (referer (assoc-ref headers 'referer)))
+      (pk "headers" headers)
+        (if (and referer (not (irregex-search "/login" (uri-path referer))))
+            (pk "hit........."(redirect-to rc referer))
+            (redirect-to rc "/admin"))))
      (else (redirect-to rc "/login?login_failed=true")))))
 
 (define (show-all-articles articles)
@@ -83,4 +88,4 @@
     (:sql-mapping rc 'new-article #:date (strftime "%D" (localtime (current-time))))
     (redirect-to rc "/")))
                                          
-(run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-name "mmr_blog" #:db-passwd "123" #:debug #t)
+(run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-name "mmr_blog" #:db-passwd "123" #:debug #f)

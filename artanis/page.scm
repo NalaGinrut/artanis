@@ -138,6 +138,7 @@
                    (status 200)
                    (mtime (generate-modify-time (current-time)))
                    (request-status 'ok))
+      (run-before-response-hooks rc body)
       (let* ((reformed-body (->bytevector body))
              (response
               (build-response #:code status
@@ -146,7 +147,6 @@
                                           ,(gen-content-length reformed-body)
                                           ,@pre-headers
                                           ,@(generate-cookies (rc-set-cookie rc))))))
-        (run-before-response-hooks rc body)
         (let ((type (assq-ref pre-headers 'content-type)))
           (and type (artanis-log 'client status (car type) #:request (rc-req rc))))
         ;; NOTE: For inner-server, sanitize-response will handle 'HEAD method
@@ -213,7 +213,11 @@
   (response-emit
    ""
    #:status status
-   #:headers `((location . ,(build-uri scheme #:path path))
+   #:headers `((location . ,(cond
+                             ((string? path) (build-uri scheme #:path path))
+                             ((uri? path) path)
+                             (else (throw 'artanis-err 500 redirect-to
+                                          "Invalid path ~a, should be string or uri" path))))
                (content-length . 0)
                (content-type . (text/html)))))
 

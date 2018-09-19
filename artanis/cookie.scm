@@ -111,11 +111,11 @@
     (call-with-output-string
       (lambda (port)
         (format port "~a" nvps)
-        (and expir (format port ";Expires=~a" expir))
-        (and domain (format port ";Domain=~a" domain))
-        (and path (format port ";Path=~a" path))
-        (and secure (display ";Secure" port))
-        (and http-only (display ";HttpOnly" port))))))
+        (and expir (format port "; Expires=~a" expir))
+        (and domain (format port "; Domain=~a" domain))
+        (and path (format port "; Path=~a" path))
+        (and secure (display "; Secure" port))
+        (and http-only (display "; HttpOnly" port))))))
 
 (define (generate-cookies cookies)
   (map (lambda (c) `(set-cookie . ,(cookie->header-string c))) cookies))

@@ -75,8 +75,11 @@
     ret))
 
 (define (get-session-file sid)
-  (format #f "~a/prv/~a/~a.session" (current-toplevel)
-          (get-conf '(session path)) sid))
+  (let ((ct (current-toplevel)))
+    (if ct
+        (format #f "~a/prv/~a/~a.session" (current-toplevel)
+                (get-conf '(session path)) sid)
+        (format #f "session/~a.session" sid))))
 
 (define (new-session rc data expires)
   (let ((expires-str (make-expires expires))
@@ -209,7 +212,7 @@
                         backend:session-ref/simple))
 
 (define (load-session-from-file sid)
-  (let ((f (get-session-file sid)))
+  (let ((f (pk "sfile"(get-session-file sid))))
     (and (file-exists? f) ; if cookie file exists
          (call-with-input-file f read))))
 
@@ -252,7 +255,7 @@
     #f) ; no sid, just do nothing.
    (else
     (DEBUG "[Session] Try to restore session `~a' from file~%" sid)
-    (and=> (load-session-from-file sid) make-session))))
+    (and=> (pk "sid file"(load-session-from-file sid)) make-session))))
 
 (define (backend:session-set/file sb sid k v)
   (let ((ss (load-session-from-file sid)))
