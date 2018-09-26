@@ -263,9 +263,15 @@
                  #:expires expires #:secure secure #:http-only http-only)))
       (else (throw 'artanis-err 500 session-maker "Invalid config mode: ~a" mode))))
   (define (check-it rc idname)
-    (let ((sid (any (lambda (c) (and=> (cookie-ref c idname) car)) (rc-cookie rc))))
-      (and=> (pk "session restore"(session-restore (or sid "")))
-             (lambda (s) (session-from-correct-client? s rc)))))
+    (let* ((sid (any (lambda (c) (and=> (cookie-ref c idname) car)) (rc-cookie rc)))
+           (session (session-restore (or sid ""))))
+      (case session
+        ((expired)
+         (:cookies-remove! rc idname)
+         #f)
+        ((not-found) #f)
+        (else
+         (session-from-correct-client? session rc)))))
   (lambda (rc cmd)
     (match cmd
       ('check (check-it rc "sid"))

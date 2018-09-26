@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -310,16 +310,17 @@
 (define (session-restore sid)
   (let ((session ((session-backend-restore (current-session-backend))
                   (current-session-backend) sid)))
-    (and session
-         (cond
-          ((session-expired? session)
-           (DEBUG "[Session] sid: ~a is expired, destory!~%" sid)
-           (session-destory! sid)
-           #f) ; expired then return #f
-          (else
-           (DEBUG "[Session] Restored session: ~a~%"
-                  (hash-map->list cons session))
-           session))))) ; non-expired, return session
+    (if session
+        (cond
+         ((session-expired? session)
+          (DEBUG "[Session] sid: ~a is expired, destory!~%" sid)
+          (session-destory! sid)
+          'expired) ; expired then return #f
+         (else
+          (DEBUG "[Session] Restored session: ~a~%"
+                 (hash-map->list cons session))
+          session)) ; non-expired, return session
+        'not-found)))
 ;; if no session then return #f
 
 (define (session-store! sid session)
