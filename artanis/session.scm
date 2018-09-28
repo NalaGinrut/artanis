@@ -330,8 +330,12 @@
   session)
 
 (define* (session-spawn rc #:key (data '()) (expires 3600))
+  (define (is-valid-session? s)
+    (case s
+      ((expired not-found) #f)
+      (else s)))
   (let* ((sid (get-new-sid))
-         (session (or (session-restore sid)
+         (session (or (is-valid-session? (session-restore sid))
                       (session-store! sid (new-session rc data expires)))))
     (DEBUG "Session spawned: sid - ~a, data - ~a~%" sid data)
     (values sid session)))

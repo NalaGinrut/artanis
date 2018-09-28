@@ -242,7 +242,7 @@
 ;; for #:session
 (define (session-maker mode rule keys)
   (define* (%spawn rc #:key (idname "sid") (proc session-spawn)
-                   path domain expires secure http-only)
+                   (path "/") domain (expires 3600) secure (http-only #t))
     (call-with-values
         (lambda () (proc rc))
       (lambda (sid session)
@@ -253,14 +253,8 @@
   (define spawn-handler
     (match mode
       ((or #t 'spawn) %spawn)
-      (`(spawn ,sid)
-       (lambda* (rc #:key (path "/") domain (expires 3600) secure (http-only #t))
-         (%spawn rc #:idname sid #:path path #:domain domain
-                 #:expires expires #:secure secure #:http-only http-only)))
-      (`(spawn ,sid ,proc)
-       (lambda* (rc #:key (path "/") domain (expires 3600) secure (http-only #t))
-         (%spawn rc #:idname sid #:proc proc #:path path #:domain domain
-                 #:expires expires #:secure secure #:http-only http-only)))
+      (`(spawn ,sid) (cut %spawn <> #:idname sid <...>))
+      (`(spawn ,sid ,proc) (cut %spawn <> #:idname sid #:proc proc <...>))
       (else (throw 'artanis-err 500 session-maker "Invalid config mode: ~a" mode))))
   (define (check-it rc idname)
     (let* ((sid (any (lambda (c) (and=> (cookie-ref c idname) car)) (rc-cookie rc)))
