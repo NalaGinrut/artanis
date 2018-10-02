@@ -26,7 +26,9 @@
   #:use-module (artanis db)
   #:use-module (ice-9 match)
   #:use-module (ice-9 ftw)
-  #:use-module (ice-9 format))
+  #:use-module (ice-9 format)
+  #:use-module (ice-9 hash-table)
+  #:use-module (srfi srfi-1))
 
 (define (print-options)
   (display "\nOPTIONS:\n")
@@ -99,10 +101,29 @@
     ((up down create) #t)
     (else #f)))
 
+(define (show-operator-str)
+  (for-each (lambda (op) (display op) (display " ")) *operators*))
+
+(define (show-options-str)
+  (display "VERSION= --debug\n"))
+
+(define (show-scandir-str)
+  (define (filter_fun k)
+    (cond ((irregex-search "(.*)_[0-9]+[.]scm" k) => (lambda (m) (irregex-match-substring m 1)))
+          (else #f)))
+
+  (let* ((scandir_list (scandir "db/migration"))
+         (filter_list (filter-map filter_fun scandir_list))
+         (list_to_hash (alist->hash-table (map (lambda(x) (cons x x)) filter_list))))
+    (hash-for-each (lambda (k  v) (display k) (newline)) list_to_hash)))
+
 (define (do-migrate . args)
   (define (validname? x)
     (irregex-search "^-.*" x))
   (match args
+    (("migrate" "--operators") (show-operator-str))
+    (("migrate" "--options-list") (show-options-str))
+    (("migrate" "--scandir-list") (show-scandir-str))
     (("migrate" (or () (? validname?) "help" "--help" "-help" "-h")) (show-help))
     (("migrate" (? valid-operator? op) name . opts)
      (add-to-load-path (current-toplevel))
@@ -115,3 +136,4 @@
 
 (define %summary "DB migration tools.")
 (define main do-migrate)
+

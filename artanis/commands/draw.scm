@@ -28,7 +28,9 @@
   #:use-module (artanis mvc migration)
   #:use-module (ice-9 getopt-long)
   #:use-module (ice-9 format)
-  #:use-module (ice-9 match))
+  #:use-module (ice-9 match)
+  #:use-module (srfi srfi-1))
+
 
 (define %summary "Generate component automatically, say, MVC.")
 
@@ -196,11 +198,32 @@ Example:
              (lambda (h) (apply h name methods)))
       (error do-draw "Invalid component, please see help!" component)))
 
+(define hidden-option-spec
+  '((options-list (value #f))
+    (component (value #f))))
+
+(define (option-spec-str)
+  (fold (lambda (value acc) (string-append acc " --" (symbol->string (car value))))
+        (string-append "--" (symbol->string (caar option-spec)))
+        (cdr option-spec)))
+
+(define (display-it x)
+  (format #t "~a\n" x))
+
+(define (component-handlers-str)
+  (fold (lambda (value acc) (string-append acc " " (car value)))
+        (caar *component-handlers*)
+        (cdr *component-handlers*)))
+
 (define (draw . args)
-  (let ((options (if (null? args) '() (getopt-long args option-spec))))
+  (let ((options (if (null? args) '() (getopt-long args (append option-spec hidden-option-spec)))))
     (define-syntax-rule (->opt k) (option-ref options k #f))
     (cond
      ((or (null? args) (->opt 'help)) (show-help))
+     ((->opt 'options-list)
+      (display-it (option-spec-str)))
+     ((->opt 'component)
+      (display-it (component-handlers-str)))
      (else
       (parameterize ((draw:is-dry-run? (->opt 'dry))
                      (draw:is-force? (->opt 'force))

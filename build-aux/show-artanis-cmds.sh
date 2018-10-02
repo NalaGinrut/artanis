@@ -23,22 +23,66 @@ _art()
 {
     local cur=`_get_cword`
     local cmds=`art list-all-cmds`
-    # TODO: support cmd subcmd & options complete 
-    #local cmd="${COMP_WORDS[1]}"
-    
+    COMPREPLY=()
+
     if [ "$COMP_CWORD" == 1 ]; then
-        for opt in $cmds; do
-            if [[ "$opt" == "$cmd" ]]; then
-                COMPREPLY=("$opt")
-                return
-            fi
-        done
+        COMPREPLY=($(compgen -W "$cmds" -- "$cur"))
+        return
     elif [ "$COMP_CWORD" == 2 ]; then
         # TODO: support cmd options complete
-        return
+        local second=${COMP_WORDS[COMP_CWORD-1]}
+        # create draw help migrate version work
+        case $second in
+            "draw")
+                local res=`art draw --component`
+                COMPREPLY=($(compgen -W "$res" -- "$cur"));
+                return 0;
+                ;;
+            "migrate")
+                local res=`art migrate --operators`
+                COMPREPLY=($(compgen -W "$res" -- "$cur"));
+                return 0;
+                ;;
+            "work")
+                local res=`art work --options-list`
+                COMPREPLY=($(compgen -W "$res" -- "$cur"));
+                return 0;
+                ;;
+        esac
+    elif [ "$COMP_CWORD" == 3 ]; then
+        local second=${COMP_WORDS[1]}
+        case $second in
+            "work")
+                local res=`art work --options-list`
+                COMPREPLY=($(compgen -W "$res" -- "$cur"));
+                return 0;
+                ;;
+            "migrate")
+               local res=`art migrate --scandir-list`
+                COMPREPLY=($(compgen -W "$res" -- "$cur"));
+                return 0;
+                ;;
+        esac
+    elif [ "$COMP_CWORD" -ge 4 ]; then
+        local second=${COMP_WORDS[1]}
+        case $second in
+            "draw")
+                  local res=`art draw --options-list`
+                  COMPREPLY=($(compgen -W "$res" -- "$cur"));
+                  return 0;
+                  ;;
+            "migrate")
+                  local res=`art migrate --options-list`
+                  COMPREPLY=($(compgen -W "$res" -- "$cur"));
+                  return 0;
+                  ;;
+            "work")
+                local res=`art work --options-list`
+                COMPREPLY=($(compgen -W "$res" -- "$cur"));
+                return 0;
+                ;;
+            esac
     fi
-
-    COMPREPLY=($(compgen -W "$cmds" -- "$cur"))
     return
 }
 
