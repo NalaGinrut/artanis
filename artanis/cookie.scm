@@ -41,10 +41,10 @@
 
 ;; inner cookie, you shouldn't use it directly, try new-cookie
 (define-record-type cookie
-  (make-cookie nvp expir domain path secure http-only)
+  (make-cookie nvp expires domain path secure http-only)
   cookie?
   (nvp cookie-nvp cookie-nvp!)          ; Name-Value-Pairs of the cookie
-  (expir cookie-expir cookie-expir!)    ; The expiration in Greenwich Mean Time
+  (expires cookie-expires cookie-expires!)    ; The expiration in Greenwich Mean Time
   (domain cookie-domain cookie-domain!) ; The domain the cookie is good for
   (path cookie-path cookie-path!)       ; The path the cookie is good for
   ;; keep cookie communication limited to encrypted transmission
@@ -52,9 +52,8 @@
   (http-only cookie-httponly cookie-httponly!)); http-only
 
 ;; NOTE: expires should be positive integer
-(define* (cookie-modify ck #:key (expir #f) (domain #f) (path #f)
-                        (secure #f) (http-only #f))
-  (and expir (positive? expir) (cookie-expir! ck (make-expires expir)))
+(define* (cookie-modify ck #:key expires domain path secure http-only)
+  (and expires (positive? expires) (cookie-expires! ck (make-expires expires)))
   (and domain (cookie-domain! ck domain))
   (and path (cookie-path! ck path))
   (and secure (cookie-secure! ck secure))
@@ -103,7 +102,7 @@
 
 (define (cookie->header-string cookie)
   (let ((nvps (string-join (map nvp->string (cookie-nvp cookie)) ";"))
-        (expir (cookie-expir cookie))
+        (expires (cookie-expires cookie))
         (path (cookie-path cookie))
         (domain (cookie-domain cookie))
         (secure (cookie-secure cookie))
@@ -111,7 +110,7 @@
     (call-with-output-string
       (lambda (port)
         (format port "~a" nvps)
-        (and expir (format port "; Expires=~a" expir))
+        (and expires (format port "; Expires=~a" expires))
         (and domain (format port "; Domain=~a" domain))
         (and path (format port "; Path=~a" path))
         (and secure (display "; Secure" port))

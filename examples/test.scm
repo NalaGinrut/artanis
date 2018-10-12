@@ -157,7 +157,7 @@
 (get "/cookie/:expires" #:cookies '(names cc)
      (lambda (rc)
        (:cookies-set! rc 'cc "sid" "123321")
-       (:cookies-setattr! rc 'cc #:expir (string->number (params rc "expires")))
+       (:cookies-setattr! rc 'cc #:expires (string->number (params rc "expires")))
        "ok"))
 
 ;; 15
