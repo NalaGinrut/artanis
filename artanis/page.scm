@@ -218,7 +218,6 @@
                              ((uri? path) path)
                              (else (throw 'artanis-err 500 redirect-to
                                           "Invalid path ~a, should be string or uri" path))))
-               (content-length . 0)
                (content-type . (text/html)))))
 
 (define (reject-method method)
