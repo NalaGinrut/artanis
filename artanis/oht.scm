@@ -184,7 +184,7 @@
   (define current-cref (make-parameter cref))
   (define current-setattr (make-parameter setattr))
   (define current-maker (make-parameter new-cookie))
-  (define (current-ckl) (make-parameter '()))
+  (define current-ckl (make-parameter '()))
   (define (cget ck)
     (or (assoc-ref (current-ckl) ck)
         (throw 'artansi-err 500 cget "Undefined cookie name" ck)))
