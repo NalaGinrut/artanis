@@ -153,7 +153,7 @@
   (define-syntax-rule (try-public rc) (if (auth-enabled? rc) 'private 'public))
   (match pattern
     ;; disable cache explicitly, sometimes users want to make sure there's no any cache.
-    ((#f) non-cache)
+    (#f non-cache)
     (('static maxage0 ...)
      (lambda* (rc #:key (dir #f) (maxage (->maxage maxage0)))
        (let ((filename (if dir
@@ -180,51 +180,54 @@
 ;;       Like crypto cookies.
 (define (cookies-maker mode rule keys)
   (define *the-remove-expires* "Thu, 01-Jan-70 00:00:01 GMT")
-  (define %cookie-set! cookie-set!)
-  (define %cookie-ref cookie-ref)
-  (define %cookie-modify cookie-modify)
-  (define %new-cookie new-cookie)
-  (define ckl '())
+  (define current-cset! (make-parameter cset!))
+  (define current-cref (make-parameter cref))
+  (define current-setattr (make-parameter setattr))
+  (define current-maker (make-parameter new-cookie))
+  (define (current-ckl) (make-parameter '()))
   (define (cget ck)
-    (or (assoc-ref ckl ck)
+    (or (assoc-ref (current-ckl) ck)
         (throw 'artansi-err 500 cget "Undefined cookie name" ck)))
   (define (cset! ck k v)
-    (and=> (cget ck) (cut %cookie-set! <> k v)))
+    (and=> (cget ck) (cut (current-cset!) <> k v)))
   (define (cref ck k)
-    (and=> (cget ck) (cut %cookie-ref <> k)))
+    (and=> (cget ck) (cut (current-cref) <> k)))
   (define (update rc)
-    (rc-set-cookie! rc (map cdr ckl)))
+    (rc-set-cookie! rc (map cdr (current-ckl))))
   (define (setattr ck . kargs)
-    (apply %cookie-modify (cget ck) kargs))
+    (apply (current-setattr) (cget ck) kargs))
   (define (remove rc k)
     (let ((cookies (rc-set-cookie rc)))
       (rc-set-cookie!
        rc
-       `(,@cookies ,(%new-cookie #:npv '((key "")) #:expires *the-remove-expires*)))))
+       `(,@cookies ,((current-maker) #:npv '((key "")) #:expires *the-remove-expires*)))))
   (define-syntax-rule (init-cookies names)
     (for-each
      (lambda (ck)
-       (set! ckl (cons (cons ck (new-cookie)) ckl)))
+       (cons (cons ck (current-maker)) '()))
      names))
-  (match mode
-    (('names names ...) (init-cookies names))
-    (('custom (names ...) maker setter getter modifier)
-     (set! %new-cookie maker)
-     (set! %cookie-set! setter)
-     (set! %cookie-ref getter)
-     (set! %cookie-modify modifier)
-     (init-cookies names))
-    (else (throw 'artansi-err 500 cookies-maker
-                 "Invalid mode while init!" mode)))
-  (lambda (rc op)
+  (define (cookie-handler rc op)
     (case op
-      ((set) cset!)
-      ((ref) cref)
-      ((setattr) setattr)
+      ((set) (current-cset!))
+      ((ref) (current-cref))
+      ((setattr) (current-setattr))
       ((update) update)
       ((remove) remove)
       (else (throw 'artanis-err 500 cookies-maker
-                   "Invalid operation!" op)))))
+                   "Invalid operation!" op))))
+  (match mode
+    (((or 'new 'names) names ...)
+     (parameterize ((current-ckl (init-cookies names)))
+       cookie-handler))
+    (('custom (names ...) maker setter getter modifier)
+     (parameterize ((current-maker maker)
+                    (current-cset! setter)
+                    (current-cref getter)
+                    (current-setattr modifier)
+                    (current-ckl (init-cookies names)))
+       cookie-handler))
+    (else (throw 'artansi-err 500 cookies-maker
+                 "Invalid mode while init!" mode))))
 
 ;; for #:mime
 (define (mime-maker type rule keys)
@@ -244,10 +247,12 @@
   (define* (%spawn rc #:key (idname "sid") (proc session-spawn)
                    (path "/") domain (expires 3600) secure (http-only #t))
     (call-with-values
-        (lambda () (proc rc))
+        (lambda () (proc rc #:expires expires))
       (lambda (sid session)
         (let ((cookie (new-cookie #:npv `((,idname . ,sid))
-                                  #:path "/")))
+                                  #:path "/" #:domain domain
+                                  #:expires expires #:secure secure
+                                  #:http-only http-only)))
           (and cookie (rc-set-cookie! rc (list cookie)))
           sid))))
   (define spawn-handler
@@ -266,15 +271,15 @@
         ((not-found) #f)
         (else
          (session-from-correct-client? session rc)))))
-  (lambda (rc cmd)
+  (lambda (rc cmd . args)
     (match cmd
       ('check (check-it rc "sid"))
       (`(check ,sid) (check-it rc sid))
       ('check-and-spawn
-       (or (check-it rc "sid") (spawn-handler rc)))
+       (or (check-it rc "sid") (apply spawn-handler rc args)))
       (`(check-and-spawn ,sid)
-       (or (check-it rc sid) (spawn-handler rc)))
-      ('spawn (spawn-handler rc))
+       (or (check-it rc sid) (apply spawn-handler rc args)))
+      ('spawn (apply spawn-handler rc args))
       (else (throw 'artanis-err 500 session-maker "Invalid call cmd: ~a" cmd)))))
 
 ;; for #:from-post
