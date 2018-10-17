@@ -127,6 +127,7 @@
                route-context?
                get-header
                get-from-qstr
+               get-referer
 
                ;; csv
                make-csv-reader

@@ -55,7 +55,8 @@
             init-rule-path-regexp!
             init-rule-key-bindings!
             init-query!
-            get-from-qstr))
+            get-from-qstr
+            get-referer))
 
 (define-record-type handler-rc
   (make-handler-rc handler keys oht)
@@ -172,3 +173,12 @@
 (define (get-from-qstr rc key)
   (and (rc-qt rc)
        (and=> (assoc-ref (rc-qt rc) key) car)))
+
+(define* (get-referer rc #:key (except #f))
+  (let* ((headers (request-headers (rc-req rc)))
+         (referer (assoc-ref headers 'referer)))
+    (if referer
+        (if (and except (irregex-search except (uri-path referer)))
+            #f
+            referer)
+        #f)))
