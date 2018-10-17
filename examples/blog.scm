@@ -22,7 +22,8 @@
 
 ;; This is a very simple blog example for artanis
 
-(use-modules (artanis artanis) (artanis utils) (ice-9 local-eval) (srfi srfi-1))
+(use-modules (artanis artanis) (artanis utils) (ice-9 local-eval) (srfi srfi-1)
+             (artanis irregex))
 
 (init-server) ;; make sure call init-server at beginning
 
@@ -30,62 +31,65 @@
 (define footer
   (tpl->html
    `(div (@ (id "footer"))
-         (p "Colt blog-engine based on " 
+         (p "Colt blog-engine based on "
             (a (@ (href "https://github.com/NalaGinrut/artanis")) "Artanis")
             "."))))
 
 (get "/admin" #:session #t
-  (lambda (rc)
-    (cond
-     ((:session rc 'check) (tpl->response "admin.tpl" (the-environment)))
-     (else (redirect-to rc "/login")))))
+     (lambda (rc)
+       (cond
+        ((:session rc 'check) (tpl->response "admin.tpl" (the-environment)))
+        (else (redirect-to rc "/login")))))
 
 ;; NOTE: The default username is admin
 ;;       and the default passwd is 123
-(get "/login"
-  (lambda (rc)
-    (let ((failed (params rc "login_failed")))
-      (tpl->response "login.tpl" (the-environment)))))
-(import (artanis irregex))
+(get "/login" #:session #t
+     (lambda (rc)
+       (let ((failed (params rc "login_failed")))
+         (if (:session rc 'check)
+             (let ((referer (get-referer rc #:referer "/login*")))
+               (if referer
+                   (redirect-to rc referer)
+                   (redirect-to rc "/admin")))
+             (tpl->response "login.tpl" (the-environment))))))
+
 (post "/auth" #:auth '(table user "user" "passwd") #:session #t #:from-post #t
-  (lambda (rc)
-    (cond
-     ((or (:session rc 'check)
-          (and (:auth rc)
-               (if (:from-post rc 'get "remember_me")
-                   (:session rc 'spawn))))
-      (let* ((headers (request-headers (rc-req rc)))
-             (referer (assoc-ref headers 'referer)))
-      (pk "headers" headers)
-        (if (and referer (not (irregex-search "/login" (uri-path referer))))
-            (pk "hit........."(redirect-to rc referer))
-            (redirect-to rc "/admin"))))
-     (else (redirect-to rc "/login?login_failed=true")))))
+      (lambda (rc)
+        (cond
+         ((or (:session rc 'check)
+              (and (:auth rc)
+                   (if (:from-post rc 'get "remember_me")
+                       (:session rc 'spawn))))
+          (let ((referer (get-referer rc #:except "/login*")))
+            (if referer
+                (redirect-to rc referer)
+                (redirect-to rc "/admin"))))
+         (else (redirect-to rc "/login?login_failed=true")))))
 
 (define (show-all-articles articles)
   (fold (lambda (x prev)
           (let ((title (result-ref x "title"))
                 (content (result-ref x "content"))
                 (date (result-ref x "date")))
-            (cons `(div (@ (class "post")) (h2 ,title) 
-                        (p (@ (class "post-date")) ,date) 
+            (cons `(div (@ (class "post")) (h2 ,title)
+                        (p (@ (class "post-date")) ,date)
                         (p ,content))
-                        ;;(div (@ (class "post-meta")) ,meta)
+                  ;;(div (@ (class "post-meta")) ,meta)
                   prev)))
         '() articles))
 
 (get "/search" "waiting, it's underconstruction!")
 
 (get "/" #:raw-sql "select * from article"
-  (lambda (rc)
-    (let* ((articles (:raw-sql rc 'all))
-           (all-posts (tpl->html (show-all-articles articles))))
-      (tpl->response "index.tpl" (the-environment)))))
+     (lambda (rc)
+       (let* ((articles (:raw-sql rc 'all))
+              (all-posts (tpl->html (show-all-articles articles))))
+         (tpl->response "index.tpl" (the-environment)))))
 
 (post "/new_post"
   #:sql-mapping '(add new-article "insert into article (title,content,date) values (${@title},${@content},${date})")
   (lambda (rc)
     (:sql-mapping rc 'new-article #:date (strftime "%D" (localtime (current-time))))
     (redirect-to rc "/")))
-                                         
+
 (run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-name "mmr_blog" #:db-passwd "123" #:debug #f)
