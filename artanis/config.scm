@@ -19,6 +19,7 @@
 
 (define-module (artanis config)
   #:use-module (artanis version)
+  #:use-module (artanis irregex)
   #:use-module (artanis env)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 match)
@@ -234,10 +235,23 @@
     (('port port) (conf-set! '(host port) (->integer port)))
     (else (error parse-namespace-host "Config: Invalid item" item))))
 
+(define (parse-namespace-backend backend)
+  (cond 
+    ((irregex-search "([^@]+)@([^@]*):([0-9]+)" backend)
+      => (lambda (m) 
+          (list (string->symbol (irregex-match-substring m 1))
+                (irregex-match-substring m 2)
+                (string->number (irregex-match-substring m 3)))))
+    (else
+      (if (string? backend)
+        (string->symbol backend)
+        (throw 'backend-invalid
+           (format #f "Parse session backend (~a) failed!~%" backend))))))
+
 (define (parse-namespace-session item)
   (match item
     (('path path) (conf-set! '(session path) path))
-    (('backend backend) (conf-set! '(session backend) (string->symbol backend)))
+    (('backend backend) (conf-set! '(session backend) (parse-namespace-backend backend)))
     (else (error parse-namespace-session "Config: Invalid item" item))))
 
 (define (parse-namespace-upload item)
