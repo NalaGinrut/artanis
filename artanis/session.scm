@@ -22,11 +22,14 @@
   #:use-module (artanis env)
   #:use-module (artanis route)
   #:use-module (artanis db)
+  #:use-module (artanis lpc)
   #:use-module (artanis fprm)
   #:use-module (artanis config)
+  #:use-module (artanis third-party redis)
   #:use-module ((rnrs) #:select (define-record-type))
   #:use-module (web request)
   #:use-module (ice-9 format)
+  #:use-module (ice-9 match)
   #:export (session-set!
             session-ref
             session-expired?
@@ -88,9 +91,6 @@
                     ("client"  . ,ip)
                     ("data"    . ,data))))) ; data is assoc list
 
-;; TODO: Support session-engine:
-;; session.engine = redis or memcached, for taking advantage of k-v-DB.
-
 ;; TODO: session key-values should be flushed into set-cookie in rc, and should be encoded
 ;;       with base64.
 
@@ -104,6 +104,62 @@
    restore ; -> session-backend -> string
    set! ; -> session-backend -> string -> string -> object
    ref)) ; -> session-backend -> string -> string
+
+;; Support session-engine:
+;; session.engine = redis or memcached, for taking advantage of k-v-DB.
+(define (backend:session-init/redis sb)
+    (DEBUG "Init session redis backend is done!  ~%" sb))
+
+(define (backend:session-store/redis sb sid ss)
+  (let ((redis (session-backend-meta sb))
+        (s (object->string (session->alist ss))))
+    (backend-impl:set!/redis redis sid s)))
+
+(define (backend:session-destory/redis sb sid)
+  (let ((redis (session-backend-meta sb)))
+    (if (backend:session-restore/redis sb sid) 
+      (backend-impl:remove!/redis redis sid))
+    (backend-impl:destroy!/redis redis)))
+
+(define (backend:session-restore/redis sb sid)
+  (let* ((redis (session-backend-meta sb))
+        (line (backend-impl:ref/redis redis sid))
+        (ss (and line 
+                 (and=> (call-with-input-string line read) make-session))))
+        ss))
+
+(define (backend:session-set/redis sb sid k v)
+  (let ((redis (session-backend-meta sb)))
+   (cond
+    ((backend:session-restore/redis sb sid)
+     => (lambda (ss) 
+          (hash-set! ss k v)
+          (backend-impl:set!/redis
+            redis
+            sid
+            (object->string (session->alist ss)))))
+   (else
+    (throw 'artanis-err 500 backend:session-restore/redis
+           (format #f "Session id (~a) doesn't hit anything!~%" sid))))))
+
+(define (backend:session-ref/redis sb sid k)
+  (let ((redis (session-backend-meta sb)))
+  (cond
+    ((backend:session-restore/redis sb sid)
+    => (lambda (ss) (assoc-ref (hash-ref ss "data") k)))
+   (else
+     (throw 'artanis-err 500 backend:session-ref/redis
+            (format #f "Session id (~a) doesn't hit anything!~%" sid))))))
+
+(define* (new-session-backend/redis #:key (host "127.0.0.1") (port 6379))
+  (make-session-backend 'redis
+                        (new-lpc-backend/redis #:host host  #:port port)
+                        backend:session-init/redis
+                        backend:session-store/redis
+                        backend:session-destory/redis
+                        backend:session-restore/redis
+                        backend:session-set/redis
+                        backend:session-ref/redis))
 
 ;; session.engine = db, for managing sessions with DB support.
 (define (backend:session-init/db sb)
@@ -343,18 +399,27 @@
 (define *session-backend-table*
   `((simple . ,new-session-backend/simple)
     (db     . ,new-session-backend/db)
-    (file   . ,new-session-backend/file)))
+    (file   . ,new-session-backend/file)
+    (redis  . ,new-session-backend/redis)))
 
 (define (add-new-session-backend name maker)
   (set! *session-backend-table*
     (assoc-set! *session-backend-table* name maker)))
 
+(define (create-new-session conf)
+  (match conf 
+    (('redis host port)
+     (lambda ()
+       ((assoc-ref *session-backend-table* 'redis) #:host host #:port port)))
+    (else (assoc-ref *session-backend-table* conf))))
+
 (define (session-init)
-  (cond
-   ((assoc-ref *session-backend-table* (get-conf '(session backend)))
-    => (lambda (maker)
-         (let ((sb (maker)))
-           ((session-backend-init sb) sb)
-           (change-session-backend! sb))))
-   (else (error (format #f "Invalid session backdend: ~:@(~a~)"
-                        (get-conf '(session backend)))))))
+  (let ((conf (get-conf '(session backend))))
+   (cond
+    ((create-new-session conf)
+     => (lambda (maker)
+          (let ((sb (maker)))
+            ((session-backend-init sb) sb)
+            (change-session-backend! sb))))
+    (else (error (format #f "Invalid session backdend: ~:@(~a~)" conf))))))
+

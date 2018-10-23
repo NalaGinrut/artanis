@@ -1,0 +1,75 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  === Session tests ===
+;;  Copyright (C) 2013,2014,2015,2018
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License as published by
+;;  the Free Software Foundation, either version 3 of the License, or
+;;  (at your option) any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (test cookie)
+  #:use-module (artanis utils)
+  #:use-module (test-suite lib))
+
+;; export all things, since we need to test inner cookie
+(eval-when (eval load compile)
+  (export-all-from-module! '(artanis session))
+  (export-all-from-module! '(artanis config))
+  (export-all-from-module! '(artanis lpc)))
+
+(with-test-prefix "redis test"
+
+  (pass-if "config-set"
+    (let ((conf (list 'redis "127.0.0.1" 6379)))
+     (conf-set! '(session backend) conf)
+     (equal? conf (get-conf '(session backend)))))
+
+  (pass-if "session-store-restore"
+    (let* ((conf (list 'redis "127.0.0.1" 6379))
+           (maker (create-new-session conf))
+           (sb (maker))
+           (k "client")
+           (v "127.0.0.2")
+           (sid (get-new-sid))
+           (s '(("data") ("client" . "127.0.0.1") ("expires" . "Thu, 18 Oct 2018 11:56:45 GMT")))
+           (ss (make-session s)))
+      (backend:session-store/redis sb sid ss)
+      (equal? s (session->alist (backend:session-restore/redis sb sid)))))
+
+  (pass-if "session-set-ref"
+    (let* ((conf (list 'redis "127.0.0.1" 6379))
+           (maker (create-new-session conf))
+           (sb (maker))
+           (sid (get-new-sid))
+           (dkk "Hello")
+           (dkv "World")
+           (dk "data")
+           (dv '(("Hello" . "World")))
+           (s '(("data") ("client" . "127.0.0.1") ("expires" . "Thu, 18 Oct 2018 11:56:45 GMT")))
+           (ss (make-session s)))
+      (backend:session-store/redis sb sid ss)
+      (backend:session-set/redis sb sid dk dv)
+      (equal? dkv (backend:session-ref/redis sb sid dkk))))
+
+  (pass-if "session-set-destory"
+    (let* ((conf (list 'redis "127.0.0.1" 6379))
+           (maker (create-new-session conf))
+           (sb (maker))
+           (redis (session-backend-meta sb))
+           (sid (get-new-sid))
+           (s '(("data") ("client" . "127.0.0.1") ("expires" . "Thu, 18 Oct 2018 11:56:45 GMT")))
+           (ss (make-session s)))
+      (backend:session-store/redis sb sid ss)
+      (backend:session-destory/redis sb sid)
+      (if (backend:session-restore/redis (maker) sid)
+          #f
+          #t))))
+

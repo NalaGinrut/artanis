@@ -44,6 +44,13 @@
             lpc-remove!
             lpc-flush!
 
+            backend-impl:set!/redis
+            backend-impl:remove!/redis
+            backend-impl:destroy!/redis
+            backend-impl:ref/redis
+            backend-impl:set!/redis
+            new-lpc-backend/redis
+
             get-lpc-instance!
             intern-lpc-instance!
             lpc-instance-recycle
@@ -72,7 +79,7 @@
   (redis-send (lpc-backend-impl-meta backend) (redis-set (lpc-prefix key) value)))
 
 (define (backend-impl:remove!/redis backend key)
-  (redis-send (lpc-backend-impl-meta backend) (redis-del (list (lpc-prefix key)))))
+  (redis-send (lpc-backend-impl-meta backend) (redis-del (lpc-prefix key))))
 
 (define (backend-impl:flush!/redis backend)
   (noop))
