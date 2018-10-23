@@ -284,7 +284,7 @@
       (if debug
           (print-websocket-frame body)
           "<websocket-frame>"))
-     (else (throw 'artanis-err 500 ->proper-body-display "Invalid body type!" body))))
+     (else (throw 'artanis-err 500 ->proper-body-display "Invalid body type `~a'!" body))))
   (when (not is-init-server-run?)
     (error "Sorry, but you have to run (init-server) in the begining of you main program!"))
   (and host (conf-set! '(host addr) host))
