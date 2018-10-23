@@ -108,7 +108,7 @@
 ;; Support session-engine:
 ;; session.engine = redis or memcached, for taking advantage of k-v-DB.
 (define (backend:session-init/redis sb)
-    (DEBUG "Init session redis backend is done!  ~%" sb))
+  (DEBUG "Init session redis backend is done!  ~%" sb))
 
 (define (backend:session-store/redis sb sid ss)
   (let ((redis (session-backend-meta sb))
@@ -117,39 +117,39 @@
 
 (define (backend:session-destory/redis sb sid)
   (let ((redis (session-backend-meta sb)))
-    (if (backend:session-restore/redis sb sid) 
-      (backend-impl:remove!/redis redis sid))
+    (if (backend:session-restore/redis sb sid)
+        (backend-impl:remove!/redis redis sid))
     (backend-impl:destroy!/redis redis)))
 
 (define (backend:session-restore/redis sb sid)
   (let* ((redis (session-backend-meta sb))
-        (line (backend-impl:ref/redis redis sid))
-        (ss (and line 
-                 (and=> (call-with-input-string line read) make-session))))
-        ss))
+         (line (backend-impl:ref/redis redis sid))
+         (ss (and line
+                  (and=> (call-with-input-string line read) make-session))))
+    ss))
 
 (define (backend:session-set/redis sb sid k v)
   (let ((redis (session-backend-meta sb)))
-   (cond
-    ((backend:session-restore/redis sb sid)
-     => (lambda (ss) 
-          (hash-set! ss k v)
-          (backend-impl:set!/redis
+    (cond
+     ((backend:session-restore/redis sb sid)
+      => (lambda (ss)
+           (hash-set! ss k v)
+           (backend-impl:set!/redis
             redis
             sid
             (object->string (session->alist ss)))))
-   (else
-    (throw 'artanis-err 500 backend:session-restore/redis
-           (format #f "Session id (~a) doesn't hit anything!~%" sid))))))
+     (else
+      (throw 'artanis-err 500 backend:session-restore/redis
+             "Session id (~a) doesn't hit anything!~%" sid)))))
 
 (define (backend:session-ref/redis sb sid k)
   (let ((redis (session-backend-meta sb)))
-  (cond
-    ((backend:session-restore/redis sb sid)
-    => (lambda (ss) (assoc-ref (hash-ref ss "data") k)))
-   (else
-     (throw 'artanis-err 500 backend:session-ref/redis
-            (format #f "Session id (~a) doesn't hit anything!~%" sid))))))
+    (cond
+     ((backend:session-restore/redis sb sid)
+      => (lambda (ss) (assoc-ref (hash-ref ss "data") k)))
+     (else
+      (throw 'artanis-err 500 backend:session-ref/redis
+             "Session id (~a) doesn't hit anything!~%" sid)))))
 
 (define* (new-session-backend/redis #:key (host "127.0.0.1") (port 6379))
   (make-session-backend 'redis
@@ -247,7 +247,7 @@
     => (lambda (ss) (hash-set! ss k v)))
    (else
     (throw 'artanis-err 500 backend:session-restore/simple
-           (format #f "Session id (~a) doesn't hit anything!~%" sid)))))
+           "Session id (~a) doesn't hit anything!~%" sid))))
 
 (define (backend:session-ref/simple sb sid k)
   (cond
@@ -255,7 +255,7 @@
     => (lambda (ss) (hash-ref (hash-ref ss "data") k)))
    (else
     (throw 'artanis-err 500 backend:session-ref/simple
-           (format #f "Session id (~a) doesn't hit anything!~%" sid)))))
+           "Session id (~a) doesn't hit anything!~%" sid))))
 
 (define (new-session-backend/simple)
   (make-session-backend 'simple
@@ -268,7 +268,7 @@
                         backend:session-ref/simple))
 
 (define (load-session-from-file sid)
-  (let ((f (pk "sfile"(get-session-file sid))))
+  (let ((f (get-session-file sid)))
     (and (file-exists? f) ; if cookie file exists
          (call-with-input-file f read))))
 
@@ -291,8 +291,8 @@
       (DEBUG "Session path `~a' exists, keep it for existing sessions!~%" path))
      (else
       (throw 'artanis-err 500 backend:session-init/file
-             (format #f "Session path `~a' conflict with an existed file!~%"
-                     path))))))
+             "Session path `~a' conflict with an existed file!~%"
+             path)))))
 
 (define (backend:session-store/file sb sid ss)
   (let ((s (session->alist ss)))
@@ -311,7 +311,7 @@
     #f) ; no sid, just do nothing.
    (else
     (DEBUG "[Session] Try to restore session `~a' from file~%" sid)
-    (and=> (pk "sid file"(load-session-from-file sid)) make-session))))
+    (and=> (load-session-from-file sid) make-session))))
 
 (define (backend:session-set/file sb sid k v)
   (let ((ss (load-session-from-file sid)))
@@ -407,7 +407,7 @@
     (assoc-set! *session-backend-table* name maker)))
 
 (define (create-new-session conf)
-  (match conf 
+  (match conf
     (('redis host port)
      (lambda ()
        ((assoc-ref *session-backend-table* 'redis) #:host host #:port port)))
@@ -415,11 +415,10 @@
 
 (define (session-init)
   (let ((conf (get-conf '(session backend))))
-   (cond
-    ((create-new-session conf)
-     => (lambda (maker)
-          (let ((sb (maker)))
-            ((session-backend-init sb) sb)
-            (change-session-backend! sb))))
-    (else (error (format #f "Invalid session backdend: ~:@(~a~)" conf))))))
-
+    (cond
+     ((create-new-session conf)
+      => (lambda (maker)
+           (let ((sb (maker)))
+             ((session-backend-init sb) sb)
+             (change-session-backend! sb))))
+     (else (error (format #f "Invalid session backdend: ~:@(~a~)" conf))))))
