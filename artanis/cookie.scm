@@ -101,7 +101,7 @@
     cookie))
 
 (define (cookie->header-string cookie)
-  (let ((nvps (string-join (map nvp->string (cookie-nvp cookie)) ";"))
+  (let ((nvps (string-join (map nvp->string (cookie-nvp cookie)) "; "))
         (expires (cookie-expires cookie))
         (path (cookie-path cookie))
         (domain (cookie-domain cookie))
