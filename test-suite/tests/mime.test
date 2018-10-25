@@ -33,8 +33,8 @@ User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML,
 ")
 
 (get "/jsonp/:jsonp" #:mime 'jsonp
-  (lambda (rc)
-    (:mime rc '(("name" . "nala") ("age" . "15")) #:jsonp (params rc "jsonp"))))
+     (lambda (rc)
+       (:mime rc '(("name" . "nala") ("age" . "15")) #:jsonp (params rc "jsonp"))))
 
 (define test1-expect-body
   (string->bytevector "func({\"name\" : \"nala\",\"age\" : \"15\"})" "utf-8"))
@@ -60,9 +60,9 @@ User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML,
 
   (pass-if "JSONP simple test"
     (receive (r b) (test-from-request mime-test-1-simple-JSONP)
-             (responses-equal? r b test1-expect-res test1-expect-body)))
+      (responses-equal? r b test1-expect-res test1-expect-body)))
 
   (pass-if "JSONP safe test"
     (receive (r b) (test-from-request mime-test-2-safe-JSONP)
-             (= (response-code r) test2-expect-status)))
+      (= (response-code r) test2-expect-status)))
   )

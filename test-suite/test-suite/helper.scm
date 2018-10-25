@@ -22,7 +22,7 @@
   #:use-module (ice-9 receive)
   #:use-module (srfi srfi-1)
   #:use-module ((rnrs) #:select (bytevector? bytevector=? get-string-all
-                                 string->utf8))
+                                             string->utf8))
   #:export (*unified-modify-time*
             *unified-modify-time-header*
             *unified-global-date*
@@ -60,7 +60,7 @@
     (parameterize ((current-output-port out)
                    (current-error-port err))
       (receive (res b _) (server-handler rq body)
-               ((@@ (web server) sanitize-response) rq res b)))))
+        ((@@ (web server) sanitize-response) rq res b)))))
 
 (define (headers-equal? h1 h2)
   (every (lambda (f)
@@ -74,7 +74,7 @@
      ((string? x) (string->utf8 x))
      (else (error body-equal? "Wrong body type!" x))))
   (bytevector=? (-> b1) (-> b2)))
-  
+
 (define (responses-equal? r1 body1 r2 body2)
   (and (equal? (response-version r1) (response-version r2))
        (equal? (response-code r1) (response-code r2))
