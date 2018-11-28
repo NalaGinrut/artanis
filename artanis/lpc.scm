@@ -73,13 +73,13 @@
   (redis-close (lpc-backend-impl-meta backend)))
 
 (define (backend-impl:ref/redis backend key)
-  (redis-send (lpc-backend-impl-meta backend) (redis-get (lpc-prefix key))))
+  (redis-send (lpc-backend-impl-meta backend) (redis-get (list (lpc-prefix key)))))
 
 (define (backend-impl:set!/redis backend key value)
-  (redis-send (lpc-backend-impl-meta backend) (redis-set (lpc-prefix key) value)))
+  (redis-send (lpc-backend-impl-meta backend) (redis-set (list (lpc-prefix key) value))))
 
 (define (backend-impl:remove!/redis backend key)
-  (redis-send (lpc-backend-impl-meta backend) (redis-del (lpc-prefix key))))
+  (redis-send (lpc-backend-impl-meta backend) (redis-del (list (lpc-prefix key)))))
 
 (define (backend-impl:flush!/redis backend)
   (noop))
