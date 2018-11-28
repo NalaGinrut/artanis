@@ -4,22 +4,18 @@
 ;;
 ;; This file is part of guile-redis.
 ;;
-;; guile-redis is free software; you can redistribute it and/or
-;; modify it under the terms of the GNU General Public License and
-;; the GNU Lesser General Public License as published by the Free
-;; Software Foundation; either version 3 of the License, or (at your
-;; option) any later version.
+;; guile-redis is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or
+;; (at your option) any later version.
 ;;
-;; guile-redis is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License and the GNU Lesser General Public License
-;; for more details.
+;; guile-redis is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+;; General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; and the GNU Lesser General Public License along with guile-redis;
-;; if not, write to the Free Software Foundation, Inc.,
-;; 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+;; along with guile-redis. If not, see https://www.gnu.org/licenses/.
 
 ;;; Commentary:
 
@@ -32,14 +28,14 @@
   #:use-module (srfi srfi-9)
   #:export (redis-command?
             redis-cmd-name
-            redis-cmd-params
+            redis-cmd-args
             redis-cmd-reply))
 
 (define-record-type <redis-command>
-  (create-command name params reply)
+  (create-command name args reply)
   redis-command?
   (name redis-cmd-name)
-  (params redis-cmd-params)
+  (args redis-cmd-args)
   (reply redis-cmd-reply))
 
 (define* (make-command name #:rest args)
@@ -54,13 +50,10 @@
             (lambda (args)
               (apply (lambda* (name #:rest subnames)
                        (let* ((cmd-name (string-join `(,name ,@subnames) " "))
-                              (func-name (string->symbol
-                                          (string-append "redis-"
-                                                         (string-join `(,name ,@subnames)
-                                                                      "-")))))
+                              (func-name (string->symbol (string-append "redis-" (string-join `(,name ,@subnames) "-")))))
                          `(begin
-                            (define* (,func-name #:rest params)
-                              (apply make-command ,(string-upcase cmd-name) params))
+                            (define* (,func-name #:optional args)
+                              (apply make-command ,(string-upcase cmd-name) (if args args #nil)))
                             (module-export! (current-module) '(,func-name)))))
                      args))
             `((,(symbol->string (syntax->datum #'cmd)) ...) ...)))

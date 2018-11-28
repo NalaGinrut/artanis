@@ -4,22 +4,18 @@
 ;;
 ;; This file is part of guile-redis.
 ;;
-;; guile-redis is free software; you can redistribute it and/or
-;; modify it under the terms of the GNU General Public License and
-;; the GNU Lesser General Public License as published by the Free
-;; Software Foundation; either version 3 of the License, or (at your
-;; option) any later version.
+;; guile-redis is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or
+;; (at your option) any later version.
 ;;
-;; guile-redis is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License and the GNU Lesser General Public License
-;; for more details.
+;; guile-redis is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+;; General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; and the GNU Lesser General Public License along with guile-redis;
-;; if not, write to the Free Software Foundation, Inc.,
-;; 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+;; along with guile-redis. If not, see https://www.gnu.org/licenses/.
 
 ;;; Commentary:
 
@@ -73,18 +69,25 @@
       (else (throw 'redis-invalid conn)))))
 
 (define (command->list cmd)
-  (cons (redis-cmd-name cmd) (redis-cmd-params cmd)))
+  (cons (redis-cmd-name cmd)
+        (map (lambda (v)
+               (cond
+                ((string? v) v)
+                ((symbol? v) (symbol->string v))
+                ((number? v) (number->string v))
+                (else (throw 'redis-invalid))))
+             (redis-cmd-args cmd))))
 
 (define (command->string cmd)
   (let ((l (command->list cmd)))
     (call-with-output-string
       (lambda (port)
-	(simple-format port "*~a\r\n" (length l))
-	(for-each
-	 (lambda (e)
-	   (simple-format port "$~a\r\n" (bytevector-length (string->utf8 e)))
-	   (simple-format port "~a\r\n" e))
-	 l)))))
+        (simple-format port "*~a\r\n" (length l))
+        (for-each
+         (lambda (e)
+           (simple-format port "$~a\r\n" (bytevector-length (string->utf8 e)))
+           (simple-format port "~a\r\n" e))
+         l)))))
 
 (define (send-command conn cmd)
   (let ((sock (redis-socket conn)))
