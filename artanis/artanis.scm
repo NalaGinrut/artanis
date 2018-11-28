@@ -51,6 +51,7 @@
                response-error-emit
                run-after-request!
                run-before-response!
+               run-when-sigint!
                emit-response-with-file
                static-page-emitter
 
