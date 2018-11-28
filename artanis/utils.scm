@@ -70,7 +70,7 @@
             alist->klist alist->kblist is-hash-table-empty?
             symbol-downcase symbol-upcase normalize-column run-before-run!
             sxml->xml-string run-after-request! run-before-response! run-when-DB-init!
-            make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
+            run-when-sigint! make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
             generate-kv-from-post-qstr handle-proper-owner run-after-websocket-handshake!
             generate-data-url verify-ENTRY exclude-dbd
             draw-expander remove-ext scan-app-components cache-this-route!
@@ -718,6 +718,12 @@
 (define (run-after-websocket-handshake! proc)
   (add-hook! *after-websocket-handshake-hook* proc))
 
+(define (run-when-sigint! proc)
+  (add-hook! *when-sigint-hook* proc))
+
+(define (run-when-sigint-hook)
+  (run-hook *when-sigint-hook*))
+
 ;; NOTE: For `pipeline' methodology, please read my post:
 ;; http://nalaginrut.com/archives/2014/04/25/oba-pipeline-style%21
 (define (make-pipeline . procs)
@@ -1090,7 +1096,9 @@
               (dynamic-wind
                 (lambda ()
                   (set! handler
-                    (sigaction SIGINT (lambda (sig) (throw 'interrupt)))))
+                    (sigaction SIGINT (lambda (sig)
+                                        (run-when-sigint-hook)
+                                        (throw 'interrupt)))))
                 thunk
                 (lambda ()
                   (if handler

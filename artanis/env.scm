@@ -34,6 +34,7 @@
             *before-run-hook*
             *after-websocket-handshake-hook*
             *DB-conn-init-hook*
+            *when-sigint-hook*
             *sql-mapping-lookup-table*
             *artanis-entry*
             %current-toplevel
@@ -88,6 +89,7 @@
 (define *before-run-hook* (make-hook))
 (define *DB-conn-init-hook* (make-hook 1))
 (define *after-websocket-handshake-hook* (make-hook 2))
+(define *when-sigint-hook* (make-hook))
 
 ;; TODO: I don't have much time for it but it should be RB-Tree in the future
 (define *sql-mapping-lookup-table* (make-hash-table))
