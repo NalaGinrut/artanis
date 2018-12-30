@@ -36,8 +36,8 @@
   (display announce-foot))
 
 (define conf-header
-"##  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-##  Copyright (C) 2015,2016,2017
+  "##  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+##  Copyright (C) 2015,2016,2017,2018
 ##      \"Mu Lei\" known as \"NalaGinrut\" <NalaGinrut@gmail.com>
 ##  Artanis is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU General Public License as published by
@@ -58,7 +58,8 @@
 ## ---------------------------------------------------------------------
 
 ## Please read the manual or /etc/artanis/default.conf if you have problem
-## to understand these items.\n
+## to understand these items.
+
 ")
 
 (define conf-footer "\n\n## End Of Artanis conf.\n")
@@ -104,27 +105,27 @@
     (define (read-config-val k val)
       (let ((usr-val (get-conf k)))
         (if (or (not (file-exists? *current-conf-file*))
-             (not usr-val))
+                (not usr-val))
             val
             usr-val)))
     (define (->cstr ctb)
       (define (->comments str)
         (call-with-input-string
-         str
-         (lambda (port)
-           (let lp ((rst-string "")
-                    (line (read-line port)))
-             (if (eof-object? line)
-                 rst-string
-                 (lp (string-append rst-string "## " line "\n") (read-line port)))))))
+            str
+          (lambda (port)
+            (let lp ((rst-string "")
+                     (line (read-line port)))
+              (if (eof-object? line)
+                  rst-string
+                  (lp (string-append rst-string "## " line "\n") (read-line port)))))))
       (call-with-output-string
-       (lambda (port)
-         (for-each (lambda (c)
-                     (match c
-                       ((ns val comments)
-                        (format port "~%~a~{~a~^.~} = ~a~%" (->comments comments) ns (->proper (read-config-val ns val))))
-                       (else (error create-local-config "BUG: Invalid conf value!" c))))
-                   ctb))))
+        (lambda (port)
+          (for-each (lambda (c)
+                      (match c
+                        ((ns val comments)
+                         (format port "~%~a~{~a~^.~} = ~a~%" (->comments comments) ns (->proper (read-config-val ns val))))
+                        (else (error create-local-config "BUG: Invalid conf value!" c))))
+                    ctb))))
     (let* ((ctb ((@@ (artanis config) default-conf-values)))
            (cstr (->cstr ctb))
            (fp (open-file (-> "artanis.conf") "w")))
