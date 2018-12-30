@@ -300,11 +300,12 @@ session.path = <PATH>")
 
     ((session backend)
      simple
-     "Specify session engine. There are 3 backends:
+     "Specify session engine. Here're supported backends:
 simple: uses hash table for memcache.
 db: uses RDBMS for storing sessions.
 file: stores session information into text files.
-session.engine = simple | db | file | <third-party-engine>")
+redis: uses Redis for managing sessions.
+session.engine = simple | db | file | redis | redis@addr:port | <third-party-engine>")
 
     ((upload types)
      (jpg png gif)
