@@ -93,6 +93,7 @@ etc-conf:
 	$(V)$(eval AELOG=build.err.etc-conf)
 	$(V)script -e -c "$(GUILE) -L $(SRC) -c '((@@ (artanis commands create) conf-handler) \"$(SRC)/etc/artanis/\")'" -f $(AELOG) > /dev/null || (cat $(AELOG) && exit 15)
 	$(V)-rm -f etc/artanis/README
+	$(V)if [ -e $(AELOG) ]; then cat $(AELOG) | grep warning; rm $(AELOG); :; fi
 
 announce: release.gz release.bz2
 	$(V) $(ANN_GEN) --release-type=$(RELEASE_TYPE) --package-name=artanis --previous-version=$(PREV_VER) --current-version=$(VERSION) --gpg-key-id=$(GPG_KEY) --url-directory=$(URL_DIR) --news=NEWS --bootstrap-tools=$(BOOT_TOOLS)
