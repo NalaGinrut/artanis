@@ -90,7 +90,7 @@ $(MOD)/version.scm:
 .PHONY: upload upload.gz upload.bz2 announce release.gz release.bz2 prepare clean modules install distclean distclean-mk bin version test docs scripts clean-obj etc-conf
 
 etc-conf:
-	$(V)$(GUILE) -L ./ -c '((@@ (artanis commands create) conf-handler) "etc/artanis/")'
+	$(V)script -e -c "$(GUILE) -L ./ -c '((@@ (artanis commands create) conf-handler) \"etc/artanis/\")'" -f $(AELOG) > /dev/null || (cat $(AELOG) && exit 15)
 	$(V)-rm -f etc/artanis/README
 
 announce: release.gz release.bz2
