@@ -3,7 +3,7 @@ bin/art
 *.info
 *.pdf
 build.log
-build.err
+build.err*
 #configure
 obj/*
 *.so

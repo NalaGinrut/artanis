@@ -6,7 +6,7 @@ GUILD := @GUILD@
 VERSION := @PACKAGE_VERSION@
 SHELL := /bin/bash
 RELEASE_TYPE := stable
-PREV_VER := 0.2.4
+PREV_VER := 0.2.5
 GPG_KEY := F53B4C5695B5E4D56093432484696772846A0058
 BOOT_TOOLS := autoconf,guile
 URL_DIR := "http://ftp.gnu.org/gnu/artanis/"
@@ -90,7 +90,8 @@ $(MOD)/version.scm:
 .PHONY: upload upload.gz upload.bz2 announce release.gz release.bz2 prepare clean modules install distclean distclean-mk bin version test docs scripts clean-obj etc-conf
 
 etc-conf:
-	$(V)script -e -c "$(GUILE) -L ./ -c '((@@ (artanis commands create) conf-handler) \"etc/artanis/\")'" -f $(AELOG) > /dev/null || (cat $(AELOG) && exit 15)
+	$(V)$(eval AELOG=build.err.etc-conf)
+	$(V)script -e -c "$(GUILE) -L $(SRC) -c '((@@ (artanis commands create) conf-handler) \"$(SRC)/etc/artanis/\")'" -f $(AELOG) > /dev/null || (cat $(AELOG) && exit 15)
 	$(V)-rm -f etc/artanis/README
 
 announce: release.gz release.bz2
