@@ -63,8 +63,9 @@ mod-ofile := $(subst $(MOD)/,$(MOD_OBJ)/,$(mod-ofile))
 
 test-cases := $(shell find $(TESTS) -name '*.test')
 
-ALL_TARGETS :=	version \
-		modules \
+ALL_TARGETS :=	version	 \
+		modules	 \
+		etc-conf \
 		scripts
 
 all: Makefile $(ALL_TARGETS)
@@ -86,7 +87,11 @@ $(MOD)/version.scm:
 	$(V)cat $(HEADER) > $@
 	$(V)$(GUILE) -c '(let ((port (open-file "$@" "a")))(format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"GNU Artanis-~a\")~%" "$(VERSION)"))'
 
-.PHONY: upload upload.gz upload.bz2 announce release.gz release.bz2 prepare clean modules install distclean distclean-mk bin version test docs scripts clean-obj
+.PHONY: upload upload.gz upload.bz2 announce release.gz release.bz2 prepare clean modules install distclean distclean-mk bin version test docs scripts clean-obj etc-conf
+
+etc-conf:
+	$(V)$(GUILE) -L ./ -c '((@@ (artanis commands create) conf-handler) "etc/artanis/")'
+	$(V)-rm -f etc/artanis/README
 
 announce: release.gz release.bz2
 	$(V) $(ANN_GEN) --release-type=$(RELEASE_TYPE) --package-name=artanis --previous-version=$(PREV_VER) --current-version=$(VERSION) --gpg-key-id=$(GPG_KEY) --url-directory=$(URL_DIR) --news=NEWS --bootstrap-tools=$(BOOT_TOOLS)
