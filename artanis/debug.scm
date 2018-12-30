@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2016
+;;  Copyright (C) 2015,2016,2018
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -45,9 +45,9 @@
 ;; FIXME: do we need to monitor deleted files? how?
 (define (init-debug-monitor)
   (set! debug-file-watcher-loops
-        (map (lambda (p)
-               (cons p (make-inotify-watching-loop p)))
-             (append *monitored-files* (get-conf '(debug monitor))))))
+    (map (lambda (p)
+           (cons p (make-inotify-watching-loop p)))
+         (append *monitored-files* (get-conf '(debug monitor))))))
 
 ;; TODO: Here we should get rid of various temp files, include Emacs'.
 ;;       Feel free to add more if any necessary.
@@ -75,7 +75,7 @@
                    "File `~a/~a' changed, need to reload!~%" p name)
            (lp (itorator) (cons name ret)))
           (else (lp (itorator) ret))))
-        (else (throw 'artanis-err 500
+        (else (throw 'artanis-err 500 get-all-changed-files
                      "[DEBUG] get-all-changed-files: Invalid event returned!"
                      event))))))
 
@@ -88,7 +88,7 @@
     (define (re-init-work)
       ((@@ (artanis commands work) clean-stuffs))
       (when (string=? path "app/controllers")
-            (hash-clear! *controllers-table*))) ; clean all rules
+        (hash-clear! *controllers-table*))) ; clean all rules
     (define (do-some-magic)
       (match path
         ("app/models" (use-modules (artanis mvc model)))
@@ -98,7 +98,7 @@
     (for-each
      (lambda (f)
        (do-some-magic)
-       (load (format #f "~a/~a/~a" (current-toplevel) path f)))
+       (load (format #f "~a/~a" path f)))
      (get-all-changed-files path))
     (reload-rules))
   (for-each reload-module-with-path
