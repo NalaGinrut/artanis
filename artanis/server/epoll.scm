@@ -250,6 +250,7 @@
       (lambda (ret errno)
         (cond
          ((>= ret 0) (epoll-event-set->list events ret))
+         ((= errno EINTR) (epoll-wait epfd events timeout))
          (else
           (throw 'artanis-err 500 epoll-wait "~a: ~a"
                  (list epfd events maxevents timeout (strerror errno))
