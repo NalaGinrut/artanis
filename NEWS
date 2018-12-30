@@ -98,3 +98,23 @@ Changes in 0.2.6
 * Notable changes
 Replace md5 with a better version from Gran Weinholt <goran@weinholt.se>, this fixed strange bugs in previous implementation.
 Fixed wrong DESTDIR path.
+
+Changes in 0.3
+* Notable changes
+Failed release.
+
+Changes in 0.3.1
+* Notable changes
+- Support Websocket named-pipe
+- Authentication use HMAC
+- Support optional third-party server-core
+- Support Redis
+- Fixed FD leaking in server-core
+- Ragnarok will not quit when encountered exceptions
+- Support DB timeout reconnecting
+- :from-post supports json-mapping
+- Added create --upgrade command to upgrade old config to new one with comments
+- added inline docs to generated artanis.conf
+- Redis as session backend
+- Fixed inconsistent design in cookies
+- Fixed tons of bugs
