@@ -45,79 +45,306 @@
 ;;       `->list' anywhere.
 (define (default-conf-values)
   `(;; for DB namespace
-    ((db enable) #f "")
-    ((db dbd) mysql "")
-    ((db proto) tcp "")
-    ((db addr) "127.0.0.1:3306" "")
-    ((db socketfile) #f "")
-    ((db username) "root" "")
-    ((db passwd) "" "")
-    ((db name) ,(or (current-appname) "artanis") "")
-    ((db engine) InnoDB "")
-    ((db poolsize) 64 "")
-    ((db pool) increase "") ; increase or fixed
-    ;; whether to encode params each time
-    ;; NOTE: If you enable db.encodeparams then it's better to decode the related value
-    ;;       twice in the client-side, since some requests may be sent from browsers, and
-    ;;       they're already encoded.
-    ((db encodeparams) #f "")
-    ((db lpc) #f "") ; enable LPC, this may require Redis
+    ((db enable)
+     #f
+     "Whether to use a database, if disabled, the database won't be initialized
+in the beginning, which saves memory and boot time.
+Some users may want to use GNU Artanis without configuring any databases, if
+that's your case please set it to `false' to avoid unintended errors.
+db.enable = <boolean>")
+
+    ((db dbd)
+     mysql
+     "What database server should be used, depends on the database installed
+on your machine.
+NOTE: If you use MariaDB then you should set it to mysql.
+db.dbd = mysql | postgresql | sqlite3")
+
+    ((db proto)
+     tcp
+     "The protocol for connecting the databse. If you use tcp, a socket port
+must be specified in the address. And if you choose socketfile, then you should
+specify the unix socket file managed by database server.
+db.proto = tcp | socketfile")
+
+    ((db addr)
+     "127.0.0.1:3306"
+     "The address of the database server.
+For example, MariaDB by default uses localhost:3306.
+db.addr = <string>")
+
+    ((db socketfile)
+     #f
+     "If you configured the database server to connect to a unix socket file,
+then you should fill this field with the file name.
+db.socketfile = <string>")
+
+    ((db username)
+     "root"
+     "User name to connect to the database server.
+db.username = <string>")
+
+    ((db passwd)
+     ""
+     "Password of the user to connect to the database server.
+db.passwd = <string>")
+
+    ((db name)
+     ,(or (current-appname) "artanis")
+     "The database name.
+db.name = <string>")
+
+    ((db engine)
+     InnoDB
+     "The engine of the database server.
+NOTE: for sqlite3, you must leave this field blank, as `db.engine = '
+If you remove this item, the default value InnoDB will be used.
+db.engine = <string>")
+
+    ((db poolsize)
+     64
+     "The size of DB connection pool. If the specified size is less then required,
+then the task will be scheduled and sleep till there's available DB connection.
+db.poolsize = <integer>")
+
+    ((db pool)
+     increase
+     "The management mode of DB connection pool:
+`increase' for increasing the pool size if any necessary, however it won't reduce back.
+`fixed' will not increase the pool size, if it lacks of DB connections, then it will
+be scheduled.
+db.pool = increase | fixed")
+
+    ((db encodeparams)
+     #f
+     "Whether to encode params automatically.
+NOTE: If you enable db.encodeparams then it's better to decode the related value
+twice in the client-side, since some requests may be sent from browsers, and
+they're already encoded.
+db.encodeparams = <boolean>")
+
+    ((db lpc)
+     #f
+     "Enable LPC (Lightweight Persistent Cache), this may require Redis.
+db.lpc = <boolean>")
 
     ;; for server namespace
-    ((server info) ,artanis-version "")
-    ((server nginx) #f "")
-    ((server charset) "utf-8" "")
+    ((server info)
+     ,artanis-version
+     "Specify your own server info. It'll be Artanis-x.x.x by default, adding
+the artanis version number.
+server.info = <string>")
+
+    ((server nginx)
+     #f
+     "If you want to use Nginx for reversed-proxy, please enable it.
+server.nginx = enable | disable")
+
+    ((server charset)
+     "utf-8"
+     "Charset in server side. utf-8 in default.
+NOTE: Don't change it unless you know what you're doing!
+server.charset = <string>")
+
     ;; FIXME: use local pages
-    ((server syspage path) "/etc/artanis/pages" "")
-    ((server backlog) 128 "")
-    ((server wqlen) 64 "") ; work queue maxlen
-    ((server trigger) edge "")
-    ((server engine) ragnarok "")
-    ((server timeout) 60 "") ; in seconds, zero for always short live connections.
-    ((server polltimeout) 500 "") ; in miliseconds
-    ;; From "HOP, A Fast Server for the Diffuse Web", Serrano.
-    ((server bufsize) 12288 "") ; in Bytes
+    ((server syspage path)
+     "/etc/artanis/pages"
+     "The path of status page. You may customize your own status pages.
+If you're using application folder from `art create', then you may add your
+customized status pages in sys/pages, for example, if you create 404.html in
+sys/pages, then it will overload the original 404 page.
+server.syspage.path = <string>")
+
+    ((server backlog)
+     128
+     "Backlog of the socket.
+NOTE: Don't change it unless you really know what you're doing!
+server.backlog = <integer>")
+
+    ((server wqlen)
+     64
+     "The length of the work queue in Artanis server.
+server.wqlen = <integer>")
+
+    ((server trigger)
+     edge
+     "The trigger mode of epoll. Please read epoll man page to know more.
+server.trigger = edge | level")
+
+    ((server engine)
+     ragnarok
+     "The server core which is used for holding high concurrent connections.
+Artanis has a strong server core named Ragnarok, which is based on
+delimited-continuations to provide asynchronous non-blocking high concurrent serving.
+You may choose guile inner server which is weak, but useful when you are running
+Artanis on an operating system lacking key features to run Raganrok. For example,
+in GNU/Hurd, which has no epoll.
+You may choose fibers server implemented with threads and delimited continuations,
+which is preemptable by the timer you set.
+For more details please see https://github.com/wingo/fibers/wiki/Manual.
+server.engine = ragnarok | guile | fibers | <customized engine>")
+
+    ((server timeout)
+     60
+     "Timeout for any connection to Artanis (in seconds).
+0 for always short live connections.
+server.timeout = <integer>")
+
+    ((server polltimeout)
+     500
+     "The the timeout for each event polling round, in miliseconds.
+server.polltimeout = <integer>")
+
+    ((server bufsize)
+     12288
+     "The buffer size (in bytes) of the connecting socket.
+In Ragnarok server core, the request handling will be scheduled when the socket
+buffer is full. This item affects the performance of socket I/O largely.
+Usually, if you're handling a large amount of small requests, it's better to set
+the buffer size to a small value.
+But if you're providing some kind of downloading or uploading service, it's better
+to set it to a larger one.
+A large buffer size will increase the latency of unserved requests.
+Please read the `Ragnarok server core' chapter to learn the design principle,
+if you need to do some tweaking.
+server.bufsize = <integer>")
+
     ;; NOTE: Only for Linux-3.9+
     ;;       One kernel features is necessary:
     ;;       SO_REUSEPORT (since 3.9)
     ;;       Allows mutiple servers to listen to the same socket port, say 8080.
-    ((server multi) #t "")
-    ((server websocket) #t "")
-    ((server pub) "pub" "") ; the public directory
-    ((server sendfile) #f "")
+    ((server multi)
+     #t
+     "This is the most significant feature of Ragnarok server core.
+Please remember that there're no threads in GNU Artanis.
+All the tasks are based on delimited continuations, this kind of design is the
+so-called Green Threads, or modern terminology, Co-routines.
+GNU/Linux has introduced a feature named SO_REUSEPORT since 3.9.
+This feature let us start multiple Artanis instances listening to the same socket
+port. When requests come, the Linux kernel will do the necessary lock and allocation
+work for us to dispatch requests to these Artanis instances.
+server.multi = <boolean>")
 
-    ;; for WebSocket
-    ((websocket maxpayload) ,(1- (ash 1 64)) "") ; in bytes (only for fragment)
-    ((websocket minpayload) 1 "") ; enlarge it to avoid slow 1-byte attack (only for fragment)
-    ((websocket fragment) 4096 "") ; the fragment size in bytes
-    ((websocket maxsize) ,(ash 1 10) "") ; in bytes, the upload size from websocket
-    ((websocket timeout) 64 "") ; timeout in websocket connnection, in seconds
+    ((server websocket)
+     #t
+     "Enable WebSocket.
+server.websocket = <boolean>")
+
+    ((server pub)
+     "pub"
+     "The path to public directory, this is useful for public static resources,
+for exaample, css/img/js, etc.
+server.pub = <string>")
+
+    ((server sendfile)
+     #f
+     "Whether to use Linux specified sendfile interface.
+server.sendfile = <boolean>")
+
+    ((websocket maxpayload)
+     ,(1- (ash 1 64))
+     "The maximum payload size of WebSocket request in bytes. If it exceeds, then it
+will be segemented.
+websocket.maxpayload = <integer>")
+
+    ((websocket minpayload)
+     1
+     "The minimum payload size of WebSocket request in bytes.
+Enlarge it to avoid slow 1-byte attack (only for fragment).
+websocket.minpayload = <integer>")
+
+    ((websocket fragment)
+     4096
+     "If fragment >= 0, then it's the size of the websocket frame fragment.
+If fragment = 0, then the websocket frame will not be fragmented.
+websocket.fragment = <integer>")
+
+    ((websocket maxsize)
+     ,(ash 1 10)
+     "Maximum upload size in bytes from WebSocket request, the exceeded request
+will be fobidden.
+websocket.maxsize = <integer>")
+
+    ((websocket timeout)
+     64
+     "Timeout of WebSocket request, in seconds.
+websocket.timeout = <integer>")
 
     ;; for host namespace
-    ((host name) #f "")
-    ((host addr) "127.0.0.1" "")
+    ((host name)
+     #f
+     "If disabled, you will have to use the IP address to connect instead of the
+hostname. e.g. `host.addr = 127.0.0.1'.
+host.name = enable | disable | <boolean>")
 
-    ((host port) 3000 "")
-    ((host family) ipv4 "")
+    ((host addr)
+     "127.0.0.1"
+     "The URL/IP of your hosting site.
+host.addr = <URL> | <IP>")
+
+    ((host port)
+     3000
+     "The listening port of your hosting site.
+host.port = <integer>")
+
+    ((host family)
+     ipv4
+     "Specify the protocol family.
+host.family = ipv4 | ipv6")
 
     ;; for session namespace
-    ((session path) "session" "")
-    ((session backend) simple "")
+    ((session path)
+     "session"
+     "Specify the session files path. Change according to your session engine.
+session.path = <PATH>")
 
-    ;; for upload namespace
-    ((upload types) (jpg png gif) "")
-    ((upload path) "upload" "")
-    ((upload size) 5242880 "") ; 5M
+    ((session backend)
+     simple
+     "Specify session engine. There are 3 backends:
+simple: uses hash table for memcache.
+db: uses RDBMS for storing sessions.
+file: stores session information into text files.
+session.engine = simple | db | file | <third-party-engine>")
+
+    ((upload types)
+     (jpg png gif)
+     "Specify allowed upload file type, say, upload.types = jpg,png,gif.
+upload.types = <item-list>")
+
+    ((upload path)
+     "upload"
+     "The path to put the uploaded files.
+upload.path = <PATH>")
+
+    ((upload size)
+     5242880  ; 5MB
+     "The size limitation of uploaded file in bytes.
+upload.size = <interger>")
 
     ;; for mail namespace
     ;; ((mail sender) "/usr/sbin/sendmail")
 
-    ;; for cache namespace
-    ((cache maxage) 3600 "") ; in seconds
+    ((cache maxage)
+     3600
+     "The maximum age of a cached page in seconds.
+This is the global maxage of any cache.
+If you want to specify maxage for certain page, please read the manual about the Cache.
+cache.maxage = <integer>")
 
-    ;; for debug mode
-    ((debug enable) #f "")
-    ((debug monitor) () ""))) ; user specified monitoring paths
+    ((debug enable)
+     #f
+     "Wheather to enable debug mode.
+If you enable debug mode, Artanis will print debug information verbosely.
+The module you modified will be reloaded instantly, and the page view will be rendered as well.
+NOTE: This option will affect the performance, please use it for debug purposes only./
+debug.enable = <boolean>")
+
+    ((debug monitor)
+     ()
+     "The paths that needs to be monitored in debug-mode.
+This will take advantage of `inotify' in GNU/Linux kernel.
+NOTE: We may support GNU/Hurd as well, with its file monitor mechanism, in the future.
+debug.monitor = <PATHs>")))
 
 ;; Init all fields with default values
 (for-each (lambda (x) (conf-set! (car x) (cadr x))) (default-conf-values))
