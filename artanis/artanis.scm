@@ -209,6 +209,11 @@
   (init-lpc)
   (check-invalid-config)
   (sigaction SIGPIPE SIG_IGN) ; surpass SIGPIPE signal since we want to handle EPIPE by self
+  (sigaction SIGINT (lambda (i)
+                      (run-when-sigint-hook)
+                      (format (artanis-current-output)
+                              "~%Fare you well, you server is cold.~%")
+                      (quit)))
   (set! is-init-server-run? #t))
 
 (define* (form-tag #:key (controller #f) (action #f) (method #f)
