@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017,2018
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -69,7 +69,7 @@
             keyword->string range oah->handler oah->opts string->keyword
             alist->klist alist->kblist is-hash-table-empty?
             symbol-downcase symbol-upcase normalize-column run-before-run!
-            sxml->xml-string run-after-request! run-before-response! run-when-DB-init!
+            sxml->xml-string run-after-request! run-before-response! run-when-DB-init! run-when-sigint-hook
             run-when-sigint! make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
             generate-kv-from-post-qstr handle-proper-owner run-after-websocket-handshake!
             generate-data-url verify-ENTRY exclude-dbd
