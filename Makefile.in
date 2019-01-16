@@ -181,7 +181,6 @@ distclean-mk:
 	-rm -f Makefile
 
 version: $(SRC)/.ARTANIS-VERSION $(SRC)/configure
-	$(V)-rm -fr $(MOD)/version.scm
 	$(V)$(MAKE) $(MOD)/version.scm
 
 modules: $(MOD_OBJ)/version.go $(mod-ofile)
