@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2017,2018
+;;  Copyright (C) 2013,2014,2015,2017,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -213,7 +213,8 @@
           (checkout-the-path real-path path-mode)
           (let ((fp (open-file des-file "wb")))
             (put-bv fp body (mfd-begin mfd) (mfd-end mfd))
-            (and sync (force-output fp)))
+            (and sync (force-output fp))
+            (close fp))
           (handle-proper-owner des-file uid gid)
           (chmod des-file mode))))))
 
@@ -373,7 +374,7 @@
     ;; Guile web module will count Content-Length for you.
     (http-post uri
                #:body body
-               #:headers `((Content-Type  ,ct)))))
+               #:headers `((Content-Type . ,ct)))))
 
 (define (is-mfds? x)
   (and (list? x) (every mfd? x)))
