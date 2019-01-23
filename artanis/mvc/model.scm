@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2018
+;;  Copyright (C) 2015,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -252,13 +252,13 @@
           (apply h type opts)
           (throw 'artanis-err 500 parse-raw-fields
                  "Invalid field type `~a'!" type))))
-  (let lp((next lst) (ret '()))
+  (let lp((next lst) (main '()) (options '()))
     (match next
-      (() (reverse ret))
+      (() `(,(reverse main) ,@(reverse options)))
       (((? keyword? k) v rest ...)
-       (lp rest (list v k ret)))
+       (lp rest main `(,v ,k ,@options)))
       ((((? symbol? name) (? symbol? type) . (or (? null? opts) ((opts ...)))) rest ...)
-       (lp rest (cons `(,name ,@(->type type opts)) ret)))
+       (lp rest (cons `(,name ,@(->type type opts)) main) options))
       (else (throw 'artanis-err 500 parse-raw-fields
                    "Invalid field definition!" next)))))
 

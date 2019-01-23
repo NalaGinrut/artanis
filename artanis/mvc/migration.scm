@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2017,2018
+;;  Copyright (C) 2015,2017,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -86,7 +86,7 @@
   (let ((raw ((@@ (artanis mvc model) parse-raw-fields) fl))
         (mt (map-table-from-DB (current-connection))))
     (format (artanis-current-output) "Creating table `~a'......" name)
-    (mt 'try-create name raw)
+    (apply mt 'try-create name raw)
     (format (artanis-current-output) "Regenerating migration cache......")
     (flush-to-migration-cache name fl)
     (display "DONE.\n" (artanis-current-output))))
