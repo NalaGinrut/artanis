@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2017,2018
+;;  Copyright (C) 2017,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -287,7 +287,7 @@
          (head2 (generate-head2 len)))
     (put-u8 port head1)
     (put-u8 port head2)
-    (when (> len 126)
+    (when (> len 125)
       (write-payload-size port len))
     (put-bytevector port (websocket-frame/client-payload frame))
     (force-output port)))
@@ -319,7 +319,7 @@
       (let* ((head (websocket-frame-head frame))
              (opcode (%get-opcode head))
              (payload (websocket-frame-payload frame))
-             (size (pk "---size"(websocket-frame-payload-length frame)))
+             (size (websocket-frame-payload-length frame))
              (mask (websocket-frame-mask frame)))
         (format port "<websocket-frame:~%")
         (format port "~10thead: ~a~%" head)
