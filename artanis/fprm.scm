@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017,2018
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -294,31 +294,39 @@
        (else sql)))))
 
 (define *exception-opts*
-  '(#:no-edit))
+  '(#:no-edit #:default #:comment #:storage))
 (define (is-exception-opt? x)
   (memq x *exception-opts*))
 
 (define (->mysql-opts x opts)
-  (define-syntax-rule (->value x)
-    (format #f "~:@(~a~) ~a" x (kw-arg-ref opts x)))
+  (define-syntax-rule (->value o x)
+    (format #f "~:@(~a~) ~s" o (kw-arg-ref opts x)))
   (case x
     ((#:not-null) "NOT NULL")
     ((#:null) "NULL")
-    ((#:default) (->value x))
+    ((#:default) (->value 'default x))
     ((#:unique) "UNIQUE")
     ((#:unique-key) "UNIQUE KEY")
     ((#:primary-key) "PRIMARY KEY")
     ((#:key) "KEY")
     ((#:auto-increment) "AUTO_INCREMENT")
-    ((#:comment) (->value x))
+    ((#:comment) (->value 'comment x))
     ((#:column-format) "COLUMN_FORMAT")
-    ((#:storage) (->value x))
+    ((#:storage) (->value 'storage x))
     ((#:reference-definition) "reference_definition")
     (else
-     (if (is-exception-opt? x)
-         ""
-         (throw 'artanis-err 500 ->mysql-opts
-                "Invalid opts `~a' for MySQL table definition!" x)))))
+     (cond
+      ((keyword? x)
+       (if (is-exception-opt? x)
+           ""
+           ;; Throw exception for invalid keyword
+           (throw 'artanis-err 500 ->mysql-opts
+                  "Invalid opts `~a' for MySQL table definition!" x)))
+      (else
+       ;; Just ignore the non-keyword, since there're only 2 situations:
+       ;; 1. The value of option has already been fetched.
+       ;; 2. Invalid item here, neither keyword as options, nor valid value.
+       "")))))
 
 (define (->postgresql-opts dbd opts)
   (format #t "PostgreSQL migration hasn't been supported yet!~%"))
