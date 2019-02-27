@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017,2018
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -368,7 +368,7 @@ debug.monitor = <PATHs>")))
 
 (define-syntax-rule (->none/boolean x)
   (case (string->symbol (string-downcase x))
-    ((false no none null) #f)
+    ((false no none null disable) #f)
     (else x)))
 
 (define-syntax-rule (->integer x)
