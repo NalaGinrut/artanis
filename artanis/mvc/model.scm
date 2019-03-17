@@ -263,7 +263,8 @@
                    "Invalid field definition!" next)))))
 
 ;; For example:
-;; (define-person
+;; (create-artanis-model
+;;   people
 ;;   (id auto (#:not-null #:primary-key))
 ;;   (first_name char-field (#:maxlen 30 #:not-null))
 ;;   (last_name char-field (#:maxlen 30 #:not-null)))
@@ -271,6 +272,8 @@
   (lambda (x)
     (syntax-case x ()
       ((_ name) (identifier? #'name)
+       #'(error (format #f "You have created model `~a' without any definition!" name)))
+      ((_ name rest rest* ...) (identifier? #'name)
        #`(begin
            ;; NOTE: we have to encapsulate them to a module for protecting namespaces
            ;; NOTE: we're not going to imort (artanis env) directly to avoid revealing global
@@ -280,21 +283,19 @@
              #:use-module (artanis utils)
              #:use-module (artanis db)
              #:use-module (artanis fprm))
-           (define-syntax #,(datum->syntax #'name (symbol-append 'define- (syntax->datum #'name)))
-             (syntax-rules ::: ()
-                           ((_ rest rest* :::)
-                            (define-public #,(datum->syntax #'name (symbol-append '$ (syntax->datum #'name)))
-                              (let* ((raw (parse-raw-fields (list `rest `rest* :::)))
-                                     (mt (map-table-from-DB (current-connection)))
-                                     (meta (create-model-meta (list `rest `rest* :::))))
-                                (when (not (mt 'table-exists? name))
-                                  (format (artanis-current-output)
-                                          "Creating table `~a' defined in model......"
-                                          name)
-                                  (mt 'try-create name raw)
-                                  (format (artanis-current-output) "Done.~%"))
-                                (lambda (cmd . args)
-                                  (apply mt cmd 'name (fix-fields cmd args meta))))))))
+           (define-public #,(datum->syntax #'name (symbol-append '$ (syntax->datum #'name)))
+             (let ((raw (parse-raw-fields (list `rest `rest* ...)))
+                   (mt (map-table-from-DB (current-connection))))
+               (when (not (mt 'table-exists? 'name))
+                 (format (artanis-current-output)
+                         "Creating table `~a' defined in model......"
+                         'name)
+                 (apply mt 'try-create 'name raw)
+                 (flush-to-migration-cache 'name (list `rest `rest* ...))
+                 (try-to-load-migrate-cache 'name)
+                 (format (artanis-current-output) "Done.~%"))
+               (lambda (cmd . args)
+                 (apply mt cmd 'name args))))
            (try-to-load-migrate-cache 'name))))))
 
 (define (gen-model-header name)
