@@ -272,7 +272,7 @@
   (lambda (x)
     (syntax-case x ()
       ((_ name) (identifier? #'name)
-       #'(error (format #f "You have created model `~a' without any definition!" name)))
+       #'(error (format #f "You have created model `~a' without any definition!" 'name)))
       ((_ name rest rest* ...) (identifier? #'name)
        #`(begin
            ;; NOTE: we have to encapsulate them to a module for protecting namespaces
