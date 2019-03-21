@@ -112,8 +112,10 @@ prepare:
 	$(V) rm -fr $(TARBALL_NAME)
 	$(V) cp -fr $(TOP)/. $(TMP_DIR)
 	$(V) $(MAKE) -C $(TMP_DIR) distclean
+	$(V) ./autogen.sh
 	$(V) git --git-dir=$(TMP_DIR)/.git --work-tree=$(TMP_DIR) clean -fdqX
 	$(V) rm -fr $(TMP_DIR)/.git
+	$(V) cp -f configure $(TMP_DIR)
 	$(V) mv $(TMP_DIR) $(TOP)/$(TARBALL_NAME)
 
 $(TARBALL_NAME).tar.bz2:

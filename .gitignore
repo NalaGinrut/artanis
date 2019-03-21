@@ -61,3 +61,4 @@ artanis/version.scm
 ltmain.sh
 libtool
 examples/upload
+configure
