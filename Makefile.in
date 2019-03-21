@@ -113,6 +113,7 @@ prepare:
 	$(V) cp -fr $(TOP)/. $(TMP_DIR)
 	$(V) $(MAKE) -C $(TMP_DIR) distclean
 	$(V) ./autogen.sh
+	$(V) ./configure
 	$(V) git --git-dir=$(TMP_DIR)/.git --work-tree=$(TMP_DIR) clean -fdqX
 	$(V) rm -fr $(TMP_DIR)/.git
 	$(V) cp -f configure $(TMP_DIR)
