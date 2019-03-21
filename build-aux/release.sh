@@ -12,5 +12,7 @@ git tag -a -m"release $1" v"$1"
 make prepare
 make announce
 
+echo "\n======================================"
 echo "Now run 'make upload'"
 echo "Then 'git push origial all --tags'"
+echo "======================================\n"
