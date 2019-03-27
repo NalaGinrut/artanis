@@ -141,7 +141,7 @@
 
 (define-syntax-rule (check-field-value type r)
   (unless r
-    (throw 'artanis-err 500
+    (throw 'artanis-err 500 'check-field-value
            (format #f "~a check failed: ~a" type r))))
 
 (define (auto-field-validator v)
