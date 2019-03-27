@@ -20,6 +20,7 @@
 (define-module (artanis mvc model)
   #:use-module (artanis utils)
   #:use-module (artanis env)
+  #:use-module (artanis config)
   #:use-module (artanis fprm)
   #:use-module (artanis db)
   #:use-module (artanis irregex)
@@ -64,6 +65,25 @@
       (lambda (opts kv)
         (list (cadr kv) opts))))))
 
+(define *db-specific-types*
+  '((mysql
+     (text . longtext)
+     (boolean . boolean))
+    (postgresql
+     (text . text)
+     (boolean . boolean))
+    (sqlite3
+     (text . text)
+     (boolean . integer))))
+
+(define (db-specific-type type)
+  (or
+   (assoc-ref
+    (assoc-ref *db-specific-types* (get-conf '(db dbd)))
+    type)
+   (throw 'artanis-err 500 db-specific-type
+          "Invalid DB specific type `~a'" type)))
+
 (define (general-field-handler name . opts)
   (define (get-maxlen lst) (get-kw-val #:maxlen lst))
   (define (get-diswidth lst) (get-kw-val #:diswidth lst))
@@ -79,15 +99,20 @@
     ((small-integer) `(smallint ,@(get-diswidth opts)))
     ;; 64 long integer
     ((big-integer) (list 'integer 64 opts))
-    ;; NOTE: No, we may not going to provide binary field, in Django, binary field could be
-    ;;       used to store data which is upto 4GB into DB. It is a bad design IMO.
+    ;; NOTE: No, we may not going to provide fix-sized binary field, in Django,
+    ;;       BinaryField could be used to store data which is upto 4GB into DB.
+    ;;       It is a bad design to store binary BLOB directly IMO.
     ;; Raw binary data
     ;; ((binary) (list 'longblob opts)) ; longblob for mysql
-    ((boolean) (list 'boolean opts))
+    ;; NOTE: Unlimited sized plain text field is still acceptable.
+    ;;       It's OK if you convert blob into base64 string to text field.
+    ;;       But remember that you pay what you choose.
+    ((text) (list (db-specific-type 'text) opts))
+    ((boolean) (list (db-specific-type 'boolean) opts))
     ;; Integer part is the total number of digits.
     ;; Fractional part is the number of digits following the decimal point.
     ((float) `(float ,@(get-integer-fractional-part opts)))
-    ((double) (pk "double"`(double ,@(get-integer-fractional-part opts))))
+    ((double) `(double ,@(get-integer-fractional-part opts)))
     ((char-field) `(varchar ,@(get-maxlen opts)))))
 
 (define (date-field-handler now . opts)
