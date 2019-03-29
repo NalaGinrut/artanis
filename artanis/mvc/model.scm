@@ -132,6 +132,7 @@
     (boolean . ,general-field-handler)
     (float . ,general-field-handler)
     (double . ,general-field-handler)
+    (text . ,general-field-handler)
     (char-field . ,general-field-handler)
     (date-field . ,date-field-handler)))
 
