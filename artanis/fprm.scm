@@ -377,19 +377,24 @@
         (lambda () (->type/opts x))
       (lambda (types opts)
         (format #f "~{~a~^ ~}" (list (car types) (->sql-type (cdr types)) opts)))))
+  (define (gen-primary-keys primary-keys)
+    (if (null? primary-keys)
+        ""
+        (format #f "PRIMARY KEY (~{~a~^,~})" primary-keys)))
   ;; TODO: We need a mechanism to sync tables constrained by foreign-keys, since some DB doesn't
   ;;       support foreign keys directly, so we have to provide it outside.
   ;; TODO: who to deal with constrained tables without foreign-keys in stateless?
   (lambda* (tname defs #:key (if-exists? #f) (engine (get-conf '(db engine)))
                   (dump #f) (primary-keys '()))
     (let* ((types (map ->types defs))
+           (pks (gen-primary-keys primary-keys))
            (sql (case if-exists?
                   ((overwrite drop)
                    (table-drop! tname)
-                   (->sql create table tname (types) engine))
+                   (->sql create table tname (types pks) engine))
                   ((ignore)
-                   (->sql create table if not exists tname (types) engine))
-                  (else (->sql create table tname (types) engine)))))
+                   (->sql create table if not exists tname (types pks) engine))
+                  (else (->sql create table tname (types pks) engine)))))
       (cond
        ((not dump)
         (DB-query conn sql)
