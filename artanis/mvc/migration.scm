@@ -88,7 +88,6 @@
     (format (artanis-current-output) "Creating table `~a'......" name)
     (apply mt 'try-create name raw)
     (format (artanis-current-output) "Regenerating migration cache......")
-    (flush-to-migration-cache name fl)
     (display "DONE.\n" (artanis-current-output))))
 
 (define (change-table name cl)

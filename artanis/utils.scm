@@ -78,8 +78,7 @@
             handle-existing-file check-drawing-method DEBUG
             subbv->string subbv=? bv-read-line bv-read-delimited put-bv
             bv-u8-index bv-u8-index-right build-bv-lookup-table filesize
-            plist-remove gen-migrate-module-name try-to-load-migrate-cache
-            flush-to-migration-cache gen-local-conf-file with-dbd
+            plist-remove gen-migrate-module-name gen-local-conf-file with-dbd
             call-with-sigint define-box-type make-box-type unbox-type
             ::define did-not-specify-parameter colorize-string-helper
             colorize-string WARN-TEXT ERROR-TEXT REASON-TEXT
@@ -1037,27 +1036,6 @@
     => (lambda (m) (irregex-match-substring m 1)))
    (else (throw 'artanis-err 500 gen-migrate-module-name
                 "Wrong parsing of module name, shouldn't be here!" f))))
-
-(define (try-to-load-migrate-cache name)
-  (let ((file (format #f "~a/tmp/cache/migration/~a.scm" (current-toplevel) name)))
-    (cond
-     ((file-exists? file) (load file))
-     (else
-      (format (artanis-current-output)
-              "[WARN] No cache for migration of `~a'~%" name)
-      (format (artanis-current-output)
-              "Run `art migrate up ~a', then try again!~%" name)))))
-
-(define (flush-to-migration-cache name fl)
-  (let ((file (format #f "~a/tmp/cache/migration/~a.scm" (current-toplevel) name)))
-    (when (file-exists? file) (delete-file file))
-    (call-with-output-file file
-      (lambda (port)
-        (format port "(define-~a~%" name)
-        (for-each
-         (lambda (ft) (format port "~2t~a~%" ft))
-         fl)
-        (format port "~2t)~%")))))
 
 (define (gen-local-conf-file)
   (format #f "~a/conf/artanis.conf" (current-toplevel)))

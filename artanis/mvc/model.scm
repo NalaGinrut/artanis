@@ -299,7 +299,11 @@
     (syntax-case x ()
       ((_ name) (identifier? #'name)
        #`(begin
-           (define-module (app models name))
+           (define-module (app models name)
+             #:use-module (artanis artanis)
+             #:use-module (artanis utils)
+             #:use-module (artanis db)
+             #:use-module (artanis fprm))
            (format (artanis-current-output)
                    (WARN-TEXT "You have created model `~a' without any definition!~%")
                    'name)))
@@ -321,12 +325,9 @@
                          "Creating table `~a' defined in model......"
                          'name)
                  (apply mt 'try-create 'name raw)
-                 (flush-to-migration-cache 'name (list `rest `rest* ...))
-                 (try-to-load-migrate-cache 'name)
                  (format (artanis-current-output) "Done.~%"))
                (lambda (cmd . args)
-                 (apply mt cmd 'name args))))
-           (try-to-load-migrate-cache 'name))))))
+                 (apply mt cmd 'name args)))))))))
 
 (define (gen-model-header name)
   (call-with-output-string
