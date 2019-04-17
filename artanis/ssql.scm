@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2018
+;;  Copyright (C) 2013,2014,2015,2016,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -183,9 +183,9 @@
      (->where end (sql-delete from table) (sql-where rest ...)))))
 
 (define-syntax sql-create
-  (syntax-rules (table as select index unique on if exists not database)
+  (syntax-rules (table view as select index unique on if exists not database)
     ;; NOTE: don't use it directly, please take advantage of fprm.
-    ;; (->sql create table 'mmr '("name varchar(10)" "age int(5)"))
+    ;; (->sql create table 'mmr ("name varchar(10)" "age int(5)"))
     ((_ table name (columns columns* ...) engine ...)
      (-> end "create table ~a (~{~a~^,~}) ~a"
          name (->combine columns columns* ...) (->engine engine ...)))
@@ -195,7 +195,9 @@
     ((_ table if not exists name (columns columns* ...) engine ...)
      (-> end "create table if not exists ~a (~{~a~^,~}) ~a"
          name (->combine columns columns* ...) (->engine engine ...)))
-    ;;(->sql create view 'mmr select '(a b) from 'tmp where "a=1 and b=2")
+    ;; (->sql create view 'mmr as select '(a b) from 'tmp where '(and (= a 1) (= b 2)))
+    ;; or equivalent to
+    ;; (->sql create view 'mmr as select '(a b) from 'tmp (where #:a "1" #:b "2"))
     ((_ view name as select rest ...)
      (-> end "create view ~a as select ~a" (sql-select rest ...)))
     ;; (->sql create index 'PersonID on 'Persons '(PersonID))
