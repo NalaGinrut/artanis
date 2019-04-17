@@ -79,7 +79,7 @@
     ((op2 a1 a2) (->op2 op2 a1 (->string a2)))
     ((opn ll ...) (->opn opn ll))
     (((l1 ...) ll ...) (map ->cond (cons l1 ll)))
-    (else (throw 'artanis-err 500 "invalid sql syntax!" lst))))
+    (else (throw 'artanis-err 500 ->cond "invalid sql syntax!" lst))))
 
 (define-syntax-rule (->combine col col* ...)
   (if (list? col)
@@ -397,4 +397,4 @@
     (() "")
     ((column (? list? vals))
      (format #f " ~a in (~{~s~^,~}) " column vals))
-    (else (throw 'artanis-err 500 "/in: Invalid args" lst))))
+    (else (throw 'artanis-err 500 /in "Invalid args" lst))))
