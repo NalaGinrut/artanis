@@ -82,9 +82,10 @@
     (else (throw 'artanis-err 500 ->cond "invalid sql syntax!" lst))))
 
 (define-syntax-rule (->combine col col* ...)
-  (if (list? col)
-      (append col (list col* ...))
-      (list col col* ...)))
+  (filter (lambda (x) (not (string-null? x)))
+          (if (list? col)
+              (append col (list col* ...))
+              (list col col* ...))))
 
 (define-syntax sql-where
   (syntax-rules (select in like between and is null limit)
