@@ -208,8 +208,9 @@
    (else #f))) ; wrong param causes 404
 
 ;; 301 is good for SEO and avoid some client problem
-;; Use `URL scheme' incase users need to redirect to HTTPS or others.
-(define* (redirect-to rc path #:key (status 301) (scheme 'http))
+;; Use `URL scheme' in case users need to redirect to HTTPS or others.
+(define* (redirect-to rc path #:key (status 301) (scheme 'http) (type '(text/html))
+                      (headers '()))
   (response-emit
    ""
    #:status status
@@ -218,7 +219,8 @@
                              ((uri? path) path)
                              (else (throw 'artanis-err 500 redirect-to
                                           "Invalid path ~a, should be string or uri" path))))
-               (content-type . (text/html)))))
+               (content-type . ,type)
+               ,@headers)))
 
 (define (reject-method method)
   (throw 'artanis-err 405 "Method is not allowed" method))
