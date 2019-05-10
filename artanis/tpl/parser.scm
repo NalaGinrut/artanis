@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017,2018
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -26,25 +26,29 @@
   #:use-module (system base lalr)
   #:export (tpl-read))
 
+(define should-expand? (make-parameter #t))
+
 (define (tpl-read port)
   (make-reader make-parser make-tpl-tokenizer port))
+
+(define (include-the-file args)
+  (let ((filename (string-trim-both
+                   (format #f "~a/pub/~a" (current-toplevel) args))))
+    (if (file-exists? filename)
+        ;;(format #f "~s" (cat filename #f))
+        (call-with-input-string (cat filename #f) tpl-read)
+        (throw 'artanis-err 500 include-the-file
+               "Included file `~a' in template doesn't exist!" filename))))
 
 (define (gen-command cmd args)
   (define-syntax-rule (-> x)
     (string-trim-both x (lambda (ch) (char-set-contains? char-set:whitespace ch))))
   (let ((pub (basename (get-conf '(server pub)))))
     (case cmd
-      ((include)
-       (let ((filename (string-trim-both
-                        (format #f "~a/pub/~a" (current-toplevel) args))))
-         (if (file-exists? filename)
-             (format #f "~s" (cat filename #f))
-             (throw 'artanis-err 500 gen-command
-                    "Included file `~a' in template doesn't exist!" filename))))
       ((css)
-       (format #f "\"<link rel=\\\"stylesheet\\\" href=\\\"/~a/css/~a\\\">\"" pub (-> args)))
+       (format #f "\"<link rel=\\\"stylesheet\\\" href=\\\"/~a/css/~a\\\" />\"" pub (-> args)))
       ((icon)
-       (format #f "\"<link rel=\\\"icon\\\" href=\\\"/~a/img/~a\\\" type=\\\"image/x-icon\\\">\"" pub (-> args)))
+       (format #f "\"<link rel=\\\"icon\\\" href=\\\"/~a/img/~a\\\" type=\\\"image/x-icon\\\" />\"" pub (-> args)))
       ((js)
        (format #f "\"<script type=\\\"text/javascript\\\" src=\\\"/~a/js/~a\\\"> </script>\"" pub (-> args)))
       (else
@@ -53,13 +57,14 @@
 
 (define (make-parser)
   (lalr-parser
-   (code disp-code html command) ; terminal tokens
+   (code disp-code html include command) ; terminal tokens
 
    (tpls (tpls tpl) : (string-concatenate (list $1 $2))
          (tpl) : $1
          (*eoi*) : *eof-object*)
 
    (tpl (html) : (string-trim-both $1)
+        (include) : (include-the-file (cdr $1))
         (command) : (string-concatenate `("(display " ,(gen-command (car $1) (cdr $1)) ")"))
         (program) : $1)
 

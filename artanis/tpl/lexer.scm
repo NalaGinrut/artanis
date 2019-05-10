@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017
+;;  Copyright (C) 2013,2014,2015,2016,2017,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -43,7 +43,7 @@
 
 (define (new-ctx)
   (make-lex-ctx #f #f #f #\nl))
-  
+
 (define* (next-is-code-start? c port ctx #:optional (mode 'type))
   (let ((c2 (peek-char port))
         (enter-string (lex-ctx-enter-string ctx)))
@@ -57,7 +57,7 @@
             ((char=? c3 sshow)
              (read-char port)
              'disp-code)
-            (else 
+            (else
              (read-char port)
              'code))))
         ((check) #t)
@@ -103,23 +103,23 @@
 (define (get-the-html port ctx)
   (let ((enter-string (lex-ctx-enter-string ctx))
         (code-start (lex-ctx-code-start ctx)))
-   (let lp((html (read-html port)) (ret '()))
-     (let ((c (read-char port)))
-       (cond
-        ((or (eof-object? c) 
-             (and (not enter-string)
-                  (or (next-is-code-start? c port ctx 'check)
-                      (next-is-cmd-start? c port ctx 'check))))
-         (unget-char1 c port) ; #\<
-         (string-concatenate 
-          `("(display \""
-            ,(string-concatenate-reverse (cons html ret))
-            "\")"))) ; exit
-        ((char=? #\" c)
-         (lex-ctx-enter-string-set! ctx (not enter-string))
-         (lp (read-html port) (cons html ret)))
-        (else
-         (lp (read-html port) (cons (string c) (cons html ret)))))))))
+    (let lp((html (read-html port)) (ret '()))
+      (let ((c (read-char port)))
+        (cond
+         ((or (eof-object? c)
+              (and (not enter-string)
+                   (or (next-is-code-start? c port ctx 'check)
+                       (next-is-cmd-start? c port ctx 'check))))
+          (unget-char1 c port) ; #\<
+          (string-concatenate
+           `("(display \""
+             ,(string-concatenate-reverse (cons html ret))
+             "\")"))) ; exit
+         ((char=? #\" c)
+          (lex-ctx-enter-string-set! ctx (not enter-string))
+          (lp (read-html port) (cons html ret)))
+         (else
+          (lp (read-html port) (cons (string c) (cons html ret)))))))))
 
 (define* (next-is-cmd-start? c port ctx #:optional (mode 'type))
   (let ((c2 (peek-char port))
@@ -135,7 +135,7 @@
         (else (throw 'artanis-err 500 next-is-code-start?
                      "invalid mode `~a'" mode))))
      (else #f))))
-      
+
 (define (next-token port ctx)
   (let* ((enter-string (lex-ctx-enter-string ctx))
          (code-start (lex-ctx-code-start ctx))
@@ -147,7 +147,7 @@
                  (next-token port ctx))))
     (cond
      ((eof-object? c) '*eoi*)
-     ((or (and (not (char=? last-char #\\)) (char=? c #\")) (char=? c #\')) 
+     ((or (and (not (char=? last-char #\\)) (char=? c #\")) (char=? c #\'))
       ;; not an escaped double-quote
       ;; NOTE: HTML string may contain #\' as string quote, and we'll
       ;;       handle all code-string in get-the-code, so it's OK to
@@ -161,7 +161,10 @@
      ((and (not enter-string) (not cmd-start) (next-is-cmd-start? c port ctx))
       => (lambda (cmd)
            (lex-ctx-cmd-start-set! ctx #f)
-           (return port 'command (cons cmd (get-the-code port ctx)))))
+           (return port (if (eq? cmd 'include)
+                            'include
+                            'command)
+                   (cons cmd (get-the-code port ctx)))))
      (else
       (unget-char1 c port)
       (return port 'html (get-the-html port ctx))))))
@@ -173,11 +176,11 @@
 (define* (make-token-checker tokenizer)
   (lambda* (src #:optional (mode 'slim))
     (let ((tokens (call-with-input-string src tokenizer)))
-    (case mode
-      ((slim) (map lexical-token-category tokens))
-      ((all) tokens)
-      (else (throw 'artanis-err 500 make-token-checker
-                   "make-token-checker: wrong mode `~a'" mode))))))
+      (case mode
+        ((slim) (map lexical-token-category tokens))
+        ((all) tokens)
+        (else (throw 'artanis-err 500 make-token-checker
+                     "make-token-checker: wrong mode `~a'" mode))))))
 
 (define (tpl-tokenizer port)
   (let lp ((out '()))
