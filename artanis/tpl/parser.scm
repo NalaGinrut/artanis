@@ -21,6 +21,7 @@
   #:use-module (artanis utils)
   #:use-module (artanis env)
   #:use-module (artanis config)
+  #:use-module (artanis irregex)
   #:use-module (artanis tpl utils)
   #:use-module (artanis tpl lexer)
   #:use-module (system base lalr)
@@ -31,6 +32,7 @@
 (define (tpl-read port)
   (make-reader make-parser make-tpl-tokenizer port))
 
+(define *url-re* (string->irregex "(http|https)://*"))
 (define (include-the-file args)
   (let ((filename (string-trim-both
                    (format #f "~a/pub/~a" (current-toplevel) args))))
@@ -43,14 +45,29 @@
 (define (gen-command cmd args)
   (define-syntax-rule (-> x)
     (string-trim-both x (lambda (ch) (char-set-contains? char-set:whitespace ch))))
+  (define-syntax-rule (->url pub args)
+    (let ((file (-> args)))
+      (cond
+       ((irregex-search *url-re* file)
+        args)
+       (else
+        (case cmd
+          ((css) (format #f "/~a/css/~a" pub file))
+          ((icon) (format #f "/~a/img/~a" pub file))
+          ((js module) (format #f "/~a/js/~a" pub file))
+          (else
+           (throw 'artanis-err 500 gen-command
+                  "Invalid command `~a' in template!" cmd)))))))
   (let ((pub (basename (get-conf '(server pub)))))
     (case cmd
       ((css)
-       (format #f "\"<link rel=\\\"stylesheet\\\" href=\\\"/~a/css/~a\\\" />\"" pub (-> args)))
+       (format #f "\"<link rel=\\\"stylesheet\\\" href=\\\"~a\\\" />\"" (->url pub args)))
       ((icon)
-       (format #f "\"<link rel=\\\"icon\\\" href=\\\"/~a/img/~a\\\" type=\\\"image/x-icon\\\" />\"" pub (-> args)))
+       (format #f "\"<link rel=\\\"icon\\\" href=\\\"~a\\\" type=\\\"image/x-icon\\\" />\"" (->url pub args)))
+      ((module)
+       (format #f "\"<script type=\\\"module\\\" src=\\\"~a\\\"> </script>\"" (->url pub args)))
       ((js)
-       (format #f "\"<script type=\\\"text/javascript\\\" src=\\\"/~a/js/~a\\\"> </script>\"" pub (-> args)))
+       (format #f "\"<script type=\\\"text/javascript\\\" src=\\\"~a\\\"> </script>\"" (->url pub args)))
       (else
        (throw 'artanis-err 500 gen-command
               "Invalid command `~a' in template!" cmd)))))
