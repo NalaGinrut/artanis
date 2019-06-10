@@ -19,3 +19,5 @@ Thanks these guys who gave me help:
   Reported and helped to fixed many bugs in Ragnarok.
 * jian dong <jian.dong@dorabot.com>
   Polished upload module.
+* Christopher Baines <mail@cbaines.net>
+  Fix socketfile data connection.

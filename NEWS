@@ -118,3 +118,20 @@ Changes in 0.3.1
 - Redis as session backend
 - Fixed inconsistent design in cookies
 - Fixed tons of bugs
+
+Changes in 0.3.2
+* Notable changes
+- redirect-to API supports extra headers
+- Fiter null string when generating SQL
+- Migration cache was removed since it's useless now
+- Fix misc bugs in migration
+- Enhanced Models API
+  - If no models defined then it throws warning
+- Boolean option supports `disable'
+- Fix socketfile data connection
+  - Thanks "Christopher Baines <mail@cbaines.net>"
+- Fix wrong length of Websocket frame
+- Register default sigint handler before run
+- Fixed bugs in upload module
+  - Fix wrong HEADER in upload client
+  - Fix file description leaking after the file was uploaded
