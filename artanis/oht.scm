@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2016,2017,2018
+;;  Copyright (C) 2014,2015,2016,2017,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -52,6 +52,7 @@
              put
              patch
              page-delete
+             oh-ref
 
              :sql-mapping
              :str
@@ -131,11 +132,11 @@
 (define (conn-maker yes? rule keys)
   (and yes?
        (case-lambda
-         ((rc) (DB-open rc))
-         ((rc sql)
-          (let ((conn (DB-open rc)))
-            (DB-query conn sql)
-            conn)))))
+        ((rc) (DB-open rc))
+        ((rc sql)
+         (let ((conn (DB-open rc)))
+           (DB-query conn sql)
+           conn)))))
 
 (define (raw-sql-maker sql rule keys)
   (lambda (rc mode)
@@ -289,10 +290,10 @@
         '()))
   (define (default-success-ret size-list filename-list)
     (call-with-output-string
-      (lambda (port)
-        (for-each (lambda (s f)
-                    (format port "<p>Upload succeeded! ~a: ~a bytes!</p>" s f))
-                  size-list filename-list))))
+     (lambda (port)
+       (for-each (lambda (s f)
+                   (format port "<p>Upload succeeded! ~a: ~a bytes!</p>" s f))
+                 size-list filename-list))))
   (define (default-no-file-ret) "<p>No uploaded files!</p>")
   (define* (store-the-bv rc #:key (uid 33) (gid 33) (path (get-conf '(upload path)))
                          (mode #o664) (path-mode #o775) (sync #f) (simple-ret? #t)
@@ -422,7 +423,25 @@
        (gen-lpc-handler rc cmd)))
     (else (throw 'artanis-err 500 lpc-maker "Invalid pattern `~a'!" mode))))
 
-;; ---------------------------------------------------------------------------------
+;; for #:with-auth
+;; NOTE: There's no :with-auth since it'll be triggerd by Artanis
+;;       automatically.
+(define (with-auth-maker mode rule keys)
+  (define (auth-action rc thunk failed-handler failed-url)
+    (if (:session rc 'check)
+        (thunk)
+        (failed-handler rc failed-url)))
+  (lambda (rc failed-handler thunk)
+    (match mode
+      (#t
+       (auth-action rc thunk failed-handler
+                    (format #f "/login?login_failed=true")))
+      ((? string? failed-url)
+       (auth-action rc thunk failed-handler failed-url))
+      (else (throw 'artanis-err 500 with-auth-maker
+                   "Invalid mode `~a'~" mode)))))
+
+;; -------------------------------------------------------------------
 
 ;; NOTE: these short-cut-maker should never be exported!
 ;; ((handler arg rule keys) rc . args)
@@ -577,7 +596,19 @@
     ;;    Initialize lpc with default configuration, the backend is Redis, write-able.
     ;; 2. (backend . args)
     ;;    Specify the avalailable backend, and the args as the configuare options.
-    (#:lpc . ,lpc-maker)))
+    (#:lpc . ,lpc-maker)
+
+    ;; Auto-check authenticated session
+    ;; There're 2 modes:
+    ;; 1. #t
+    ;;    If failed then redirect to default /login?login_failed=true
+    ;; 2. failed-url
+    ;;    Specify the redirecting URL if failed
+    ;; NOTE:
+    ;; 1. #:with-auth must be cooperated with #:session
+    ;;    If you use #:with-auth without #:session, then it throws
+    ;;    an exception.
+    (#:with-auth . ,with-auth-maker)))
 
 (define-macro (meta-handler-register what)
   `(define-syntax-rule (,(symbol-append ': what) rc args ...)
@@ -615,10 +646,10 @@
 
 ;; return #f when there's no opt specified
 (define* (new-oht opts #:key (rule 'no-rules) (keys 'no-keys))
-  (match opts
-    ((() ()) #f)
-    (else
-     (let ((oht (make-hash-table)))
+  (let ((oht (make-hash-table)))
+    (match opts
+      ((() ()) #f)
+      (else
        (apply
         for-each
         (lambda (k v)
@@ -626,6 +657,12 @@
             (cond
              ((or h (eq? k #:handler))
               ;; #:handler is user customed handler
+              (when (and (eq? k #:with-auth) (not (oh-ref #:session)))
+                ;; If #:session and #:with-auth are not initialized
+                ;; simultaneously, then init it with default option
+                (hash-set! oht
+                           #:session
+                           (session-maker #t rule keys)))
               (hash-set! oht k (h v rule keys)))
              (else #f))))
         opts)

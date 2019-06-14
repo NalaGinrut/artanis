@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2016,2017,2018
+;;  Copyright (C) 2014,2015,2016,2017,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -22,6 +22,7 @@
   #:use-module (artanis env)
   #:use-module (artanis config)
   #:use-module (artanis cookie)
+  #:use-module (artanis oht)
   #:use-module (artanis lpc)
   #:use-module (artanis tpl)
   #:use-module (artanis tpl sxml)
@@ -37,8 +38,7 @@
   #:use-module (ice-9 iconv)
   #:use-module (ice-9 futures)
   #:use-module ((rnrs) #:select (bytevector-length bytevector?))
-  #:export (params
-            response-emit
+  #:export (response-emit
             throw-auth-needed
             tpl->html
             redirect-to
@@ -49,13 +49,6 @@
             init-hook
             emit-response-with-file
             static-page-emitter))
-
-;; the params will be searched in binding-list first, then search from qstr
-;; TODO: qstr should be independent from rules binding.
-(define (params rc key)
-  ((current-encoder)
-   (or (assoc-ref (rc-bt rc) key)
-       (get-from-qstr rc key))))
 
 (define (rc-conn-recycle rc body)
   (and=> (rc-conn rc) DB-close))
@@ -163,10 +156,13 @@
   (catch 'artanis-err
     (lambda ()
       (let* ((rc (new-route-context request body))
-             (handler (rc-handler rc)))
-        (if handler
-            (handler-render handler rc)
-            (render-sys-page 'client 404 rc))))
+             (handler (rc-handler rc))
+             (with-auth (oh-ref #:with-auth)))
+        (cond
+         (handler
+          (with-auth rc redirect-to
+                     (lambda () (handler-render handler rc))))
+         (else (render-sys-page 'client 404 rc)))))
     (make-unstop-exception-handler (exception-from-client request))))
 
 (define (response-emit-error status)

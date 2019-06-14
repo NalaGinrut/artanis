@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2017,2018
+;;  Copyright (C) 2014,2015,2017,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -56,7 +56,8 @@
             init-rule-key-bindings!
             init-query!
             get-from-qstr
-            get-referer))
+            get-referer
+            params))
 
 (define-record-type handler-rc
   (make-handler-rc handler keys oht)
@@ -182,3 +183,10 @@
             #f
             referer)
         #f)))
+
+;; the params will be searched in binding-list first, then search from qstr
+;; TODO: qstr should be independent from rules binding.
+(define (params rc key)
+  ((current-encoder)
+   (or (assoc-ref (rc-bt rc) key)
+       (get-from-qstr rc key))))
