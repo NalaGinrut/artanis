@@ -52,7 +52,6 @@
              put
              patch
              page-delete
-             oh-ref
 
              :sql-mapping
              :str
@@ -80,7 +79,7 @@
          (handler (oah->handler opts-and-handler)))
     (hash-set! *handlers-table*
                (cons method path-regexp)
-               (make-handler-rc handler keys (new-oht opts #:rule rule #:keys keys)))))
+               (make-handler-context handler keys (new-oht opts #:rule rule #:keys keys)))))
 
 (define (get rule . opts-and-handler) (define-handler 'GET rule opts-and-handler))
 (define (post rule . opts-and-handler) (define-handler 'POST rule opts-and-handler))
@@ -104,20 +103,17 @@
   (map (lambda (m) (irregex-match-substring m 1))
        (artanis-list-matches *path-keys-regexp* rule)))
 
-(define-syntax-rule (get-oht rc)
-  (handler-rc-oht (get-handler-rc (rc-rhk rc))))
-
 ;; NOTE:
 ;; Returns `values' proc if there's no such keyword was specified.
 ;; Because we need to support the hooks, so there'd be a proc to receive
 ;; multi-args when there's no such short-cut.
 (define-syntax-rule (=> opt rc args ...)
-  (let* ((oht (get-oht rc))
+  (let* ((oht (rc-oht rc))
          (h (and oht (hash-ref oht opt))))
     (if h (h rc args ...) values)))
 
 (define-syntax-rule (auth-enabled? rc)
-  (hash-ref (get-oht rc) #:auth))
+  (hash-ref (rc-oht rc) #:auth))
 ;; --------------------------------------------------------------
 ;; oht handlers
 
@@ -428,14 +424,16 @@
 ;;       automatically.
 (define (with-auth-maker mode rule keys)
   (define (auth-action rc thunk failed-handler failed-url)
-    (if (:session rc 'check)
-        (thunk)
-        (failed-handler rc failed-url)))
+    (if ((rc-oht-ref rc #:session) rc 'check)
+        (if (thunk? thunk)
+            (thunk)
+            (throw 'artanis-err 500 with-auth-maker
+                   "PATH: ~a, ~a is not a thunk!" (rc-path rc) thunk))
+        (failed-handler failed-url)))
   (lambda (rc failed-handler thunk)
     (match mode
       (#t
-       (auth-action rc thunk failed-handler
-                    (format #f "/login?login_failed=true")))
+       (auth-action rc thunk failed-handler "/login"))
       ((? string? failed-url)
        (auth-action rc thunk failed-handler failed-url))
       (else (throw 'artanis-err 500 with-auth-maker
@@ -452,163 +450,163 @@
 ;;    say, ${:xxx}, it means "to get xxx from rule key".
 ;; 2. Arounded with ${..}, and there's "@" as its prefix, say, ${@xxx},
 ;;    it means "to get xxx from body" (POST way).
-(define *options-meta-handler-table*
-  `(;; a short way for sql-mapping from the bindings in rule
-    ;; e.g #:sql-mapping "select * from table where id=${:id}"
-    (#:sql-mapping . ,sql-mapping-maker)
+(oh-define!
+ `(;; a short way for sql-mapping from the bindings in rule
+   ;; e.g #:sql-mapping "select * from table where id=${:id}"
+   (#:sql-mapping . ,sql-mapping-maker)
 
-    ;; generate a string from the bindings in rule
-    ;; e.g (get "/get/:who" #:str "hello ${:who}" ...)
-    (#:str . ,str-maker)
+   ;; generate a string from the bindings in rule
+   ;; e.g (get "/get/:who" #:str "hello ${:who}" ...)
+   (#:str . ,str-maker)
 
-    ;; short-cut for authentication
-    ;; #:auth accepts these values:
-    ;; 1. SQL as string template.
-    ;; 2. (table-name username-field passwd-field crypto-proc)
-    ;; 3. (table-name crypto-proc), so passwd field will be "passwd" in default.
-    ;; e.g (get "/auth"
-    ;;      #:auth "select ${passwd} from blog where usrname=${myname}"
-    ;;      (lambda (rc)
-    ;;       (:auth rc #:usrname (params rc "username") #:passwd (params rc "passwd"))
-    ;;       ...))
-    ;; The #:usrname and #:passwd will be expaned automatically.
-    ;; or (get "/auth" #:auth `(blog "myuser" "mypasswd" ,string->md5)
-    ;;     (lambda (rc)
-    ;;      (if (:auth rc)
-    ;;          (redirect-to rc "/dashboard")
-    ;;          (redirect-to rc "/login?auth_failed=true"))))
-    ;; or (get "/auth" #:auth `(blog ,string->md5)
-    ;;     (lambda (rc)
-    ;;      (if (:auth rc)
-    ;;          (redirect-to rc "/dashboard")
-    ;;          (redirect-to rc "/login?auth_failed=true"))))
-    (#:auth . ,auth-maker)
+   ;; short-cut for authentication
+   ;; #:auth accepts these values:
+   ;; 1. SQL as string template.
+   ;; 2. (table-name username-field passwd-field crypto-proc)
+   ;; 3. (table-name crypto-proc), so passwd field will be "passwd" in default.
+   ;; e.g (get "/auth"
+   ;;      #:auth "select ${passwd} from blog where usrname=${myname}"
+   ;;      (lambda (rc)
+   ;;       (:auth rc #:usrname (params rc "username") #:passwd (params rc "passwd"))
+   ;;       ...))
+   ;; The #:usrname and #:passwd will be expaned automatically.
+   ;; or (get "/auth" #:auth `(blog "myuser" "mypasswd" ,string->md5)
+   ;;     (lambda (rc)
+   ;;      (if (:auth rc)
+   ;;          (redirect-to rc "/dashboard")
+   ;;          (redirect-to rc "/login?auth_failed=true"))))
+   ;; or (get "/auth" #:auth `(blog ,string->md5)
+   ;;     (lambda (rc)
+   ;;      (if (:auth rc)
+   ;;          (redirect-to rc "/dashboard")
+   ;;          (redirect-to rc "/login?auth_failed=true"))))
+   (#:auth . ,auth-maker)
 
-    ;; Auto connection
-    ;; request a connection from connection-pool, and close automatically.
-    ;; NOTE: if you use #:sql-mapping short-cut, there's already a connect picked
-    ;;       from pool, so #:sql-mapping implies #:conn is set to #t.
-    ;; TODO: add recycling step after rule handler returning.
-    ;; e.g (get "/show-all" #:conn #t
-    ;;      (lambda (rc)
-    ;;       (:conn rc "select * from articles")))
-    (#:conn . ,conn-maker)
+   ;; Auto connection
+   ;; request a connection from connection-pool, and close automatically.
+   ;; NOTE: if you use #:sql-mapping short-cut, there's already a connect picked
+   ;;       from pool, so #:sql-mapping implies #:conn is set to #t.
+   ;; TODO: add recycling step after rule handler returning.
+   ;; e.g (get "/show-all" #:conn #t
+   ;;      (lambda (rc)
+   ;;       (:conn rc "select * from articles")))
+   (#:conn . ,conn-maker)
 
-    ;; Raw simple sql query
-    ;; NOTE: Raw sql is a const string of valid SQL.
-    ;; E.g: (get "/sqltest"
-    ;;       #:raw-sql "select * from Persons where name='nala'"
-    ;;       (lambda (rc)
-    ;;        (:raw-sql rc 'all)))
-    ;; It's used for a quick query, but you can't modify/specify query on the fly.
-    ;; Usage:
-    ;;  :raw-sql procedure accepts three modes:
-    ;; 1. 'all for getting all results.
-    ;; 2. certain number n for getting top n results.
-    ;; 3. 'top for getting the top result.
-    (#:raw-sql . ,raw-sql-maker)
+   ;; Raw simple sql query
+   ;; NOTE: Raw sql is a const string of valid SQL.
+   ;; E.g: (get "/sqltest"
+   ;;       #:raw-sql "select * from Persons where name='nala'"
+   ;;       (lambda (rc)
+   ;;        (:raw-sql rc 'all)))
+   ;; It's used for a quick query, but you can't modify/specify query on the fly.
+   ;; Usage:
+   ;;  :raw-sql procedure accepts three modes:
+   ;; 1. 'all for getting all results.
+   ;; 2. certain number n for getting top n results.
+   ;; 3. 'top for getting the top result.
+   (#:raw-sql . ,raw-sql-maker)
 
-    ;; Web caching
-    ;; The default value is #f.
-    ;; This is useful for web caching.
-    ;; values:
-    ;; * #t: will store the md5 of this page content,
-    ;;       and compare it with Etag.
-    ;; * #f: won't store md5, and won't do any caching work.
-    ;;       Etag would be ignored. If the current rule is for dynamic page,
-    ;;       you have to set it to #f.
-    ;; * filename: You may use (cache-file rc) to return the static file,
-    ;;             it's the same function like emit-response-with-file.
-    ;;             The difference is to cache it in memory.
-    ;; * Caveats:
-    ;; 1. #t will generate the dynamic page and get md5 for it anyway, the
-    ;;    only advantage would be saving the bandwidth (return 304).
-    ;; 2. Whether to use #:cache is depending on you.
-    ;; NOTE: this option will be disabled automatically for some reasons:
-    ;; 1. when #:auth was used in the same rule.
-    ;; 2. when there's any HTTP header to stop the caching.
-    (#:cache . ,cache-maker)
+   ;; Web caching
+   ;; The default value is #f.
+   ;; This is useful for web caching.
+   ;; values:
+   ;; * #t: will store the md5 of this page content,
+   ;;       and compare it with Etag.
+   ;; * #f: won't store md5, and won't do any caching work.
+   ;;       Etag would be ignored. If the current rule is for dynamic page,
+   ;;       you have to set it to #f.
+   ;; * filename: You may use (cache-file rc) to return the static file,
+   ;;             it's the same function like emit-response-with-file.
+   ;;             The difference is to cache it in memory.
+   ;; * Caveats:
+   ;; 1. #t will generate the dynamic page and get md5 for it anyway, the
+   ;;    only advantage would be saving the bandwidth (return 304).
+   ;; 2. Whether to use #:cache is depending on you.
+   ;; NOTE: this option will be disabled automatically for some reasons:
+   ;; 1. when #:auth was used in the same rule.
+   ;; 2. when there's any HTTP header to stop the caching.
+   (#:cache . ,cache-maker)
 
-    ;; short-cut to set cookies
-    ;; NOTE: you don't have to use :cookies-update! to sync cookies in rc,
-    ;;       there's a hook for that before response.
-    ;; e.g (get "/" #:cookies '(ca cb)
-    ;;      (lambda (rc)
-    ;;       (:cookies-set! rc 'ca "sid" "1231231")
-    ;;       "ok"))
-    (#:cookies . ,cookies-maker)
+   ;; short-cut to set cookies
+   ;; NOTE: you don't have to use :cookies-update! to sync cookies in rc,
+   ;;       there's a hook for that before response.
+   ;; e.g (get "/" #:cookies '(ca cb)
+   ;;      (lambda (rc)
+   ;;       (:cookies-set! rc 'ca "sid" "1231231")
+   ;;       "ok"))
+   (#:cookies . ,cookies-maker)
 
-    ;; Convert to certain MIME type
-    ;; There're three types: json/csv/xml/sxml
-    ;; NOTE: Only used at the end of the handler (to replace response-emit)
-    ;; e.g (get "/json" #:mime 'json
-    ;;       (lambda (rc)
-    ;;         (let ((j (json (object ("name" "nala") ("age" "15")))))
-    ;;           (:mime j))))
-    ;; e.g (get "/csv" #:mime 'csv
-    ;;       (lambda (rc)
-    ;;         (:mime '((a 1) (b 2)))))
-    ;; ==> "a,1\nb,2\n"
-    ;; e.g (get "/xml" #:mime 'xml
-    ;;       (lambda (rc)
-    ;;         (:mime '((a 1) (b 2)))))
-    ;; ==> "<a>1</a><b>2</b>"
-    ;; e.g (get "/sxml" #:mime 'sxml
-    ;;       (lambda (rc)
-    ;;         (:mime '((a 1) (b 2)))))
-    ;; ==> "((a 1) (b 2))"
-    (#:mime . ,mime-maker)
+   ;; Convert to certain MIME type
+   ;; There're three types: json/csv/xml/sxml
+   ;; NOTE: Only used at the end of the handler (to replace response-emit)
+   ;; e.g (get "/json" #:mime 'json
+   ;;       (lambda (rc)
+   ;;         (let ((j (json (object ("name" "nala") ("age" "15")))))
+   ;;           (:mime j))))
+   ;; e.g (get "/csv" #:mime 'csv
+   ;;       (lambda (rc)
+   ;;         (:mime '((a 1) (b 2)))))
+   ;; ==> "a,1\nb,2\n"
+   ;; e.g (get "/xml" #:mime 'xml
+   ;;       (lambda (rc)
+   ;;         (:mime '((a 1) (b 2)))))
+   ;; ==> "<a>1</a><b>2</b>"
+   ;; e.g (get "/sxml" #:mime 'sxml
+   ;;       (lambda (rc)
+   ;;         (:mime '((a 1) (b 2)))))
+   ;; ==> "((a 1) (b 2))"
+   (#:mime . ,mime-maker)
 
-    ;; Spawn sessions
-    (#:session . ,session-maker)
+   ;; Spawn sessions
+   (#:session . ,session-maker)
 
-    ;; Get data from POST
-    (#:from-post . ,from-post-maker)
+   ;; Get data from POST
+   (#:from-post . ,from-post-maker)
 
-    ;; Establish websocket channel
-    ;; Each time developers set :websocket and specifed a protocol, say, `myproto',
-    ;; Artanis will check if the file app/protocols/myproto.scm exists, then load
-    ;; the protocol initialize function in `myproto' which will also add `myproto'
-    ;; into *proto-table*. Then ragnarok will take charge of it to call the correct
-    ;; handlers.
-    ;; There're 3 cases:
-    ;; 1. Regular protocol handling over websocket
-    ;;    The initializer will create an instance for the protocol.
-    ;; 2. Redirect to another address (IP or UNIX socket)
-    ;;    The initializer will create a binding pair in redirect table:
-    ;;    src port and des port.
-    ;;    In this case, there's no protocol handling in Artanis. The protocol handler
-    ;;    is in remote (could be a host machine, or a process in current OS).
-    ;; 3. Proxy mode:
-    ;;    Different from reguar proxy, the proxy in Artanis runs over websocket, and
-    ;;    there's no extra listenning port, only 80/443.
-    ;;    In this case, there're 2 situations:
-    ;;    a. transparent proxy
-    ;;       No protocol handling at all, just redirecting the data without cooking.
-    ;;    b. cooked proxy
-    ;;       There's a bound protocol instance for it.
-    (#:websocket . ,websocket-maker)
+   ;; Establish websocket channel
+   ;; Each time developers set :websocket and specifed a protocol, say, `myproto',
+   ;; Artanis will check if the file app/protocols/myproto.scm exists, then load
+   ;; the protocol initialize function in `myproto' which will also add `myproto'
+   ;; into *proto-table*. Then ragnarok will take charge of it to call the correct
+   ;; handlers.
+   ;; There're 3 cases:
+   ;; 1. Regular protocol handling over websocket
+   ;;    The initializer will create an instance for the protocol.
+   ;; 2. Redirect to another address (IP or UNIX socket)
+   ;;    The initializer will create a binding pair in redirect table:
+   ;;    src port and des port.
+   ;;    In this case, there's no protocol handling in Artanis. The protocol handler
+   ;;    is in remote (could be a host machine, or a process in current OS).
+   ;; 3. Proxy mode:
+   ;;    Different from reguar proxy, the proxy in Artanis runs over websocket, and
+   ;;    there's no extra listenning port, only 80/443.
+   ;;    In this case, there're 2 situations:
+   ;;    a. transparent proxy
+   ;;       No protocol handling at all, just redirecting the data without cooking.
+   ;;    b. cooked proxy
+   ;;       There's a bound protocol instance for it.
+   (#:websocket . ,websocket-maker)
 
-    ;; Apply an instance of Local Persistent Cache
-    ;; This is useful when you want to store some key-value stuffs.
-    ;; There're 2 cases:
-    ;; 1. #t
-    ;;    Initialize lpc with default configuration, the backend is Redis, write-able.
-    ;; 2. (backend . args)
-    ;;    Specify the avalailable backend, and the args as the configuare options.
-    (#:lpc . ,lpc-maker)
+   ;; Apply an instance of Local Persistent Cache
+   ;; This is useful when you want to store some key-value stuffs.
+   ;; There're 2 cases:
+   ;; 1. #t
+   ;;    Initialize lpc with default configuration, the backend is Redis, write-able.
+   ;; 2. (backend . args)
+   ;;    Specify the avalailable backend, and the args as the configuare options.
+   (#:lpc . ,lpc-maker)
 
-    ;; Auto-check authenticated session
-    ;; There're 2 modes:
-    ;; 1. #t
-    ;;    If failed then redirect to default /login?login_failed=true
-    ;; 2. failed-url
-    ;;    Specify the redirecting URL if failed
-    ;; NOTE:
-    ;; 1. #:with-auth must be cooperated with #:session
-    ;;    If you use #:with-auth without #:session, then it throws
-    ;;    an exception.
-    (#:with-auth . ,with-auth-maker)))
+   ;; Auto-check authenticated session
+   ;; There're 2 modes:
+   ;; 1. #t
+   ;;    If failed then redirect to default /login?login_failed=true
+   ;; 2. failed-url
+   ;;    Specify the redirecting URL if failed
+   ;; NOTE:
+   ;; 1. #:with-auth must be cooperated with #:session
+   ;;    If you use #:with-auth without #:session, then it throws
+   ;;    an exception.
+   (#:with-auth . ,with-auth-maker)))
 
 (define-macro (meta-handler-register what)
   `(define-syntax-rule (,(symbol-append ': what) rc args ...)
@@ -641,9 +639,6 @@
 (define-syntax-rule (:cookies-remove! rc k)
   ((:cookies rc 'remove) k))
 
-(define-syntax-rule (oh-ref o)
-  (assq-ref *options-meta-handler-table* o))
-
 ;; return #f when there's no opt specified
 (define* (new-oht opts #:key (rule 'no-rules) (keys 'no-keys))
   (let ((oht (make-hash-table)))
@@ -657,12 +652,12 @@
             (cond
              ((or h (eq? k #:handler))
               ;; #:handler is user customed handler
-              (when (and (eq? k #:with-auth) (not (oh-ref #:session)))
+              (when (eq? k #:with-auth)
                 ;; If #:session and #:with-auth are not initialized
                 ;; simultaneously, then init it with default option
                 (hash-set! oht
                            #:session
-                           (session-maker #t rule keys)))
+                           ((oh-ref #:session) #t rule keys)))
               (hash-set! oht k (h v rule keys)))
              (else #f))))
         opts)

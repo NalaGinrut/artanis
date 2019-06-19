@@ -35,32 +35,22 @@
             (a (@ (href "https://github.com/NalaGinrut/artanis")) "Artanis")
             "."))))
 
-(get "/admin" #:session #t
+(get "/admin" #:with-auth #t
      (lambda (rc)
-       (cond
-        ((:session rc 'check) (tpl->response "admin.tpl" (the-environment)))
-        (else (redirect-to rc "/login")))))
+       (tpl->response "admin.tpl" (the-environment))))
 
 ;; NOTE: The default username is admin
 ;;       and the default passwd is 123
 (get "/login" #:session #t
      (lambda (rc)
        (let ((failed (params rc "login_failed")))
-         (if (:session rc 'check)
-             (let ((referer (get-referer rc #:referer "/login*")))
-               (if referer
-                   (redirect-to rc referer)
-                   (redirect-to rc "/admin")))
-             (tpl->response "login.tpl" (the-environment))))))
+         (tpl->response "login.tpl" (the-environment)))))
 
 (post "/auth" #:auth '(table user "user" "passwd") #:session #t #:from-post #t
       (lambda (rc)
         (cond
-         ((or (:session rc 'check)
-              (and (:auth rc)
-                   (if (:from-post rc 'get "remember_me")
-                       (:session rc 'spawn))))
-          (let ((referer (get-referer rc #:except "/login*")))
+         ((or (:session rc 'check) (:auth rc))
+          (let ((referer (get-referer rc #:except "/login*"))) ;
             (if referer
                 (redirect-to rc referer)
                 (redirect-to rc "/admin"))))
@@ -92,4 +82,4 @@
     (:sql-mapping rc 'new-article #:date (strftime "%D" (localtime (current-time))))
     (redirect-to rc "/")))
 
-(run #:use-db? #t #:dbd 'mysql #:db-username "root" #:db-name "mmr_blog" #:db-passwd "123" #:debug #f)
+(run #:use-db? #t #:dbd 'mysql #:db-username "nalaginrut" #:db-name "mmr_blog" #:db-passwd "" #:debug #f)

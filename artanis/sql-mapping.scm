@@ -23,6 +23,7 @@
   #:use-module (artanis env)
   #:use-module (artanis db)
   #:use-module (artanis ssql)
+  #:use-module ((artanis page) #:select (params))
   #:use-module (artanis route)
   #:use-module (artanis fprm)
   #:use-module (artanis crypto base64)
@@ -75,7 +76,7 @@
     (and (rc-body rc)
          (generate-kv-from-post-qstr (rc-body rc))))
   (define (default-hmac pw salt)
-    ;; We still have sha384, sha512 to use, but I think sha256 is enough.
+    ;; We still have sha384, sha512 as options, but I think sha256 is enough.
     (string->sha-256 (string-append pw salt)))
   (define* (gen-result rc mode sql post-data
                        #:key (hmac default-hmac) (checker #f)
@@ -91,7 +92,9 @@
                           salt)
                     stored-pw)))))
     (define (run-checker)
-      (if checker (checker) (table-checker)))
+      (and (if checker (checker) (table-checker))
+           (and=> (rc-oht-ref rc #:session)
+                  (lambda (h) (h rc 'spawn)))))
     (case mode
       ((table) (run-checker))
       ((table-specified-fields) (run-checker))

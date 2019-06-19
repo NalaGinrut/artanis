@@ -63,7 +63,10 @@
             current-encoder
             *lpc-instance-pool*
             out-of-task-prompt?
-            resources-collecting?))
+            resources-collecting?
+            oh-define!
+            oh-set!
+            oh-ref))
 
 ;; WARNING:
 ;; For concurrency in green-thread, all these stuffs should be immutable
@@ -212,3 +215,11 @@
 (define out-of-task-prompt? (make-parameter #f))
 
 (define resources-collecting? (make-parameter #f))
+
+(define *options-meta-handler-table* '())
+(define (oh-define! lst) (set! *options-meta-handler-table* lst))
+(define (oh-set! k h)
+  (set! *options-meta-handler-table*
+        (assq-set! *options-meta-handler-table* k h)))
+(define (oh-ref o)
+  (assq-ref *options-meta-handler-table* o))

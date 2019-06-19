@@ -24,12 +24,12 @@
   #:use-module (artanis irregex)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
-  #:export (make-handler-rc
-            handler-rc?
-            handler-rc-handler
-            handler-rc-keys
-            handler-rc-oht
-            get-handler-rc
+  #:export (make-handler-context
+            handler-context?
+            handler-context-handler
+            handler-context-keys
+            handler-context-oht
+            get-handler-context
 
             rc-handler rc-handler!
             rc-keys rc-keys!
@@ -44,6 +44,7 @@
             rc-mtime rc-mtime!
             rc-cookie rc-cookie!
             rc-set-cookie rc-set-cookie!
+            rc-oht rc-oht!
             rc-conn rc-conn!
             rc-lpc rc-lpc!
             new-route-context
@@ -57,21 +58,21 @@
             init-query!
             get-from-qstr
             get-referer
-            params))
+            rc-oht-ref))
 
-(define-record-type handler-rc
-  (make-handler-rc handler keys oht)
-  handler-rc?
-  (handler handler-rc-handler)
-  (keys handler-rc-keys)
-  (oht handler-rc-oht))
+(define-record-type handler-context
+  (make-handler-context handler keys oht)
+  handler-context?
+  (handler handler-context-handler)
+  (keys handler-context-keys)
+  (oht handler-context-oht))
 
-(define (get-handler-rc handler-key)
+(define (get-handler-context handler-key)
   (hash-ref *handlers-table* handler-key))
 
 (define-record-type route-context
   (make-route-context handler keys regexp request path qt method rhk bt
-                      body date cookie set-cookie conn lpc)
+                      body date cookie set-cookie oht conn lpc)
   route-context?
   (handler rc-handler rc-handler!) ; reqeust handler
   (keys rc-keys rc-keys!) ; rule keys
@@ -92,6 +93,7 @@
   (set-cookie rc-set-cookie rc-set-cookie!) ; the cookies needed to be set as response
   ;; auto DB connection doesn't need users to close it, it's auto closed when request is over.
   (lpc rc-lpc rc-lpc!) ; store lpc object for later destruction
+  (oht rc-oht rc-oht!) ; Option Handlers Table
   (conn rc-conn rc-conn!)) ; auto DB connection from pool
 
 (define (get-header rc k)
@@ -108,7 +110,7 @@
          (method (if (eq? m 'HEAD) 'GET m))
          (cookies (request-cookies request))
          (rc (make-route-context #f #f #f request path #f method #f #f
-                                 body #f cookies '() #f #f)))
+                                 body #f cookies '() #f #f #f)))
     ;; FIXME: maybe we don't need rhk? Throw it after get handler & keys
     (init-rule-handler-key! rc) ; set rule handler key
     (init-rule-handler-and-keys! rc) ; set handler and keys
@@ -135,13 +137,14 @@
 (define (init-rule-handler-and-keys! rc)
   (let* ((handler-key (rc-rhk rc))
          (hrc (if handler-key  ; get handler-keys pair
-                  (get-handler-rc handler-key)
+                  (get-handler-context handler-key)
                   (throw 'artanis-err 404 init-rule-handler-and-keys!
                          "Client ~a had visited an invalid path ~a"
                          (REASON-TEXT (remote-info (rc-req rc)))
                          (REASON-TEXT (rc-path rc))))))
-    (rc-handler! rc (handler-rc-handler hrc))
-    (rc-keys! rc (reverse (handler-rc-keys hrc)))))
+    (rc-oht! rc (handler-context-oht hrc))
+    (rc-handler! rc (handler-context-handler hrc))
+    (rc-keys! rc (reverse (handler-context-keys hrc)))))
 
 (define (init-rule-path-regexp! rc)
   (rc-re! rc (string->irregex (cdr (rc-rhk rc)))))
@@ -184,9 +187,8 @@
             referer)
         #f)))
 
-;; the params will be searched in binding-list first, then search from qstr
-;; TODO: qstr should be independent from rules binding.
-(define (params rc key)
-  ((current-encoder)
-   (or (assoc-ref (rc-bt rc) key)
-       (get-from-qstr rc key))))
+;; NOTE: oht will be #f in these situations:
+;; 1. URL is not hit
+;; 2. URL is static files
+(define (rc-oht-ref rc key)
+  (and=> (rc-oht rc) (lambda (oht) (hash-ref oht key))))
