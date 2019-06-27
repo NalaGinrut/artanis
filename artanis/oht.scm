@@ -24,6 +24,10 @@
 (define-module (artanis oht)
   #:use-module (artanis utils)
   #:use-module (artanis config)
+  #:use-module (artanis env)
+  #:use-module (artanis ssql)
+  #:use-module (artanis fprm)
+  #:use-module (artanis crypto base64)
   #:use-module (artanis sql-mapping)
   #:use-module (artanis db)
   #:use-module (artanis cookie)
@@ -43,6 +47,7 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-26)
+  #:use-module (srfi srfi-11)
   #:use-module (web uri)
   #:use-module (web request)
   #:export (define-handler
@@ -441,6 +446,128 @@
       (else (throw 'artanis-err 500 with-auth-maker
                    "Invalid mode `~a'~" mode)))))
 
+
+(define (auth-maker val rule keys)
+  (define-syntax-rule (->passwd rc passwd-field salt-field sql)
+    (let ((ret (DB-get-top-row (DB-query (DB-open rc) sql))))
+      (values (assoc-ref ret passwd-field)
+              (assoc-ref ret salt-field))))
+  (define-syntax-rule (post-ref post-data key)
+    (let ((ret (assoc-ref post-data key)))
+      (if ret
+          (car ret)
+          "")))
+  (define (basic-checker rc p sql passwd-field salt-field)
+    (let-values (((stored-pw _) (->passwd rc passwd-field salt-field sql)))
+      (string=? p stored-pw)))
+  (define (init-post rc)
+    (and (rc-body rc)
+         (generate-kv-from-post-qstr (rc-body rc))))
+  (define (default-hmac pw salt)
+    ;; We still have sha384, sha512 as options, but I think sha256 is enough.
+    (string->sha-256 (string-append pw salt)))
+  (define* (gen-result rc mode sql post-data
+                       #:key (hmac default-hmac) (checker #f)
+                       (passwd-field "passwd") (salt-field "salt"))
+    (define (table-checker)
+      (let-values (((stored-pw salt) (->passwd rc passwd-field salt-field sql)))
+        (cond
+         ((or (not stored-pw) (not salt))
+          (DEBUG "Stored PW: ~a, Salt: ~a, SQL: ~a~%" stored-pw salt sql)
+          #f)
+         (else
+          (string=? (hmac (post-ref post-data passwd-field)
+                          salt)
+                    stored-pw)))))
+    (define (run-checker)
+      (and (if checker (checker) (table-checker))
+           (and=> (rc-oht-ref rc #:session)
+                  (lambda (h) (h rc 'spawn)))))
+    (case mode
+      ((table) (run-checker))
+      ((table-specified-fields) (run-checker))
+      ((tpl) (run-checker))
+      ((basic)
+       (match (get-header rc 'authorization)
+         ;; NOTE: In match `=' opetator, the order of evaluation is from left to right.
+         ;;       So base64-decode will run first.
+         (`(basic . ,(= base64-decode-as-string (= (cut string-split <> #\:) up)))
+          (let ((u (car up)) (p (cadr up)))
+            (if checker
+                (checker rc u p)
+                (basic-checker rc p (sql u) passwd-field salt-field))))
+         (else #f)))
+      (else (throw 'artanis-err 500 auth-maker
+                   "Fatal BUG! Invalid mode! Shouldn't be here!" mode))))
+  (match val
+    (`(table ,table ,username-field ,passwd-field)
+     (lambda (rc . kargs)
+       (let* ((post-data (init-post rc))
+              (username (post-ref post-data username-field))
+              (passwd (post-ref post-data passwd-field))
+              (sql (->sql select `(,passwd-field salt) from table
+                          (where (string->keyword username-field)
+                                 username))))
+         (gen-result rc 'table-specified-fields sql post-data
+                     #:passwd-field passwd-field))))
+    (`(table ,table ,username-field ,passwd-field ,salt-field ,hmac)
+     (lambda (rc . kargs)
+       (let* ((post-data (init-post rc))
+              (username (post-ref post-data username-field))
+              (passwd (post-ref post-data passwd-field))
+              (sql (->sql select (list passwd-field salt-field) from table
+                          (where (string->keyword username-field)
+                                 username))))
+         (gen-result rc 'table-specified-fields sql post-data
+                     #:hmac hmac #:passwd-field passwd-field
+                     #:salt-field salt-field))))
+    (`(table ,table ,username-field ,passwd-field ,hmac)
+     (lambda (rc . kargs)
+       (let* ((post-data (init-post rc))
+              (username (post-ref post-data username-field))
+              (passwd (post-ref post-data passwd-field))
+              (sql (->sql select `(,passwd-field salt) from table
+                          (where (string->keyword username-field)
+                                 username))))
+         (gen-result rc 'table-specified-fields sql post-data
+                     #:hmac hmac #:passwd-field passwd-field))))
+    (`(table ,table ,hmac)
+     (lambda (rc . kargs)
+       (let* ((post-data (init-post rc))
+              (username (car kargs))
+              (passwd (cadr kargs))
+              (sql (->sql select '(passwd salt) from table
+                          (where #:username username))))
+         (gen-result rc 'table sql post-data #:hmac hmac))))
+    (`(basic ,table ,username-field ,passwd-field)
+     (lambda (rc . kargs)
+       (let* ((post-data (init-post rc))
+              (username (post-ref post-data username-field))
+              (passwd (post-ref post-data passwd-field))
+              (sql (->sql select `(,passwd-field salt) from table
+                          (where (string->keyword username-field)
+                                 username))))
+         (gen-result rc 'basic sql post-data #:passwd-field passwd-field))))
+    (`(basic ,checker)
+     (lambda (rc)
+       (gen-result rc 'basic #f #f #:checker checker)))
+    ((? string? tpl)
+     (lambda _
+       (make-db-string-template tpl)))
+    (('post username passwd checker)
+     (lambda (rc)
+       (when (not (rc-oht-ref rc #:from-post))
+         (init-oht! (rc-oht rc) #:from-post #t))
+       (let ((post-handler (rc-oht-ref rc #:from-post)))
+         (when (not post-handler)
+           (throw 'artanis-err 500 auth-maker
+                  "BUG: #:from-post should already be initialized but it seems not!"))
+         (let-values (((user pw) (post-handler rc `(get-vals ,username ,passwd))))
+           (and (checker)
+                (and=> (rc-oht-ref rc #:session)
+                       (lambda (h) (h rc 'spawn))))))))
+    (else (throw 'artanis-err 500 auth-maker "Wrong pattern ~a" val))))
+
 ;; -------------------------------------------------------------------
 
 ;; NOTE: these short-cut-maker should never be exported!
@@ -641,6 +768,9 @@
 (define-syntax-rule (:cookies-remove! rc k)
   ((:cookies rc 'remove) k))
 
+(define (init-oht! oht key . args)
+  (hash-set! oht key (apply (oh-ref key) args)))
+
 ;; return #f when there's no opt specified
 (define* (new-oht opts #:key (rule 'no-rules) (keys 'no-keys))
   (let ((oht (make-hash-table)))
@@ -657,9 +787,7 @@
               (when (eq? k #:with-auth)
                 ;; If #:session and #:with-auth are not initialized
                 ;; simultaneously, then init it with default option
-                (hash-set! oht
-                           #:session
-                           ((oh-ref #:session) #t rule keys)))
+                (init-oht! oht #:session #t rule keys))
               (hash-set! oht k (h v rule keys)))
              (else #f))))
         opts)
