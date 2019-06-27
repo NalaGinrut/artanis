@@ -1528,7 +1528,7 @@
 (define (allow-long-live-connection?)
   (> (get-conf '(server timeout)) 0))
 
-(define clib (make-parameter (dynamic-link)))
+(define %%clib (make-parameter (dynamic-link)))
 
 (define-syntax define-c-function
   (lambda (x)
@@ -1538,7 +1538,7 @@
           (current-module)
           '#,(datum->syntax #'name (symbol-append '% (syntax->datum #'name)))
           (pointer->procedure type
-                              (dynamic-func (symbol->string 'name) (clib))
+                              (dynamic-func (symbol->string 'name) (%%clib))
                               '()
                               #:return-errno? #t)))
       ((_ type name (para ...))
@@ -1546,7 +1546,7 @@
           (current-module)
           '#,(datum->syntax #'name (symbol-append '% (syntax->datum #'name)))
           (pointer->procedure type
-                              (dynamic-func (symbol->string 'name) (clib))
+                              (dynamic-func (symbol->string 'name) (%%clib))
                               (list para ...)
                               #:return-errno? #t))))))
 
@@ -1557,6 +1557,6 @@
        body ...
        #t))
     ((_ libname body ...)
-     (parameterize ((clib (dynamic-link libname)))
+     (parameterize ((%%clib (dynamic-link libname)))
        body ...
        #t))))
