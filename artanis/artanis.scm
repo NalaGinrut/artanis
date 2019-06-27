@@ -41,7 +41,6 @@
   #:use-module (srfi srfi-1)
   #:use-module (ice-9 format)
   #:re-export (;; page module
-               params
                response-emit
                throw-auth-needed
                tpl->html
@@ -131,6 +130,7 @@
                get-header
                get-from-qstr
                get-referer
+               params
 
                ;; csv
                make-csv-reader

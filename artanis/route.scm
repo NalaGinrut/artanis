@@ -58,7 +58,8 @@
             init-query!
             get-from-qstr
             get-referer
-            rc-oht-ref))
+            rc-oht-ref
+            params))
 
 (define-record-type handler-context
   (make-handler-context handler keys oht)
@@ -192,3 +193,11 @@
 ;; 2. URL is static files
 (define (rc-oht-ref rc key)
   (and=> (rc-oht rc) (lambda (oht) (hash-ref oht key))))
+
+;; The params will be searched in binding-list first, then search from
+;; qstr
+;; TODO: qstr should be independent from rules binding.
+(define (params rc key)
+  ((current-encoder)
+   (or (assoc-ref (rc-bt rc) key)
+       (get-from-qstr rc key))))

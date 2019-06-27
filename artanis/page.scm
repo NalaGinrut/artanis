@@ -37,8 +37,7 @@
   #:use-module (ice-9 iconv)
   #:use-module (ice-9 futures)
   #:use-module ((rnrs) #:select (bytevector-length bytevector?))
-  #:export (params
-            response-emit
+  #:export (response-emit
             throw-auth-needed
             tpl->html
             redirect-to
@@ -49,14 +48,6 @@
             init-hook
             emit-response-with-file
             static-page-emitter))
-
-;; The params will be searched in binding-list first, then search from
-;; qstr
-;; TODO: qstr should be independent from rules binding.
-(define (params rc key)
-  ((current-encoder)
-   (or (assoc-ref (rc-bt rc) key)
-       (get-from-qstr rc key))))
 
 (define (rc-conn-recycle rc body)
   (and=> (rc-conn rc) DB-close))
