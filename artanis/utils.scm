@@ -996,7 +996,8 @@
   (bv-read-delimited bv 10 start end))
 
 (define (put-bv port bv from to)
-  (put-bytevector port bv from (- to from 2)))
+  (when (> (- to from) 1)
+    (put-bytevector port bv from (- to from 2))))
 
 ;; TODO: build a char occurence indexing table
 (define (build-bv-lookup-table bv)

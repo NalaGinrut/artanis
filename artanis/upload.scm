@@ -131,7 +131,7 @@
     ((k v)
      (-> `(,k ,@(string-split v #\;))))
     (else (throw 'artanis-err 400 ->mfd-header
-                 "->mfd-headers: Invalid MFD header!" line))))
+                 "->mfd-headers: Invalid MFD header ~a!" line))))
 
 ;; NOTE: convert boundary to bytevector before pass in.
 (define (parse-mfds boundary body)
@@ -157,7 +157,7 @@
             (lp (+ start llen) (bv-read-line body (+ start llen))
                 (cons (->mfd-header line) ret)))))))
      (else (throw 'artanis-err 400 get-headers
-                  "Invalid Multi Form Data header!" body))))
+                  "Invalid Multi Form Data header: ~a!" body))))
   (define (get-content-end from)
     (define btable (build-bv-lookup-table boundary))
     (let lp((i from))
@@ -184,7 +184,7 @@
              (mfd (make-mfd (car dispos) name filename start end type)))
         (lp end (cons mfd mfds))))
      (else (throw 'artanis-err 422 parse-mfds
-                  "Wrong multipart form body!")))))
+                  "Wrong multipart form body ~a!" body)))))
 
 (define* (make-mfd-dumper body #:key (path (current-upload-path))
                           (uid #f) (gid #f) (path-mode #o775)
@@ -262,14 +262,16 @@
    mfds ; the list of mfd
    dumper)) ; the dumper
 
-(define (mfds-op-ref rc mo key)
+(define* (mfds-op-ref rc mo key #:key (bv? #f))
   (let* ((mfds (mfds-operator-mfds mo))
          (value-mfd (any (lambda (mfd)
                            (and (string=? key (mfd-name mfd))
                                 mfd))
                          mfds)))
     (if value-mfd
-        (mfd->utf8 rc value-mfd)
+        (if bv?
+            value-mfd
+            (mfd->utf8 rc value-mfd))
         (throw 'artanis-err 500 mfds-op-ref
                (format #f "No mfd field named ~a!" key)))))
 
@@ -322,13 +324,13 @@
   (define boundary (format #f "----------Artanis-~a" (get-random-from-dev #:uppercase #t)))
   (define-syntax-rule (->dispos name filename mime)
     (call-with-output-string
-      (lambda (port)
-        (format port "--~a\r\n" boundary)
-        (format port "Content-Disposition: form-data; name=~s" name)
-        (and filename
-             (format port "; filename=~s" filename))
-        (and mime (format port "\r\nContent-Type: ~a" mime))
-        (display "\r\n\r\n" port))))
+     (lambda (port)
+       (format port "--~a\r\n" boundary)
+       (format port "Content-Disposition: form-data; name=~s" name)
+       (and filename
+            (format port "; filename=~s" filename))
+       (and mime (format port "\r\nContent-Type: ~a" mime))
+       (display "\r\n\r\n" port))))
   (define-syntax-rule (->file file)
     (if (file-exists? file)
         (call-with-input-file file get-bytevector-all)
@@ -340,15 +342,22 @@
           (datas (assoc-ref pattern 'data)))
       (append (-> files build-file-mfd)
               (-> datas build-data-mfd))))
+  (define (val-len val)
+    (bytevector-length
+     (cond
+      ((string? val) (string->bytevector val "iso8859-1"))
+      ((bytevector? val) val)
+      (else (throw 'artanis-err 500 build-data-mfd "val-len: Invalid value ~a" val)))))
   (define (build-data-mfd p)
     (match p
       ((name value)
-       (make-mfd (->dispos name #f #f)
-                 name
-                 #f
-                 0
-                 0
-                 #f))
+       (cons (make-mfd (->dispos name #f #f)
+                       name
+                       #f
+                       0
+                       (1- (val-len value))
+                       #f)
+             value))
       (else (throw 'artanis-err 500 build-data-mfd "Invalid pattern: ~a~%" p))))
   (define (build-file-mfd p)
     (match p
