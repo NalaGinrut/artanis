@@ -198,10 +198,10 @@
         (if (string? newname)
             newname
             (throw 'artanis-err 500 gen-new-name
-                   (format #f "Somehow your renamer generated a bad name ~a!"
-                           newname)))))
+                   "Somehow your renamer generated a bad name ~a!"
+                   newname))))
      (else (throw 'artanis-err 500 gen-new-name
-                  (format #f "Invalid renamer ~a!" renamer)))))
+                  "Invalid renamer ~a!" renamer))))
   (lambda* (mfd #:key (renamer #f) (repath #f))
     (let* ((oldname (mfd-filename mfd))
            (filename (or (gen-new-name oldname renamer) oldname))
@@ -272,10 +272,12 @@
         (if bv?
             (bv-slice
              (rc-body rc)
-             (mfd-begin value-mfd) : (- (mfd-end value-mfd) 2))
+             (mfd-begin value-mfd)
+             :
+             (-  (mfd-end value-mfd) (mfd-begin value-mfd) 2))
             (mfd->utf8 rc value-mfd))
         (throw 'artanis-err 500 mfds-op-ref
-               (format #f "No mfd field named ~a!" key)))))
+               "No mfd field named ~a!" key))))
 
 (define (mfds-op-store mo . args)
   (let ((file-mfds (mfds-operator-mfds mo))
