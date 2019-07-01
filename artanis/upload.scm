@@ -270,7 +270,9 @@
                          mfds)))
     (if value-mfd
         (if bv?
-            value-mfd
+            (bv-slice
+             (rc-body rc)
+             (mfd-begin value-mfd) : (- (mfd-end value-mfd) 2))
             (mfd->utf8 rc value-mfd))
         (throw 'artanis-err 500 mfds-op-ref
                (format #f "No mfd field named ~a!" key)))))
