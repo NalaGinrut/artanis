@@ -173,24 +173,24 @@
 ;; default time is #f, get current time
 (define* (get-global-time #:optional (time #f) (nsec 0))
   (call-with-output-string
-    (lambda (port)
-      ;; NOTE: (time-utc->data t 0) to get global time.
-      (write-date
-       (time-utc->date
-        (if time (make-time 'time-utc nsec time) (current-time))
-        0)
-       port))))
+   (lambda (port)
+     ;; NOTE: (time-utc->data t 0) to get global time.
+     (write-date
+      (time-utc->date
+       (if time (make-time 'time-utc nsec time) (current-time))
+       0)
+      port))))
 
 
 ;; default time is #f, get current time
 (define* (get-local-time #:optional (time #f) (nsec 0))
   (call-with-output-string
-    (lambda (port)
-      ;; NOTE: (time-utc->data t) to get local time.
-      (write-date
-       (time-utc->date
-        (if time (make-time 'time-utc nsec time) (current-time)))
-       port))))
+   (lambda (port)
+     ;; NOTE: (time-utc->data t) to get local time.
+     (write-date
+      (time-utc->date
+       (if time (make-time 'time-utc nsec time) (current-time)))
+      port))))
 
 (define* (regexp-split regex str #:optional (flags 0))
   (let ((ret (fold-matches
@@ -429,9 +429,10 @@
 ;; 1. (> hi (bytevector-length bv))
 ;; 2. (< lo 0) wrap reference
 (define (%bv-slice bv lo hi)
-  (let* ((len (- hi lo))
+  (let* ((len (- hi lo -1))
          (slice ((@ (rnrs) make-bytevector) len)))
-    ((@ (rnrs) bytevector-copy!) bv lo slice 0 len) slice))
+    ((@ (rnrs) bytevector-copy!) bv lo slice 0 len)
+    slice))
 
 ;; NOT SAFE %bytevector-slice for GC, need
 ;;(define (%bytevector-slice bv lo hi)
@@ -699,8 +700,8 @@
 
 (define* (sxml->xml-string sxml #:key (escape? #f))
   (call-with-output-string
-    (lambda (port)
-      (sxml->xml sxml port escape?))))
+   (lambda (port)
+     (sxml->xml sxml port escape?))))
 
 (define (run-after-request! proc)
   (add-hook! *after-request-hook* proc))
@@ -737,25 +738,25 @@
        ((= n 3) (list->string (reverse! ret)))
        (else (lp (1+ n) (cons (read-char port) ret))))))
   (call-with-output-string
-    (lambda (out)
-      (let lp((c (peek-char in)))
-        (cond
-         ((eof-object? c) #t)
-         ((hit? c)
-          => (lambda (str)
-               (display str out)
-               (read-char in)
-               (lp (peek-char in))))
-         ((char=? c #\%)
-          (let* ((s (get-estr in))
-                 (e (hit? s)))
-            (if e
-                (display e out)
-                (display s out))
-            (lp (peek-char in))))
-         (else
-          (display (read-char in) out)
-          (lp (peek-char in))))))))
+   (lambda (out)
+     (let lp((c (peek-char in)))
+       (cond
+        ((eof-object? c) #t)
+        ((hit? c)
+         => (lambda (str)
+              (display str out)
+              (read-char in)
+              (lp (peek-char in))))
+        ((char=? c #\%)
+         (let* ((s (get-estr in))
+                (e (hit? s)))
+           (if e
+               (display e out)
+               (display s out))
+           (lp (peek-char in))))
+        (else
+         (display (read-char in) out)
+         (lp (peek-char in))))))))
 
 (define *terrible-HTML-entities*
   '((#\< . "&lt;") (#\> . "&gt;") (#\& . "&amp;") (#\" . "&quot;")
@@ -951,9 +952,9 @@
 
 (define (subbv->string bv encoding start end)
   (call-with-output-string
-    (lambda (port)
-      (set-port-encoding! port encoding)
-      (put-bytevector port bv start (- end start)))))
+   (lambda (port)
+     (set-port-encoding! port encoding)
+     (put-bytevector port bv start (- end start)))))
 
 (define* (bv-u8-index bv u8 #:optional (time 1))
   (let ((len (bytevector-length bv)))
@@ -996,8 +997,7 @@
   (bv-read-delimited bv 10 start end))
 
 (define (put-bv port bv from to)
-  (when (> (- to from) 1)
-    (put-bytevector port bv from (- to from 2))))
+  (put-bytevector port bv from (- to from -1)))
 
 ;; TODO: build a char occurence indexing table
 (define (build-bv-lookup-table bv)
@@ -1073,18 +1073,18 @@
           (catch 'interrupt
             (lambda ()
               (dynamic-wind
-                (lambda ()
-                  (set! handler
-                    (sigaction SIGINT (lambda (sig)
-                                        (run-when-sigint-hook)
-                                        (throw 'interrupt)))))
-                thunk
-                (lambda ()
-                  (if handler
-                      ;; restore Scheme handler, SIG_IGN or SIG_DFL.
-                      (sigaction SIGINT (car handler) (cdr handler))
-                      ;; restore original C handler.
-                      (sigaction SIGINT #f)))))
+                  (lambda ()
+                    (set! handler
+                          (sigaction SIGINT (lambda (sig)
+                                              (run-when-sigint-hook)
+                                              (throw 'interrupt)))))
+                  thunk
+                  (lambda ()
+                    (if handler
+                        ;; restore Scheme handler, SIG_IGN or SIG_DFL.
+                        (sigaction SIGINT (car handler) (cdr handler))
+                        ;; restore original C handler.
+                        (sigaction SIGINT #f)))))
             (lambda (k . _) (handler-thunk)))))))
 
 (define-syntax-rule (define-box-type name)
