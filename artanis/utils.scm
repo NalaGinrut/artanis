@@ -951,11 +951,11 @@
             lst)
   lst)
 
-(define (subbv->string bv encoding start end)
+(define (subbv->string bv encoding start len)
   (call-with-output-string
    (lambda (port)
      (set-port-encoding! port encoding)
-     (put-bytevector port bv start (- end start)))))
+     (put-bytevector port bv start len))))
 
 (define* (bv-u8-index bv u8 #:optional (time 1))
   (let ((len (bytevector-length bv)))

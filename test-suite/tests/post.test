@@ -1,6 +1,6 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
 ;;  === Post tests ===
-;;  Copyright (C) 2015,2018
+;;  Copyright (C) 2015,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@
 
 (define (gen-req name)
   (format #f
-  "POST /~a HTTP/1.1\r
+          "POST /~a HTTP/1.1\r
 Host: localhost:8000\r
 Connection: keep-alive\r
 Content-Length: 320\r
@@ -60,7 +60,7 @@ aa.scm\r
 
 (define (gen-req-test5)
   (format #f
-  "POST /test5 HTTP/1.1\r
+          "POST /test5 HTTP/1.1\r
 Host: localhost:3000\r
 Connection: keep-alive\r
 Content-Length: 376\r
@@ -102,12 +102,12 @@ name=nala&passwd=123
 ")
 
 (post "/test1" #:from-post #t
-  (lambda (rc)
-    (let ((body (object->string `((name ,(:from-post rc 'get "name"))
-                                  (passwd ,(:from-post rc 'get "passwd"))))))
-    (response-emit body
-                   #:mtime *unified-modify-time*
-                   #:headers `((date . ,*unified-global-date*))))))
+      (lambda (rc)
+        (let ((body (object->string `((name ,(:from-post rc 'get "name"))
+                                      (passwd ,(:from-post rc 'get "passwd"))))))
+          (response-emit body
+                         #:mtime *unified-modify-time*
+                         #:headers `((date . ,*unified-global-date*))))))
 
 (define test1-expect-body "((name \"nala\") (passwd \"123\"))")
 (define test1-expect-res
@@ -122,7 +122,7 @@ name=nala&passwd=123
 (define post-test-2-single-file-upload (gen-req "test2"))
 
 (post "/test2" #:from-post 'bv
-  (lambda (rc) (:from-post rc 'get)))
+      (lambda (rc) (:from-post rc 'get)))
 
 (define test2-expect-body
   "------WebKitFormBoundaryimGSqF43tiXYkB0c\r
@@ -150,11 +150,11 @@ aa.scm\r
 (define post-test-3-single-file-upload (gen-req "test3"))
 
 (post "/test3" #:from-post '(store #:path "/tmp/upload" #:sync #t)
-  (lambda (rc)
-    (let ((ret (:from-post rc 'store)))
-      (case ret
-        ((success) "success")
-        (else (throw 'artanis-err 500 "upload failed!" ret))))))
+      (lambda (rc)
+        (let ((ret (:from-post rc 'store)))
+          (case ret
+            ((success) "success")
+            (else (throw 'artanis-err 500 "upload failed!" ret))))))
 
 (define test3-expect-body "success")
 
@@ -179,10 +179,10 @@ aa.scm\r
   #:mime 'json
   (lambda (rc)
     (let ((ret (:from-post rc 'store)))
-      (match ret
+      (match (pk "ret" ret)
         ((file size)
          (format #t "~a, ~a~%" file size)
-         (:mime rc `(("file" . ,file) ("size" . ,size))))
+         (pk "mime 4"(:mime rc `(("file" . ,file) ("size" . ,size)))))
         (else (format #t "BUG: ~a~%" ret) "BUG!!!")))))
 
 (define test4-expect-body "{\"file\" : \"aa.scm\",\"size\" : 40}")
@@ -215,11 +215,11 @@ aa.scm\r
     (catch #t
       (lambda ()
         (let* ((mo (:from-post rc 'get-mfds-op))
-               (note (mfds-op-ref rc mo "note"))
+               (note (pk "note"(mfds-op-ref rc mo "note")))
                (mfds (mfds-operator-mfds mo))
                (size (filter-map mfd-size mfds))
                (files (filter-map mfd-filename mfds)))
-          (:mime rc `(("note" . ,note) ("files" . ,files) ("size" . ,size)))))
+          (pk "mime 5"(:mime rc `(("note" . ,note) ("files" . ,files) ("size" . ,size))))))
       (lambda (k . reason)
         (format #t "test5 BUG:~a" reason)
         (let ((msg (format #f "~a" reason)))
@@ -229,21 +229,21 @@ aa.scm\r
 
   (pass-if "simple form post test"
     (receive (r b) (test-from-request post-test-1-simple-form)
-             (responses-equal? r b test1-expect-res test1-expect-body)))
+      (responses-equal? r b test1-expect-res test1-expect-body)))
 
   (pass-if "single file upload test"
     (receive (r b) (test-from-request post-test-2-single-file-upload)
-             (responses-equal? r b test2-expect-res test2-expect-body)))
+      (responses-equal? r b test2-expect-res test2-expect-body)))
 
   (pass-if "single file upload store test"
     (receive (r b) (test-from-request post-test-3-single-file-upload)
-             (responses-equal? r b test3-expect-res test3-expect-body)
-             (upload-file-verify test3-file test3-expect-file-content)))
+      (responses-equal? r b test3-expect-res test3-expect-body)
+      (upload-file-verify test3-file test3-expect-file-content)))
 
   (pass-if "single file upload store advanced test"
     (receive (r b) (test-from-request post-test-4-single-file-upload-advanced)
-             (responses-equal? r (bytevector->string b "utf-8") test4-expect-res test4-expect-body)))
+      (responses-equal? r (bytevector->string b "utf-8") test4-expect-res test4-expect-body)))
   (pass-if "single file upload store advanced test2"
-           (receive (r b) (test-from-request post-test-5-single-file-upload-advanced)
-                    (equal?  (bytevector->string b  "utf-8")  test5-expect-body)))
+    (receive (r b) (test-from-request post-test-5-single-file-upload-advanced)
+      (equal?  (bytevector->string b  "utf-8")  test5-expect-body)))
   )

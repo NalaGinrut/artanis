@@ -26,6 +26,7 @@
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 iconv)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 format)
   #:use-module (srfi srfi-1)
   #:use-module ((rnrs)
                 #:select (get-bytevector-all
@@ -77,7 +78,8 @@
    type)) ; MIME type
 
 (define (mfd->utf8 rc mfd)
-  (subbv->string (rc-body rc) "utf-8" (mfd-begin mfd) (- (mfd-end mfd) 2)))
+  (subbv->string (rc-body rc) "utf-8"
+                 (mfd-begin mfd) (- (mfd-end mfd) (mfd-begin mfd) -1)))
 (define (find-mfd rc name mfds)
   (any (lambda (mfd)
          (cond
@@ -152,7 +154,7 @@
         (cond
          ((blankline? start) (cons ret (1+ end))) ; end of headers
          (else
-          (let ((line (subbv->string body "utf-8" start end))
+          (let ((line (subbv->string body "utf-8" start (- end start)))
                 (llen (- end start -1)))
             (lp (+ start llen) (bv-read-line body (+ start llen))
                 (cons (->mfd-header line) ret)))))))
@@ -165,7 +167,11 @@
        ((and (< (+ i blen) len)
              (not (hash-ref btable (bytevector-u8-ref body (+ i blen -1)))))
         (lp (+ i blen)))
-       ((is-boundary? i) i)
+       ((is-boundary? i)
+        (format #t "BBBBBB: body: ~a, i: ~a, len: ~a, blen: ~a~%"
+                (utf8->string body) i len blen)
+        ;; NOTE: There'd be 3 chars need to be dropped, \r\n(head) and \r(tail)
+        (- i 3))
        (else (lp (1+ i))))))
   ;; ENHANCEMENT: use Fast String Matching to move forward quicker
   ;;(lp (1+ (bv-read-line body i)))))))
@@ -175,14 +181,17 @@
      ((<= i len)
       (let* ((hp (get-headers i))
              (headers (car hp))
-             (start (cdr hp))
-             (end (get-content-end start))
+             (start (pk "start"(cdr hp)))
+             (end (pk "end"(get-content-end start)))
              (dispos (assoc-ref headers "Content-Disposition"))
              (filename (-> dispos "filename"))
              (name (-> dispos "name"))
              (type (-> headers "Content-Type"))
              (mfd (make-mfd (car dispos) name filename start end type)))
-        (lp end (cons mfd mfds))))
+        (format #t "start: ~a, end: ~a~%"
+                (integer->char (bytevector-u8-ref body start))
+                (integer->char (bytevector-u8-ref body end)))
+        (lp (+ end 3) (cons mfd mfds))))
      (else (throw 'artanis-err 422 parse-mfds
                   "Wrong multipart form body ~a!" body)))))
 
@@ -229,9 +238,8 @@
 
 (define (mfd-size m)
   (and (mfd-filename m)
-       ;; NOTE: There'd be 3 chars need to be dropped, \r\n(head) and \r(tail)
-       ;; (- (- (mfd-end m) (mfd-begin m) -1) 3)
-       (- (mfd-end m) (mfd-begin m) 2)))
+       ;; end - start + 1
+       (- (mfd-end m) (mfd-begin m) -1)))
 
 ;; NOTE: we won't limit file size here, since it should be done in server reader
 (define* (store-uploaded-files rc #:key (path (current-upload-path))
@@ -274,7 +282,7 @@
              (rc-body rc)
              (mfd-begin value-mfd)
              :
-             (-  (mfd-end value-mfd) (mfd-begin value-mfd) 2))
+             (- (mfd-end value-mfd)))
             (mfd->utf8 rc value-mfd))
         (throw 'artanis-err 500 mfds-op-ref
                "No mfd field named ~a!" key))))
