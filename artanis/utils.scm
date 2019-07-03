@@ -92,7 +92,8 @@
             artanis-sys-response char-predicate handle-upload is-valid-table-name?
             is-guile-compatible-server-core? positive-integer? negative-integer?
             io-exception:peer-is-shutdown? io-exception:out-of-memory?
-            out-of-system-resources? allow-long-live-connection?)
+            out-of-system-resources? allow-long-live-connection?
+            define-c-function ffi-binding)
   #:re-export (the-environment
                utf8->string
                bytevector?
@@ -1526,3 +1527,36 @@
 
 (define (allow-long-live-connection?)
   (> (get-conf '(server timeout)) 0))
+
+(define clib (make-parameter (dynamic-link)))
+
+(define-syntax define-c-function
+  (lambda (x)
+    (syntax-case x ()
+      ((_ type name)
+       #`(module-define!
+          (current-module)
+          '#,(datum->syntax #'name (symbol-append '% (syntax->datum #'name)))
+          (pointer->procedure type
+                              (dynamic-func (symbol->string 'name) (clib))
+                              '()
+                              #:return-errno? #t)))
+      ((_ type name (para ...))
+       #`(module-define!
+          (current-module)
+          '#,(datum->syntax #'name (symbol-append '% (syntax->datum #'name)))
+          (pointer->procedure type
+                              (dynamic-func (symbol->string 'name) (clib))
+                              (list para ...)
+                              #:return-errno? #t))))))
+
+(define-syntax ffi-binding
+  (syntax-rules ()
+    ((_ () body ...)
+     (begin
+       body ...
+       #t))
+    ((_ libname body ...)
+     (parameterize ((clib (dynamic-link libname)))
+       body ...
+       #t))))
