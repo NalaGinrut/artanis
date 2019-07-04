@@ -286,7 +286,7 @@
       (or (assoc-ref (request-headers req) 'x-real-ip) "Unknown IP")
       (or (request-ip req) "Unknown IP")))
 
-(define *methods-list* '(HEAD GET POST PUT PATCH DELETE))
+(define *methods-list* '(HEAD GET POST PUT PATCH OPTIONS DELETE))
 (define (allowed-method? method)
   ;; TODO: check allowed method from config
   #t)
