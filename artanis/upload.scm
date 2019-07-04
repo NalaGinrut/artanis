@@ -168,8 +168,6 @@
              (not (hash-ref btable (bytevector-u8-ref body (+ i blen -1)))))
         (lp (+ i blen)))
        ((is-boundary? i)
-        (format #t "BBBBBB: body: ~a, i: ~a, len: ~a, blen: ~a~%"
-                (utf8->string body) i len blen)
         ;; NOTE: There'd be 3 chars need to be dropped, \r\n(head) and \r(tail)
         (- i 3))
        (else (lp (1+ i))))))
@@ -181,8 +179,8 @@
      ((<= i len)
       (let* ((hp (get-headers i))
              (headers (car hp))
-             (start (pk "start"(cdr hp)))
-             (end (pk "end"(get-content-end start)))
+             (start (cdr hp))
+             (end (get-content-end start))
              (dispos (assoc-ref headers "Content-Disposition"))
              (filename (-> dispos "filename"))
              (name (-> dispos "name"))
@@ -282,7 +280,7 @@
              (rc-body rc)
              (mfd-begin value-mfd)
              :
-             (- (mfd-end value-mfd)))
+             (mfd-end value-mfd))
             (mfd->utf8 rc value-mfd))
         (throw 'artanis-err 500 mfds-op-ref
                "No mfd field named ~a!" key))))
