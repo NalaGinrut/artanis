@@ -283,6 +283,8 @@
       (`(check-and-spawn ,sid)
        (or (check-it rc sid) (apply spawn-handler rc args)))
       ('spawn (apply spawn-handler rc args))
+      ('drop (session-destory! "sid"))
+      (`(drop ,sid) (session-destory! sid))
       (else (throw 'artanis-err 500 session-maker "Invalid call cmd: ~a" cmd)))))
 
 ;; for #:from-post
@@ -446,7 +448,6 @@
        (auth-action rc thunk failed-handler failed-url))
       (else (throw 'artanis-err 500 with-auth-maker
                    "Invalid mode `~a'~" mode)))))
-
 
 (define (auth-maker val rule keys)
   (define-syntax-rule (->passwd rc passwd-field salt-field sql)
