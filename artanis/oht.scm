@@ -409,7 +409,7 @@
       (match cmd
         (`(set ,key ,val) (lpc-set! lpc key val))
         (((or 'ref 'get) key) (lpc-ref lpc key))
-        ('impl (lpc-impl lpc))
+        ('(impl) (lpc-impl lpc))
         (else (throw 'artanis-err 500 gen-lpc-handler "Invalid cmd `~a'!" cmd)))))
   (match mode
     (#t
