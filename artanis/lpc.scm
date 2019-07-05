@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2018
+;;  Copyright (C) 2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -43,6 +43,7 @@
             lpc-ref
             lpc-remove!
             lpc-flush!
+            lpc-impl
 
             backend-impl:set!/redis
             backend-impl:remove!/redis
@@ -184,6 +185,11 @@
   (:anno: (lpc) -> ANY)
   (let ((backend (lpc-backend lpc)))
     (lpc-backend-flush! backend)))
+
+(::define (lpc-impl lpc)
+  (:anno: (lpc) -> ANY)
+  (let ((backend (lpc-backend lpc)))
+    (lpc-backend-impl-meta backend)))
 
 (::define (get-lpc-instance!)
   (:anno: () -> lpc)
