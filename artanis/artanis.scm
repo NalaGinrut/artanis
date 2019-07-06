@@ -59,7 +59,7 @@
                post
                put
                patch
-               options
+               page-options
                page-delete
                :sql-mapping
                :str
