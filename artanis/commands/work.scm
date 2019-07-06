@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2016,2017,2018
+;;  Copyright (C) 2015,2016,2017,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -49,10 +49,10 @@
     (user (single-char #\u) (value #t))
     (passwd (single-char #\w) (value #t))
     (debug (single-char #\g) (value #f))
+    (refresh (value #f))
     ;; NOTE: this is used for new server-core in the future,
     ;;       but now it's just useless.
     (server (single-char #\s) (value #t))))
-
 
 (define hidden-option-spec
   '((options-list (value #f))))
@@ -64,6 +64,12 @@
 
 (define (display-it x)
   (format #t "~a\n" x))
+
+(define (refresh-current-app)
+  (let ((recompile (format #f "find ~a -name \"*.scm\" -exec touch {} \\;" (current-toplevel)))
+        (clean (format #f "rm -fr ~a/tmp/cache/tpl/*" (current-toplevel))))
+    (system recompile)
+    (system clean)))
 
 (define (try-load-entry)
   (let ((entry (string-append (current-toplevel) "/" *artanis-entry*)))
@@ -125,6 +131,8 @@
     (define-syntax-rule (->opt k) (option-ref options k #f))
     (define-syntax-rule (get-conf-file)
       (or (->opt 'config) (gen-local-conf-file)))
+    (when (->opt 'refresh)
+      (refresh-current-app))
     (cond
      ((->opt 'help) (show-help))
      ((->opt 'options-list) (display-it (option-spec-str)))
@@ -169,6 +177,7 @@ Options:
                                    Default: disable
   -s, [--server=SERVER]          # Specify server core
                                    Default: Ragnarok (New server core since 0.2)
+  --refresh                      # Clean caches, and force to re-compile all source code.
   --help                         # Show this screen
 ")
 
