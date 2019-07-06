@@ -49,7 +49,8 @@ DIRE_GEN := $(BUILD_AUX)/gen-directive.scm
 GNUPLOAD := $(BUILD_AUX)/gnupload
 TEST_SUITE := $(SRC)/test-suite
 TESTS := $(TEST_SUITE)/tests
-CMDCOMP := $(BUILD_AUX)/show-artanis-cmds.sh
+CMD_FILE := show-artanis-cmds.sh
+CMDCOMP := $(BUILD_AUX)/$(CMD_FILE)
 
 ifndef VERBOSE
 V := @ # "V = " for verbose, "V = @" for non-verbose
@@ -173,6 +174,30 @@ endif
 
 	if [ -e /etc/bash.bashrc ]; then source /etc/bash.bashrc; fi
 	if [ -e artanis.info ]; then mkdir -p $(INFO_DIR); $(CP) artanis.info $(INFO_DIR)/; fi
+
+uninstall:
+	-rm -fr $(MOD_PATH)/artanis
+	-rm -fr $(MOD_TARGET_PATH)/artanis
+
+ifdef DESTDIR
+	-rm -fr $(DESTDIR)/etc/artanis
+	-rm -fr $(DESTDIR)/bin/art
+	if [ -e /etc/bash_completion ]; then \
+	  -rm -fr $(DESTDIR)/etc/bash_completion.d/$(CMD_FILE); \
+	  source $(DESTDIR)/etc/bash_completion; \
+	fi
+else
+	-rm -fr /etc/artanis/
+	-rm -fr $(PREFIX)/bin/art
+	if [ -e /etc/bash_completion ]; then \
+	  -rm -fr /etc/bash_completion.d/$(CMD_FILE); \
+	  source /etc/bash_completion; \
+	fi
+endif
+
+	if [ -e /etc/bash.bashrc ]; then source /etc/bash.bashrc; fi
+	if [ -e artanis.info ]; then -rm -fr $(INFO_DIR)/artanis.info; fi
+
 
 distclean: distclean-mk clean clean-config clean-tarball
 	-rm -f $(BIN)/art
