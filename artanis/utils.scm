@@ -1414,9 +1414,12 @@
          (format port "HTTP ~a~%" (STATUS-TEXT status))
          (format port "Captured in <~a>~%" (WARN-TEXT (->reasonable-file filename)))
          (when subr (format port "Threw in procedure ~a :~%"
-                            (WARN-TEXT (if (procedure? subr)
-                                           (procedure-name->string subr)
-                                           subr))))
+                            (WARN-TEXT (cond
+                                        ((procedure? subr)
+                                         (procedure-name->string subr))
+                                        ((symbol? subr)
+                                         (symbol->string subr))
+                                        (else subr)))))
          (apply format port
                 (REASON-TEXT (string-append "[REASON] " msg))
                 args)
