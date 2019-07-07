@@ -111,13 +111,25 @@
        (artanis-list-matches *path-keys-regexp* rule)))
 
 ;; NOTE:
-;; Returns `values' proc if there's no such keyword was specified.
-;; Because we need to support the hooks, so there'd be a proc to receive
-;; multi-args when there's no such short-cut.
+;; 1. The situation to throw exception:
+;;    a. The keyword is invalid.
+;;    b. The rule didn't initialize the oht keyword.
+;; 2. Otherwise, we return `values', because we need to support the
+;;    hooks, and there'd be a proc to receive multi-args when there's
+;;    no such short-cut.
 (define-syntax-rule (=> opt rc args ...)
   (let* ((oht (rc-oht rc))
          (h (and oht (hash-ref oht opt))))
-    (if h (h rc args ...) values)))
+    (if h
+        (h rc args ...)
+        (if (eq? opt #:cookies)
+            ;; #:cookies is special that no need to initialize first,
+            ;; and it could be used to operate the existing cookies
+            ;; from the requests.
+            values
+            (throw 'artanis-err 500 'oht-ref
+                   "The opt ~a isn't initialized for ~a"
+                   opt (rc-path rc))))))
 
 (define-syntax-rule (auth-enabled? rc)
   (hash-ref (rc-oht rc) #:auth))
@@ -557,7 +569,7 @@
      (lambda _
        (make-db-string-template tpl)))
     (('post username passwd checker)
-     (lambda (rc mode)
+     (lambda* (rc #:optional (mode #t))
        (when (not (rc-oht-ref rc #:from-post))
          (init-oht! (rc-oht rc) #:from-post mode rule keys))
        (let ((post-handler (rc-oht-ref rc #:from-post)))
