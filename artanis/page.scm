@@ -150,24 +150,48 @@
                     ;; NOTE: return the status while handling the request.
                     request-status))))))
 
+(define (generate-http-options req)
+  (define (http-options->methods digest)
+    (let ((ml (hash-ref *http-options-table* digest)))
+      (cond
+       ((not ml)
+        (get-conf '(server allowedmethods)))
+       (else ml))))
+  (let* ((path (request-path req))
+         (digest (string->sha-1 path))
+         (methods (http-options->methods digest))
+         (response (build-response
+                    #:code 200
+                    #:headers `((server . ,(get-conf '(server info)))
+                                (allow ,@methods)
+                                (content-length . 0)
+                                ,@(prepare-headers '())))))
+    (if (is-guile-compatible-server-core? (get-conf '(server engine)))
+        (values response #vu8())
+        (values response #vu8() 'ok))))
+
 (define (work-with-request request body)
   ;;(DEBUG "work with request~%")
   (catch 'artanis-err
     (lambda ()
-      (let* ((rc (new-route-context request body))
-             (handler (rc-handler rc))
-             (with-auth (rc-oht-ref rc #:with-auth)))
-        (cond
-         (handler
-          (if with-auth
-              (with-auth rc
-                         (lambda (failed-rule)
-                           (handler-render
-                            (lambda () (redirect-to rc failed-rule))
-                            rc))
-                         (lambda () (handler-render handler rc)))
-              (handler-render handler rc)))
-         (else (render-sys-page 'client 404 rc)))))
+      (cond
+       ((eq? 'OPTIONS (request-method request))
+        (generate-http-options request))
+       (else
+        (let* ((rc (new-route-context request body))
+               (handler (rc-handler rc))
+               (with-auth (rc-oht-ref rc #:with-auth)))
+          (cond
+           (handler
+            (if with-auth
+                (with-auth rc
+                           (lambda (failed-rule)
+                             (handler-render
+                              (lambda () (redirect-to rc failed-rule))
+                              rc))
+                           (lambda () (handler-render handler rc)))
+                (handler-render handler rc)))
+           (else (render-sys-page 'client 404 rc)))))))
     (make-unstop-exception-handler (exception-from-client request))))
 
 (define (response-emit-error status)

@@ -77,12 +77,19 @@
              :websocket
              :lpc))
 
+(define (http-options-add! method rule)
+  (let* ((digest (string->sha-1 rule))
+         (ml (hash-ref *http-options-table* digest '(OPTIONS HEAD))))
+    (when (not (memq method ml))
+      (hash-set! *http-options-table* digest (cons method ml)))))
+
 (define (define-handler method raw-rule opts-and-handler)
   (let* ((rule (string-trim-right raw-rule #\/))
          (keys (rule->keys rule))
          (path-regexp (compile-rule rule))
          (opts (oah->opts opts-and-handler))
          (handler (oah->handler opts-and-handler)))
+    (http-options-add! method rule)
     (hash-set! *handlers-table*
                (cons method path-regexp)
                (make-handler-context handler keys (new-oht opts #:rule rule #:keys keys)))))

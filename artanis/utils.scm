@@ -288,8 +288,7 @@
 
 (define *methods-list* '(HEAD GET POST PUT PATCH OPTIONS DELETE))
 (define (allowed-method? method)
-  ;; TODO: check allowed method from config
-  #t)
+  (memq method (get-conf '(server allowedmethods))))
 (define (valid-method? method)
   (if (and (member method *methods-list*) (allowed-method? method))
       method

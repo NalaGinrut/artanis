@@ -241,6 +241,11 @@ server.pub = <string>")
      "Whether to use Linux specified sendfile interface.
 server.sendfile = <boolean>")
 
+    ((server allowedmethods)
+     (HEAD GET POST PUT)
+     "The allowed HTTP methods.
+server.allowedmethods = <methods-list>")
+
     ((websocket maxpayload)
      ,(1- (ash 1 64))
      "The maximum payload size of WebSocket request in bytes. If it exceeds, then it
@@ -400,6 +405,11 @@ debug.monitor = <PATHs>")))
         'mysql
         d)))
 
+(define-syntax-rule (->methods ml)
+  (map (lambda (m)
+         (string->symbol (string-upcase m)))
+       (->list ml)))
+
 (define *pool-modes* '(increase fixed))
 (define-syntax-rule (->pool-mode x)
   (let ((p (string->symbol x)))
@@ -444,6 +454,7 @@ debug.monitor = <PATHs>")))
     (('websocket websocket) (conf-set! '(server websocket) (->bool websocket)))
     (('pub pub) (conf-set! '(server pub) (basename pub)))
     (('sendfile v) (conf-set! '(server sendfile) (->bool v)))
+    (('allowedmethods ml) (conf-set! '(server allowedmethods) (->methods ml)))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 
 (define (parse-namespace-websocket item)
@@ -521,28 +532,28 @@ debug.monitor = <PATHs>")))
 
 (define (parse-line line)
   (call-with-input-string
-      line
-    (lambda (port)
-      (let lp((next (read-char port)) (key? #t) (word '()) (ret '()))
-        (cond
-         ((or (eof-object? next)
-              (char=? next #\#)) ; skip comment
-          (reverse (cons (list->string (reverse word)) ret)))
-         ((char-set-contains? char-set:whitespace next)
-          ;; skip all whitespaces
-          (lp (read-char port) key? word ret))
-         ((and key? (char=? next #\.))
-          ;; a namespace end
-          (lp (read-char port) key? '() (cons (list->symbol (reverse word)) ret)))
-         ((and key? (char=? next #\=))
-          ;; value start
-          (lp (read-char port) #f '() (cons (list->symbol (reverse word)) ret)))
-         ((not key?)
-          ;; store chars of value
-          (lp (read-char port) key? (cons next word) ret))
-         (else
-          ;; store chars of key
-          (lp (read-char port) key? (cons next word) ret)))))))
+   line
+   (lambda (port)
+     (let lp((next (read-char port)) (key? #t) (word '()) (ret '()))
+       (cond
+        ((or (eof-object? next)
+             (char=? next #\#)) ; skip comment
+         (reverse (cons (list->string (reverse word)) ret)))
+        ((char-set-contains? char-set:whitespace next)
+         ;; skip all whitespaces
+         (lp (read-char port) key? word ret))
+        ((and key? (char=? next #\.))
+         ;; a namespace end
+         (lp (read-char port) key? '() (cons (list->symbol (reverse word)) ret)))
+        ((and key? (char=? next #\=))
+         ;; value start
+         (lp (read-char port) #f '() (cons (list->symbol (reverse word)) ret)))
+        ((not key?)
+         ;; store chars of value
+         (lp (read-char port) key? (cons next word) ret))
+        (else
+         ;; store chars of key
+         (lp (read-char port) key? (cons next word) ret)))))))
 
 (define (init-inner-database-item)
   (define dbd (get-conf '(db dbd)))

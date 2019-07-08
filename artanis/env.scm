@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2016,2017,2018
+;;  Copyright (C) 2014,2015,2016,2017,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -28,6 +28,7 @@
   #:re-export (artanis-version)
   #:export (*handlers-table*
             *conf-hash-table*
+            *http-options-table*
             *conn-pool*
             *before-response-hook*
             *after-request-hook*
@@ -81,6 +82,10 @@
 ;; `(("GET \"/photo/:id/edit\"" (,(lambda (req ..) ...) . id)))
 (define *handlers-table* (make-hash-table))
 (define *conf-hash-table* (make-hash-table))
+
+;; table structure:
+;; ("<http-url-rules>" (<methods-list))
+(define *http-options-table* (make-hash-table))
 
 ;; NOTE: The init queue size equals to (server wqlen).
 ;;       If all the available DB conn were blocked, a new DB conn will be
