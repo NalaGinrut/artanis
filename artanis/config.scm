@@ -241,6 +241,11 @@ server.pub = <string>")
      "Whether to use Linux specified sendfile interface.
 server.sendfile = <boolean>")
 
+    ((server mmapped)
+     #f
+     "Whether to use POSIX specific mmap for file I/O.
+server.mmapped = <boolean>")
+
     ((server allowedmethods)
      (HEAD GET POST PUT)
      "The allowed HTTP methods.
@@ -454,6 +459,7 @@ debug.monitor = <PATHs>")))
     (('websocket websocket) (conf-set! '(server websocket) (->bool websocket)))
     (('pub pub) (conf-set! '(server pub) (basename pub)))
     (('sendfile v) (conf-set! '(server sendfile) (->bool v)))
+    (('mmapped v) (conf-set! '(server mmapped) (->bool v)))
     (('allowedmethods ml) (conf-set! '(server allowedmethods) (->methods ml)))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 
