@@ -67,7 +67,9 @@
             resources-collecting?
             oh-define!
             oh-set!
-            oh-ref))
+            oh-ref
+            is-mmapped-file?
+            register-mmapped-file!))
 
 ;; WARNING:
 ;; For concurrency in green-thread, all these stuffs should be immutable
@@ -228,3 +230,10 @@
         (assq-set! *options-meta-handler-table* k h)))
 (define (oh-ref o)
   (assq-ref *options-meta-handler-table* o))
+
+;; (client-fd . mmapped-bv)
+(define *mmapped-bv-from-file* (make-hash-table))
+(define (register-mmapped-file! fd bv)
+  (hashv-set! *mmapped-bv-from-file* fd bv))
+(define (is-mmapped-file? fd)
+  (hashv-ref *mmapped-bv-from-file* fd #f))
