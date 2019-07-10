@@ -42,6 +42,7 @@
   (cond
    ((is-mmapped-file? fd)
     => (lambda (bv)
+         (DEBUG "munmap file for ~a~%" fd)
          (munmap (bytevector->pointer bv) (bytevector-length bv))))
    (else #f)))
 
