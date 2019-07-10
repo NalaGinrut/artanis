@@ -119,9 +119,9 @@
 
 (define (run-task task)
   (call-with-prompt
-      'serve-one-request
-    (task-kont task)
-    ragnarok-scheduler))
+   'serve-one-request
+   (task-kont task)
+   ragnarok-scheduler))
 
 (define (resources-collector)
   (define (remove-timemout-connections)
