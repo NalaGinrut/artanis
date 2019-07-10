@@ -273,7 +273,13 @@
            ;; FIXME: For now, guile compatable server-core doesn't provide good method to
            ;;        support sendfile, so we read then send it. This is OK for small files,
            ;;        but bad for larger files.
-           (bv-cat filename #f)))
+           (cond
+            ((get-conf '(server mmapped))
+             (let ((bv (file->bytevector filename)))
+               (register-mmapped-file! (port->fdes out) bv)
+               bv))
+            (else
+             (bv-cat filename #f)))))
          (else
           (let* ((in (open-input-file filename))
                  (size (stat:size (stat filename))))

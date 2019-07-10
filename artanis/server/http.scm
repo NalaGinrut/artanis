@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016,2017,2018
+;;  Copyright (C) 2016,2017,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -33,9 +33,17 @@
                                  bytevector-length make-bytevector))
   #:use-module (ice-9 format)
   #:use-module (ice-9 futures)
+  #:use-module (system foreign)
   #:export (new-http-protocol
             %%raw-close-connection
             http-close))
+
+(define (clean-mmapped-file fd)
+  (cond
+   ((is-mmapped-file? fd)
+    => (lambda (bv)
+         (munmap (bytevector->pointer bv) (bytevector-length bv))))
+   (else #f)))
 
 (define (clean-current-conn-fd server client peer-shutdown?)
   (let ((conn (client-sockport client))
@@ -62,6 +70,7 @@
           (shutdown conn 0) ; Stop receiving data
           (DEBUG "Shutdown ~a successfully~%" conn)
           (force-output conn)
+          (clean-mmapped-file conn-fd)
           (DEBUG "Force-output ~a successfully~%" conn))
         list))
     ;; I don't care if the connection is still alive anymore, so ignore errors.

@@ -49,7 +49,7 @@
                           bytevector-u8-ref string->utf8 bytevector-length
                           make-bytevector bytevector-s32-native-ref bytevector?
                           define-record-type record-rtd record-accessor
-                          get-string-all))
+                          get-string-all bitwise-ior))
   #:export (regexp-split
             hash-keys cat bv-cat get-global-time sanitize-response
             get-local-time string->md5 unsafe-random parse-date write-date
@@ -83,7 +83,7 @@
             ::define did-not-specify-parameter colorize-string-helper
             colorize-string WARN-TEXT ERROR-TEXT REASON-TEXT
             NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr request-path
-            response-keep-alive? request-keep-alive?
+            response-keep-alive? request-keep-alive? file->bytevector
             procedure-name->string proper-toplevel gen-content-length
             make-file-sender file-sender? file-sender-size file-sender-thunk
             get-string-all-with-detected-charset make-unstop-exception-handler
@@ -318,26 +318,51 @@
 (define-public MAP_FIXED        #x10)
 (define-public MAP_ANONYMOUS    #x20)
 (define-public MAP_UNINITIALIZED 0) ;; don't support map uninitialized
+(define-public MAP_FAILED #xffffffffffffffff)
 
-(define *libc-ffi* (dynamic-link))
+;;void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 (define %mmap
   (pointer->procedure '*
-                      (dynamic-func "mmap" *libc-ffi*)
-                      (list '* size_t int int int size_t) #:return-errno? #t))
+                      (dynamic-func "mmap" (dynamic-link))
+                      (list '* size_t int int int long)
+                      #:return-errno? #t))
+
+;;redefine mmap as
+;;(mmap fd len addr prot flags offset)
+(define* (mmap fd len #:key (addr %null-pointer) (prot (list PROT_READ PROT_WRITE)) (flags (list MAP_SHARED)) (offset 0))
+  (let ((pv (fold bitwise-ior 0 prot))
+        (fv (fold bitwise-ior 0 flags)))
+    (call-with-values
+        (lambda()
+          (%mmap addr len pv fv fd offset))
+      (lambda(ret errno)
+        (cond
+         ((not (= (pointer-address ret) MAP_FAILED)) ret)
+         (else (throw 'artanis-error mmap
+                      "Error: ~a" (strerror errno))))))))
+
 (define %munmap
   (pointer->procedure int
-                      (dynamic-func "munmap" *libc-ffi*)
-                      (list '* size_t) #:return-errno? #t))
-(define* (mmap size #:key (addr %null-pointer) (fd -1) (prot MAP_SHARED)
-               (flags PROT_READ) (offset 0) (bv? #f))
-  (let ((ret (if bv? (lambda (p) (pointer->bytevector p size)) identity)))
-    (ret (%mmap addr size prot flags fd offset))))
-(define (munmap bv/pointer size)
-  (cond
-   ((bytevector? bv/pointer)
-    (%munmap (bytevector->pointer bv/pointer size) size))
-   ((pointer? bv/pointer)
-    (%munmap bv/pointer size))))
+                      (dynamic-func "munmap" (dynamic-link))
+                      (list '* size_t)
+                      #:return-errno? #t))
+
+(define (munmap addr len)
+  (call-with-values
+      (lambda ()
+        (%munmap addr len))
+    (lambda (ret errno)
+      (cond
+       ((>= ret 0) ret)
+       (else (throw 'artanis-error 500 munmap
+                    "Error: ~a" (strerror errno)))))))
+
+(define (file->bytevector filename)
+  (let ((size (stat:size (stat filename))))
+    (pointer->bytevector
+     (mmap (port->fdes (open-input-file filename)) size
+           #:prot (list PROT_READ) #:flags (list MAP_SHARED))
+     size)))
 
 ;; FIXME: what if len is not even?
 (define (string->byteslist str step base)
