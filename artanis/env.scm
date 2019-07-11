@@ -234,7 +234,6 @@
 ;; (client-fd . mmapped-bv)
 (define *mmapped-bv-from-file* (make-hash-table))
 (define (register-mmapped-file! fd bv)
-  (DEBUG "Register mmaped file for ~a~%" fd)
   (hashv-set! *mmapped-bv-from-file* fd bv))
 (define (is-mmapped-file? fd)
   (hashv-ref *mmapped-bv-from-file* fd #f))
