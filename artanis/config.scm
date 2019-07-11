@@ -214,7 +214,7 @@ server.bufsize = <integer>")
     ;;       SO_REUSEPORT (since 3.9)
     ;;       Allows mutiple servers to listen to the same socket port, say 8080.
     ((server multi)
-     #t
+     #f
      "This is the most significant feature of Ragnarok server core.
 Please remember that there're no threads in GNU Artanis.
 All the tasks are based on delimited continuations, this kind of design is the
@@ -245,15 +245,6 @@ server.sendfile = <boolean>")
      #f
      "Whether to use POSIX specific mmap for file I/O.
 server.mmapped = <boolean>")
-
-    ((server nonblocking)
-     #t
-     "Support Non-blocking I/O. Here're some points:
-1. If you use Ragnarok server-core, then it's non-blocking by default.
-2. If you enable server.nonblocking, it means the server-core will
-   handle I/O in non-blocking. However, your own I/O in handlers must
-   be set to non-blocking too, this has to be done by yourself.
-server.nonblocking = <boolean>")
 
     ((server allowedmethods)
      (HEAD GET POST PUT)
@@ -474,7 +465,6 @@ debug.monitor = <PATHs>")))
     (('pub pub) (conf-set! '(server pub) (basename pub)))
     (('sendfile v) (conf-set! '(server sendfile) (->bool v)))
     (('mmapped v) (conf-set! '(server mmapped) (->bool v)))
-    (('nonblocking v) (conf-set! '(server nonblocking) (->bool v)))
     (('allowedmethods ml) (conf-set! '(server allowedmethods) (->methods ml)))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 
