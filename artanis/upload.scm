@@ -23,6 +23,8 @@
   #:use-module (artanis irregex)
   #:use-module (artanis mime)
   #:use-module (artanis route)
+  #:use-module (artanis server scheduler)
+  #:use-module (artanis server server-context)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 iconv)
   #:use-module (ice-9 match)
@@ -163,6 +165,9 @@
   (define (get-content-end from)
     (define btable (build-bv-lookup-table boundary))
     (let lp((i from))
+      (when (zero? (modulo i (get-conf '(server bufsize))))
+        (oneshot-mention! (current-client))
+        (break-task))
       (cond
        ((and (< (+ i blen) len)
              (not (hash-ref btable (bytevector-u8-ref body (+ i blen -1)))))
@@ -172,7 +177,6 @@
         (- i 3))
        (else (lp (1+ i))))))
   ;; ENHANCEMENT: use Fast String Matching to move forward quicker
-  ;;(lp (1+ (bv-read-line body i)))))))
   (let lp((i 0) (mfds '()))
     (cond
      ((is-end-line? i) mfds)
@@ -186,9 +190,6 @@
              (name (-> dispos "name"))
              (type (-> headers "Content-Type"))
              (mfd (make-mfd (car dispos) name filename start end type)))
-        (format #t "start: ~a, end: ~a~%"
-                (integer->char (bytevector-u8-ref body start))
-                (integer->char (bytevector-u8-ref body end)))
         (lp (+ end 3) (cons mfd mfds))))
      (else (throw 'artanis-err 422 parse-mfds
                   "Wrong multipart form body ~a!" body)))))
@@ -245,22 +246,22 @@
                                (mode #o664) (path-mode #o775) (sync #f))
   (define (get-slist mfds) (filter-map mfd-size mfds))
   (define (get-flist mfds) (filter-map mfd-filename mfds))
+  (define (finalize-mfds boundry)
+    (let ((mfds (parse-mfds (string->utf8 (string-append "--" boundry))
+                            (rc-body rc)))
+          (dumper (make-mfd-dumper (rc-body rc) #:path path #:mode mode
+                                   #:uid uid #:gid gid #:path-mode path-mode
+                                   #:sync sync)))
+      (catch #t
+        (lambda () (for-each dumper mfds))
+        (lambda e (format (current-error-port) "[WARNING] Failed to dump mfds! ~a~%" e)))
+      (if simple-ret?
+          (if need-mfd? mfds 'success)
+          (if need-mfd?
+              `(success ,mfds ,(get-slist mfds) ,(get-flist mfds))
+              `(success ,(get-slist mfds) ,(get-flist mfds))))))
   (cond
-   ((content-type-is-mfd? rc)
-    => (lambda (boundry)
-         (let ((mfds (parse-mfds (string->utf8 (string-append "--" boundry))
-                                 (rc-body rc)))
-               (dumper (make-mfd-dumper (rc-body rc) #:path path #:mode mode
-                                        #:uid uid #:gid gid #:path-mode path-mode
-                                        #:sync sync)))
-           (catch #t
-             (lambda () (for-each dumper mfds))
-             (lambda e (format (current-error-port) "[WARNING] Failed to dump mfds! ~a~%" e)))
-           (if simple-ret?
-               (if need-mfd? mfds 'success)
-               (if need-mfd?
-                   `(success ,mfds ,(get-slist mfds) ,(get-flist mfds))
-                   `(success ,(get-slist mfds) ,(get-flist mfds)))))))
+   ((content-type-is-mfd? rc) => finalize-mfds)
    (else 'none)))
 
 (define-record-type mfds-operator
