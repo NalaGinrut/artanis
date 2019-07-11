@@ -277,6 +277,7 @@
             ((get-conf '(server mmapped))
              (let ((bv (file->bytevector filename)))
                (register-mmapped-file! (port->fdes out) bv)
+               (DEBUG "Register mmaped file for ~a~%" (port->fdes out))
                bv))
             (else
              (bv-cat filename #f)))))

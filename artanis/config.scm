@@ -246,6 +246,15 @@ server.sendfile = <boolean>")
      "Whether to use POSIX specific mmap for file I/O.
 server.mmapped = <boolean>")
 
+    ((server nonblocking)
+     #t
+     "Support Non-blocking I/O. Here're some points:
+1. If you use Ragnarok server-core, then it's non-blocking by default.
+2. If you enable server.nonblocking, it means the server-core will
+   handle I/O in non-blocking. However, your own I/O in handlers must
+   be set to non-blocking too, this has to be done by yourself.
+server.nonblocking = <boolean>")
+
     ((server allowedmethods)
      (HEAD GET POST PUT)
      "The allowed HTTP methods.

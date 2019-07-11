@@ -228,7 +228,14 @@
   (let ((bv (if (port? filename)
                 (throw 'artanis-err 500 bv-cat
                        "BUG: Shouldn't be port here (~a)!" filename)
-                (call-with-input-file filename get-bytevector-all))))
+                (call-with-input-file
+                    filename
+                  (lambda (port)
+                    (when (or (eq? 'ragnarok (get-conf '(server engine)))
+                              (get-conf '(server nonblocking)))
+                      (fcntl port F_SETFL
+                             (logior O_NONBLOCK (fcntl port F_GETFL 0))))
+                    (get-bytevector-all port))))))
     (if out
         (display bv out)
         bv)))
@@ -358,11 +365,18 @@
                     "Error: ~a" (strerror errno)))))))
 
 (define (file->bytevector filename)
-  (let ((size (stat:size (stat filename))))
-    (pointer->bytevector
-     (mmap (port->fdes (open-input-file filename)) size
-           #:prot (list PROT_READ) #:flags (list MAP_SHARED))
-     size)))
+  (let ((size (stat:size (stat filename)))
+        (port (open-input-file filename)))
+    (when (or (eq? 'ragnarok (get-conf '(server engine)))
+              (get-conf '(server nonblocking)))
+      (fcntl port F_SETFL
+             (logior O_NONBLOCK (fcntl port F_GETFL 0))))
+    (let ((bv (pointer->bytevector
+               (mmap (port->fdes port) size
+                     #:prot (list PROT_READ) #:flags (list MAP_SHARED))
+               size)))
+      (close port)
+      bv)))
 
 ;; FIXME: what if len is not even?
 (define (string->byteslist str step base)
