@@ -474,6 +474,7 @@ debug.monitor = <PATHs>")))
     (('pub pub) (conf-set! '(server pub) (basename pub)))
     (('sendfile v) (conf-set! '(server sendfile) (->bool v)))
     (('mmapped v) (conf-set! '(server mmapped) (->bool v)))
+    (('nonblocking v) (conf-set! '(server nonblocking) (->bool v)))
     (('allowedmethods ml) (conf-set! '(server allowedmethods) (->methods ml)))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 
