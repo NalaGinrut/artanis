@@ -465,6 +465,10 @@
        (auth-action rc thunk failed-handler "/login"))
       ((? string? failed-url)
        (auth-action rc thunk failed-handler failed-url))
+      ('status
+       (auth-action rc thunk failed-handler 'status))
+      ((? procedure? generator)
+       (auth-action rc thunk failed-handler generator))
       (else (throw 'artanis-err 500 with-auth-maker
                    "Invalid mode `~a'~" mode)))))
 
