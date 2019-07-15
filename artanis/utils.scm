@@ -906,7 +906,14 @@
           (write-header port)
           (if (eof-object? rl)
               (write '() port)
-              (write (assoc-set! rl url (drop-right meta 1)) port))
+              (write
+               (assoc-set! rl url
+                           (map (lambda (e)
+                                  (if (procedure? e)
+                                      (object->string e)
+                                      e)) meta))
+               port
+               ))
           (flock port LOCK_UN))))))
 
 (define (dump-route-from-cache)
