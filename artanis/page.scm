@@ -184,14 +184,26 @@
           (cond
            (handler
             (if with-auth
-                (with-auth rc
-                           (lambda (failed-rule)
-                             (handler-render
-                              (lambda () (redirect-to rc failed-rule))
-                              rc))
-                           (lambda () (handler-render handler rc)))
+                (with-auth
+                 rc
+                 (lambda (failed-rule)
+                   (match failed-rule
+                     ((? string? failed-rule)
+                      (handler-render
+                       (lambda ()
+                         (redirect-to rc failed-rule))
+                       rc))
+                     ('status
+                      (render-sys-page 'client 401 (rc-req rc)))
+                     ((? procedure? generator)
+                      (handler-render generator rc))
+                     (else
+                      (throw 'artanis-err 500 work-with-request
+                             "BUG: Wrong failed-rule ~a"
+                             failed-rule))))
+                 (lambda () (handler-render handler rc)))
                 (handler-render handler rc)))
-           (else (render-sys-page 'client 404 rc)))))))
+           (else (render-sys-page 'client 404 (rc-req rc))))))))
     (make-unstop-exception-handler (exception-from-client request))))
 
 (define (response-emit-error status)
