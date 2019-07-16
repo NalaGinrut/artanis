@@ -256,7 +256,11 @@
 
 (::define (client-sockport-descriptor c)
   (:anno: (ragnarok-client) -> int)
-  (port->fdes (client-sockport c)))
+  (let ((port (client-sockport c)))
+    (when (port-closed? port)
+      (throw 'artanis-err 410 client-sockport-descriptor
+             "The client was closed suddenly!"))
+    (port->fdes port)))
 
 (::define (client-details c)
   (:anno: (ragnarok-client) -> vector)
