@@ -435,9 +435,15 @@
 
 (define (ragnarok-http-gateway-run handler)
   (define-syntax-rule (detect-client-protocol client)
-    (cond
-     ((specified-proto? client) => identity)
-     (else 'http)))
+    ;; NOTE: We must catch it here, since it's the very beginning to
+    ;;       handle a client.
+    (catch #t
+      (lambda ()
+        (cond
+         ((specified-proto? client) => identity)
+         (else 'http)))
+      (lambda e
+        (apply (make-unstop-exception-handler (exception-from-server)) e))))
   (DEBUG "Enter ragnarok-http-gateway-run~%")
   (let ((http (lookup-protocol 'http))
         (server (ragnarok-open)))
