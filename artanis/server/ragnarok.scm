@@ -435,15 +435,9 @@
 
 (define (ragnarok-http-gateway-run handler)
   (define-syntax-rule (detect-client-protocol client)
-    ;; NOTE: We must catch it here, since it's the very beginning to
-    ;;       handle a client.
-    (catch #t
-      (lambda ()
-        (cond
-         ((specified-proto? client) => identity)
-         (else 'http)))
-      (lambda e
-        (apply (make-unstop-exception-handler (exception-from-server)) e))))
+    (cond
+     ((specified-proto? client) => identity)
+     (else 'http)))
   (DEBUG "Enter ragnarok-http-gateway-run~%")
   (let ((http (lookup-protocol 'http))
         (server (ragnarok-open)))
@@ -454,105 +448,104 @@
       (throw 'artanis-err 500 ragnarok-http-gateway-run
              "BUG: There should be `http' protocol at least!"))
     (let main-loop((client (get-one-request-from-clients http server)))
-      (let ((proto-name (detect-client-protocol client)))
-        (DEBUG "Enter main-loop, protocol is ~a~%" proto-name)
-        (catch #t
-          (lambda ()
-            (call-with-sigint
-             ;; handle C-c to break the server loop properly
-             (lambda ()
-               (DEBUG "Prepare to serve one request ~a~%" (client-sockport client))
-               (catch 'uri-error
-                 ;; NOTE: We make it very strict according to RFC 3986.
-                 ;;       For example:
-                 ;;       =======================3.3 Path============================
-                 ;;       If a URI does not contain an authority component,
-                 ;;       then the path cannot begin with two slash characters ("//").
-                 ;;       ===========================================================
-                 ;;       It means we will not accept the URL like:
-                 ;;       http://localhost:3000//hello
-                 ;;       And GNU Artanis will reply a warning page to tell
-                 ;;       the client what's wrong with the URL.
-                 ;;       Most mainstream server just try to make the client
-                 ;;       happier even if the URL is wrong. I don't think
-                 ;;       it's a good way to go. Make it strict to avoid
-                 ;;       potential security risk is better.
-                 (lambda ()
-                   (catch 'artanis-err
-                     (lambda ()
-                       ;;(print-work-table server)
-                       (serve-one-request handler http server client))
-                     (lambda e
-                       (cond
-                        ((eqv? ETIMEDOUT (system-error-errno e))
-                         ;; NOTE: eqv? is necessary since system-error-errno on a
-                         ;;       non-system-erro will be non-integer, so don't use
-                         ;;       = to check.
-                         (main-loop (get-one-request-from-clients http server)))
-                        (else
-                         (call-with-values
+      (catch #t
+        (lambda ()
+          (call-with-sigint
+           ;; handle C-c to break the server loop properly
+           (lambda ()
+             (DEBUG "Enter main-loop, protocol is ~a~%" (detect-client-protocol client))
+             (DEBUG "Prepare to serve one request ~a~%" (client-sockport client))
+             (catch 'uri-error
+               ;; NOTE: We make it very strict according to RFC 3986.
+               ;;       For example:
+               ;;       =======================3.3 Path============================
+               ;;       If a URI does not contain an authority component,
+               ;;       then the path cannot begin with two slash characters ("//").
+               ;;       ===========================================================
+               ;;       It means we will not accept the URL like:
+               ;;       http://localhost:3000//hello
+               ;;       And GNU Artanis will reply a warning page to tell
+               ;;       the client what's wrong with the URL.
+               ;;       Most mainstream server just try to make the client
+               ;;       happier even if the URL is wrong. I don't think
+               ;;       it's a good way to go. Make it strict to avoid
+               ;;       potential security risk is better.
+               (lambda ()
+                 (catch 'artanis-err
+                   (lambda ()
+                     ;;(print-work-table server)
+                     (serve-one-request handler http server client))
+                   (lambda e
+                     (cond
+                      ((eqv? ETIMEDOUT (system-error-errno e))
+                       ;; NOTE: eqv? is necessary since system-error-errno on a
+                       ;;       non-system-erro will be non-integer, so don't use
+                       ;;       = to check.
+                       (main-loop (get-one-request-from-clients http server)))
+                      (else
+                       (call-with-values
+                           (lambda ()
+                             (apply (make-unstop-exception-handler (exception-from-server)) e))
+                         (lambda (r b s)
+                           (catch #t
                              (lambda ()
-                               (apply (make-unstop-exception-handler (exception-from-server)) e))
-                           (lambda (r b s)
-                             (catch #t
-                               (lambda ()
-                                 ;; NOTE: If we come here, then it's out of the task prompt,
-                                 ;;       we must hold every kind of exception here to prevent
-                                 ;;       the server down. Since it's out of the valid server
-                                 ;;       continuation, we have no way to manage exceptions here
-                                 ;;       but only ignore them.
-                                 (parameterize ((out-of-task-prompt? #t))
-                                   (ragnarok-write http server client r b #f)
-                                   (ragnarok-close http server client #f)))
-                               (lambda e
-                                 (DEBUG "An error occured outside of the task prmpt, ")
-                                 (DEBUG "we have no choice but ignore it.~%")
-                                 ;; NOTE: The error task must be removed here.
-                                 (remove-named-pipe-if-the-connection-is-websocket! client)
-                                 (close-current-task! server client))))))))))
-                 (lambda (k . e)
-                   (call-with-values
-                       (lambda ()
-                         (let* ((reason (apply format #f e))
-                                (warn-page (get-syspage "warn-the-client.tpl"))
-                                (reason-page (string->bytevector
-                                              (tpl->html warn-page (the-environment))
-                                              (get-conf '(server charset))))
-                                (response (artanis-sys-response
-                                           400 (client-sockport client) reason-page)))
-                           (values response reason-page #f)))
-                     (lambda (r b s)
-                       (cond
-                        ((eqv? (cadr e) 408)
-                         (format (artanis-current-output)
-                                 "Client `~a(~a)` was timeout, closed by server!"
-                                 (client-sockport client) (client-ip client))
-                         (ragnarok-close http server client #f))
-                        (else
-                         (ragnarok-write http server client r b #f)
-                         (ragnarok-close http server client #f)))))))
-               (DEBUG "Serve one done~%"))
-             (lambda ()
-               ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
-               ;; NOTE: The parameters will be lost when exception raised here, so we can't
-               ;;       use any of current-task/server/client/proto in the exception handler
-               (DEBUG "Prepare to close connection ~a~%" (client-ip client))
-               (ragnarok-close http server client #f))))
-          (lambda e
+                               ;; NOTE: If we come here, then it's out of the task prompt,
+                               ;;       we must hold every kind of exception here to prevent
+                               ;;       the server down. Since it's out of the valid server
+                               ;;       continuation, we have no way to manage exceptions here
+                               ;;       but only ignore them.
+                               (parameterize ((out-of-task-prompt? #t))
+                                 (ragnarok-write http server client r b #f)
+                                 (ragnarok-close http server client #f)))
+                             (lambda e
+                               (DEBUG "An error occured outside of the task prmpt, ")
+                               (DEBUG "we have no choice but ignore it.~%")
+                               ;; NOTE: The error task must be removed here.
+                               (remove-named-pipe-if-the-connection-is-websocket! client)
+                               (close-current-task! server client))))))))))
+               (lambda (k . e)
+                 (call-with-values
+                     (lambda ()
+                       (let* ((reason (apply format #f e))
+                              (warn-page (get-syspage "warn-the-client.tpl"))
+                              (reason-page (string->bytevector
+                                            (tpl->html warn-page (the-environment))
+                                            (get-conf '(server charset))))
+                              (response (artanis-sys-response
+                                         400 (client-sockport client) reason-page)))
+                         (values response reason-page #f)))
+                   (lambda (r b s)
+                     (cond
+                      ((eqv? (cadr e) 408)
+                       (format (artanis-current-output)
+                               "Client `~a(~a)` was timeout, closed by server!"
+                               (client-sockport client) (client-ip client))
+                       (ragnarok-close http server client #f))
+                      (else
+                       (ragnarok-write http server client r b #f)
+                       (ragnarok-close http server client #f)))))))
+             (DEBUG "Serve one done~%"))
+           (lambda ()
+             ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
+             ;; NOTE: The parameters will be lost when exception raised here, so we can't
+             ;;       use any of current-task/server/client/proto in the exception handler
+             (DEBUG "Prepare to close connection ~a~%" (client-ip client))
+             (ragnarok-close http server client #f))))
+        (lambda e
+          (format (artanis-current-output)
+                  "Error: ~a~%" (or (and=> (system-error-errno e) strerror) e))
+          (cond
+           ((out-of-system-resources? e)
+            (parameterize ((current-server server))
+              (remove-named-pipe-if-the-connection-is-websocket! client)
+              (close-current-task! server client)
+              (close (client-sockport client))
+              (resources-collector)))
+           (else
             (format (artanis-current-output)
-                    "Error: ~a~%" (or (and=> (system-error-errno e) strerror) e))
-            (cond
-             ((out-of-system-resources? e)
-              (parameterize ((current-server server))
-                (remove-named-pipe-if-the-connection-is-websocket! client)
-                (close-current-task! server client)
-                (close (client-sockport client))
-                (resources-collector)))
-             (else
-              (format (artanis-current-output)
-                      "Ingore it to avoid Ragnarok crash.~%")))))
-        (DEBUG "main-loop again~%")
-        (main-loop (get-one-request-from-clients http server))))))
+                    "Ingore it to avoid Ragnarok crash.~%")))))
+      (DEBUG "main-loop again~%")
+      (main-loop (get-one-request-from-clients http server)))))
 
 ;; NOTE: we don't schedule guile-engine, although it provides naive mechanism for scheduling.
 (define (new-guile-engine)
