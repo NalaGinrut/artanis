@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2018
+;;  Copyright (C) 2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -129,8 +129,13 @@
         (break-task)
         (lp))
        (else
-        (let ((t (queue-out! task-queue)))
+        ;; NOTE: Don't pop out message here, the correct way is to pop
+        ;;       after thunk calling successfully.
+        ;;       Because the client maybe closed, so that we lose the
+        ;;       chance to resend again.
+        (let ((t (queue-head task-queue)))
           (DEBUG "Named-pipe: run a task ~a" t)
-          (t)
+          (when (t)
+            (queue-out! task-queue))
           (break-task)
           (lp)))))))
