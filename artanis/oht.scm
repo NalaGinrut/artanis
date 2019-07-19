@@ -392,10 +392,13 @@
      (this-rule-enabled-websocket! rule 'raw))
     (('proto (? symbol? proto))
      ;; TODO: call protocol initilizer, and establish websocket for it.
-     ;; NOTE: In Artanis, we accept only one protocol for each URL-remapping,
+     ;; NOTE: By default, we accept only one protocol for each URL-remapping,
      ;;       if you have several protocols to service, please use different
      ;;       URL-remapping.
      (this-rule-enabled-websocket! rule proto))
+    (('proto (? symbol? proto) 'inexclusive)
+     ;; NOTE: Allow many clients subscribe to one named-pipe.
+     (this-rule-enabled-inexclusive-websocket! rule proto))
     (('redirect (? string? ip/usk))
      ;; NOTE: We use IP rather than hostname, since it's usually redirected to
      ;;       a LAN address. Using hostname may cause DNS issues.

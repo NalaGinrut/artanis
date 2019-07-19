@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2017,2018
+;;  Copyright (C) 2017,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -36,27 +36,43 @@
             gen-accept-key
             valid-ws-request?
             this-rule-enabled-websocket!
-            url-need-websocket?))
+            this-rule-enabled-inexclusive-websocket!
+            url-need-websocket?
+            url-need-inexclusive-websocket?))
 
 (define *ws-magic* "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
 (define *rules-with-websocket* '())
+(define *rules-with-inexclusive-websocket* '())
 
 (define (url-need-websocket? url)
-  ;;(DEBUG "url-need-websocket?~%")
+  (DEBUG "url-need-websocket? ~a~%" url)
   (any (lambda (rule)
          (irregex-match (car rule) url)) *rules-with-websocket*))
 
+(define (url-need-inexclusive-websocket? url)
+  (DEBUG "url-need-inexclusive-websocket? ~a~%" url)
+  (any
+   (lambda (rule)
+     (irregex-match (car rule) url))
+   *rules-with-inexclusive-websocket*))
+
 (define (this-rule-enabled-websocket! rule protocol)
-  ;;(DEBUG "this-rule-enabled-websocket!~%")
+  (DEBUG "this-rule-enabled-websocket! ~a~%" rule)
   (set! *rules-with-websocket*
-    (cons (cons (string->irregex rule) protocol) *rules-with-websocket*)))
+        (cons (cons (string->irregex rule) protocol) *rules-with-websocket*)))
+
+(define (this-rule-enabled-inexclusive-websocket! rule protocol)
+  (DEBUG "this-rule-enabled-inexclusive-websocket! ~a~%" rule)
+  (set! *rules-with-inexclusive-websocket*
+        (cons (cons (string->irregex rule) protocol) *rules-with-inexclusive-websocket*)))
 
 (define (get-websocket-protocol rule)
-  ;;(DEBUG "get-websocket-protocol~%")
-  (any (lambda (pp)
-         (and (irregex-search (car pp) rule) (cdr pp)))
-       *rules-with-websocket*))
+  (define (check pp)
+    (and (irregex-search (car pp) rule) (cdr pp)))
+  (DEBUG "get-websocket-protocol: ~a~%" rule)
+  (or (any check *rules-with-websocket*)
+      (any check *rules-with-inexclusive-websocket*)))
 
 (define (gen-accept-key key)
   (let* ((realkey (string-append key *ws-magic*))

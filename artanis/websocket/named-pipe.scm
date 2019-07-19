@@ -27,13 +27,14 @@
   #:use-module ((ice-9 iconv) #:select (string->bytevector))
   #:use-module ((rnrs) #:select (bytevector? define-record-type))
   #:export (register-websocket-pipe!
+            pair-name-to-client!
             send-to-websocket-named-pipe
             named-pipe-subscribe
             remove-named-pipe-if-the-connection-is-websocket!
             detect-pipe-name
             get-named-pipe
             new-named-pipe
-            named-pipe-client named-pipe-client-set!
+            named-pipe-clients named-pipe-clients-set!
             named-pipe-task-queue-set!))
 
 ;; NOTE: named-pipe and client is 1:1 relation, we also make a table
@@ -46,11 +47,11 @@
 (define-record-type named-pipe
   (fields
    name
-   (mutable client)
+   (mutable clients)
    task-queue))
 
-(define* (new-named-pipe name client #:optional (task-queue (new-queue)))
-  (make-named-pipe name client task-queue))
+(define* (new-named-pipe name clients #:optional (task-queue (new-queue)))
+  (make-named-pipe name clients task-queue))
 
 (define (client->pipe-name client)
   (hash-ref *client-to-named-pipe* client))
@@ -66,8 +67,8 @@
 (define (get-named-pipe name)
   (hash-ref *websocket-named-pipe* name))
 
-(define (get-pipe-client name)
-  (and=> (get-named-pipe name) named-pipe-client))
+(define (get-pipe-clients name)
+  (and=> (get-named-pipe name) named-pipe-clients))
 
 (define (get-pipe-task-queue name)
   (and=> (get-named-pipe name) named-pipe-task-queue))
@@ -80,15 +81,22 @@
     (and m
          (irregex-match-substring m 1))))
 
+(::define (pair-name-to-client! client name)
+  (:anno: (client string) -> ANY)
+  (hash-set! *client-to-named-pipe* client name))
+
 (::define (register-websocket-pipe! named-pipe)
   (:anno: (named-pipe) -> ANY)
-  (hash-set! *websocket-named-pipe* (named-pipe-name named-pipe) named-pipe)
-  (hash-set! *client-to-named-pipe*
-             (named-pipe-client named-pipe)
-             (named-pipe-name named-pipe)))
+  (let ((clients (named-pipe-clients named-pipe))
+        (name (named-pipe-name named-pipe)))
+    (hash-set! *websocket-named-pipe* (named-pipe-name named-pipe) named-pipe)
+    (for-each
+     (lambda (client)
+       (pair-name-to-client! named-pipe name))
+     clients)))
 
 (define (send-to-websocket-named-pipe name data)
-  (let ((client (get-pipe-client name))
+  (let ((clients (get-pipe-clients name))
         (frame (new-websocket-frame/client
                 'text #t
                 (cond
@@ -98,7 +106,7 @@
                               "Wrong type of websocket data, should be string or bv `~a'"
                               data))))))
     (cond
-     (client
+     (clients
       (let ((task-queue (get-pipe-task-queue name)))
         ;; NOTE: We can't just send the data to the named-pipe, since it's possible to have
         ;;       race conditions. If data-1 were blocked in transmission, and data-2 were
@@ -107,11 +115,14 @@
         ;; NOTE: The task queue will be handled in named-pipe-event-loop to send the data
         ;;       one by one.
         (when task-queue
-          (queue-in! task-queue
-                     (lambda ()
-                       (parameterize ((current-client client))
-                         (write-websocket-frame/client (client-sockport client) frame))))
-          (oneshot-mention! client))))
+          (for-each
+           (lambda (client)
+             (queue-in! task-queue
+                        (lambda ()
+                          (parameterize ((current-client client))
+                            (write-websocket-frame/client (client-sockport client) frame))))
+             (oneshot-mention! client))
+           clients))))
      (else
       (throw 'artanis-err 400 send-to-websocket-named-pipe
              "Pipe name `~a' hasn't been registered, or it's closed by client!" name)))))

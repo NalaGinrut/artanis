@@ -42,6 +42,9 @@
                do-websocket-handshake
                closing-websocket-handshake
                this-rule-enabled-websocket!
+               this-rule-enabled-inexclusive-websocket!
+               url-need-websocket?
+               url-need-inexclusive-websocket?
 
                ;; from (artanis websocket frame)
                received-closing-frame?
@@ -60,12 +63,13 @@
 
                ;; from (artanis websocket named-pipe)
                register-websocket-pipe!
+               pair-name-to-client!
                send-to-websocket-named-pipe
                named-pipe-subscribe
                detect-pipe-name
                get-named-pipe
                new-named-pipe
-               named-pipe-client named-pipe-client-set!
+               named-pipe-clients named-pipe-clients-set!
                named-pipe-task-queue-set!))
 
 ;; If the URL hit and haven't registered, then register it.
@@ -80,7 +84,8 @@
       (DEBUG "Client `~a' has already registered websocket in `~a'~%"
              (client-ip client) url)
       #t)
-     ((url-need-websocket? url)
+     ((or (url-need-websocket? url)
+          (url-need-inexclusive-websocket? url))
       (cond
        ((is-guile-compatible-server-core? (get-conf '(server engine)))
         (throw 'artanis-err 1006 detect-if-connecting-websocket

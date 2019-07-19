@@ -55,16 +55,15 @@
 (define (rc-lpc-recycle rc body)
   (and=> (rc-lpc rc) lpc-instance-recycle))
 
-(define (try-to-register-websocket-pipe! req new-client)
-  (let ((name (detect-pipe-name req)))
+(define* (try-to-register-websocket-pipe! req new-client)
+  (let ((name (detect-pipe-name req))
+        (inexclusive? (url-need-inexclusive-websocket? (request-path req))))
     (DEBUG "Register named-pipe: ~a~%" name)
     (cond
      ((get-named-pipe name)
       => (lambda (named-pipe)
-           (let ((old-client (named-pipe-client named-pipe))
+           (let ((old-clients (named-pipe-clients named-pipe))
                  (server (current-server)))
-             (DEBUG "Replace existing websocket ~a with ~a in named-pipe ~a~%"
-                    (client-sockport old-client) (client-sockport new-client) name)
              ;; NOTE: If the same name was specified, we close the old one then register the
              ;;       new one. This is because some clients/browswers have bugs to not close
              ;;       connection when refresh the page/webapi, so we close it positively to
@@ -72,15 +71,24 @@
              ;; FIXME: We should detect secure token here first.
              ;; NOTE: Because WS connection was closed then reopened, so we MUST pass
              ;;       peer-shutdown? as #f here, or it'll close the new WS connection.
-             (DEBUG "Closing handshake of replaced WS connection~%")
-             (closing-websocket-handshake server old-client #f)
-             (DEBUG "Closing replaced WS connection~%")
-             (http-close server old-client #t)
-             (DEBUG "Replace existing named-pipe ~a ...~%" name)
-             (named-pipe-client-set! named-pipe new-client)
-             (register-websocket-pipe! named-pipe)
-             (DEBUG "done."))))
-     (else (register-websocket-pipe! (new-named-pipe name new-client))))))
+             (cond
+              (inexclusive?
+               (let ((clients (cons new-client old-clients)))
+                 (named-pipe-clients-set! named-pipe clients)
+                 (pair-name-to-client! new-client name)))
+              (else
+               (for-each
+                (lambda (client)
+                  (DEBUG "Closing handshake of replaced WS connection~%")
+                  (closing-websocket-handshake server client #f)
+                  (DEBUG "Closing replaced WS connection~%")
+                  (http-close server client #t))
+                old-clients)
+               (DEBUG "Replace existing named-pipe ~a ...~%" name)
+               (named-pipe-clients-set! named-pipe (list new-client))
+               (register-websocket-pipe! named-pipe)
+               (DEBUG "done."))))))
+     (else (register-websocket-pipe! (new-named-pipe name (list new-client)))))))
 
 (define (print-request-info rq body)
   (let ((path (request-path rq))
