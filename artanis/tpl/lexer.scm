@@ -97,6 +97,8 @@
 ;; NOTE: Don't wrap code in double-quotes, for example:
 ;; 1. <a href="<%= my-url %>">click me</a> (Wrong!)
 ;; 2. <a href=<%= my-url %>click me</a> (Correct!)
+;;    If you need to output a string, please use object->string to convert
+;;    in Scheme first.
 (define (read-html port)
   (irregex-replace/all "\"" (read-delimited "<" port 'peek) "\\\""))
 
