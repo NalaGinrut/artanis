@@ -183,14 +183,14 @@ ifdef DESTDIR
 	-rm -fr $(DESTDIR)/etc/artanis
 	-rm -fr $(DESTDIR)/bin/art
 	if [ -e /etc/bash_completion ]; then \
-	  -rm -fr $(DESTDIR)/etc/bash_completion.d/$(CMD_FILE); \
+	  rm -fr $(DESTDIR)/etc/bash_completion.d/$(CMD_FILE); \
 	  source $(DESTDIR)/etc/bash_completion; \
 	fi
 else
 	-rm -fr /etc/artanis/
 	-rm -fr $(PREFIX)/bin/art
 	if [ -e /etc/bash_completion ]; then \
-	  -rm -fr /etc/bash_completion.d/$(CMD_FILE); \
+	  rm -fr /etc/bash_completion.d/$(CMD_FILE); \
 	  source /etc/bash_completion; \
 	fi
 endif
