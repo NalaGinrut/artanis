@@ -942,7 +942,7 @@
           (for-each (lambda (r)
                       (let* ((meta (cdr r))
                              (rule (assq-ref meta 'rule))
-                             (method (car (assq-ref meta 'method))))
+                             (method (and=> (assq-ref meta 'method) car)))
                         (format port "~2t(~a ~s)~%"
                                 (if method method 'get)
                                 (if rule rule (car r)))))
