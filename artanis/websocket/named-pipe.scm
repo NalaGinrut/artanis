@@ -37,10 +37,13 @@
             named-pipe-clients named-pipe-clients-set!
             named-pipe-task-queue-set!))
 
-;; NOTE: named-pipe and client is 1:1 relation, we also make a table
-;;       for getting name from client. It's worth since every client can
-;;       register a named-pipe, and there're too many named-pipe to be
-;;       traversed to close when the client refresh the page.
+;; NOTE:
+;; By default, named-pipe and client is 1:1 relation.
+;; However, it could be 1:N if you enabled `inexclusive' mode.
+;; We also make a table for getting name from client. It's worth
+;; since every client can register a named-pipe, and there're too
+;; many named-pipe to be traversed to close when the client refresh
+;; the page.
 (define *client-to-named-pipe* (make-hash-table))
 (define *websocket-named-pipe* (make-hash-table))
 
@@ -56,9 +59,12 @@
 (define (client->pipe-name client)
   (hash-ref *client-to-named-pipe* client))
 
+;; NOTE:
+;; Iff clients list is empty, the named-pipe could be removed.
 (define (remove-named-pipe-if-the-connection-is-websocket! client)
-  (let ((name (client->pipe-name client)))
-    (when name
+  (let* ((name (client->pipe-name client))
+         (np (get-named-pipe name)))
+    (when (and np (null? (named-pipe-clients np)))
       (DEBUG "Removing named-pipe `~a' since client is closed......" name)
       (hash-remove! *websocket-named-pipe* name)
       (hashq-remove! *client-to-named-pipe* client)
