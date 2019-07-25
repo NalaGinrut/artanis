@@ -64,10 +64,12 @@
 (define (remove-named-pipe-if-the-connection-is-websocket! client)
   (let* ((name (client->pipe-name client))
          (np (get-named-pipe name)))
-    (when (and np (null? (named-pipe-clients np)))
-      (DEBUG "Removing named-pipe `~a' since client is closed......" name)
-      (hash-remove! *websocket-named-pipe* name)
+    (when np
+      (DEBUG "Removing websocket client `~a' from named-pipe `~a' ......" client name)
       (hashq-remove! *client-to-named-pipe* client)
+      (when (null? (named-pipe-clients np))
+        (DEBUG "Removing named-pipe `~a' since its all clients are closed ......" name)
+        (hash-remove! *websocket-named-pipe* name))
       (DEBUG "Done~%"))))
 
 (define (get-named-pipe name)
