@@ -1,6 +1,6 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
 ;;  === MIME tests ===
-;;  Copyright (C) 2015,2017,2018
+;;  Copyright (C) 2015,2017,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -18,11 +18,14 @@
 (define-module (test mime)
   #:use-module (artanis artanis)
   #:use-module (artanis utils)
+  #:use-module (artanis config)
   #:use-module ((rnrs) #:select (bytevector-length))
   #:use-module (ice-9 receive)
   #:use-module (ice-9 iconv)
   #:use-module (test-suite lib)
   #:use-module (test-suite helper))
+
+(conf-set! '(server syspage path) "pages")
 
 ;; TEST 1
 (define mime-test-1-simple-JSONP
