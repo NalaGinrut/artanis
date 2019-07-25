@@ -1355,10 +1355,15 @@
                                (current-toplevel) file)))
     (if (file-exists? local-syspage)
         local-syspage
-        (format #f "~a/~a" (get-conf '(server syspage path)) file))))
+        (let ((sys-syspage (format #f "~a/~a" (get-conf '(server syspage path)) file)))
+          (and (file-exists? sys-syspage)
+               sys-syspage)))))
 
 (define (syspage-show file)
-  (bv-cat (get-syspage file) #f))
+  (let ((syspage (get-syspage file)))
+    (if syspage
+        (bv-cat syspage #f)
+        #vu8())))
 
 ;; ENHANCE: use colored output
 (define* (artanis-log blame-who? status mime #:key (port (current-error-port))
