@@ -92,7 +92,7 @@
     (hash-set! *websocket-named-pipe* (named-pipe-name named-pipe) named-pipe)
     (for-each
      (lambda (client)
-       (pair-name-to-client! named-pipe name))
+       (pair-name-to-client! client name))
      clients)))
 
 (define (send-to-websocket-named-pipe name data)
