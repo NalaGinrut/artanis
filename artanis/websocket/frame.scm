@@ -277,10 +277,10 @@
     (cond
      ((< len 16bit-size) (put-bytevector port (uint-list->bytevector (list len) 'big 2)))
      ((< len 64bit-size) (put-bytevector port (uint-list->bytevector (list len) 'big 8)))
-     (else (throw 'artanis-err 500 write-payload-size
+     (else (throw 'artanis-err 1009 write-payload-size
                   "The payload size `~a' exceeded 64bit!" len))))
   (when (port-closed? port)
-    (throw 'artanis-err 410 write-websocket-frame/client
+    (throw 'artanis-err 1001 write-websocket-frame/client
            "The client port `~a' was closed!" port))
   (let* ((final? (websocket-frame/client-final? frame))
          (type (websocket-frame/client-type frame))
