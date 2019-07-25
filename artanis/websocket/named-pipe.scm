@@ -82,7 +82,7 @@
          (irregex-match-substring m 1))))
 
 (::define (pair-name-to-client! client name)
-  (:anno: (client string) -> ANY)
+  (:anno: (ragnarok-client string) -> ANY)
   (hash-set! *client-to-named-pipe* client name))
 
 (::define (register-websocket-pipe! named-pipe)
