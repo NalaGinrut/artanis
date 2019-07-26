@@ -127,11 +127,11 @@
         (when task-queue
           (for-each
            (lambda (client)
+             (oneshot-mention! client)
              (queue-in! task-queue
                         (lambda ()
                           (parameterize ((current-client client))
-                            (write-websocket-frame/client (client-sockport client) frame))))
-             (oneshot-mention! client))
+                            (write-websocket-frame/client (client-sockport client) frame)))))
            clients))))
      (else
       (throw 'artanis-err 400 send-to-websocket-named-pipe

@@ -83,7 +83,7 @@
      ((get-the-redirector-of-websocket server client)
       (DEBUG "Client `~a' has already registered websocket in `~a'~%"
              (client-ip client) url)
-      #t)
+      'registered)
      ((or (url-need-websocket? url)
           (url-need-inexclusive-websocket? url))
       (cond
@@ -98,7 +98,7 @@
       (DEBUG "Register `~a' to use websocket for rule `~a'~%" (client-ip client) url)
       (task-timeout-set! (current-task) (get-conf '(websocket timeout)))
       (do-websocket-handshake req server client)
-      #t)
+      'handshake)
      (else #f))))
 
 ;; NOTE: auth in websocket is not handled by #:auth, but should be specified

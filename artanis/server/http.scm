@@ -130,7 +130,8 @@
   (let ((port (client-sockport client)))
     (cond
      ((eof-object? (peek-char port))
-      (DEBUG "Encountered EOF, closing ~a~%" (client-sockport client))
+      (DEBUG "http-read: Encountered EOF, closing ~a~%"
+             (client-sockport client))
       ;; Close it as peer-shutdown
       (%%raw-close-connection server client #t)
       (simply-quit))
@@ -141,19 +142,23 @@
               (detect-if-connecting-websocket req server client))
              (body (if need-websocket?
                        #f (try-to-read-request-body req))))
-        (cond
-         (need-websocket?
-          (let ((ip (client-ip client)))
-            (DEBUG "Client `~a' is in Websocket mode!~%" ip)
-            (DEBUG "The websocket based client ~a is reading...~%" ip)
-            (DEBUG "Just return #f body according to Artanis convention~%")
-            (DEBUG "[Websocket] Client `~a' is requesting Websocket service~%"
-                   (client-ip client)))
-          ;; NOTE: Each time the body is the content from client. The content is parsed
-          ;;       from the frame in websocket-read. And the payload is parsed by the
-          ;;       registered parser. Users don't have to call parser explicitly.
-          (values req (websocket-read req server client)))
-         (else (values req body))))))))
+        (case need-websocket?
+          ((handshake)
+           (let ((ip (client-ip client)))
+             (DEBUG "Client `~a' is in Websocket mode!~%" ip)
+             (DEBUG "The websocket based client ~a is reading...~%" ip)
+             (DEBUG "Just return #f body according to Artanis convention~%")
+             (DEBUG "[Websocket] Client `~a' is requesting Websocket service~%"
+                    (client-ip client)))
+           ;; NOTE: Each time the body is the content from client. The content is parsed
+           ;;       from the frame in websocket-read. And the payload is parsed by the
+           ;;       registered parser. Users don't have to call parser explicitly.
+           ;; NOTE: Handshake should return null body. Don't read more, otherwise it's blocking forever.
+           (values req #vu8()))
+          ((registered)
+           ;; NOTE: Normal Websocket read
+           (values req (websocket-read req server client)))
+          (else (values req body))))))))
 
 (::define (http-write server client response body method-is-head?)
   (:anno: (ragnarok-server ragnarok-client <response> ANY boolean) -> ANY)
