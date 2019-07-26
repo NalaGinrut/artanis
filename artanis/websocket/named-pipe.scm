@@ -68,7 +68,7 @@
     (when np
       (DEBUG "Removing websocket client `~a' from named-pipe `~a' ......" client name)
       (hashq-remove! *client-to-named-pipe* client)
-      (named-pipe-clients-set! (delete client clients))
+      (named-pipe-clients-set! np (delete client clients))
       (when (null? (named-pipe-clients np))
         (DEBUG "Removing named-pipe `~a' since its all clients are closed ......" name)
         (hash-remove! *websocket-named-pipe* name))
