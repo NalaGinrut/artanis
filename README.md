@@ -5,7 +5,7 @@
 [![X86+ARM](https://img.shields.io/badge/architecture-X86+ARM-red.png)](https://gitlab.com/NalaGinrut/artanis)
 [![Travis CI](https://travis-ci.org/NalaGinrut/artanis.png)](https://travis-ci.org/NalaGinrut/artanis)
 
-Since Jun 4th 2018, Microsoft has aquired GitHub, so that I reject to maintain GNU Artanis on GitHub. That means GNU Artanis will never try to organize community on GitHub, nor maintain any new code on GitHub, please visit GitLab: https://gitlab.com/NalaGinrut/artanis
+Since Jun 4th 2018, Microsoft has acquired GitHub, so that I reject to maintain GNU Artanis on GitHub. That means GNU Artanis will never try to organize community on GitHub, nor maintain any new code on GitHub, please visit GitLab: https://gitlab.com/NalaGinrut/artanis
 =========
 
 NOTICE
