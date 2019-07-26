@@ -73,9 +73,11 @@
              ;;       peer-shutdown? as #f here, or it'll close the new WS connection.
              (cond
               (inexclusive?
-               (let ((clients (cons new-client old-clients)))
-                 (named-pipe-clients-set! named-pipe clients)
-                 (pair-name-to-client! new-client name)))
+               ;; If the client is not registered, then add it.
+               (when (not (member new-client old-clients))
+                 (let ((clients (cons new-client old-clients)))
+                   (named-pipe-clients-set! named-pipe clients)
+                   (pair-name-to-client! new-client name))))
               (else
                (for-each
                 (lambda (client)
