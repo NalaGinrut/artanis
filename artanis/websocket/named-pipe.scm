@@ -63,10 +63,12 @@
 ;; Iff clients list is empty, the named-pipe could be removed.
 (define (remove-named-pipe-if-the-connection-is-websocket! client)
   (let* ((name (client->pipe-name client))
-         (np (get-named-pipe name)))
+         (np (get-named-pipe name))
+         (clients (named-pipe-clients np)))
     (when np
       (DEBUG "Removing websocket client `~a' from named-pipe `~a' ......" client name)
       (hashq-remove! *client-to-named-pipe* client)
+      (named-pipe-clients-set! (delete client clients))
       (when (null? (named-pipe-clients np))
         (DEBUG "Removing named-pipe `~a' since its all clients are closed ......" name)
         (hash-remove! *websocket-named-pipe* name))
