@@ -31,6 +31,7 @@
                                  bytevector-u64-ref
                                  bytevector-u32-ref
                                  bytevector-u16-ref
+                                 make-bytevector
                                  put-u8
                                  put-bytevector
                                  get-bytevector-all
@@ -116,8 +117,40 @@
   ;; TODO: finish it
   #t)
 
-(define (send-websocket-closing-frame port)
-  (let ((close-frame (new-websocket-frame/client 'close #t #vu8(0))))
+(define (->bv code reason)
+  (let* ((bv (string->bytevector reason "iso-8859-1"))
+         (payload (make-bytevector (+ 2 (bytevector-length bv)) 0)))
+    ;; code must be network-byte-order (big-endian)
+    (bytevector-u8-set! payload 0 (bit-extract code 8 16))
+    (bytevector-u8-set! payload 1 (bit-extract code 0 8))
+    (for-each
+     (lambda (i) (bytevector-u8-set! payload (+ 2 i) (bytevector-u8-ref bv i)))
+     (iota (bytevector-length bv)))
+    payload))
+
+(define *websocket-status-code*
+  `((1000 . ,(->bv 1000 "Normal Closure"))
+    (1001 . ,(->bv 1001 "Going Away"))
+    (1002 . ,(->bv 1002 "Protocol error"))
+    (1003 . ,(->bv 1003 "Unsupported Data"))
+    (1004 . ,(->bv 1004 "Reserved"))
+    (1005 . ,(->bv 1005 "No status received"))
+    (1006 . ,(->bv 1006 "Abnormal Closure"))
+    (1007 . ,(->bv 1007 "Invalid frame payload data"))
+    (1008 . ,(->bv 1008 "Policy Violation"))
+    (1009 . ,(->bv 1009 "Message Too Big"))
+    (1010 . ,(->bv 1010 "Mandatory Ext."))
+    (1011 . ,(->bv 1011 "Internet Server Error"))
+    (1015 . ,(->bv 1015 "TLS handshake"))))
+
+(define* (send-websocket-closing-frame port #:key (status #f))
+  (define (gen-body)
+    (cond
+     (status
+      (let ((reason (assoc-ref status *websocket-status-code*)))
+        (or reason #vu8(0))))
+     (else #vu8(0))))
+  (let ((close-frame (new-websocket-frame/client 'close #t (gen-body))))
     (write-websocket-frame/client port close-frame)))
 
 (define *opcode-list*
