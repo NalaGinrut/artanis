@@ -49,7 +49,6 @@
             make-mfd
             mfd?
             is-mfds?
-            mfds-count
             mfd-dispos
             mfd-name
             mfd-filename
