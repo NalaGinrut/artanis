@@ -47,7 +47,6 @@
                redirect-to
                tpl->response
                reject-method
-               response-error-emit
                run-after-request!
                run-before-response!
                run-when-sigint!
@@ -152,7 +151,6 @@
                mfd-simple-dump
                make-mfd-dumper
                content-type-is-mfd?
-               parse-mfd-body
                mfd
                call-with-mfd-data
                find-mfd

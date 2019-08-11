@@ -42,7 +42,6 @@
   #:export (mfd-simple-dump
             make-mfd-dumper
             content-type-is-mfd?
-            parse-mfd-body
             mfd
             call-with-mfd-data
             find-mfd

@@ -43,7 +43,6 @@
             redirect-to
             tpl->response
             reject-method
-            response-error-emit
             server-handler
             init-hook
             emit-response-with-file
