@@ -30,8 +30,7 @@ test:
    - mkdir -p build && cd build && ../configure
    - make V=
    - make install
-   - make test
-   - guile -c '(display (@ (artanis artanis) artanis-version))'
+   - make test && guile -c '(display (@ (artanis artanis) artanis-version))'
   only:
     - master
 stages:
