@@ -68,6 +68,7 @@
        (format #f "\"<script type=\\\"module\\\" src=\\\"~a\\\"> </script>\"" (->url pub args)))
       ((js)
        (format #f "\"<script type=\\\"text/javascript\\\" src=\\\"~a\\\"> </script>\"" (->url pub args)))
+      ((free-js-ann) (object->string free-JS-announcement))
       (else
        (throw 'artanis-err 500 gen-command
               "Invalid command `~a' in template!" cmd)))))

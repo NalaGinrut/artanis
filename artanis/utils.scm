@@ -93,7 +93,7 @@
             is-guile-compatible-server-core? positive-integer? negative-integer?
             io-exception:peer-is-shutdown? io-exception:out-of-memory?
             out-of-system-resources? allow-long-live-connection?
-            define-c-function ffi-binding)
+            define-c-function ffi-binding free-JS-announcement)
   #:re-export (the-environment
                utf8->string
                bytevector?
@@ -174,24 +174,24 @@
 ;; default time is #f, get current time
 (define* (get-global-time #:optional (time #f) (nsec 0))
   (call-with-output-string
-   (lambda (port)
-     ;; NOTE: (time-utc->data t 0) to get global time.
-     (write-date
-      (time-utc->date
-       (if time (make-time 'time-utc nsec time) (current-time))
-       0)
-      port))))
+    (lambda (port)
+      ;; NOTE: (time-utc->data t 0) to get global time.
+      (write-date
+       (time-utc->date
+        (if time (make-time 'time-utc nsec time) (current-time))
+        0)
+       port))))
 
 
 ;; default time is #f, get current time
 (define* (get-local-time #:optional (time #f) (nsec 0))
   (call-with-output-string
-   (lambda (port)
-     ;; NOTE: (time-utc->data t) to get local time.
-     (write-date
-      (time-utc->date
-       (if time (make-time 'time-utc nsec time) (current-time)))
-      port))))
+    (lambda (port)
+      ;; NOTE: (time-utc->data t) to get local time.
+      (write-date
+       (time-utc->date
+        (if time (make-time 'time-utc nsec time) (current-time)))
+       port))))
 
 (define* (regexp-split regex str #:optional (flags 0))
   (let ((ret (fold-matches
@@ -728,8 +728,8 @@
 
 (define* (sxml->xml-string sxml #:key (escape? #f))
   (call-with-output-string
-   (lambda (port)
-     (sxml->xml sxml port escape?))))
+    (lambda (port)
+      (sxml->xml sxml port escape?))))
 
 (define (run-after-request! proc)
   (add-hook! *after-request-hook* proc))
@@ -766,25 +766,25 @@
        ((= n 3) (list->string (reverse! ret)))
        (else (lp (1+ n) (cons (read-char port) ret))))))
   (call-with-output-string
-   (lambda (out)
-     (let lp((c (peek-char in)))
-       (cond
-        ((eof-object? c) #t)
-        ((hit? c)
-         => (lambda (str)
-              (display str out)
-              (read-char in)
-              (lp (peek-char in))))
-        ((char=? c #\%)
-         (let* ((s (get-estr in))
-                (e (hit? s)))
-           (if e
-               (display e out)
-               (display s out))
-           (lp (peek-char in))))
-        (else
-         (display (read-char in) out)
-         (lp (peek-char in))))))))
+    (lambda (out)
+      (let lp((c (peek-char in)))
+        (cond
+         ((eof-object? c) #t)
+         ((hit? c)
+          => (lambda (str)
+               (display str out)
+               (read-char in)
+               (lp (peek-char in))))
+         ((char=? c #\%)
+          (let* ((s (get-estr in))
+                 (e (hit? s)))
+            (if e
+                (display e out)
+                (display s out))
+            (lp (peek-char in))))
+         (else
+          (display (read-char in) out)
+          (lp (peek-char in))))))))
 
 (define *terrible-HTML-entities*
   '((#\< . "&lt;") (#\> . "&gt;") (#\& . "&amp;") (#\" . "&quot;")
@@ -987,9 +987,9 @@
 
 (define (subbv->string bv encoding start len)
   (call-with-output-string
-   (lambda (port)
-     (set-port-encoding! port encoding)
-     (put-bytevector port bv start len))))
+    (lambda (port)
+      (set-port-encoding! port encoding)
+      (put-bytevector port bv start len))))
 
 (define* (bv-u8-index bv u8 #:optional (time 1))
   (let ((len (bytevector-length bv)))
@@ -1108,18 +1108,18 @@
           (catch 'interrupt
             (lambda ()
               (dynamic-wind
-                  (lambda ()
-                    (set! handler
-                          (sigaction SIGINT (lambda (sig)
-                                              (run-when-sigint-hook)
-                                              (throw 'interrupt)))))
-                  thunk
-                  (lambda ()
-                    (if handler
-                        ;; restore Scheme handler, SIG_IGN or SIG_DFL.
-                        (sigaction SIGINT (car handler) (cdr handler))
-                        ;; restore original C handler.
-                        (sigaction SIGINT #f)))))
+                (lambda ()
+                  (set! handler
+                    (sigaction SIGINT (lambda (sig)
+                                        (run-when-sigint-hook)
+                                        (throw 'interrupt)))))
+                thunk
+                (lambda ()
+                  (if handler
+                      ;; restore Scheme handler, SIG_IGN or SIG_DFL.
+                      (sigaction SIGINT (car handler) (cdr handler))
+                      ;; restore original C handler.
+                      (sigaction SIGINT #f)))))
             (lambda (k . _) (handler-thunk)))))))
 
 (define-syntax-rule (define-box-type name)
@@ -1602,3 +1602,52 @@
      (parameterize ((%%clib (dynamic-link libname)))
        body ...
        #t))))
+
+
+;; Story: When I released GNU Artanis-0.2.1, RMS had asked me if I can
+;;        support LibreJS for freeing Javascript code in the generated code.
+;;        I promised I will. This took almost one year since I was very
+;;        busy on developing a new product (partly use GNU Artanis, of course),
+;;        so it's delayed. Till few months ago, RMS sent mail to ask me
+;;        if I'm ready for it, I realized that the release of GNU Artanis
+;;        is much delayed.
+;;        LibreJS is a way to detect non-free JS code to help you to avoid
+;;        the non-trivial JS code for certain hidden features. Some of them
+;;        are dangerous, some are stolen your privacy, some are just don't
+;;        let you know what's going on.
+;;        GNU Artanis may generate JS code automatically, they're licensed as
+;;        free software definitely. This free-JS-announcement is used to
+;;        license all the generated JS code in the page to GPLv3.
+;;        This announcement is useful when you have LibreJS plugin in your
+;;        browser to detect the JS automatically.
+;;        Although you're free to relicense the code to whatever you prefer,
+;;        I wish you could free the code, no matter what license name it is.
+(define free-JS-announcement
+  "
+    <script>
+       /*
+        @licstart  The following is the entire license notice for the
+        JavaScript code in this page.
+
+        Copyright (C) 2014  Loic J. Duros
+
+        The JavaScript code in this page is free software: you can
+        redistribute it and/or modify it under the terms of the GNU
+        General Public License (GNU GPL) as published by the Free Software
+        Foundation, either version 3 of the License, or (at your option)
+        any later version.  The code is distributed WITHOUT ANY WARRANTY;
+        without even the implied warranty of MERCHANTABILITY or FITNESS
+        FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+        As additional permission under GNU GPL version 3 section 7, you
+        may distribute non-source (e.g., minimized or compacted) forms of
+        that code without the copy of the GNU GPL normally required by
+        section 4, provided you include this license notice and a URL
+        through which recipients can access the Corresponding Source.
+
+
+        @licend  The above is the entire license notice
+        for the JavaScript code in this page.
+        */
+    </script>
+")
