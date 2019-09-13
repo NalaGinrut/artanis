@@ -154,11 +154,11 @@
 (define (conn-maker yes? rule keys)
   (and yes?
        (case-lambda
-        ((rc) (DB-open rc))
-        ((rc sql)
-         (let ((conn (DB-open rc)))
-           (DB-query conn sql)
-           conn)))))
+         ((rc) (DB-open rc))
+         ((rc sql)
+          (let ((conn (DB-open rc)))
+            (DB-query conn sql)
+            conn)))))
 
 (define (raw-sql-maker sql rule keys)
   (lambda (rc mode)
@@ -202,7 +202,6 @@
 ;; NOTE: Support cookies customization, which let users define special cookies.
 ;;       Like crypto cookies.
 (define (cookies-maker mode rule keys)
-  (define *the-remove-expires* "Thu, 01-Jan-70 00:00:01 GMT")
   (define current-cset! (make-parameter cookie-set!))
   (define current-cref (make-parameter cookie-ref))
   (define current-setattr (make-parameter cookie-modify))
@@ -218,11 +217,6 @@
     (rc-set-cookie! rc (map cdr ckl)))
   (define (setattr ckl ck . kargs)
     (apply (current-setattr) (cget ckl ck) kargs))
-  (define (remove rc k)
-    (let ((cookies (rc-set-cookie rc)))
-      (rc-set-cookie!
-       rc
-       `(,@cookies ,((current-maker) #:npv '((key "")) #:expires *the-remove-expires*)))))
   (define-syntax-rule (init-cookies names)
     (fold (lambda (ck p)
             (cons (cons ck ((current-maker))) p))
@@ -234,7 +228,6 @@
       ((ref) (cut cref ckl <> <>))
       ((setattr) (cut setattr ckl <> <...>))
       ((update) (cut update ckl <>))
-      ((remove) remove)
       (else (throw 'artanis-err 500 cookies-maker
                    "Invalid operation!" op))))
   (match mode
@@ -283,8 +276,10 @@
       (`(spawn ,sid) (cut %spawn <> #:idname sid <...>))
       (`(spawn ,sid ,proc) (cut %spawn <> #:idname sid #:proc proc <...>))
       (else (throw 'artanis-err 500 session-maker "Invalid config mode: ~a" mode))))
+  (define (get-sid rc idname)
+    (any (lambda (c) (and=> (cookie-ref c idname) car)) (rc-cookie rc)))
   (define (check-it rc idname)
-    (let* ((sid (any (lambda (c) (and=> (cookie-ref c idname) car)) (rc-cookie rc)))
+    (let* ((sid (get-sid rc idname))
            (session (session-restore (or sid ""))))
       (case session
         ((expired)
@@ -302,8 +297,12 @@
       (`(check-and-spawn ,sid)
        (or (check-it rc sid) (apply spawn-handler rc args)))
       ('spawn (apply spawn-handler rc args))
-      ('drop (session-destory! "sid"))
-      (`(drop ,sid) (session-destory! sid))
+      ('drop
+       (session-destory! (get-sid rc "sid"))
+       (:cookies-remove! rc "sid"))
+      (`(drop ,sid)
+       (session-destory! (get-sid rc sid))
+       (:cookies-remove! rc sid))
       (else (throw 'artanis-err 500 session-maker "Invalid call cmd: ~a" cmd)))))
 
 ;; for #:from-post
@@ -314,10 +313,10 @@
         '()))
   (define (default-success-ret size-list filename-list)
     (call-with-output-string
-     (lambda (port)
-       (for-each (lambda (s f)
-                   (format port "<p>Upload succeeded! ~a: ~a bytes!</p>" s f))
-                 size-list filename-list))))
+      (lambda (port)
+        (for-each (lambda (s f)
+                    (format port "<p>Upload succeeded! ~a: ~a bytes!</p>" s f))
+                  size-list filename-list))))
   (define (default-no-file-ret) "<p>No uploaded files!</p>")
   (define* (store-the-bv rc #:key (uid 33) (gid 33) (path (get-conf '(upload path)))
                          (mode #o664) (path-mode #o775) (sync #f) (simple-ret? #t)
@@ -793,8 +792,10 @@
 (define-syntax-rule (:cookies-update! rc)
   ((:cookies rc 'update) rc))
 (run-before-response! (lambda (rc body) (:cookies-update! rc)))
-(define-syntax-rule (:cookies-remove! rc k)
-  ((:cookies rc 'remove) k))
+(define (:cookies-remove! rc k)
+  (rc-set-cookie!
+   rc
+   `(,@(rc-set-cookie rc) ,(new-cookie #:npv `((,k . #f)) #:expires #t))))
 
 (define (init-oht! oht key . args)
   (hash-set! oht key (apply (oh-ref key) args)))
