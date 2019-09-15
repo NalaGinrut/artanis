@@ -623,7 +623,7 @@ debug.monitor = <PATHs>")))
          (real-host (if host host (get-conf '(host addr))))
          (port (get-conf '(host port))))
     (if for-header?
-        (cons real-host port)
+        (cons real-host #f)
         (format #f "http://~a:~a" real-host port))))
 
 (define (init-config)
