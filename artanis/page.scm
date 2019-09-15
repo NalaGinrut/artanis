@@ -268,7 +268,7 @@
   ;;       Besides, there're lot of issues if you use relative URL.
   ;;       So let's make it easier, GNU Artanis will always redirect to absolute
   ;;       URL for you.
-  (let ((real-path (format #f "~a/~a" (current-myhost) path)))
+  (let ((real-path (format #f "~a/~a" (current-myhost) (basename path))))
     (response-emit
      ""
      #:status status
