@@ -213,7 +213,8 @@
                              failed-rule))))
                  (lambda () (handler-render handler rc)))
                 (handler-render handler rc)))
-           (else (render-sys-page 'client 404 (rc-req rc))))))))
+           (else
+            (render-sys-page 'client 404 (rc-req rc))))))))
     (make-unstop-exception-handler (exception-from-client request))))
 
 (define (response-emit-error status)

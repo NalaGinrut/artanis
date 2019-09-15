@@ -33,12 +33,13 @@
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
   #:use-module (ice-9 ftw)
-  #:use-module (srfi srfi-1)
-  #:use-module (srfi srfi-19)
+  #:use-module (ice-9 iconv)
   #:use-module (ice-9 local-eval)
   #:use-module (ice-9 receive)
   #:use-module (ice-9 q)
   #:use-module (ice-9 control)
+  #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-19)
   #:use-module (web http)
   #:use-module (web request)
   #:use-module (web response)
@@ -1359,8 +1360,9 @@
           (and (file-exists? sys-syspage)
                sys-syspage)))))
 
-(define (syspage-show file)
-  (let ((syspage (get-syspage file)))
+(define (syspage-show status)
+  (let* ((file (format #f "~a.html" status))
+         (syspage (get-syspage file)))
     (if syspage
         (bv-cat syspage #f)
         #vu8())))
@@ -1392,8 +1394,7 @@
 
 (define (render-sys-page blame-who? status request)
   (artanis-log blame-who? status 'text/html #:request request)
-  (let* ((filename (format #f "~a.html" status))
-         (charset (get-conf '(server charset)))
+  (let* ((charset (get-conf '(server charset)))
          (mtime (generate-modify-time (current-time)))
          (guile-compt-serv? (is-guile-compatible-server-core? (get-conf '(server engine))))
          (response
@@ -1401,9 +1402,18 @@
                           #:headers `((server . ,(get-conf '(server info)))
                                       (last-modified . ,mtime)
                                       (content-type . (text/html (charset . ,charset))))))
-         (body (if (resources-collecting?)
-                   #vu8(0) ; Don't open any file since we don't have resources now.
-                   (syspage-show filename))))
+         (body (cond
+                ((resources-collecting?)
+                 #vu8(0)) ; Don't open any file since we don't have resources now
+                ((get-syspage-handler status)
+                 => (lambda (thunk)
+                      (let ((body (thunk)))
+                        (cond
+                         ((string? body)
+                          (string->bytevector body (get-conf '(server charset))))
+                         ((bytevector? body) body)
+                         (else (syspage-show status))))))
+                (else (syspage-show status)))))
     (if guile-compt-serv?
         (values response body)
         (values response body 'exception))))
@@ -1423,9 +1433,8 @@
   (lambda (status)
     (format-status-page/client status request)))
 
-(define (exception-from-server)
-  (lambda (status)
-    (format-status-page/server status)))
+(define (exception-from-server status)
+  (format-status-page/server status))
 
 (define *rf-re* (string->irregex ".*/artanis/artanis/(.*)$"))
 (define (->reasonable-file filename)

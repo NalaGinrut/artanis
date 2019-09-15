@@ -69,7 +69,9 @@
             oh-set!
             oh-ref
             is-mmapped-file?
-            register-mmapped-file!))
+            register-mmapped-file!
+            http-status
+            get-syspage-handler))
 
 ;; WARNING:
 ;; For concurrency in green-thread, all these stuffs should be immutable
@@ -227,7 +229,7 @@
 (define (oh-define! lst) (set! *options-meta-handler-table* lst))
 (define (oh-set! k h)
   (set! *options-meta-handler-table*
-        (assq-set! *options-meta-handler-table* k h)))
+    (assq-set! *options-meta-handler-table* k h)))
 (define (oh-ref o)
   (assq-ref *options-meta-handler-table* o))
 
@@ -237,3 +239,9 @@
   (hashv-set! *mmapped-bv-from-file* fd bv))
 (define (is-mmapped-file? fd)
   (hashv-ref *mmapped-bv-from-file* fd #f))
+
+(define *sys-page-handlers* (make-hash-table))
+(define (http-status status thunk)
+  (hashv-set! *sys-page-handlers* status thunk))
+(define (get-syspage-handler status)
+  (hashv-ref *sys-page-handlers* status #f))

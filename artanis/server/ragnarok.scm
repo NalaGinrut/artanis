@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016,2017,2018
+;;  Copyright (C) 2016,2017,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -119,9 +119,9 @@
 
 (define (run-task task)
   (call-with-prompt
-   'serve-one-request
-   (task-kont task)
-   ragnarok-scheduler))
+      'serve-one-request
+    (task-kont task)
+    ragnarok-scheduler))
 
 (define (resources-collector)
   (define (remove-timemout-connections)
@@ -141,7 +141,7 @@
              (call-with-values
                  (lambda ()
                    (parameterize ((resources-collecting? #t))
-                     (apply (make-unstop-exception-handler (exception-from-server)) e)))
+                     (apply (make-unstop-exception-handler exception-from-server) e)))
                (lambda (r b s)
                  (catch #t
                    (lambda ()
@@ -485,7 +485,7 @@
                       (else
                        (call-with-values
                            (lambda ()
-                             (apply (make-unstop-exception-handler (exception-from-server)) e))
+                             (apply (make-unstop-exception-handler exception-from-server) e))
                          (lambda (r b s)
                            (catch #t
                              (lambda ()
