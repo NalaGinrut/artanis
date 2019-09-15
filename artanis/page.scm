@@ -144,6 +144,7 @@
              (response
               (build-response #:code status
                               #:headers `((server . ,(get-conf '(server info)))
+                                          (host . ,(current-myhost #:for-header? #t))
                                           (last-modified . ,mtime)
                                           ,(gen-content-length reformed-body)
                                           ,@pre-headers

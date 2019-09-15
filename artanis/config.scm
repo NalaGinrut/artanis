@@ -479,7 +479,7 @@ debug.monitor = <PATHs>")))
 
 (define (parse-namespace-host item)
   (match item
-    (('name name) (conf-set! '(host name) name))
+    (('name name) (conf-set! '(host name) (->none/boolean name)))
     (('family family) (conf-set! '(host family) (->symbol family)))
     (('addr addr) (conf-set! '(host addr) addr))
     (('port port) (conf-set! '(host port) (->integer port)))
@@ -543,28 +543,28 @@ debug.monitor = <PATHs>")))
 
 (define (parse-line line)
   (call-with-input-string
-   line
-   (lambda (port)
-     (let lp((next (read-char port)) (key? #t) (word '()) (ret '()))
-       (cond
-        ((or (eof-object? next)
-             (char=? next #\#)) ; skip comment
-         (reverse (cons (list->string (reverse word)) ret)))
-        ((char-set-contains? char-set:whitespace next)
-         ;; skip all whitespaces
-         (lp (read-char port) key? word ret))
-        ((and key? (char=? next #\.))
-         ;; a namespace end
-         (lp (read-char port) key? '() (cons (list->symbol (reverse word)) ret)))
-        ((and key? (char=? next #\=))
-         ;; value start
-         (lp (read-char port) #f '() (cons (list->symbol (reverse word)) ret)))
-        ((not key?)
-         ;; store chars of value
-         (lp (read-char port) key? (cons next word) ret))
-        (else
-         ;; store chars of key
-         (lp (read-char port) key? (cons next word) ret)))))))
+      line
+    (lambda (port)
+      (let lp((next (read-char port)) (key? #t) (word '()) (ret '()))
+        (cond
+         ((or (eof-object? next)
+              (char=? next #\#)) ; skip comment
+          (reverse (cons (list->string (reverse word)) ret)))
+         ((char-set-contains? char-set:whitespace next)
+          ;; skip all whitespaces
+          (lp (read-char port) key? word ret))
+         ((and key? (char=? next #\.))
+          ;; a namespace end
+          (lp (read-char port) key? '() (cons (list->symbol (reverse word)) ret)))
+         ((and key? (char=? next #\=))
+          ;; value start
+          (lp (read-char port) #f '() (cons (list->symbol (reverse word)) ret)))
+         ((not key?)
+          ;; store chars of value
+          (lp (read-char port) key? (cons next word) ret))
+         (else
+          ;; store chars of key
+          (lp (read-char port) key? (cons next word) ret)))))))
 
 (define (init-inner-database-item)
   (define dbd (get-conf '(db dbd)))
@@ -618,8 +618,13 @@ debug.monitor = <PATHs>")))
 ;;       art work -c ./my.conf
 ;; And init-server should be called automatically.
 (define current-conf-file (make-parameter #f))
-(define (current-myhost)
-  (format #f "http://~a:~a" (get-conf '(host addr)) (get-conf '(host port))))
+(define* (current-myhost #:key (for-header? #f))
+  (let* ((host (get-conf '(host name)))
+         (real-host (if host host (get-conf '(host addr))))
+         (port (get-conf '(host port))))
+    (if for-header?
+        (cons real-host port)
+        (format #f "http://~a:~a" real-host port))))
 
 (define (init-config)
   (define conf-file (current-conf-file)) ; user specified config
