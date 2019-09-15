@@ -41,3 +41,7 @@ This would be helpful to avoid EADDRNOTAVAIL that occurs too much.
 * Implement real non-blocking for sending regular file on Linux
 
 * Implement OPTIONS return content by page-options
+
+* Implement dynamic sys pages (e.g 404 page).
+1. The basic idea is redirect to predefined rule, rather than emit static pages.
+2. Users may customize the sys pages by overriding the rules.
