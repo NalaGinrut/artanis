@@ -258,6 +258,8 @@
 ;; Use `URL scheme' in case users need to redirect to HTTPS or others.
 (define* (redirect-to rc path #:key (status 301) (type '(text/html))
                       (headers '()))
+  (define-syntax-rule (->real-path p)
+    (format #f "~a/~a" (current-myhost) (string-trim path #\/)))
   ;; NOTE: We have to use absolute URL for redirecting, although relative URL is also
   ;;       supported RFC7231: https://tools.ietf.org/html/rfc7231#section-7.1.2
   ;;       If we use relative URL, then it works fine locally, or publicly without
@@ -268,17 +270,16 @@
   ;;       Besides, there're lot of issues if you use relative URL.
   ;;       So let's make it easier, GNU Artanis will always redirect to absolute
   ;;       URL for you.
-  (let ((real-path (format #f "~a/~a" (current-myhost) (basename path))))
-    (response-emit
-     ""
-     #:status status
-     #:headers `((location . ,(cond
-                               ((string? path) (string->uri real-path))
-                               ((uri? path) path)
-                               (else (throw 'artanis-err 500 redirect-to
-                                            "Invalid path ~a, should be string or uri" path))))
-                 (content-type . ,type)
-                 ,@headers))))
+  (response-emit
+   ""
+   #:status status
+   #:headers `((location . ,(cond
+                             ((string? path) (string->uri (->real-path path)))
+                             ((uri? path) path)
+                             (else (throw 'artanis-err 500 redirect-to
+                                          "Invalid path ~a, should be string or uri" path))))
+               (content-type . ,type)
+               ,@headers)))
 
 (define (reject-method method)
   (throw 'artanis-err 405 "Method is not allowed" method))
