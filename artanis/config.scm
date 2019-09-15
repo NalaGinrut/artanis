@@ -624,7 +624,7 @@ debug.monitor = <PATHs>")))
          (port (get-conf '(host port))))
     (if for-header?
         (cons real-host #f)
-        (format #f "http://~a:~a" real-host port))))
+        (format #f "http://~a:~a" (get-conf '(host addr)) port))))
 
 (define (init-config)
   (define conf-file (current-conf-file)) ; user specified config
