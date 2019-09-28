@@ -54,7 +54,7 @@
 
 (define (->engine . engine)
   (match engine
-    ((or (#f) ()) "")
+    ((or (#f) ("")) "")
     (else (format #f "engine=~a" (car engine)))))
 
 (define-syntax ->where
