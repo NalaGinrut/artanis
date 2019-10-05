@@ -1,6 +1,6 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
 ;;  === Ssql tests ===
-;;  Copyright (C) 2015
+;;  Copyright (C) 2015,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -37,6 +37,14 @@
   (pass-if "SELECT & WHERE test1"
     (string=? (->sql select * from 'Persons (where (/and #:age> 15 #:age< 30)))
               "select * from Persons where age>15 and age<30;"))
+
+  (pass-if "SELECT & WHERE test2"
+    (string=? (->sql select * from 'Person (where (/or #:name "John" #:age 15 (/and #:c 2 #:d 4))))
+              "select * from Person where name='John' or age=15 or c=2 and d=4;"))
+
+  (pass-if "SELECT & WHERE test3"
+    (string=? (->sql select * from 'Person (where (/or #:name "John" #:age 15 #:email "john@artanis.com" (/and #:c 2 #:d 4) )))
+              "select * from Person where name='John' or age=15 or email='john@artanis.com' or c=2 and d=4;"))
 
   (pass-if "WHERE group test1"
     (string=? (where #:age<> '(1 2))

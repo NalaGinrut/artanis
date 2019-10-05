@@ -49,8 +49,10 @@
     ((_ fmt args ...)
      (format #f fmt args ...))))
 
+;; NOTE: According to SQL standard, we should always use single-quote. 
+(define *double-quote-re* (string->irregex "\""))
 (define-syntax-rule (->end name arg)
-  (-> end "~a ~a" name arg))
+  (irregex-replace/all *double-quote-re* (-> end "~a ~a" name arg) "'"))
 
 (define (->engine . engine)
   (match engine
@@ -356,7 +358,7 @@
     (((? string? stpl) (? keyword? k) . vals)
      (apply (make-db-string-template (string-concatenate (list (get-prefix) stpl))) (cons k vals)))
     ;; AND mode:
-    ;; (where #:name 'John #:age 15 #:email "john@artanis.com")
+    ;; (where #:name "John" #:age 15 #:email "john@artanis.com")
     ;; ==> name="John" and age=15 and email="john@artanis.com"
     (((? keyword? key) (? non-list? val) . rest)
      (let* ((k (->key/pred key))
@@ -366,7 +368,7 @@
           ,(if (null? rest) "" (get-and/or))
           ,(parameterize ((get-prefix "")) (apply gen-cond rest))))))
     ;; group mode:
-    ;; (where #:name '(John Tom Jim)) ==> name="John" or name="Tom" or name="Jim"
+    ;; (where #:name '("John" "Tom" "Jim")) ==> name="John" or name="Tom" or name="Jim"
     (((? keyword? key) (vals ...) . rest)
      (let* ((kp (->key/pred key))
             (fmt (string-concatenate `(,(get-prefix) "~{" ,kp "'~a'~^" ,(->or/and kp) "~}"))))
@@ -380,15 +382,15 @@
 ;; All the AND comparisons (evaluated from Left to Right) are evaluated before the OR comparisons
 ;; (evaluated from Left to Right).
 
-;; (where (/or #:name 'John #:age 15)) ==> " where  name=\"John\"  or  age=\"15\" "
-;; (where #:a 1 (/or #:c 3 #:d 4)) ==> " where  a=\"1\"  and  c=\"3\"  or  d=\"4\" "
+;; (where (/or #:name "John" #:age 15)) ==> " where  name=\"John\"  or  age=15 "
+;; (where #:a 1 (/or #:c 3 #:d 4)) ==> " where  a=1  and  c=3  or  d=4 "
 ;; Complex rules could be done with string templation.
 (define (/or . conds)
   (parameterize ((get-and/or " or ") (get-prefix ""))
     (apply where conds)))
 
-;; (where (/or #:name 'John #:age 15 (/and #:c 2 #:d 4) #:email "john@artanis.com"))
-;; ==> " name=\"John\"  or  age=\"15\"  or  email=\"asdf\"  and  a=\"1\"  and  b=\"2\" "
+;; (where (/or #:name "John" #:age 15 #:email "john@artanis.com" (/and #:c 2 #:d 4) ))
+;; ==> " name=\"John\"  or  age=\"15\"  or  email=\"asdf\"  or  a=\"1\"  and  b=\"2\" "
 (define (/and . conds)
   (parameterize ((get-and/or " and ") (get-prefix ""))
     (apply where conds)))
