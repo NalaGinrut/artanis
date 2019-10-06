@@ -31,6 +31,7 @@
 * The Art command line::
 * URL remapping::
 * Route context::
+* Page status handling::
 * MVC::
 * Query String::
 * Layouts and Rendering in GNU Artanis::
@@ -103,12 +104,19 @@ URL remapping
 
 * Introduction to URL remapping::
 * URL handling::
+* OPTIONS method::
 * Get parameters from a URL::
 * Redirecting::
 
 Route context
 
 * Route context APIs::
+
+Page status handling
+
+* HTTP status code::
+* The default behaviour of status handling::
+* Dynamic status page generating::
 
 MVC
 
@@ -175,7 +183,9 @@ Authentication
 * Init Authentication::
 * Basic Authentication::
 * Common Authentication::
-* Login authentication::
+* Login Authentication::
+* Authenticate checking::
+* Websocket Authentication::
 * HMAC::
 
 Cache
@@ -190,6 +200,7 @@ Shortcuts
 * Raw SQL::
 * String template::
 * SQL-Mapping shortcut (unfinished)::
+* Authentication: Authentication 1. 
 
 Websocket (Experimental)
 
@@ -199,6 +210,7 @@ Websocket (Experimental)
 * Websocket APIs::
 * Websocket frame::
 * Websocket opcode::
+* Websocket authentication::
 
 Websocket APIs
 
@@ -207,7 +219,7 @@ Websocket APIs
 
 Ragnarok server core
 
-* Introduction: Introduction 1.
+* Introduction: Introduction 1. 
 * Principles::
 * Features::
 * Ragnarok APIs::
@@ -502,8 +514,8 @@ Try this code:
 (use-modules (artanis artanis))
 (init-server)
 (get "/hello/:who"
-(lambda (rc)
-(format #f "<p>hello ~a</p> " (params rc "who"))))
+  (lambda (rc)
+    (format #f "<p>hello ~a</p> " (params rc "who"))))
 (run #:port 8080)
 @end example
 
@@ -548,12 +560,12 @@ You can use a DB (such as mysql) with GUI tools such as "adminer", independently
 (use-modules (artanis artanis))
 (init-server)
 (define conn (connect-db 'mysql #:db-username "your_db_username"
-#:db-name "your_db_name" #:db-passwd "your_passwd"))
+                         #:db-name "your_db_name" #:db-passwd "your_passwd"))
 (define mtable (map-table-from-DB conn))
 ((mtable 'create 'Persons '((name varchar 10)
-(age integer)
-(email varchar 20)))
-'valid?)
+                            (age integer)
+                            (email varchar 20)))
+ 'valid?)
 ;; ==> #t
 (mtable 'set 'Persons #:name "nala" #:age 99 #:email "nala@@artanis.com")
 (mtable 'get 'Persons #:columns '(name email))
@@ -594,13 +606,13 @@ This was just a simple introduction. You may read the DB section in this manual 
 Of course, you can use DB in your web application.
 @example
 (get "/dbtest" #:conn #t ; apply for a DB connection from pool
-(lambda (rc)
-(let ((mtable (map-table-from-DB (:conn rc))))
-(object->string
-(mtable 'get 'Persons #:columns '(name email))))))
+     (lambda (rc)
+       (let ((mtable (map-table-from-DB (:conn rc))))
+         (object->string
+          (mtable 'get 'Persons #:columns '(name email))))))
 
 (run #:use-db? #t #:dbd 'mysql #:db-username "your_db_username"
-#:db-name "your_db_name" #:db-passwd "your_passwd" #:port 8080)
+     #:db-name "your_db_name" #:db-passwd "your_passwd" #:port 8080)
 @end example
 
 Now, try loading @uref{http://localhost:8080/dbtest} in your browser.
@@ -727,7 +739,7 @@ This is the simplest way to run a site:
 It's better to use (init-server) to init GNU Artanis.
 @example
 (init-server #:statics '(png jpg jpeg ico html js css)
-#:cache-statics? #f #:exclude '())
+             #:cache-statics? #f #:exclude '())
 @end example
 
 @code{#:statics} specifies the static files with the file name extensions. GNU Artanis is based on URL remapping, so the requested URL will have to end in the requested file name, matching the string defined, and returning the file without any extra defintions per file type. By default, it covers the most common static file types.
@@ -769,7 +781,7 @@ Please read @ref{URL handling}.
 
 @example
 (run #:host #f #:port #f #:debug #f #:use-db? #f
-#:dbd #f #:db-username #f #:db-passwd #f #:db-name #f)
+     #:dbd #f #:db-username #f #:db-passwd #f #:db-name #f)
 @end example
 
 @emph{keywords with the value #f, as default, will get the values from the config file.}
@@ -850,23 +862,23 @@ art create proj_path
 This command will generate the specified components:
 @example
 Usage:
-art draw <component> NAME [options]
+  art draw <component> NAME [options]
 
 component list:
-model
-controller
-migration
+  model
+  controller
+  migration
 
 Options:
--h, [--help]     # Print this screen
--d, [--dry]      # Dry run but do not make any changes
--f, [--force]    # Overwrite files that already exist
--s, [--skip]     # Skip files that already exist
-# If -s and -f are both provided, -f will be enabled
--q, [--quiet]    # Suppress status output
+  -h, [--help]     # Print this screen
+  -d, [--dry]      # Dry run but do not make any changes
+  -f, [--force]    # Overwrite files that already exist
+  -s, [--skip]     # Skip files that already exist
+                   # If -s and -f are both provided, -f will be enabled
+  -q, [--quiet]    # Suppress status output
 
 Example:
-art draw model myblog
+  art draw model myblog
 @end example
 
 Please see @ref{MVC} to learn more about how to use these components.
@@ -877,14 +889,14 @@ Please see @ref{MVC} to learn more about how to use these components.
 Migrate is used for Database migration.
 @example
 Usage:
-art migrate operator name [OPTIONS]
+  art migrate operator name [OPTIONS]
 
 Operators:
-up
-down
+  up
+  down
 
 OPTIONS:
-VERSION=version
+  VERSION=version
 @end example
 Please see @ref{Migration} for more detail.
 
@@ -894,39 +906,43 @@ Please see @ref{Migration} for more detail.
 This command is used to start the server when run in a project directory:
 @example
 Usage:
-art work [options]
+  art work [options]
 
 Options:
--c, [--config=CONFIG]          # Specify config file
-Default: conf/artanis.conf
-if no, /etc/artanis/artanis.conf
--h, [--host=HOST]              # Specify the network host
-Default: 0.0.0.0
--d, [--usedb]                  # Whether to use Database
-Default: false
--b, [--dbd=DBD]                # Specify DBD, mysql/postgresql/sqlit3
-Default: mysql
--n, [--name=DATABASE_NAME]     # Database name
-Default: artanis
--w, [--passwd=PASSWD]          # Database password
-Default: none
--u, [--user=USER]              # Database user name
-Default: root
--p, [--port=PORT]              # Specify listening port
-Default: 3000
--g, [--debug]                  # Debug mode
-Default: disable
--s, [--server=SERVER]          # Specify server core
-Default: Ragnarok (New server core since 0.2)
---help                         # Show this screen
+  -c, [--config=CONFIG]          # Specify config file
+                                   Default: conf/artanis.conf
+                                            if no, /etc/artanis/artanis.conf
+  -h, [--host=HOST]              # Specify the network host
+                                   Default: 0.0.0.0
+  -d, [--usedb]                  # Whether to use Database
+                                   Default: false
+  -b, [--dbd=DBD]                # Specify DBD, mysql/postgresql/sqlit3
+                                   Default: mysql
+  -n, [--name=DATABASE_NAME]     # Database name
+                                   Default: artanis
+  -w, [--passwd=PASSWD]          # Database password
+                                   Default: none
+  -u, [--user=USER]              # Database user name
+                                   Default: root
+  -p, [--port=PORT]              # Specify listening port
+                                   Default: 3000
+  -g, [--debug]                  # Debug mode
+                                   Default: disable
+  -s, [--server=SERVER]          # Specify server core
+                                   Default: Ragnarok (New server core since 0.2)
+  --refresh                      # Clean caches, and force to re-compile all source code.                                                         
+  --help                         # Show this screen
 @end example
 
 @itemize
 @item
-For server core alternatives, please see [BROKEN LINK: Server config].
+For server core alternatives, please see @code{server.config} in config.
 @item
-For Database (DBD) alternatives, please see [BROKEN LINK: Database config].
+For Database (DBD) alternatives, please see @code{database.config} in config.
 @end itemize
+
+@strong{NOTE:} Please make sure use @code{art work --refresh} to recompile WebApp code each time you upgrade GNU Artanis.
+And if you want to clean the caches for debug, @code{--refresh} is also your friend.
 
 @node URL remapping
 @chapter URL remapping
@@ -934,6 +950,7 @@ For Database (DBD) alternatives, please see [BROKEN LINK: Database config].
 @menu
 * Introduction to URL remapping::
 * URL handling::
+* OPTIONS method::
 * Get parameters from a URL::
 * Redirecting::
 @end menu
@@ -947,7 +964,22 @@ It's largely used in modern WAFs(web application framework) to provide RESTful w
 @node URL handling
 @section URL handling
 
-According to RFC2616, there are GET, POST, PUT, PATCH and DELETE methods. You may write a handler for any type.
+According to RFC2616, the methods include GET, POST, etc. However, because of the naming conflict, GNU Artanis provides
+the methods by this list:
+@itemize
+@item
+get
+@item
+post
+@item
+put
+@item
+patch
+@item
+page-delete
+@item
+page-options
+@end itemize
 
 @emph{In GNU Artanis the HEAD method is handled by the server, so you can't define specific handlers directly for it within GNU Artanis.}
 
@@ -959,12 +991,12 @@ Usage:
 And the handler could be one of two types, depending on your needs:
 @example
 (lambda ()
-...
-ret)
+  ...
+  ret)
 
 (lambda (rc)
-...
-ret)
+  ...
+  ret)
 @end example
 
 @strong{ret} also has two types:
@@ -974,7 +1006,7 @@ ret)
 1. literal string as the returned response body
 
 @item
-2. See [BROKEN LINK: Emit Response]
+2. See @ref{Emit a Response}
 @end itemize
 
 @example
@@ -985,6 +1017,16 @@ For a POST method:
 @example
 (post "/auth" (lambda (rc) ...))
 @end example
+
+@node OPTIONS method
+@section OPTIONS method
+
+OPTIONS method is used to return the other methods supported by the server-side at the given URL.
+By default in GNU Artanis, for a specified URL, every method whose handler was registerted would be added to its own OPTIONS list.
+
+If you want to deny certain methods for security consideration, you may need to set @strong{server.allowedmethods} in config.
+
+@strong{NOTE:} If you're not trying to use Cross-Origin Resource Sharing (CORS), then you may not need to care about it.
 
 @node Get parameters from a URL
 @section Get parameters from a URL
@@ -1000,11 +1042,14 @@ For a POST method:
 
 @example
 (redirect-to rc path #:status 301
-#:scheme 'http)
+             #:scheme 'http)
 ;; e.g
 (get "/aaa" (lambda (rc) (redirect-to rc "/bbb")))
 (get "/bbb" (lambda () "ok bbb"))
 @end example
+
+@strong{NOTE:} redirect-to will always use absolute URL implicitly. Although the standard supports relative URL,
+there maybe some problems when you're behind a proxy. So we use absolute URL to avoid these issues.
 
 @node Route context
 @chapter Route context
@@ -1136,6 +1181,70 @@ the client, please use it.
 There're other APIs in @emph{route-context}, but they're largely used for
 internals of Artanis, rarely useful for users. So we don't list them here.
 
+@node Page status handling
+@chapter Page status handling
+
+@menu
+* HTTP status code::
+* The default behaviour of status handling::
+* Dynamic status page generating::
+@end menu
+
+@node HTTP status code
+@section HTTP status code
+
+HTTP response status codes are the error numbers show the status of a specific HTTP request. The responses are grouped in five classes:
+@itemize
+@item
+Informational responses (100–199)
+@item
+Successful responses (200–299)
+@item
+Redirects (300–399)
+@item
+Client errors (400–499)
+@item
+Server errors (500–599)
+@end itemize
+
+@node The default behaviour of status handling
+@section The default behaviour of status handling
+
+On success, GNU Artanis returns the status code 200.
+
+If there's any issue prevents GNU Artanis to generate requested result successfully, then it'll throw the relavent exception somewhere issue
+happened. And finally it will be caught by the server-core. In theory, the status code other than 200 will trigger a system page generating
+operation. By default, status pages are put in @strong{/etc/artanis/pages}, but you may override it in @strong{your_app_folder/sys/pages}. Each system page
+named with the status code, say, @strong{404.html}. So you may easily customize your preferred status page.
+
+@node Dynamic status page generating
+@section Dynamic status page generating
+
+Sometimes you may need more complex status page generating. For example, you want to put a random public service advertising when the visitors
+encountered a 404 (page missing). Then you can do it like this:
+@example
+(http-status status-code thunk-handler)
+@end example
+@itemize
+@item
+@strong{status-code} must be an integer between 100~599.
+@item
+@strong{Thunk} implies a function without any argument.
+@end itemize
+Let's see an example:
+
+@example
+;; You may put this code in any controller module.
+(http-status 404
+ (lambda ()
+   (view-render "psd_404" (the-environment))))
+@end example
+
+In this example, "psd" stands for public-service-advertising, and "psd_404" tells the @strong{view-render} to find "psd_404.html" in
+@strong{your_app_folder/sys/pages/psd_404.html}. So you can render the HTML template to generate a status page. Of course, there're a few ways to
+implement the similar idea. If you don't want to render template on the backend, you may generate a JSON and let the frontend framework to
+generate it.
+
 @node MVC
 @chapter MVC
 
@@ -1182,15 +1291,18 @@ As part of the @emph{view} component. An HTML template is generated for each met
 For the @emph{controller} component, you get a @emph{show} method handler, as:
 @example
 (article-define show
-(lambda (rc)
-"<h1>This is article#show</h1><p>Find me in app/views/article/show.html.tpl</p>"
-;; TODO: add controller method `show'
-;; uncomment this line if you want to render view from template
-;; (view-render "show")
-))
+                (lambda (rc)
+                  "<h1>This is article#show</h1><p>Find me in app/views/article/show.html.tpl</p>"
+                  ;; TODO: add controller method `show'
+                  ;; uncomment this line if you want to render view from template
+                  ;; (view-render "show")
+                  ))
 @end example
 Of course, you're free to use or not use these templates. If you want to use the @emph{view template}, just
 uncomment the last line @code{(view-render "show")}.
+
+@strong{NOTE:} The views template generated by MVC will defaultly announce FreeJS. The reason was well explained in [BROKEN LINK:  http://www.gnu.org/philosophy/javascript-trap.en.html].
+It's optional, you may remove it with your free will, but I put it there in the hope that you can support free software with us.
 
 For more detail about template in Views, please see @ref{Layouts and Rendering in GNU Artanis}.
 
@@ -1235,8 +1347,8 @@ http://example.com/over/there?name=ferret&color=purple
 Please notice that URL-remapping supports regex. So you could register a URL rule like this:
 @example
 (get "/there?"
-(lambda (rc)
-(get-from-qstr rc "name")))
+  (lambda (rc)
+    (get-from-qstr rc "name")))
 @end example
 Or it will throw 404 since URL-remapping failed to hit the rule with the query string.
 
@@ -1246,11 +1358,11 @@ Or it will throw 404 since URL-remapping failed to hit the rule with the query s
 The query string would be encoded in the HTTP body on the POST method.
 
 There's only a slight difference when you pass query string by POST instead of with GET:
-you don't need a URL rule using a regex. So, the "?" above would be gone in this example.
+you don't need a URL rule using a regex, so the "?" is unnecessary here.
 @example
 (post "/there" #:from-post 'qstr
-(lambda (rc)
-(:from-post rc 'get "name")))
+      (lambda (rc)
+        (:from-post rc 'get "name")))
 @end example
 
 Please notice that @code{#:from-post 'qstr} is necessary when you're trying to
@@ -1289,12 +1401,20 @@ useful to avoid redundant parsing. However, each time you call
 fetch multiple values is:
 @example
 (:from-post rc 'get-vals "key1" "key2" "key3")
+
+;; For example:
+;; let-values is imported from srfi-11
+(let-values (((title sub-title old-passwd new-passwd)
+              (:from-post rc 'get-vals "title" "sub-title"
+                          "old-passwd" "new-passwd")))
+  ..........
+  )
 @end example
 
 BTW, you may get the parsed query-string as an assoc-list as well:
 @example
 (let ((qstr (:from-post rc 'get)))
-(assoc-ref qstr "key-1"))
+  (assoc-ref qstr "key-1"))
 @end example
 
 @node Layouts and Rendering in GNU Artanis
@@ -1342,8 +1462,8 @@ And the same function in GNU Artanis code:
 
 @example
 <% (if (= fullscreen 1) %>
-<% "<div class='full'><p>...</p></div>" %>
-<% ) %>
+       <% "<div class='full'><p>...</p></div>" %>
+       <% ) %>
 @end example
 
 @node Templating APIs
@@ -1371,9 +1491,9 @@ Example:
 Write a tpl file named "my.tpl":
 @example
 <html>
-<p> <%= "This is tpl test!" %> </p>
-<p> <% (format #t "And this is ~a" (getcwd)) %> </p>
-<p> <%= external-var %> </p>
+  <p> <%= "This is tpl test!" %> </p>
+  <p> <% (format #t "And this is ~a" (getcwd)) %> </p>
+  <p> <%= external-var %> </p>
 </html>
 @end example
 
@@ -1383,11 +1503,22 @@ controller name automatically.
 If you don't use the MVC, and are rather writing all in one script
 file loading GNU Artanis modules. Then you don't need to follow this rule.
 
+@strong{NOTE:} Don't wrap code in double-quotes, for example:
+@example
+<a href="<%= my-url %>">click me</a> <!-- Wrong! -->
+<a href=<%= my-url %> >click me</a> <!-- Correct! -->
+@end example
+
+If you need to output a double-quoted string, please use @code{object->string} to convert in Scheme first.
+@example
+<a href=<%= (object->string my-url) %> >click me</a> <!-- If my-url is not properly quoted -->
+@end example
+
 @example
 (get "/test"
-(lambda (rc)
-(let ((external-var 123))
-(tpl->response "my.tpl" (the-environment)))))
+  (lambda (rc)
+    (let ((external-var 123))
+      (tpl->response "my.tpl" (the-environment)))))
 (run #:port 8080)
 @end example
 
@@ -1416,17 +1547,17 @@ These special commands are useful to expand the path for you, and they should be
 into the tamplate file, for example:
 @example
 <html>
-<head>
-<@@icon favicon.ico %>
-<@@js functions.js %>
-<@@css blog.css %>
-</head>
+  <head>
+    <@@icon favicon.ico %>
+      <@@js functions.js %>
+        <@@css blog.css %>
+  </head>
 
-<@@include sidebar.html %>
+  <@@include sidebar.html %>
 
-<body>
-...
-</body>
+    <body>
+      ...
+    </body>
 </html>
 @end example
 
@@ -1495,7 +1626,7 @@ Sometimes you may need quasiquote to refer to a variable, for example:
 
 @example
 (let ((content "hello world"))
-(tpl->response `(html (body (p (@@ (id "content")) ,content)))))
+  (tpl->response `(html (body (p (@@ (id "content")) ,content)))))
 @end example
 Here, the "html" block is being quoted with the backtick, which in combination with
 a "," character before the variable name, makes the variable be referred to instead
@@ -1526,8 +1657,8 @@ application folder, just put it before running the server.
 
 @example
 (run-when-DB-init!
-(lambda (conn)
-(DB-query conn "set names utf8;")))
+ (lambda (conn)
+   (DB-query conn "set names utf8;")))
 @end example
 
 @strong{NOTE: Don't forget `!' here, it implies the side-effects in Scheme!}
@@ -1554,15 +1685,15 @@ You'll see something similar like above.
 Then you'd edit the file db/migration/20151107040209_person.scm:
 @example
 (migrate-up
-(create-table
-'person
-'(id auto (#:primary-key))
-'(name char-field (#:not-null #:maxlen 10))
-'(age tiny-integer (#:not-null))
-'(email char-field (#:maxlen 20))))
+ (create-table
+  'person
+  '(id auto (#:primary-key))
+  '(name char-field (#:not-null #:maxlen 10))
+  '(age tiny-integer (#:not-null))
+  '(email char-field (#:maxlen 20))))
 
 (migrate-down
-(drop-table 'person))
+ (drop-table 'person))
 @end example
 
 Then you run the @strong{up} command for migration:
@@ -1718,7 +1849,7 @@ FPRM stands for Functional Programming Relational Mapping. It's a new word I inv
 
 ;; usage 2:
 (connect-db dbd #:db-name "artanis" #:db-username "root" #:db-passwd ""
-#:proto "tcp" #:host "localhost" #:port 3306)
+            #:proto "tcp" #:host "localhost" #:port 3306)
 @end example
 
 @itemize
@@ -1846,7 +1977,7 @@ map-table-from-DB returns a function, named @strong{m} here for simplicity.
 
 @example
 (m 'get table-name #:columns '(*) #:functions '() #:ret 'all
-#:group-by #f #:order-by #f)
+   #:group-by #f #:order-by #f)
 @end example
 
 @itemize
@@ -1968,19 +2099,19 @@ GNU Artanis integrates the third-party module @uref{https://github.com/aconchill
 You can use the #:mime method to handle JSON:
 @example
 (get "/json" #:mime 'json
-(lambda (rc)
-(let ((j (json (object ("name" "nala") ("age" 15)))))
-(:mime rc j))))
+     (lambda (rc)
+       (let ((j (json (object ("name" "nala") ("age" 15)))))
+         (:mime rc j))))
 @end example
 
 For example:
 @example
 (define my-json
-(json (object ("name" "nala") ("age" 15)
-("read_list"
-(object
-("book1" "The interpreter and structure of Artanis")
-("book2" "The art of Artanis programming"))))))
+  (json (object ("name" "nala") ("age" 15)
+                ("read_list"
+                 (object
+                  ("book1" "The interpreter and structure of Artanis")
+                  ("book2" "The art of Artanis programming"))))))
 (scm->json my-json) ; scm->json will print a json object
 ;; ==> @{"name" : "nala",
 ;;      "age" : 15,
@@ -1999,8 +2130,8 @@ GNU Artanis integrates the third-party module @uref{https://github.com/NalaGinru
 You can use the #:mime method to handle CSV:
 @example
 (get "/csv" #:mime 'csv
-(lambda (rc)
-(:mime rc '(("a" "1") ("b" "2")))))
+     (lambda (rc)
+       (:mime rc '(("a" "1") ("b" "2")))))
 @end example
 
 @node XML
@@ -2009,17 +2140,17 @@ You can use the #:mime method to handle CSV:
 In Scheme, XML is handled with SXML. Another way would be to append the text to a common string.
 @example
 (get "/xml" #:mime 'xml
-(lambda (rc)
-(:mime rc '(*TOP* (WEIGHT (@@ (unit "pound"))
-(NET (@@ (certified "certified")) "67")
-(GROSS "95"))))))
+     (lambda (rc)
+       (:mime rc '(*TOP* (WEIGHT (@@ (unit "pound"))
+                                 (NET (@@ (certified "certified")) "67")
+                                 (GROSS "95"))))))
 @end example
 
 The rendered result to the client will be:
 @example
 <WEIGHT unit="pound">
-<NET certified="certified">67</NET>
-<GROSS>95</GROSS>
+  <NET certified="certified">67</NET>
+  <GROSS>95</GROSS>
 </WEIGHT>
 @end example
 
@@ -2029,8 +2160,8 @@ The rendered result to the client will be:
 You can use SXML to replace XML for exchanging data format. This way saves some bandwidth.
 @example
 (get "/sxml" #:mime 'sxml
-(lambda (rc)
-(:mime rc '((a 1) (b 2)))))
+     (lambda (rc)
+       (:mime rc '((a 1) (b 2)))))
 @end example
 
 @node Upload files
@@ -2050,22 +2181,22 @@ The typical configuration of an uploading WebAPI looks like this:
 
 @example
 (post "/upload" #:from-post '(store #:path "upload" #:sync #f)
-(lambda (rc)
-(case (:from-post rc 'store)
-((success) (response-emit "upload succeeded!"))
-((none) (response-emit "No uploaded files!"))
-(else (response-emit "Impossible! please report bug!")))))
+      (lambda (rc)
+        (case (:from-post rc 'store)
+          ((success) (response-emit "upload succeeded!"))
+          ((none) (response-emit "No uploaded files!"))
+          (else (response-emit "Impossible! please report bug!")))))
 @end example
 
 However, you may use the low-level API for more configurations as well:
 @example
 (store-uploaded-files rc #:path (current-upload-path)
-#:uid #f
-#:gid #f
-#:simple-ret? #t
-#:mode #o664
-#:path-mode #o775
-#:sync #f)
+                      #:uid #f
+                      #:gid #f
+                      #:simple-ret? #t
+                      #:mode #o664
+                      #:path-mode #o775
+                      #:sync #f)
 @end example
 
 @strong{rc} is the route-context.
@@ -2106,8 +2237,8 @@ scheme://[user:password@@]domain:port/path?query_string#fragment_id
 @strong{pattern} should be:  ((file filelist @dots{}) (data datalist @dots{})), for example:
 @example
 (upload-files-to "ftp://nala:123@@myupload.com/"
-'((data ("data1" "hello world"))
-(file ("file1" "filename") ("file2" "filename2"))))
+                 '((data ("data1" "hello world"))
+                   (file ("file1" "filename") ("file2" "filename2"))))
 @end example
 
 @node Sessions
@@ -2116,7 +2247,7 @@ scheme://[user:password@@]domain:port/path?query_string#fragment_id
 You can use @code{#:session mode} to define a URL rule handler.
 @example
 (post "/auth" #:session mode
-(lambda (rc) ...))
+      (lambda (rc) ...))
 @end example
 
 @strong{mode} can be:
@@ -2150,6 +2281,10 @@ And the APIs of the session is :session
 'spawn to spawn a session with the name "sid".
 @item
 'spawn-and-keep to spawn a session then keep with the name "sid".
+@item
+'drop to remove the current session by "sid".
+@item
+`(drop ,sid) to remove the session by the specifed sid.
 @end itemize
 
 @menu
@@ -2168,7 +2303,7 @@ at the description of @code{session.backend} in your artanis.conf.
 You can use @code{#:cookies mode} to define a URL rule handler.
 @example
 (get "/certain-rule" #:cookies mode
-(lambda (rc) ...))
+     (lambda (rc) ...))
 @end example
 
 @strong{mode} can be:
@@ -2186,7 +2321,7 @@ And the APIs:
 (:cookies-ref rc cookie-name key)
 
 (:cookies-setattr! rc cookie-name #:expir #f #:domain #f
-#:path #f #:secure #f #:http-only #f)
+                   #:path #f #:secure #f #:http-only #f)
 
 (:cookies-remove! rc key) ; remove cookie from client
 
@@ -2198,15 +2333,15 @@ And the APIs:
 For example:
 @example
 (get "/cookie" #:cookies '(names cc)
-(lambda (rc)
-(:cookies-set! rc 'cc "sid" "123321")
-"ok"))
+     (lambda (rc)
+       (:cookies-set! rc 'cc "sid" "123321")
+       "ok"))
 
 (get "/cookie/:expires" #:cookies '(names cc)
-(lambda (rc)
-(:cookies-set! rc 'cc "sid" "123321")
-(:cookies-setattr! rc 'cc #:expir (string->number (params rc "expires")))
-"ok"))
+     (lambda (rc)
+       (:cookies-set! rc 'cc "sid" "123321")
+       (:cookies-setattr! rc 'cc #:expir (string->number (params rc "expires")))
+       "ok"))
 @end example
 
 You can use these commands in your console to see the results:
@@ -2223,7 +2358,9 @@ curl --head localhost:3000/cookie/120
 * Init Authentication::
 * Basic Authentication::
 * Common Authentication::
-* Login authentication::
+* Login Authentication::
+* Authenticate checking::
+* Websocket Authentication::
 * HMAC::
 @end menu
 
@@ -2235,7 +2372,7 @@ GNU Artanis provides flexible mechanism for authentication.
 You can use @code{#:auth mode} to define a URL rule handler.
 @example
 (get "/certain-rule" #:auth mode
-(lambda (rc) ...))
+     (lambda (rc) ...))
 @end example
 
 @strong{mode} can be:
@@ -2276,7 +2413,7 @@ Then you should write authentication like this:
 
 @example
 (post "/auth" #:auth '(table user "user" "passwd") #:session #t
-(lambda (rc) ...))
+      (lambda (rc) ...))
 @end example
 
 Please notice that the @code{"passwd"} here is the same with what you specified in the form.
@@ -2297,19 +2434,19 @@ is typically used over HTTPS.
 Let's see a simple example:
 @example
 (define (my-checker rc user passwd)
-(and (string=? user "jack") (string=? passwd "123")))
+  (and (string=? user "jack") (string=? passwd "123")))
 
 (post "/bauth" #:auth `(basic ,checker)
-(lambda (rc)
-(if (:auth rc)
-"auth ok"
-(throw-auth-needed))))
+      (lambda (rc)
+        (if (:auth rc)
+            "auth ok"
+            (throw-auth-needed))))
 @end example
 
 Another simple way to provide authentication is to compare the passsword stored in a database table:
 @example
 (post "/bauth" #:auth `(basic Person username passwd)
-(lambda (rc) ... ))
+      (lambda (rc) ... ))
 @end example
 
 NOTE: Assuming @strong{username} and @strong{passwd} are columns of the Person table.
@@ -2345,7 +2482,7 @@ If you save the account data in a database table, then you can use the table mod
 #:auth `(table ,table-name [,username-field] [,passwd-field] [,salt-field] [,hmac])
 @end example
 
-NOTE: The square-bracked @strong{[args]} above are optional.
+NOTE: The square-braced @strong{[args]} above are optional.
 
 The default values for the optional items are:
 @itemize
@@ -2368,8 +2505,8 @@ salt field name in the salt-field argument.
 
 For hmac item, please see @ref{HMAC}.
 
-@node Login authentication
-@section Login authentication
+@node Login Authentication
+@section Login Authentication
 
 Usually, when doing a login, you will need both @code{#:auth} and @code{#:session} options for a long time session.
 The first step is to authenticate, if it's successful, then spawn a new session for this request.
@@ -2378,16 +2515,59 @@ Here is a simple example:
 
 @example
 (post "/auth" #:auth '(table user "user" "passwd") #:session #t
-(lambda (rc)
-(cond
-((:session rc 'check) "auth ok (session)")
-((:auth rc)
-(:session rc 'spawn)
-"auth ok")
-(else (redirect-to rc "/login?login_failed=true")))))
+      (lambda (rc)
+        (cond
+         ((:session rc 'check) "auth ok (session)")
+         ((:auth rc)
+          (:session rc 'spawn)
+          "auth ok")
+         (else (redirect-to rc "/login?login_failed=true")))))
 @end example
 
 @strong{NOTE: The passwd will be encrypted by the default algorithm.}
+
+@node Authenticate checking
+@section Authenticate checking
+
+If certain page requires authencation first, then how to check it properly?
+
+In GNU Artanis, the @strong{session-id} is the only token to check if the client has already been authenticated.
+By default, the @strong{session-id} is named as @strong{SID} in cookies.
+You may use @code{#:with-auth} to do all the works automatically for you.
+
+@example
+(get "/dashboard"
+  #:with-auth <options>
+  (lambda (rc)
+    (view-render "dashboard" (the-environment))))
+@end example
+
+For example, assuming you have a page @strong{/dashboard} requires login, then you may set @code{#:with-auth} with
+certain option. We will explain this option later. Each time user visit @strong{/dashboard} page, GNU Artanis will check if there's
+valid @strong{session-id} from client's cookies, if yes, then run the handler to generate the response; if no, then jump to the related
+auth failed handler, depends on the option you specified.
+
+Here's available @strong{options}:
+@itemize
+@item
+@code{#t} means the default failure activity: redirect to @strong{/login} page.
+@item
+URL in string, specify the login page URL. For example, @code{#:with-auth "/admin/login"}.
+@item
+@code{'status} will return a 401 page with status code 401, which could be checked by cilent.
+@item
+@strong{Thunk} can be used to generate customized response by users. A thunk is a function without parameter.
+For example, @code{#:with-auth (lambda () (scm->json-string '((status . 401) (reason . "No auth"))))}.
+This is useful to customize your protocol in JSON for RESTful API.
+@end itemize
+
+@strong{NOTE:} Different from other @ref{Shortcuts, , shortcuts}, there's no @code{:with-auth} @strong{apply} for user customized operations
+inside the handler. If you use @code{#:with-auth}, then all related works are handled by GNU Artanis.
+
+@node Websocket Authentication
+@section Websocket Authentication
+
+See @ref{Websocket authentication, , Websocket authencation}
 
 @node HMAC
 @section HMAC
@@ -2402,16 +2582,16 @@ You can set your own HMAC function, as in this example:
 
 @example
 (define (my-hmac passwd salt)
-(string->sha-512 (format #f "~a-~a-~a" passwd salt (current-time))))
+  (string->sha-512 (format #f "~a-~a-~a" passwd salt (current-time))))
 
 (post "/auth" #:auth `(table user "user" "passwd" "salt" ,my-hmac)
-...... )
+      ...... )
 @end example
 
 The default HMAC function is:
 @example
 (define (default-hmac passwd salt)
-(string->sha-256 (string-append passwd salt)))
+  (string->sha-256 (string-append passwd salt)))
 @end example
 
 For more on hash functions, please refer to @ref{Cryptographic hash functions}.
@@ -2439,7 +2619,7 @@ cache data in GNU Artanis.
 You can use @code{#:cache mode} to define a URL rule handler.
 @example
 (get "/certain-rule" #:cache mode
-(lambda (rc) ...))
+     (lambda (rc) ...))
 @end example
 
 @strong{@emph{NOTE}}: the default value of "maxage" (3600 seconds) is defined by @code{cache.maxage} in @code{/etc/artanis/artanis.conf}.
@@ -2463,24 +2643,24 @@ You can use @code{#:cache mode} to define a URL rule handler.
 Let's set a simple cache setting for dynamic content:
 @example
 (get "/new" #:cache #t
-(lambda (rc)
-(:cache rc "hello world")))
+     (lambda (rc)
+       (:cache rc "hello world")))
 @end example
 
 If you want to cache a static file, and permit proxies cache the content:
 @example
 (get "/hide" #:cache '(public "pub/some.html")
-(lambda (rc)
-(:cache rc)))
+     (lambda (rc)
+       (:cache rc)))
 @end example
 
 But, if your current URL rule is used for authentication (once you use @code{#:auth}), the cache will be changed to @strong{private} even if you specify @strong{public}.
 @example
 (get "/pauth"
-#:auth `(basic ,(lambda (rc u p) (and (string=? u "nala")
-(string=? p "123"))))
-#:cache '(public "pub/some.html") ; will be changed to 'private' forcely.
-(lambda (rc) (:cache rc)))
+  #:auth `(basic ,(lambda (rc u p) (and (string=? u "nala")
+                                        (string=? p "123"))))
+  #:cache '(public "pub/some.html") ; will be changed to 'private' forcely.
+  (lambda (rc) (:cache rc)))
 @end example
 
 @node Shortcuts
@@ -2492,12 +2672,13 @@ But, if your current URL rule is used for authentication (once you use @code{#:a
 * Raw SQL::
 * String template::
 * SQL-Mapping shortcut (unfinished)::
+* Authentication: Authentication 1. 
 @end menu
 
 @node What is shortcuts?
 @section What is shortcuts?
 
-@emph{shortcuts} are a series of special functions. They're used to simplify complex
+@emph{shortcuts} are a series of special functions. They're used to simplify the complex
 operations, according to the configuration specified by the related keyword, set
 after a URL-rule.
 
@@ -2506,7 +2687,7 @@ principle to be implemented. But it was too hard to remember. So let's just call
 
 Anyway, you may find them in the module @uref{https://gitlab.com/NalaGinrut/artanis/blob/master/artanis/oht.scm, (artanis oht)}.
 
-It's good practice to use @emph{shortcuts} as much as possible and avoid calling low-level APIs.
+It's good practice to use @emph{shortcuts} as possible and avoid calling low-level APIs.
 
 Each shortcut consists of 2 parts: @strong{config} and @strong{apply}.
 
@@ -2632,6 +2813,11 @@ Fetch the sql-mapping with @emph{name} rendered from @emph{sql-template}.
 @end itemize
 @end itemize
 
+@node Authentication 1
+@section Authentication
+
+See @ref{Authentication}.
+
 @node Websocket (Experimental)
 @chapter Websocket (Experimental)
 
@@ -2642,6 +2828,7 @@ Fetch the sql-mapping with @emph{name} rendered from @emph{sql-template}.
 * Websocket APIs::
 * Websocket frame::
 * Websocket opcode::
+* Websocket authentication::
 @end menu
 
 @node Websocket introduction
@@ -2655,14 +2842,29 @@ Websockets are important for GNU Artanis's design. Please see @ref{Principles} f
 @section Websocket basic usage
 
 In GNU Artanis, a Websocket handling is triggered by setting it on a specific URL.
-You should use @code{#:websocket} to configure the Websocket. For example:
+You should use @code{#:websocket} to configure the Websocket.
+Here's the API definition:
+@example
+#:websocket (proto protocol-name ['inexclusive])
+@end example
+@strong{'inexclusive} is optional. By default, each Websocket connection only servs one client.
+However, sometimes we do need to multicast the messages to several clients. Enable @strong{'inexclusive} is the
+easiest way, but it may cause the similar issue to file-description-leaking. There're two suggestions:
+@itemize
+@item
+Set and check security token to prevent malicious programs establish massive connections.
+@item
+If you want to do muticasting as in pub/sub, then use different token or named-pipe to subscribe. And maintain
+a subscribers table for multicasting.
+@end itemize
 
+Here's a simple example for common cases:
 @example
 (use-modules (artanis artanis))
 
 (get "/echo" #:websocket '(proto echo)
-(lambda (rc)
-(:websocket rc 'payload)))
+     (lambda (rc)
+       (:websocket rc 'payload)))
 
 (run #:port 3000)
 @end example
@@ -2674,41 +2876,41 @@ Let's also write a simple javascript function for the web frontend:
 @example
 function WebSocketTest()
 @{
-if ("WebSocket" in window)
-@{
-document.write("<p>WebSocket is supported by your Browser!</p>");
+    if ("WebSocket" in window)
+    @{
+        document.write("<p>WebSocket is supported by your Browser!</p>");
 
-// Let us open a web socket
-var ws = new WebSocket("ws://localhost:3000/echo");
+        // Let us open a web socket
+        var ws = new WebSocket("ws://localhost:3000/echo");
 
-ws.onopen = function()
-@{
-// Web Socket is connected, send data using send()
-ws.send("hello world");
-document.write("<p>Message is sent...</p>");
-@};
+        ws.onopen = function()
+        @{
+            // Web Socket is connected, send data using send()
+            ws.send("hello world");
+            document.write("<p>Message is sent...</p>");
+        @};
 
-ws.onmessage = function (evt)
-@{
-var received_msg = evt.data;
-document.write("<p>hello welcome...</p>");
-@};
+        ws.onmessage = function (evt)
+        @{
+            var received_msg = evt.data;
+            document.write("<p>hello welcome...</p>");
+        @};
 
-ws.onclose = function()
-@{
-// websocket is closed.
-document.write("<p>Connection is closed...</p>");
-@};
+        ws.onclose = function()
+        @{
+            // websocket is closed.
+            document.write("<p>Connection is closed...</p>");
+        @};
 
-window.onbeforeunload = function(event) @{
-socket.close();
-@};
-@}
-else
-@{
-// Your browser doesn't support WebSockets
-document.write("<p>WebSocket NOT supported by your Browser!</p>");
-@}
+        window.onbeforeunload = function(event) @{
+            socket.close();
+        @};
+    @}
+    else
+    @{
+        // Your browser doesn't support WebSockets
+        document.write("<p>WebSocket NOT supported by your Browser!</p>");
+    @}
 @}
 @end example
 
@@ -2742,9 +2944,9 @@ pipe name. Here we specify the pipe name as @code{"robot-1"}.
 Now we setup the named-pipe, however, we still need to setup another WebAPI to let the client send message:
 @example
 (get "/welcome/:whom/:what" #:websocket 'send-only
-(lambda (rc)
-(:websocket rc 'send (params rc "whom") (params rc "what"))
-"ok"))
+     (lambda (rc)
+       (:websocket rc 'send (params rc "whom") (params rc "what"))
+       "ok"))
 @end example
 The configure @code{"#:websocket 'send-only"} means this API is only for sending, so that it's half-duplex.
 And another critical Websocket API here:
@@ -2756,8 +2958,9 @@ Each time you send data from the WebAPI, for example:
 @example
 curl localhost:3000/welcome/robot-1/nala
 @end example
-In our simple example of @uref{https://gitlab.com/NalaGinrut/artanis/blob/master/examples/websocket-named-pipe.html, Websocket named-pipe test}, and you should run
-The named-pipe will receive the message @code{"nala"}, and the page on the browser will print it instantly.
+In our simple example of @uref{https://gitlab.com/NalaGinrut/artanis/blob/master/examples/websocket-named-pipe.html, Websocket named-pipe test}, you should run
+The named-pipe will receive the message @code{"nala"},
+and the page on the browser will print @code{"hello welcome...nala"} instantly.
 
 @node Websocket APIs
 @section Websocket APIs
@@ -2908,11 +3111,16 @@ the receiving endpoint's WebSocket connection will fail.
 
 @end example
 
+@node Websocket authentication
+@section Websocket authentication
+
+The Websocket authentication hasn't been unsupported yet.
+
 @node Ragnarok server core
 @chapter Ragnarok server core
 
 @menu
-* Introduction: Introduction 1.
+* Introduction: Introduction 1. 
 * Principles::
 * Features::
 * Ragnarok APIs::
@@ -3132,7 +3340,7 @@ TODO
 It is strongly recommended to use Typescript to replace Javascript.
 And Typescript transpiler is licensed with Apache-2.0 which is compatible with GPL.
 Although Typescript was dismissed because of the size and little slower performance,
-the rubustness should be more important in development.
+the rubustness should be more important in the development.
 
 Here is an example for Hello World.
 
@@ -3174,58 +3382,58 @@ npm install --save-dev webpack webpack-cli typescript awesome-typescript-loader 
 Create and edit @strong{tsconfig.json} file under @strong{pub} directory:
 @example
 @{
-"compilerOptions": @{
-"outDir": "./pub/dist/",
-"sourceMap": true,
-"noImplicitAny": true,
-"module": "commonjs",
-"target": "es6",
-"jsx": "react"
-@},
-"include": [
-"./pub/js/ts/**/*"
-],
-"exclude": ["node_modules"]
+    "compilerOptions": @{
+        "outDir": "./pub/dist/",
+        "sourceMap": true,
+        "noImplicitAny": true,
+        "module": "commonjs",
+        "target": "es6",
+        "jsx": "react"
+    @},
+    "include": [
+        "./pub/js/ts/**/*"
+    ],
+    "exclude": ["node_modules"]
 @}
 @end example
 
 Create and edit @strong{webpack.config.js} file under @strong{pub} directory:
 @example
 module.exports = @{
-mode: 'production',
-watch: true,
-entry: "./js/ts/index.tsx",
-output: @{
-filename: "bundle.js",
-path: __dirname + "/dist"
-@},
+    mode: 'production',
+    watch: true,
+    entry: "./js/ts/index.tsx",
+    output: @{
+        filename: "bundle.js",
+        path: __dirname + "/dist"
+    @},
 
-// Enable sourcemaps for debugging webpack's output.
-devtool: "source-map",
+    // Enable sourcemaps for debugging webpack's output.
+    devtool: "source-map",
 
-resolve: @{
-// Add '.ts' and '.tsx' as resolvable extensions.
-extensions: [".ts", ".tsx", ".js", ".json"]
-@},
+    resolve: @{
+        // Add '.ts' and '.tsx' as resolvable extensions.
+        extensions: [".ts", ".tsx", ".js", ".json"]
+    @},
 
-module: @{
-rules: [
-// All files with a '.ts' or '.tsx' extension will be handled by 'awesome-typescript-loader'.
-@{ test: /\.tsx?$/, loader: "awesome-typescript-loader" @},
+    module: @{
+        rules: [
+            // All files with a '.ts' or '.tsx' extension will be handled by 'awesome-typescript-loader'.
+            @{ test: /\.tsx?$/, loader: "awesome-typescript-loader" @},
 
-// All output '.js' files will have any sourcemaps re-processed by 'source-map-loader'.
-@{ enforce: "pre", test: /\.js$/, loader: "source-map-loader" @}
-]
-@},
+            // All output '.js' files will have any sourcemaps re-processed by 'source-map-loader'.
+            @{ enforce: "pre", test: /\.js$/, loader: "source-map-loader" @}
+        ]
+    @},
 
-// When importing a module whose path matches one of the following, just
-// assume a corresponding global variable exists and use that instead.
-// This is important because it allows us to avoid bundling all of our
-// dependencies, which allows browsers to cache those libraries between builds.
-externals: @{
-"react": "React",
-"react-dom": "ReactDOM"
-@}
+    // When importing a module whose path matches one of the following, just
+    // assume a corresponding global variable exists and use that instead.
+    // This is important because it allows us to avoid bundling all of our
+    // dependencies, which allows browsers to cache those libraries between builds.
+    externals: @{
+        "react": "React",
+        "react-dom": "ReactDOM"
+    @}
 @};
 @end example
 
@@ -3233,20 +3441,20 @@ Create @strong{index.html} under @strong{pub} directory:
 @example
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="UTF-8" />
-<title>Hello React!</title>
-</head>
-<body>
-<div id="example"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hello React!</title>
+  </head>
+  <body>
+    <div id="example"></div>
 
-<!-- Dependencies -->
-<script src="./node_modules/react/umd/react.development.js"></script>
-<script src="./node_modules/react-dom/umd/react-dom.development.js"></script>
+    <!-- Dependencies -->
+    <script src="./node_modules/react/umd/react.development.js"></script>
+    <script src="./node_modules/react-dom/umd/react-dom.development.js"></script>
 
-<!-- Main -->
-<script src="./dist/bundle.js"></script>
-</body>
+    <!-- Main -->
+    <script src="./dist/bundle.js"></script>
+  </body>
 </html>
 @end example
 
@@ -3258,8 +3466,8 @@ import * as ReactDOM from "react-dom";
 import @{ Hello @} from "./components/Hello";
 
 ReactDOM.render(
-<Hello compiler="TypeScript" framework="React" />,
-document.getElementById("example")
+        <Hello compiler="TypeScript" framework="React" />,
+    document.getElementById("example")
 );
 @end example
 
@@ -3268,21 +3476,21 @@ Create @strong{js/ts/components/Hello.tsx} under @strong{pub} directory:
 import * as React from "react";
 
 export interface HelloProps @{
-compiler: string;
-framework: string;
+    compiler: string;
+    framework: string;
 @}
 
 export const Hello = (props: HelloProps) =>
-<h1>Hello from @{props.compiler@} and @{props.framework@}!</h1>;
+    <h1>Hello from @{props.compiler@} and @{props.framework@}!</h1>;
 @end example
 
 Webpack 4 has two modes: development and production. The bundle will be minimized on production mode only.
 Let’s add two npm scripts to our package.json to run Webpack:
 @example
 "scripts": @{
-"start": "webpack --mode development",
-"build": "webpack --mode production"
-@},
+    "start": "webpack --mode development",
+    "build": "webpack --mode production"
+  @},
 @end example
 
 Now, everything is ready, we run @strong{webpack} to compile Typescript code and pack necessary resources:
@@ -3297,7 +3505,7 @@ Then, under project folders, open a new terminal, and type:
 art work
 @end example
 
-OK, now open @strong{@uref{http://localhost:3000/pub/index.html}} to see you work.
+OK, now open @strong{@uref{http://localhost:3000/pub/index.html}} to see your work.
 
 It's just a Hello World. Feel free to modify it for your cases.
 
