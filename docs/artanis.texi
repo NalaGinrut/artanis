@@ -185,6 +185,7 @@ Authentication
 * Common Authentication::
 * Login Authentication::
 * Authenticate checking::
+* Customized Authentication::
 * Websocket Authentication::
 * HMAC::
 
@@ -2360,6 +2361,7 @@ curl --head localhost:3000/cookie/120
 * Common Authentication::
 * Login Authentication::
 * Authenticate checking::
+* Customized Authentication::
 * Websocket Authentication::
 * HMAC::
 @end menu
@@ -2499,7 +2501,7 @@ And specify whether "optional" means that can be skipped or set to #f to use the
 
 @strong{GNU Artanis requires a salted password, it's not optional.}
 
-So please prepare a field in a table for the salt string. It's your duty to generate a
+So please prepare a field in a table for the salt string. It's your responsibility to generate a
 salt string, please see @ref{Random String Generator}. When authenticating, please specify the
 salt field name in the salt-field argument.
 
@@ -2563,6 +2565,16 @@ This is useful to customize your protocol in JSON for RESTful API.
 
 @strong{NOTE:} Different from other @ref{Shortcuts, , shortcuts}, there's no @code{:with-auth} @strong{apply} for user customized operations
 inside the handler. If you use @code{#:with-auth}, then all related works are handled by GNU Artanis.
+
+@node Customized Authentication
+@section Customized Authentication
+
+@example
+;; (define (checker username passwd) ...)
+#:auth `(post ,username ,passwd ,checker)
+@end example
+This mode will parse and return @strong{username} and @strong{password} by the specified field name in query-string.
+What matters here is that you can write your own checker for customization.
 
 @node Websocket Authentication
 @section Websocket Authentication

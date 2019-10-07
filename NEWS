@@ -1,5 +1,5 @@
 Artanis NEWS --- history of user-visible changes.
-Copyright (C) 2015-2018
+Copyright (C) 2015-2019
 "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 See the end for copying conditions.
 
@@ -135,3 +135,30 @@ Changes in 0.3.2
 - Fixed bugs in upload module
   - Fix wrong HEADER in upload client
   - Fix file description leaking after the file was uploaded
+
+Changes in 0.4
+* Notable changes
+- New auto authentication shortcut #:with-auth
+- Fix bugs in upload module
+- Add OPTIONS method
+- Add new mode to #:auth to authenticate from POST automatically
+- Add drop mode to :session shortcut
+- Add --refresh to `work' command
+- Fix exception printing to prevent quit
+- If the rule didn't initialize the oht then it'll throw exception
+- Support mmap file I/O
+- Fix wrong methods parsing
+- Schedule when parsing big mfds
+- Fix wrong 404 status generation
+- Fix wrong route.cache generation
+- Fix to avoid crash when client was closed suddenly
+- Fix the crash bug when very beginning in main-loop a client was closed
+- Fix named-pipe missed msg when client was closed
+- Support inexclusive websocket named-pipe
+- Fix several bugs in websocket module
+- Update template render to support FreeJS announcement
+- Fix cookies removing
+- Fix hostname display
+- Fix to use basename of redirect path to avoid 500 error
+- Add dynamic sys page rendering
+- Fix ssql: SQL string literals should be surrounded by single-quote
