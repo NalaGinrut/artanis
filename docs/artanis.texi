@@ -1042,12 +1042,20 @@ If you want to deny certain methods for security consideration, you may need to 
 @section Redirecting
 
 @example
-(redirect-to rc path #:status 301
-             #:scheme 'http)
+(redirect-to rc path #:status 301 #:type '(text/html) #:headers '())
 ;; e.g
 (get "/aaa" (lambda (rc) (redirect-to rc "/bbb")))
 (get "/bbb" (lambda () "ok bbb"))
 @end example
+
+The @strong{path} could be 2 possible patterns:
+@itemize
+@item
+URI created by @uref{https://www.gnu.org/software/guile/manual/html_node/URIs.html, string->uri}. For example, @code{(redirect-to rc (string->uri "https://nalaginrut.com/feed/atom"))}.
+@item
+A relative path which will finally be converted to absolute URL append the @strong{host.addr}.
+For example, @code{(redirect-to rc "/login")}.
+@end itemize
 
 @strong{NOTE:} redirect-to will always use absolute URL implicitly. Although the standard supports relative URL,
 there maybe some problems when you're behind a proxy. So we use absolute URL to avoid these issues.
@@ -2516,14 +2524,16 @@ The first step is to authenticate, if it's successful, then spawn a new session 
 Here is a simple example:
 
 @example
-(post "/auth" #:auth '(table user "user" "passwd") #:session #t
-      (lambda (rc)
-        (cond
-         ((:session rc 'check) "auth ok (session)")
-         ((:auth rc)
-          (:session rc 'spawn)
-          "auth ok")
-         (else (redirect-to rc "/login?login_failed=true")))))
+(post "/auth"
+ #:auth '(table user "user" "passwd")
+ #:session #t
+ (lambda (rc)
+   (cond
+    ((:session rc 'check) "auth ok (session)")
+    ((:auth rc)
+     (:session rc 'spawn)
+     "auth ok")
+    (else (redirect-to rc "/login?login_failed=true")))))
 @end example
 
 @strong{NOTE: The passwd will be encrypted by the default algorithm.}
