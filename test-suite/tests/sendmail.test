@@ -1,0 +1,51 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  === Sendmail tests ===
+;;  Copyright (C) 2019
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License as published by
+;;  the Free Software Foundation, either version 3 of the License, or
+;;  (at your option) any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (test sendmail)
+  #:use-module (artanis artanis)
+  #:use-module (artanis sendmail)
+  #:use-module (artanis utils)
+  #:use-module (test-suite lib)
+  #:use-module (test-suite helper))
+
+;; export all things, since we need to test inner cookie
+(eval-when (eval load compile)
+  (export-all-from-module! '(artanis sendmail)))
+
+(define *simple-dump-test*
+  "From: from@test.com
+To: to@test.com
+Subject: test
+
+hello world
+")
+
+(with-test-prefix "Sendmail test"
+
+  (pass-if "Simple dump test"
+    (let ((sm ((make-simple-mail-sender "from@test.com" "to@test.com")
+               "hello world" #:subject "test")))
+      (string=? *simple-dump-test* (dump-as-normal-mail sm))))
+
+  (pass-if "Simple send command test"
+    (let* ((sm ((make-simple-mail-sender "from@test.com" "to@test.com")
+                "hello world" #:subject "test"))
+           (sender (sendmail-sender sm)))
+      (format #t "~a -i -t ~s" sender (dump-as-normal-mail sm))
+      ))
+
+  )

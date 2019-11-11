@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015
+;;  Copyright (C) 2013,2014,2015,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -22,64 +22,66 @@
   #:use-module (artanis config)
   #:use-module (artanis mime)
   #:use-module (artanis crypto base64)
-  #:use-module (srfi srfi-9)
-  #:use-module (srfi srfi-9 gnu)
-  #:use-module (ice-9 popen))
+  #:use-module ((rnrs) #:select (define-record-type))
+  #:use-module (ice-9 popen)
+  #:export (make-simple-mail-sender
+            send-the-mail))
 
-(module-export-all! (current-module))
+(define-record-type sendmail
+  (fields
+   sender
+   from
+   to
+   (mutable subject)
+   (mutable message)
+   (mutable headers)
+   (mutable attachements)))
 
-;; TODO: customize the printer in case too much info printed when debugging 
-(define-record-type <sendmail>
-  (%make-sendmail sender from to subject message headers attachements)
-  sendmail?
-  (sender sendmail-sender sendmail-sender!) ; sendmail compatible MTA
-  (from sendmail-from sendmail-from!)
-  (to sendmail-to sendmail-to!)
-  (subject sendmail-subject sendmail-subject!)
-  (message sendmail-message sendmail-message!)
-  (headers sendmail-headers sendmail-headers!)
-  (attachements sendmail-attachements sendmail-attachements!))
+(::define (print-sendmail-record sm)
+  (:anno: (sendmail) -> ANY)
+  (call-with-output-string
+    (lambda (port)
+      (display "\n#<sendmail\n" port)
+      (format port "   sender: ~a~%" (sendmail-sender sm))
+      (format port "   from: ~a~%" (sendmail-from sm))
+      (format port "   to: ~a~%" (sendmail-to sm))
+      (format port "   subject: ~a~%" (sendmail-subject sm))
+      (format port "   message: <the message>...~%")
+      (format port "   headers: ~a~%" (sendmail-headers sm))
+      (format port "   attachements: <the data>...~%")
+      (display " >\n" port))))
 
-(set-record-type-printer! <sendmail>
-  (lambda (sm port)
-    (display "\n#<sendmail\n" port)
-    (format port "   sender: ~a~%" (sendmail-sender sm))
-    (format port "   from: ~a~%" (sendmail-from sm))
-    (format port "   to: ~a~%" (sendmail-to sm))
-    (format port "   subject: ~a~%" (sendmail-subject sm))
-    (format port "   message: <the message>...~%")
-    (format port "   headers: ~a~%" (sendmail-headers sm))
-    (format port "   attachements: <the data>...~%")
-    (display " >\n" port)))
-
-(define-syntax-rule (add-header sm new-header)
+(define-syntax-rule (add-header! sm new-header)
   (let ((header (sendmail-header sm)))
-    (sendmail-header! sm (cons new-header header))))
+    (sendmail-header-set! sm (cons new-header header))))
 
-(define-syntax-rule (add-attachment sm file-with-path)
-  (if (not (file-exists? file-with-path)) 
-      (throw 'artanis-err 500 "can't find attachment file" file-with-path)
+(define-syntax-rule (add-attachment! sm file-with-path)
+  (if (not (file-exists? file-with-path))
+      (throw 'artanis-err 500 add-attachment!
+             "Can't find attachment file `~a'" file-with-path)
       (let* ((file (basename file-with-path))
              (bv (bv-cat file #f))
              (al (sendmail-attachements sm)))
-        (sendmail-attachements! sm (cons (cons file bv) al)))))
+        (sendmail-attachements-set! sm (cons (cons file bv) al)))))
 
 ;; ENHANCE: do we need a customizable transfer encoding?
 (define (dump-all-attachments port boundry sm)
   (define bdr (string-append "--" boundry "\n"))
   (define bdr-end (string-append "--" boundry "--\n"))
-  (for-each (lambda (att)
-              (let* ((filename (car att))
-                     (mime (guess-mime filename))
-                     (content (cdr att)))
-                (display bdr port)
-                (display (string-append "Content-Type: application; name=\""
-                                        filename "\"\n") port)
-                (display "Content-Transfer-Encoding: base64\n" port)
-                (display (string-append "Content-Disposition: attachmet; filename=\""
-                                        filename "\"\n") port)
-                (display (base64-encode content) port)(newline port)))
-            (sendmail-attachements sm))
+  (for-each
+   (lambda (att)
+     (let* ((filename (car att))
+            (mime (guess-mime filename))
+            (content (cdr att)))
+       (display bdr port)
+       (display (string-append "Content-Type: application; name=\""
+                               filename "\"\n") port)
+       (display "Content-Transfer-Encoding: base64\n" port)
+       (display (string-append "Content-Disposition: attachmet; filename=\""
+                               filename "\"\n") port)
+       (display (base64-encode content) port)
+       (newline port)))
+   (sendmail-attachements sm))
   (display bdr-end port))
 
 ;; TODO: don't dump the header which exists in customed headers list
@@ -95,53 +97,58 @@
   (define boundry (generate-boundary))
   (define bdr (string-append "--" boundry "\n"))
   (call-with-output-string
-   (lambda (port)
-     (format port "From: ~a~%To: ~a~%Subject: ~a~%"
-             (sendmail-from sm) (sendmail-to sm) (sendmail-subject sm))
-     (display "MIME-Version: 1.0\n" port)
-     (dump-headers port sm)
-     (display (string-append "Content-Type: multipart/mixed; boundary=\""
-                             boundry "\"\n\n") port)
-     (display bdr port)
-     (display "Content-Type: text/html\n" port)
-     (display "Content-Disposition: inline\n" port)
-     (display (sendmail-message sm) port)(newline port)
-     (dump-all-attachments port boundry sm))))
+    (lambda (port)
+      (format port "From: ~a~%To: ~a~%Subject: ~a~%"
+              (sendmail-from sm) (sendmail-to sm) (sendmail-subject sm))
+      (display "MIME-Version: 1.0\n" port)
+      (dump-headers port sm)
+      (display (string-append "Content-Type: multipart/mixed; boundary=\""
+                              boundry "\"\n\n") port)
+      (display bdr port)
+      (display "Content-Type: text/html\n" port)
+      (display "Content-Disposition: inline\n" port)
+      (display (sendmail-message sm) port)
+      (newline port)
+      (dump-all-attachments port boundry sm))))
 
 (define (dump-as-normal-mail sm)
   (call-with-output-string
-   (lambda (port)
-     (format port
-             "From: ~a~%To: ~a~%Subject: ~a~%~%~a~%"
-             (sendmail-from sm) (sendmail-to sm) (sendmail-subject sm)
-             (sendmail-message sm)))))
+    (lambda (port)
+      (format port
+              "From: ~a~%To: ~a~%Subject: ~a~%~%~a~%"
+              (sendmail-from sm) (sendmail-to sm) (sendmail-subject sm)
+              (sendmail-message sm)))))
 
 (define (%send-the-mail sm t)
   (let* ((sender (sendmail-sender sm))
          (port (open-pipe* OPEN_WRITE sender "-i" "-t")))
     (display t port)
     (unless (zero? (status:exit-val (close-pipe port)))
-      (throw 'artanis-err 500 "mail command failed" sm))))
+      (throw 'artanis-err 500 %send-the-mail
+             "Sendmail command failed: `~a'" sm))))
 
 (define-syntax-rule (no-attachments? sm)
   (null? (sendmail-attachements sm)))
 
 (define (send-the-mail sm)
-  (and (not (sendmail? sm)) (throw 'artanis-err 500 "invalid <sendmail> object" sm))
-  (let ((t (if (no-attachments? sm) 
+  (when (not (sendmail? sm))
+    (throw 'artanis-err 500 send-the-mail
+           "Invalid sendmail object `~a'" sm))
+  (let ((t (if (no-attachments? sm)
                (dump-as-normal-mail sm)
                (dump-as-attachments-mail sm))))
     (%send-the-mail sm t)))
 
 ;; TODO: maybe delay to send calling sender
 (define* (make-simple-mail-sender from to #:key (sender (get-conf '(mail sender))))
-  (let ((sm (%make-sendmail sender from to "no subject" #f '() '())))
+  (let ((sm (make-sendmail sender from to "no subject" #f '() '())))
     (lambda* (message #:key (attachements #f) (header #f) (subject #f))
-      (if (string? message) 
-          (sendmail-message! sm message)
-          (throw 'artanis-err 500 "invalid message format, must be string!" message)) 
-      (and attachements (sendmail-attachements! sm attachements))
-      (and subject (sendmail-subject! sm subject))
-      (and header (sendmail-headers! sm header))
+      (if (string? message)
+          (sendmail-message-set! sm message)
+          (throw 'artanis-err 500 make-simple-mail-sender
+                 "Invalid message format `~a', must be string!"
+                 message))
+      (and attachements (sendmail-attachements-set! sm attachements))
+      (and subject (sendmail-subject-set! sm subject))
+      (and header (sendmail-headers-set! sm header))
       sm)))
-      ;;(send-the-mail sm))))

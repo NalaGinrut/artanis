@@ -333,7 +333,9 @@ upload.path = <PATH>")
 upload.size = <interger>")
 
     ;; for mail namespace
-    ;; ((mail sender) "/usr/sbin/sendmail")
+    ((mail sender) "/usr/bin/msmtp"
+     "The command called by Sendmail module. It's strongly recommended to use `msmtp' to replace `sendmail'.
+mail.sender = <string>")
 
     ((cache maxage)
      3600
