@@ -27,6 +27,7 @@
   #:use-module (artanis mvc controller)
   #:use-module (artanis mvc model)
   #:use-module (artanis mvc view)
+  #:use-module (artanis webapi restful)
   #:use-module (ice-9 getopt-long)
   #:use-module (ice-9 regex)
   #:use-module (ice-9 format)
@@ -79,7 +80,7 @@
   (load-app-models)
   (load-app-controllers)
   (load-app-views)
-  ;;(load-app-apis)
+  (load-app-restful-api)
   )
 
 (define (register-rules)

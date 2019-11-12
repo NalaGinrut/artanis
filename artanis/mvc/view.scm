@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2017,2018
+;;  Copyright (C) 2015,2017,2018,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -53,7 +53,7 @@
   (when (file-exists? filename)
     (handle-existing-file filename #t))
   (format (artanis-current-output) "create ~10t ~a~%" m)
-  (let ((file (if (draw:is-dry-run?) *null-device* filename)))
+  (let ((file (if (cmd:is-dry-run?) *null-device* filename)))
     (call-with-output-file file
       (lambda (port)
         (display (generate-view-header vname mname) port)

@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2016
+;;  Copyright (C) 2015,2016,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -42,7 +42,7 @@
     (quiet (single-char #\q) (value #f))))
 
 (define help-str
-"
+  "
 Usage:
   art draw <component> NAME [options]
 
@@ -76,7 +76,7 @@ Example:
   (format (artanis-current-output) "working ~10t ~a `~a'~%"
           (string-capitalize component) name)
   (cond
-   ((draw:is-dry-run?)
+   ((cmd:is-dry-run?)
     (cond
      (mode (maker cname methods)) ; should be handled in actual maker
      (else
@@ -178,8 +178,8 @@ Example:
      ((not (verify-ENTRY entry))
       (error "You're not in a valid Artanis app directory! Or ENTRY is invalid!"))
      (else
-      (when (and (not (draw:is-dry-run?)) (not (file-exists? mpath)))
-            (mkdir mpath))
+      (when (and (not (cmd:is-dry-run?)) (not (file-exists? mpath)))
+        (mkdir mpath))
       (display lpath) (newline)
       (draw:create do-lib-create name lpath '())))))
 
@@ -208,7 +208,7 @@ Example:
         (cdr option-spec)))
 
 (define (display-it x)
-  (format #t "~a\n" x))
+  (format #t "~a~%" x))
 
 (define (component-handlers-str)
   (fold (lambda (value acc) (string-append acc " " (car value)))
@@ -225,10 +225,10 @@ Example:
      ((->opt 'component)
       (display-it (component-handlers-str)))
      (else
-      (parameterize ((draw:is-dry-run? (->opt 'dry))
-                     (draw:is-force? (->opt 'force))
-                     (draw:is-skip? (->opt 'skip))
-                     (draw:is-quiet? (->opt 'quiet)))
+      (parameterize ((cmd:is-dry-run? (->opt 'dry))
+                     (cmd:is-force? (->opt 'force))
+                     (cmd:is-skip? (->opt 'skip))
+                     (cmd:is-quiet? (->opt 'quiet)))
         (apply do-draw (->opt '())))))))
 
 (define main draw)

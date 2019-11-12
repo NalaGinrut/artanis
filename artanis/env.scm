@@ -41,10 +41,10 @@
             %current-toplevel
             current-toplevel
             find-ENTRY-path
-            draw:is-dry-run?
-            draw:is-force?
-            draw:is-skip?
-            draw:is-quiet?
+            cmd:is-dry-run?
+            cmd:is-force?
+            cmd:is-skip?
+            cmd:is-quiet?
             artanis-current-output
             *controllers-table*
             current-dbconn
@@ -131,16 +131,16 @@
       (find-ENTRY-path identity #t)))
 
 ;; parameters for command
-(define draw:is-dry-run? (make-parameter #f))
-(define draw:is-force? (make-parameter #f))
-(define draw:is-skip? (make-parameter #f))
-(define draw:is-quiet? (make-parameter #f))
+(define cmd:is-dry-run? (make-parameter #f))
+(define cmd:is-force? (make-parameter #f))
+(define cmd:is-skip? (make-parameter #f))
+(define cmd:is-quiet? (make-parameter #f))
 
 (define *null-device-output-port*
   (open-input-file *null-device*))
 
 (define (artanis-current-output)
-  (if (draw:is-quiet?)
+  (if (cmd:is-quiet?)
       *null-device-output-port*
       (current-output-port)))
 
