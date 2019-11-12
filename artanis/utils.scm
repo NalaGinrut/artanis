@@ -857,7 +857,6 @@
     (string-concatenate (list "data:" (->mime) (->crypto) (->charset) "," b64))))
 
 (define (verify-ENTRY entry)
-  (format #t "entry: ~a~%" entry)
   (cond
    ((not (file-exists? entry))
     (format (artanis-current-output) "ENTRY file is missing!~%")
@@ -880,14 +879,20 @@
   (let ((i (string-contains str ".")))
     (substring str 0 i)))
 
-(define (scan-app-components component)
-  (let ((toplevel (current-toplevel)))
-    (map (lambda (f) (string->symbol (remove-ext f)))
-         (scandir (format #f "~a/app/~a/" toplevel component)
-                  (lambda (f)
-                    (not (or (string=? f ".")
-                             (string=? f "..")
-                             (string=? f ".gitkeep"))))))))
+(define* (scan-app-components component #:optional (sym? #t))
+  (define-syntax-rule (-> x)
+    (if sym? (string->symbol x) x))
+  (let* ((toplevel (current-toplevel))
+         (cpath (format #f "~a/app/~a/" toplevel component)))
+    (cond
+     ((file-exists? cpath)
+      (map (lambda (f) (-> (remove-ext f)))
+           (scandir cpath
+                    (lambda (f)
+                      (not (or (string=? f ".")
+                               (string=? f "..")
+                               (string=? f ".gitkeep")))))))
+     (else '()))))
 
 (define (cache-this-route! url meta)
   (define (write-header port)
@@ -965,16 +970,16 @@
          (component (basename (dirname pp)))
          (name (car (string-split (basename pp) #\.))))
     (cond
-     ((draw:is-force?)
+     ((cmd:is-force?)
       (if (file-is-directory? path)
           (delete-directory path)
           (delete-file path)))
-     ((draw:is-skip?)
+     ((cmd:is-skip?)
       (format (artanis-current-output) "skip ~10t app/~a/~a~%" component name))
      (else
       (format (artanis-current-output)
               "~a `~a' exists! (Use --force/-f to overwrite or --skip/-s to ignore)~%"
-              (string-capitalize component) name)
+              (string-upcase component) name)
       (exit 1)))))
 
 ;; Check if all methods are valid
