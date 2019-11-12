@@ -53,20 +53,8 @@ Guile-2.2+
 * Compile and install
 See the manual below
 
-* Get docker image [Experimental]
-
-```bash
-docker run -p 3000:8080 -it bopjiang/artanis
-
-art create test
-cd test
-art work
-
-curl 127.0.0.1:8080
-
-==> no index.html but it works!
-
-```
+* Get docker image
+[Install GNU Artanis with Docker](https://nalaginrut.com/archives/2019/09/18/install%20gnu%20artanis%20with%20docker)
 
 ## Manual:
 http://gnu.org/software/artanis/manual
