@@ -60,7 +60,8 @@ Options:
   -c, [--create]   # Create WebAPI
 
 Example:
-  art api -v v3
+  art api -c
+  art api -c -v v3
 ")
 
 (define (show-help)
