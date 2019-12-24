@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2016
+;;  Copyright (C) 2015,2016,2019
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -35,7 +35,7 @@
   (format #t "~2tVERSION=version~%")
   (format #t "~2t--debug~%"))
 
-(define *operators* '(up down))
+(define *operators* '(up down create))
 
 (define (print-operators)
   (display "\nOperators:\n")
@@ -70,9 +70,9 @@
   (define *mfile-re*
     (string->irregex (format #f "^~a_(\\d{14})\\.scm$" name)))
   (define (compare-mfile x y)
-  (let ((mx (irregex-match-substring (irregex-search *mfile-re* x) 1))
-        (my (irregex-match-substring (irregex-search *mfile-re* y) 1)))
-    (>= (string->number mx) (string->number my))))
+    (let ((mx (irregex-match-substring (irregex-search *mfile-re* x) 1))
+          (my (irregex-match-substring (irregex-search *mfile-re* y) 1)))
+      (>= (string->number mx) (string->number my))))
   (define (is-mfile s) (irregex-search *mfile-re* s))
   (define path (format #f "~a/db/migration" (current-toplevel)))
   (define (gen-migrate-file)
@@ -128,7 +128,7 @@
     (("migrate" (? valid-operator? op) name . opts)
      (add-to-load-path (current-toplevel))
      (parameterize ((current-conf-file (gen-local-conf-file)))
-                   (init-config)) ; needs to load config
+       (init-config)) ; needs to load config
      ((@@ (artanis config) init-inner-database-item))
      (init-DB) ; needs to use DB
      (%migrate (string->symbol op) (string->symbol name) (opts-parser opts)))
@@ -136,4 +136,3 @@
 
 (define %summary "DB migration tools.")
 (define main do-migrate)
-
