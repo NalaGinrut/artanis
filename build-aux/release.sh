@@ -14,5 +14,5 @@ make announce
 
 echo -e "\n======================================"
 echo "Now run 'make upload'"
-echo "Then 'git push origial all --tags'"
+echo "Then 'git push all master --tags'"
 echo -e "======================================\n"
