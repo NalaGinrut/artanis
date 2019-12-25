@@ -162,3 +162,10 @@ Changes in 0.4
 - Fix to use basename of redirect path to avoid 500 error
 - Add dynamic sys page rendering
 - Fix ssql: SQL string literals should be surrounded by single-quote
+
+Changes in 0.4.1
+* Notable changes
+- Add RESTful API generator
+- Polish sendmail module
+- Refactor command module for better reusing
+- Add missing 'art migrate create'
