@@ -36,6 +36,7 @@
 * Query String::
 * Layouts and Rendering in GNU Artanis::
 * Databases::
+* RESTful API::
 * MIME::
 * Upload files::
 * Sessions::
@@ -97,6 +98,7 @@ The Art command line
 
 * art create::
 * art draw::
+* art api::
 * art migrate::
 * art work::
 
@@ -842,6 +844,7 @@ GNU Artanis provides the @strong{art} command line tool to save users' time.
 @menu
 * art create::
 * art draw::
+* art api::
 * art migrate::
 * art work::
 @end menu
@@ -883,6 +886,32 @@ Example:
 @end example
 
 Please see @ref{MVC} to learn more about how to use these components.
+
+@node art api
+@section art api
+
+This command is used to generate RESTful API skeleton.
+@example
+Usage:
+  art api [options]
+
+Options:
+  -h, [--help]     # Print this screen
+  -d, [--dry]      # Dry run but do not make any changes
+  -f, [--force]    # Overwrite files that already exist
+  -s, [--skip]     # Skip files that already exist
+                   # If -s and -f are both provided, -f will be enabled
+  -q, [--quiet]    # Suppress status output
+  -l, [--list]     # List all defined APIs
+  -m, [--mode]     # Specify the WebAPI mode, the default is "restful"
+  -v, [--ver]      # Specify the WebAPI version, omit it to auto detect
+  -c, [--create]   # Create WebAPI
+
+Example:
+  art api -c  
+  art api -c -v v3
+@end example
+Please see @ref{RESTful API} for more details.
 
 @node art migrate
 @section art migrate
@@ -1675,7 +1704,12 @@ application folder, just put it before running the server.
 @node DB connection pool
 @section DB connection pool
 
-TODO
+GNU Artanis will create a connection pool when you run @code{art work}.
+Its size is decided by @code{db.poolsize}.
+The pool is increasing by default for development and test.
+It is strongly recommended you to set @code{db.pool} to @code{fixed} when you deploy.
+The increasing pool will cause the effects that is similar to the memory leak. If you set it to fixed, then the request handler will be
+safely scheduled when there's no available DB connection, and it will be awake when it's available.
 
 @node Migration
 @section Migration
@@ -1810,7 +1844,7 @@ SQL Mapping (1,3,6)
 @node SSQL
 @section SSQL
 
-The concept of SSQL is very easy. Write SQL in @uref{https://en.wikipedia.org/wiki/S-expression, s-expression}.
+The concept of SSQL is to write SQL in @uref{https://en.wikipedia.org/wiki/S-expression, s-expression}.
 
 Usage:
 @example
@@ -2085,6 +2119,45 @@ For example:
 
 To be continued @dots{}
 
+@node RESTful API
+@chapter RESTful API
+
+GNU Artanis provides a command @code{art api} to generate RESTful API skeleton, and the API version can be managed.
+
+@example
+art api -c
+
+creating   restful API v1
+create     app/api/v1.scm
+@end example
+
+The generated file @strong{app/api/v1.scm} will contain such a line:
+@example
+(define-restful-api v1) ; DO NOT REMOVE THIS LINE!!!
+@end example
+
+@strong{v1} is the default version, if you may specify your prefered API version, for example, @strong{v3}:
+@example
+art api -c -v v3
+@end example
+@code{-c} means to create.
+
+You should use @code{api-define} to define the RESTful API:
+@example
+(api-define rule handler)
+@end example
+
+@code{api-define} is an overloaded method of the controller define function. So you may use it like what you do with the controller in MVC. Here's a pseudo example:
+@example
+(define (auth-err)
+  (scm->json `((status ,status) (reason "Auth error!"))))
+
+(api-define article/list
+  (options #:mime 'json #:with-auth auth-err)
+  (lambda (rc) ...)) 
+@end example
+Although the registered URL is @code{"article/list"}, the actual API would be @code{"v1/article/list"}, depends on the specified API version.
+
 @node MIME
 @chapter MIME
 
@@ -2109,26 +2182,25 @@ You can use the #:mime method to handle JSON:
 @example
 (get "/json" #:mime 'json
      (lambda (rc)
-       (let ((j (json (object ("name" "nala") ("age" 15)))))
+       (let ((j (scm->json-string '(("name" . "nala") ("age" . 15)))))
          (:mime rc j))))
 @end example
 
 For example:
 @example
 (define my-json
-  (json (object ("name" "nala") ("age" 15)
-                ("read_list"
-                 (object
-                  ("book1" "The interpreter and structure of Artanis")
-                  ("book2" "The art of Artanis programming"))))))
-(scm->json my-json) ; scm->json will print a json object
+  '((name . nala) (age . 15)
+    (read_list
+     ("book1" "The interpreter and structure of Artanis")
+     ("book2" "The art of Artanis programming"))))
+(scm->json-string my-json) ; scm->json will print a json string
 ;; ==> @{"name" : "nala",
 ;;      "age" : 15,
 ;;      "read_list" : @{"book2" : "The art of Artanis programming",
 ;;                     "book1" : "The interpreter and structure of Artanis"@}@}
 @end example
 
-@code{scm->json} will print the result directly.
+@code{scm->json} will return a hash-table to represent a JSON object.
 
 If you need to format JSON as a string to return to the client, please use @code{scm->json-string}.
 
@@ -2446,7 +2518,7 @@ Let's see a simple example:
 (define (my-checker rc user passwd)
   (and (string=? user "jack") (string=? passwd "123")))
 
-(post "/bauth" #:auth `(basic ,checker)
+(post "/bauth" #:auth `(basic ,my-checker)
       (lambda (rc)
         (if (:auth rc)
             "auth ok"
