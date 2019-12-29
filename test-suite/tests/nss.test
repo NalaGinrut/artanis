@@ -1,0 +1,58 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  === NSS tests ===
+;;  Copyright (C) 2019
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License as published by
+;;  the Free Software Foundation, either version 3 of the License, or
+;;  (at your option) any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (test nss)
+  #:use-module (artanis utils)
+  #:use-module (test-suite lib))
+
+;; export all things, since we need to test inner cookie
+(eval-when (eval load compile)
+  (export-all-from-module! '(artanis security nss)))
+
+(with-test-prefix "NSS test"
+
+  #;
+  (pass-if "sha-224"                    ; ;
+  (string=? "ea09ae9cc6768c50fcee903ed054556e5bfc8347907f12598aa24193 ; ;
+  "                                     ; ;
+  (nss:sha-224 "hello")))
+
+  (pass-if "sha-256"
+    (string=? "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+              (nss:sha-256 "hello")))
+
+  (pass-if "sha-384"
+    (string=? "59e1748777448c69de6b800d7a33bbfb9ff1b463e44354c3553bcdb9c666fa90125a3c79f90397bdf5f6a13de828684f"
+              (nss:sha-384 "hello")))
+
+  (pass-if "sha-512"
+    (string=? "9b71d224bd62f3785d96d46ad3ea3d73319bfbc2890caadae2dff72519673ca72323c3d99ba5c11d7c7acc6e14b8c5da0c4663475c2e5c3adef46f73bcdec043"
+              (nss:sha-512 "hello")))
+
+  (pass-if "md5"
+    (string=? "5d41402abc4b2a76b9719d911017c592"
+              (nss:md5 "hello")))
+
+  (pass-if "sha-1"
+    (string=? "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d"
+              (nss:sha-1 "hello")))
+
+  (pass-if "base64"
+    (string=? "hello"
+              (nss:base64-decode (nss:base64-encode "hello"))))
+
+  )

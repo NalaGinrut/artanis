@@ -25,51 +25,51 @@
   #:autoload   (system base compile) (compile)
   #:export (
 
- ;; Exceptions which are commonly being tested for.
- exception:syntax-pattern-unmatched
- exception:bad-variable
- exception:missing-expression
- exception:out-of-range exception:unbound-var
- exception:used-before-defined
- exception:wrong-num-args exception:wrong-type-arg
- exception:numerical-overflow
- exception:struct-set!-denied
- exception:system-error
- exception:encoding-error
- exception:miscellaneous-error
- exception:string-contains-nul
- exception:read-error
- exception:null-pointer-error
- exception:vm-error
+            ;; Exceptions which are commonly being tested for.
+            exception:syntax-pattern-unmatched
+            exception:bad-variable
+            exception:missing-expression
+            exception:out-of-range exception:unbound-var
+            exception:used-before-defined
+            exception:wrong-num-args exception:wrong-type-arg
+            exception:numerical-overflow
+            exception:struct-set!-denied
+            exception:system-error
+            exception:encoding-error
+            exception:miscellaneous-error
+            exception:string-contains-nul
+            exception:read-error
+            exception:null-pointer-error
+            exception:vm-error
 
- ;; Reporting passes and failures.
- run-test
- pass-if expect-fail
- pass-if-equal
- pass-if-exception expect-fail-exception
+            ;; Reporting passes and failures.
+            run-test
+            pass-if expect-fail
+            pass-if-equal
+            pass-if-exception expect-fail-exception
 
- ;; Naming groups of tests in a regular fashion.
- with-test-prefix
- with-test-prefix*
- with-test-prefix/c&e
- current-test-prefix
- format-test-name
+            ;; Naming groups of tests in a regular fashion.
+            with-test-prefix
+            with-test-prefix*
+            with-test-prefix/c&e
+            current-test-prefix
+            format-test-name
 
- ;; Using the debugging evaluator.
- with-debugging-evaluator with-debugging-evaluator*
+            ;; Using the debugging evaluator.
+            with-debugging-evaluator with-debugging-evaluator*
 
- ;; Clearing stale references on the C stack for GC-sensitive tests.
- clear-stale-stack-references
+            ;; Clearing stale references on the C stack for GC-sensitive tests.
+            clear-stale-stack-references
 
- ;; Using a given locale
- with-locale with-locale* with-latin1-locale with-latin1-locale*
+            ;; Using a given locale
+            with-locale with-locale* with-latin1-locale with-latin1-locale*
 
- ;; Reporting results in various ways.
- register-reporter unregister-reporter reporter-registered?
- make-count-reporter print-counts
- make-log-reporter
- full-reporter
- user-reporter))
+            ;; Reporting results in various ways.
+            register-reporter unregister-reporter reporter-registered?
+            make-count-reporter print-counts
+            make-log-reporter
+            full-reporter
+            user-reporter))
 
 
 ;;;; If you're using Emacs's Scheme mode:
@@ -318,35 +318,36 @@
 ;;; The idea is taken from Greg, the GNUstep regression test environment.
 (define run-test
   (let ((test-running #f))
+    ((@ (artanis security nss) nss:no-db-init))
     (lambda (name expect-pass thunk)
       (if test-running
           (error "Nested calls to run-test are not permitted."))
       (let ((test-name (full-name name)))
-            (set! test-running #t)
-            (catch #t
-              (lambda ()
-                (let ((result (thunk)))
-                  (if (eq? result #t) (throw 'pass))
-                  (if (eq? result #f) (throw 'fail))
-                  (throw 'unresolved)))
-              (lambda (key . args)
-                (case key
-                  ((pass)
-                   (report (if expect-pass 'pass 'upass) test-name))
-                  ((fail)
-                   ;; ARGS may contain extra info about the failure,
-                   ;; such as the expected and actual value.
-                   (apply report (if expect-pass 'fail 'xfail)
-                          test-name
-                          args))
-                  ((unresolved untested unsupported)
-                   (report key test-name))
-                  ((quit)
-                   (report 'unresolved test-name)
-                   (quit))
-                  (else
-                   (report 'error test-name (cons key args))))))
-            (set! test-running #f)))))
+        (set! test-running #t)
+        (catch #t
+          (lambda ()
+            (let ((result (thunk)))
+              (if (eq? result #t) (throw 'pass))
+              (if (eq? result #f) (throw 'fail))
+              (throw 'unresolved)))
+          (lambda (key . args)
+            (case key
+              ((pass)
+               (report (if expect-pass 'pass 'upass) test-name))
+              ((fail)
+               ;; ARGS may contain extra info about the failure,
+               ;; such as the expected and actual value.
+               (apply report (if expect-pass 'fail 'xfail)
+                      test-name
+                      args))
+              ((unresolved untested unsupported)
+               (report key test-name))
+              ((quit)
+               (report 'unresolved test-name)
+               (quit))
+              (else
+               (report 'error test-name (cons key args))))))
+        (set! test-running #f)))))
 
 ;;; A short form for tests that are expected to pass, taken from Greg.
 (define-syntax pass-if
@@ -385,31 +386,31 @@
 ;;; A helper function to implement the macros that test for exceptions.
 (define (run-test-exception name exception expect-pass thunk)
   (run-test name expect-pass
-    (lambda ()
-      (stack-catch (car exception)
-	(lambda () (thunk) #f)
-	(lambda (key proc message . rest)
-	  (cond
-           ;; handle explicit key
-           ((string-match (cdr exception) message)
-            #t)
-           ;; handle `(error ...)' which uses `misc-error' for key and doesn't
-           ;; yet format the message and args (we have to do it here).
-           ((and (eq? 'misc-error (car exception))
-                 (list? rest)
-                 (string-match (cdr exception)
-                               (apply simple-format #f message (car rest))))
-            #t)
-           ;; handle syntax errors which use `syntax-error' for key and don't
-           ;; yet format the message and args (we have to do it here).
-           ((and (eq? 'syntax-error (car exception))
-                 (list? rest)
-                 (string-match (cdr exception)
-                               (apply simple-format #f message (car rest))))
-            #t)
-           ;; unhandled; throw again
-           (else
-            (apply throw key proc message rest))))))))
+            (lambda ()
+              (stack-catch (car exception)
+                           (lambda () (thunk) #f)
+                           (lambda (key proc message . rest)
+                             (cond
+                              ;; handle explicit key
+                              ((string-match (cdr exception) message)
+                               #t)
+                              ;; handle `(error ...)' which uses `misc-error' for key and doesn't
+                              ;; yet format the message and args (we have to do it here).
+                              ((and (eq? 'misc-error (car exception))
+                                    (list? rest)
+                                    (string-match (cdr exception)
+                                                  (apply simple-format #f message (car rest))))
+                               #t)
+                              ;; handle syntax errors which use `syntax-error' for key and don't
+                              ;; yet format the message and args (we have to do it here).
+                              ((and (eq? 'syntax-error (car exception))
+                                    (list? rest)
+                                    (string-match (cdr exception)
+                                                  (apply simple-format #f message (car rest))))
+                               #t)
+                              ;; unhandled; throw again
+                              (else
+                               (apply throw key proc message rest))))))))
 
 ;;; A short form for tests that expect a certain exception to be thrown.
 (define-syntax pass-if-exception
@@ -433,14 +434,14 @@
   ;; valid Unicode character.
   (with-fluids ((%default-port-encoding "UTF-8"))
     (call-with-output-string
-     (lambda (port)
-       (let loop ((name name)
-                  (separator ""))
-         (if (pair? name)
-             (begin
-               (display separator port)
-               (display (car name) port)
-               (loop (cdr name) " <== "))))))))
+      (lambda (port)
+        (let loop ((name name)
+                   (separator ""))
+          (if (pair? name)
+              (begin
+                (display separator port)
+                (display (car name) port)
+                (loop (cdr name) " <== "))))))))
 
 ;;;; For a given test-name, deliver the full name including all prefixes.
 (define (full-name name)
@@ -456,7 +457,7 @@
 ;;; call to with-test-prefix*.  Return the value returned by THUNK.
 (define (with-test-prefix* prefix thunk)
   (with-fluids ((prefix-fluid
-		 (append (fluid-ref prefix-fluid) (list prefix))))
+                 (append (fluid-ref prefix-fluid) (list prefix))))
     (thunk)))
 
 ;;; (with-test-prefix PREFIX BODY ...)
@@ -474,14 +475,14 @@
     "Run the given tests both with the evaluator and the compiler/VM."
     ((_ (pass-if test-name exp))
      (begin (pass-if (string-append test-name " (eval)")
-                     (primitive-eval 'exp))
+              (primitive-eval 'exp))
             (pass-if (string-append test-name " (compile)")
-                     (compile 'exp #:to 'value #:env (current-module)))))
+              (compile 'exp #:to 'value #:env (current-module)))))
     ((_ (pass-if-equal test-name val exp))
      (begin (pass-if-equal (string-append test-name " (eval)") val
-              (primitive-eval 'exp))
+                           (primitive-eval 'exp))
             (pass-if-equal (string-append test-name " (compile)") val
-              (compile 'exp #:to 'value #:env (current-module)))))
+                           (compile 'exp #:to 'value #:env (current-module)))))
     ((_ (pass-if-exception test-name exc exp))
      (begin (pass-if-exception (string-append test-name " (eval)")
                                exc (primitive-eval 'exp))
@@ -501,11 +502,11 @@
 (define (with-debugging-evaluator* thunk)
   (let ((dopts #f))
     (dynamic-wind
-	(lambda ()
-	  (set! dopts (debug-options)))
-	thunk
-	(lambda ()
-	  (debug-options dopts)))))
+      (lambda ()
+        (set! dopts (debug-options)))
+      thunk
+      (lambda ()
+        (debug-options dopts)))))
 
 ;;; Evaluate BODY... using the debugging evaluator.
 (define-macro (with-debugging-evaluator . body)
@@ -526,18 +527,18 @@
 (define (with-locale* nloc thunk)
   (let ((loc #f))
     (dynamic-wind
-	(lambda ()
-          (if (defined? 'setlocale)
-              (begin
-                (set! loc (false-if-exception (setlocale LC_ALL)))
-                (if (or (not loc)
-                        (not (false-if-exception (setlocale LC_ALL nloc))))
-                    (throw 'unresolved)))
-              (throw 'unresolved)))
-	thunk
-	(lambda ()
-          (if (and (defined? 'setlocale) loc)
-              (setlocale LC_ALL loc))))))
+      (lambda ()
+        (if (defined? 'setlocale)
+            (begin
+              (set! loc (false-if-exception (setlocale LC_ALL)))
+              (if (or (not loc)
+                      (not (false-if-exception (setlocale LC_ALL nloc))))
+                  (throw 'unresolved)))
+            (throw 'unresolved)))
+      thunk
+      (lambda ()
+        (if (and (defined? 'setlocale) loc)
+            (setlocale LC_ALL loc))))))
 
 ;;; Evaluate BODY... using the given locale.
 (define-syntax with-locale
@@ -604,7 +605,7 @@
 (define (report . args)
   (if (pair? reporters)
       (for-each (lambda (reporter) (apply reporter args))
-		reporters)
+                reporters)
       (apply default-reporter args)))
 
 
@@ -632,19 +633,19 @@
 ;;; Display a single test result in formatted form to the given port
 (define (print-result port result name . args)
   (let* ((tag (assq result result-tags))
-	 (label (if tag (cadr tag) #f)))
+         (label (if tag (cadr tag) #f)))
     (if label
-	(begin
-	  (display label port)
-	  (display ": " port)
-	  (display (format-test-name name) port)
-	  (if (pair? args)
-	      (begin
-		(display " - arguments: " port)
-		(write args port)))
-	  (newline port))
-	(error "(test-suite lib) FULL-REPORTER: unrecognized result: "
-	       result))))
+        (begin
+          (display label port)
+          (display ": " port)
+          (display (format-test-name name) port)
+          (if (pair? args)
+              (begin
+                (display " - arguments: " port)
+                (write args port)))
+          (newline port))
+        (error "(test-suite lib) FULL-REPORTER: unrecognized result: "
+               result))))
 
 ;;; Return a list of the form (COUNTER RESULTS), where:
 ;;; - COUNTER is a reporter procedure, and
@@ -656,10 +657,10 @@
     (list
      (lambda (result name . args)
        (let ((pair (assq result counts)))
-	 (if pair
-	     (set-cdr! pair (+ 1 (cdr pair)))
-	     (error "count-reporter: unexpected test result: "
-		    (cons result (cons name args))))))
+         (if pair
+             (set-cdr! pair (+ 1 (cdr pair)))
+             (error "count-reporter: unexpected test result: "
+                    (cons result (cons name args))))))
      (lambda ()
        (append counts '())))))
 
@@ -667,18 +668,18 @@
 ;;; returned by a count reporter's RESULTS procedure.
 (define (print-counts results . port?)
   (let ((port (if (pair? port?)
-		  (car port?)
-		  (current-output-port))))
+                  (car port?)
+                  (current-output-port))))
     (newline port)
     (display-line-port port "Totals for this test run:")
     (for-each
      (lambda (tag)
        (let ((result (assq (car tag) results)))
-	 (if result
-	     (display-line-port port (caddr tag) (cdr result))
-	     (display-line-port port
-				"Test suite bug: "
-				"no total available for `" (car tag) "'"))))
+         (if result
+             (display-line-port port (caddr tag) (cdr result))
+             (display-line-port port
+                                "Test suite bug: "
+                                "no total available for `" (car tag) "'"))))
      result-tags)
     (newline port)))
 
@@ -686,7 +687,7 @@
 ;;; FILE, in human-readable form.  FILE may be a filename, or a port.
 (define (make-log-reporter file)
   (let ((port (if (output-port? file) file
-		  (open-output-file file))))
+                  (open-output-file file))))
     (lambda args
       (apply print-result port args)
       (force-output port))))

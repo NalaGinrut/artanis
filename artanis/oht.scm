@@ -27,7 +27,6 @@
   #:use-module (artanis env)
   #:use-module (artanis ssql)
   #:use-module (artanis fprm)
-  #:use-module (artanis crypto base64)
   #:use-module (artanis sql-mapping)
   #:use-module (artanis db)
   #:use-module (artanis cookie)
@@ -518,7 +517,7 @@
        (match (get-header rc 'authorization)
          ;; NOTE: In match `=' opetator, the order of evaluation is from left to right.
          ;;       So base64-decode will run first.
-         (`(basic . ,(= base64-decode-as-string (= (cut string-split <> #\:) up)))
+         (`(basic . ,(= nss:base64-decode (= (cut string-split <> #\:) up)))
           (let ((u (car up)) (p (cadr up)))
             (if checker
                 (checker rc u p)

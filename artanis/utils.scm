@@ -18,10 +18,7 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis utils)
-  #:use-module (artanis crypto md5)
-  #:use-module (artanis crypto sha-1)
-  #:use-module (artanis crypto sha-2)
-  #:use-module (artanis crypto base64)
+  #:use-module (artanis security nss)
   #:use-module (artanis tpl sxml)
   #:use-module (artanis config)
   #:use-module (artanis irregex)
@@ -94,7 +91,7 @@
             is-guile-compatible-server-core? positive-integer? negative-integer?
             io-exception:peer-is-shutdown? io-exception:out-of-memory?
             out-of-system-resources? allow-long-live-connection?
-            define-c-function ffi-binding free-JS-announcement)
+            free-JS-announcement)
   #:re-export (the-environment
                utf8->string
                bytevector?
@@ -120,7 +117,10 @@
                request-headers
                request-method
                request-content-length
-               request-port))
+               request-port
+
+               nss:base64-encode
+               nss:base64-decode))
 
 (define parse-date (@@ (web http) parse-date))
 (define write-date (@@ (web http) write-date))
@@ -379,64 +379,22 @@
      (else (lp ret (1+ i))))))
 
 (define (string->md5 str/bv)
-  (let ((in (cond
-             ((string? str/bv)
-              ((@ (rnrs) string->utf8) str/bv))
-             (((@ (rnrs) bytevector?) str/bv)
-              str/bv)
-             (else (throw 'artanis-err 500 string->sha-1
-                          "need string or bytevector!" str/bv)))))
-    (md5->string (md5 in))))
+  (nss:hash-it nss:md5 str/bv))
 
 (define (string->sha-1 str/bv)
-  (let ((in (cond
-             ((string? str/bv)
-              ((@ (rnrs) string->utf8) str/bv))
-             (((@ (rnrs) bytevector?) str/bv)
-              str/bv)
-             (else (throw 'artanis-err 500 string->sha-1
-                          "need string or bytevector!" str/bv)))))
-    (sha-1->string (sha-1 in))))
+  (nss:hash-it nss:sha-1 str/bv))
 
 (define (string->sha-224 str/bv)
-  (let ((in (cond
-             ((string? str/bv)
-              ((@ (rnrs) string->utf8) str/bv))
-             (((@ (rnrs) bytevector?) str/bv)
-              str/bv)
-             (else (throw 'artanis-err 500 string->sha-224
-                          "need string or bytevector!" str/bv)))))
-    (sha-224->string (sha-224 in))))
+  (nss:hash-it nss:sha-224 str/bv))
 
 (define (string->sha-256 str/bv)
-  (let ((in (cond
-             ((string? str/bv)
-              ((@ (rnrs) string->utf8) str/bv))
-             (((@ (rnrs) bytevector?) str/bv)
-              str/bv)
-             (else (throw 'artanis-err 500 string->sha-256
-                          "need string or bytevector!" str/bv)))))
-    (sha-256->string (sha-256 in))))
+  (nss:hash-it nss:sha-256 str/bv))
 
 (define (string->sha-384 str/bv)
-  (let ((in (cond
-             ((string? str/bv)
-              ((@ (rnrs) string->utf8) str/bv))
-             (((@ (rnrs) bytevector?) str/bv)
-              str/bv)
-             (else (throw 'artanis-err 500 string->sha-384
-                          "need string or bytevector!" str/bv)))))
-    (sha-384->string (sha-384 in))))
+  (nss:hash-it nss:sha-384 str/bv))
 
 (define (string->sha-512 str/bv)
-  (let ((in (cond
-             ((string? str/bv)
-              ((@ (rnrs) string->utf8) str/bv))
-             (((@ (rnrs) bytevector?) str/bv)
-              str/bv)
-             (else (throw 'artanis-err 500 string->sha-512
-                          "need string or bytevector!" str/bv)))))
-    (sha-512->string (sha-512 in))))
+  (nss:hash-it nss:sha-512 str/bv))
 
 (define-syntax list-slice
   (syntax-rules (:)
@@ -853,7 +811,7 @@
       (else (throw 'artanis-err 500 generate-data-url
                    "Invalid MIME! Should be symbol or string"
                    mime))))
-  (let ((b64 (base64-encode bv/str)))
+  (let ((b64 (nss:base64-encode bv/str)))
     (string-concatenate (list "data:" (->mime) (->crypto) (->charset) "," b64))))
 
 (define (verify-ENTRY entry)
@@ -1583,40 +1541,6 @@
 
 (define (allow-long-live-connection?)
   (> (get-conf '(server timeout)) 0))
-
-(define %%clib (make-parameter (dynamic-link)))
-
-(define-syntax define-c-function
-  (lambda (x)
-    (syntax-case x ()
-      ((_ type name)
-       #`(module-define!
-          (current-module)
-          '#,(datum->syntax #'name (symbol-append '% (syntax->datum #'name)))
-          (pointer->procedure type
-                              (dynamic-func (symbol->string 'name) (%%clib))
-                              '()
-                              #:return-errno? #t)))
-      ((_ type name (para ...))
-       #`(module-define!
-          (current-module)
-          '#,(datum->syntax #'name (symbol-append '% (syntax->datum #'name)))
-          (pointer->procedure type
-                              (dynamic-func (symbol->string 'name) (%%clib))
-                              (list para ...)
-                              #:return-errno? #t))))))
-
-(define-syntax ffi-binding
-  (syntax-rules ()
-    ((_ () body ...)
-     (begin
-       body ...
-       #t))
-    ((_ libname body ...)
-     (parameterize ((%%clib (dynamic-link libname)))
-       body ...
-       #t))))
-
 
 ;; Story: When I released GNU Artanis-0.2.1, RMS had asked me if I can
 ;;        support LibreJS for freeing Javascript code in the generated code.
