@@ -21,7 +21,6 @@
   #:use-module (artanis utils)
   #:use-module (artanis config)
   #:use-module (artanis mime)
-  #:use-module (artanis crypto base64)
   #:use-module ((rnrs) #:select (define-record-type))
   #:use-module (ice-9 popen)
   #:export (make-simple-mail-sender
@@ -79,7 +78,7 @@
        (display "Content-Transfer-Encoding: base64\n" port)
        (display (string-append "Content-Disposition: attachmet; filename=\""
                                filename "\"\n") port)
-       (display (base64-encode content) port)
+       (display (nss:base64-encode content) port)
        (newline port)))
    (sendmail-attachements sm))
   (display bdr-end port))

@@ -21,7 +21,6 @@
   #:use-module (artanis utils)
   #:use-module (artanis env)
   #:use-module (artanis config)
-  #:use-module (artanis crypto base64)
   #:use-module (artanis server server-context)
   #:use-module (artanis server scheduler)
   #:use-module (artanis irregex)
@@ -60,12 +59,12 @@
 (define (this-rule-enabled-websocket! rule protocol)
   (DEBUG "this-rule-enabled-websocket! ~a~%" rule)
   (set! *rules-with-websocket*
-        (cons (cons (string->irregex rule) protocol) *rules-with-websocket*)))
+    (cons (cons (string->irregex rule) protocol) *rules-with-websocket*)))
 
 (define (this-rule-enabled-inexclusive-websocket! rule protocol)
   (DEBUG "this-rule-enabled-inexclusive-websocket! ~a~%" rule)
   (set! *rules-with-inexclusive-websocket*
-        (cons (cons (string->irregex rule) protocol) *rules-with-inexclusive-websocket*)))
+    (cons (cons (string->irregex rule) protocol) *rules-with-inexclusive-websocket*)))
 
 (define (get-websocket-protocol rule)
   (define (check pp)
@@ -78,7 +77,7 @@
   (let* ((realkey (string-append key *ws-magic*))
          (keyhash (string->sha-1 realkey))
          (keybv (list->u8vector (string->byteslist keyhash 2 16))))
-    (base64-encode keybv)))
+    (nss:base64-encode keybv)))
 
 (define (validate-websocket-request req client)
   (define (not-proper-websocket-version? version)
