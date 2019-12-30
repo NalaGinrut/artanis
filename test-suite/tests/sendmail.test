@@ -45,7 +45,7 @@ hello world
     (let* ((sm ((make-simple-mail-sender "from@test.com" "to@test.com")
                 "hello world" #:subject "test"))
            (sender (sendmail-sender sm)))
-      (format #t "~a -i -t ~s" sender (dump-as-normal-mail sm))
+      (format #t "~a -i -t ~s~%" sender (dump-as-normal-mail sm))
       ))
 
   )
