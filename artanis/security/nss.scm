@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2019
+;;  Copyright (C) 2019,2020
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -174,6 +174,8 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
 (define (nss:hash algo algo-len str)
   (let ((out (bytevector->pointer (make-bytevector algo-len 0)))
         (in (string->pointer str)))
+    ;; It's safe to call NSS init multiple times, it'll init only once
+    (nss:no-db-init)
     (pk11-haskbuf algo out in (string-utf8-length str) algo-len)))
 
 (define (nss:sha-512 str)
