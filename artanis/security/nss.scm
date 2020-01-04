@@ -174,8 +174,9 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
 (define (nss:hash algo algo-len str)
   (let ((out (bytevector->pointer (make-bytevector algo-len 0)))
         (in (string->pointer str)))
-    ;; It's safe to call NSS init multiple times, it'll init only once
-    (nss:no-db-init)
+    (when (not (nss:is-initialized?))
+      ;; Although it's safe to call NSS init multiple times, it's faster to check first
+      (nss:no-db-init))
     (pk11-haskbuf algo out in (string-utf8-length str) algo-len)))
 
 (define (nss:sha-512 str)
