@@ -110,9 +110,9 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
 
 (define (nss:hash-it algo str/bv)
   (let ((in (cond
-             ((string? str/bv) str/bv)
+             ((string? str/bv) (string->pointer str/bv))
              (((@ (rnrs) bytevector?) str/bv)
-              (utf8->string str/bv))
+              (bytevector->pointer str/bv))
              (else (throw 'artanis-err 500 nss:hash-it
                           "need string or bytevector!" str/bv)))))
     (algo in)))
@@ -171,29 +171,38 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
   (gen-common-api (%PK11_HashBuf algo out in len))
   (format #f "~{~2,'0x~}" (bytevector->u8-list (pointer->bytevector out algo-len))))
 
-(define (nss:hash algo algo-len str)
+(define (nss:hash algo algo-len str/bv)
   (let ((out (bytevector->pointer (make-bytevector algo-len 0)))
-        (in (string->pointer str)))
+        (in (cond
+             ((string? str/bv) (string->pointer str/bv))
+             ((bytevector? str/bv) (bytevector->pointer str/bv))
+             (else (throw 'artanis-err 500 nss:hash
+                          "Invalid input type `~a'" str/bv))))
+        (len (cond
+              ((string? str/bv) (string-utf8-length str/bv))
+              ((bytevector? str/bv) (bytevector-length str/bv))
+              (else (throw 'artanis-err 500 nss:hash
+                           "Invalid input type `~a'" str/bv)))))
     (when (not (nss:is-initialized?))
       ;; Although it's safe to call NSS init multiple times, it's faster to check first
       (nss:no-db-init))
-    (pk11-haskbuf algo out in (string-utf8-length str) algo-len)))
+    (pk11-haskbuf algo out in len algo-len)))
 
-(define (nss:sha-512 str)
-  (nss:hash SEC_OID_SHA512 SHA512_DIGEST_LENGTH str))
+(define (nss:sha-512 str/bv)
+  (nss:hash SEC_OID_SHA512 SHA512_DIGEST_LENGTH str/bv))
 
-(define (nss:sha-384 str)
-  (nss:hash SEC_OID_SHA384 SHA384_DIGEST_LENGTH str))
+(define (nss:sha-384 str/bv)
+  (nss:hash SEC_OID_SHA384 SHA384_DIGEST_LENGTH str/bv))
 
-(define (nss:sha-256 str)
-  (nss:hash SEC_OID_SHA256 SHA256_DIGEST_LENGTH str))
+(define (nss:sha-256 str/bv)
+  (nss:hash SEC_OID_SHA256 SHA256_DIGEST_LENGTH str/bv))
 
 #;
 (define (nss:sha-224 str)
 (nss:hash SEC_OID_HMAC_SHA224 SHA224_DIGEST_LENGTH str))
 
-(define (nss:sha-1 str)
-  (nss:hash SEC_OID_SHA1 SHA1_DIGEST_LENGTH str))
+(define (nss:sha-1 str/bv)
+  (nss:hash SEC_OID_SHA1 SHA1_DIGEST_LENGTH str/bv))
 
-(define (nss:md5 str)
-  (nss:hash SEC_OID_MD5 MD5_DIGEST_LENGTH str))
+(define (nss:md5 str/bv)
+  (nss:hash SEC_OID_MD5 MD5_DIGEST_LENGTH str/bv))
