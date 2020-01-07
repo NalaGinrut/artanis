@@ -114,17 +114,21 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
              (((@ (rnrs) bytevector?) str/bv)
               (bytevector->pointer str/bv))
              (else (throw 'artanis-err 500 nss:hash-it
-                          "need string or bytevector!" str/bv)))))
-    (algo in)))
+                          "need string or bytevector!" str/bv))))
+        (len (cond
+              ((string? str/bv) (string-utf8-length str/bv))
+              ((bytevector? str/bv) (bytevector-length str/bv))
+              (else (throw 'artanis-err 500 nss:hash-it
+                           "Invalid input type `~a'" str/bv)))))
+    (algo in len)))
 
 (define *SECItem* (list int uint64 unsigned-int))
 (define* (make-sec-item #:optional (type 0) (data 0) (len 0))
   (make-c-struct *SECItem* (list type data len)))
 
-(define (base64-decode b64-str)
-  (let* ((ibuf (string->pointer b64-str))
-         (len (string-utf8-length b64-str))
-         (ret (%NSSBase64_DecodeBuffer %null-pointer %null-pointer ibuf len)))
+(define (base64-decode ibuf len)
+  (let* ((ret (%NSSBase64_DecodeBuffer %null-pointer %null-pointer
+                                       ibuf len)))
     (cond
      ((eq? ret %null-pointer)
       (throw 'artanis-err 500 nss:base64-decode
@@ -133,10 +137,9 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
       (let ((item (parse-c-struct ret *SECItem*)))
         (pointer->string (make-pointer (cadr item)) (caddr item)))))))
 
-(define (base64-encode str)
-  (let* ((ibuf (pointer-address (string->pointer str)))
-         (len (string-utf8-length str))
-         (item (make-sec-item 0 ibuf len))
+(define (base64-encode ibuf len)
+  (let* ((addr (pointer-address ibuf))
+         (item (make-sec-item 0 addr len))
          (ret (%NSSBase64_EncodeItem %null-pointer %null-pointer
                                      0 item)))
     (cond
