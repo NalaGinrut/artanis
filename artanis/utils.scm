@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019,2020
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -50,14 +50,13 @@
                           get-string-all bitwise-ior))
   #:export (regexp-split
             hash-keys cat bv-cat get-global-time sanitize-response
-            get-local-time string->md5 unsafe-random parse-date write-date
+            get-local-time unsafe-random parse-date write-date
             get-file-ext get-global-date get-local-date
             string-substitute nfx static-filename remote-info seconds-now local-time-stamp
             make-expires export-all-from-module!
             alist->hashtable expires->time-utc local-eval-string
             time-expired? valid-method? mmap munmap get-random-from-dev
-            string->byteslist string->sha-1 string->sha-224 string->sha-256 string->sha-384
-            string->sha-512 list-slice bv-slice uni-basename detect-type-name
+            string->byteslist list-slice bv-slice uni-basename detect-type-name
             checkout-the-path make-string-template guess-mime prepare-headers
             new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
             stack-top stack-empty? queue-out! queue-in! queue-head queue-tail
@@ -119,6 +118,12 @@
                request-content-length
                request-port
 
+               (nss:md5 . string->md5)
+               (nss:sha-1 . string->sha-1)
+               (nss:sha-224 . string->sha-224)
+               (nss:sha-256 . string->sha-256)
+               (nss:sha-384 . string->sha-384)
+               (nss:sha-512 . string->sha-512)
                nss:base64-encode
                nss:base64-decode))
 
@@ -377,24 +382,6 @@
      ((zero? (modulo i step))
       (lp (cons (string->number (substring/shared str i (+ i step)) base) ret) (1+ i)))
      (else (lp ret (1+ i))))))
-
-(define (string->md5 str/bv)
-  (nss:hash-it nss:md5 str/bv))
-
-(define (string->sha-1 str/bv)
-  (nss:hash-it nss:sha-1 str/bv))
-
-(define (string->sha-224 str/bv)
-  (nss:hash-it nss:sha-224 str/bv))
-
-(define (string->sha-256 str/bv)
-  (nss:hash-it nss:sha-256 str/bv))
-
-(define (string->sha-384 str/bv)
-  (nss:hash-it nss:sha-384 str/bv))
-
-(define (string->sha-512 str/bv)
-  (nss:hash-it nss:sha-512 str/bv))
 
 (define-syntax list-slice
   (syntax-rules (:)
