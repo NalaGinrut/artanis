@@ -216,7 +216,7 @@
 (define-record-type task
   (fields
    client ; connecting client: <port, opt>
-   (mutable touch-time) ; refresh when the connection is handled each time
+   (mutable touch-time) ; refresh when the connectikon is handled each time
    (mutable timeout) ; timeout of task
    (mutable keepalive?) ; if keep it alive
    (mutable kont) ; delimited continuation
@@ -326,6 +326,8 @@
 ;;       work smoothly.
 (define (the-null-task)
   (make-task
+   #f
+   #f
    "The null task client"
    #f
    (lambda () (DEBUG "A NULL-Task was called. The work table seems empty~%"))
