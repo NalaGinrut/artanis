@@ -58,7 +58,22 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
     (define-c-function '* NSSBase64_DecodeBuffer ('* '* '* unsigned-int))
     (define-c-function '* NSSBase64_EncodeItem ('* '* unsigned-int '*))
     (define-c-function int PK11_HashBuf (int '* '* uint32))
-    ))
+    )
+
+  (ffi-binding "libssl3"
+    (define-c-function int SSL_OptionSet ('* uint32 int))
+    (define-c-function int SSL_ImportFD ('* int))
+    )
+
+  (ffi-binding "libnspr4"
+    (define-c-function void PR_Init (int int int))
+    (define-c-function int PR_ImportTCPSocket (int))
+    (define-c-function int PR_Write (int '* size_t))
+    (define-c-function int PR_Read (int '* size_t))
+    (define-c-function int PR_Close (int))
+    (define-c-function int PR_Cleanup)
+    )
+  )
 
 (define (no-check x) #f)
 (define (<0 x) (< x 0))
@@ -209,3 +224,26 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
 
 (define (nss:md5 str/bv)
   (nss:hash SEC_OID_MD5 MD5_DIGEST_LENGTH str/bv))
+
+(define PR_USER_THREAD 0)
+(define PR_PRIORITY_NORMAL 1)
+(define (nss:pr-init)
+  (%PR_Init PR_USER_THREAD PR_PRIORITY_NORMAL 1)
+  )
+
+(define (nss:ssl-option-set)
+  (%SSL_OptionSet sslSocket SSL_HANDSHAKE_AS_CLIENT PR_TRUE)
+  )
+
+(define (pr-import-tcp-socket sock)
+  (%PR_ImportTCPSocket sock))
+
+(define (ssl-import-fd null sock) #t)
+
+(define (pr-write sock buffer size) #t)
+
+(define (pr-read sock buffer size) #t)
+
+(define (pr-close) #t)
+
+(define (pr-cleanup) #t)
