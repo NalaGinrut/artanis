@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019,2020
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -34,6 +34,7 @@
   #:use-module (artanis third-party csv)
   #:use-module (artanis third-party json)
   #:use-module (artanis server)
+  #:use-module (artanis cache)
   #:use-module (artanis websocket)
   #:use-module (artanis lpc)
   #:use-module (artanis version)
@@ -169,6 +170,11 @@
                mfd-simple-dump-all
                store-uploaded-files
                upload-files-to
+
+               ;; cache
+               try-to-get-page-from-cache
+               cache-this-page
+               clear-content-cache
 
                ;; websocket
                named-pipe-subscribe

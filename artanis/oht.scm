@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2016,2017,2018,2019
+;;  Copyright (C) 2014,2015,2016,2017,2018,2019,2020
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -91,7 +91,8 @@
     (http-options-add! method rule)
     (hash-set! *handlers-table*
                (cons method path-regexp)
-               (make-handler-context handler keys (new-oht opts #:rule rule #:keys keys)))))
+               (make-handler-context handler keys (generate-rule-uid raw-rule)
+                                     (new-oht opts #:rule rule #:keys keys)))))
 
 (define (get rule . opts-and-handler) (define-handler 'GET rule opts-and-handler))
 (define (post rule . opts-and-handler) (define-handler 'POST rule opts-and-handler))
@@ -171,31 +172,32 @@
 
 ;; for #:cache
 (define (cache-maker pattern rule keys)
-  (define (non-cache rc body) body)
   (define-syntax-rule (try-public rc) (if (auth-enabled? rc) 'private 'public))
-  (match pattern
-    ;; disable cache explicitly, sometimes users want to make sure there's no any cache.
-    (#f non-cache)
-    (('static maxage0 ...)
-     (lambda* (rc #:key (dir #f) (maxage (->maxage maxage0)))
-       (let ((filename (if dir
-                           (format #f "~a/~a" dir (rc-path rc))
-                           (static-filename (rc-path rc)))))
-         (try-to-cache-static-file rc (static-filename (rc-path rc))
-                                   (try-public rc) maxage))))
-    (((? string? file) maxage0 ...)
-     (lambda* (rc #:key (maxage (->maxage maxage0)))
-       (try-to-cache-static-file rc file (try-public rc) maxage)))
-    (('public (? string? file) maxage0 ...)
-     (lambda* (rc #:key (maxage (->maxage maxage0)))
-       (try-to-cache-static-file rc file (try-public rc) maxage)))
-    (('private (? string? file) maxage0 ...)
-     (lambda* (rc #:key (maxage (->maxage maxage0)))
-       (try-to-cache-static-file rc file 'private maxage)))
-    ((or (? boolean? opts) (? list? opts))
-     (lambda (rc body) (try-to-cache-body rc body opts)))
-    (else (throw 'artanis-err 500 cache-maker
-                 "Invalid pattern!" pattern))))
+  (register-cache-handler!
+   (generate-rule-uid rule)
+   (match pattern
+     (('static maxage ...)
+      (lambda* (rc body #:key pre-headers status mtime request-status)
+        (let ((filename (static-filename (rc-path rc))))
+          (try-to-cache-static-file rc (static-filename (rc-path rc))
+                                    (try-public rc) (->maxage maxage)))))
+     (((? string? file) maxage ...)
+      (lambda* (rc body #:key pre-headers status mtime request-status)
+        (try-to-cache-static-file rc file (try-public rc) (->maxage maxage))))
+     (('public (? string? file) maxage ...)
+      (lambda* (rc body #:key pre-headers status mtime request-status)
+        (try-to-cache-static-file rc file (try-public rc) (->maxage maxage))))
+     (('private (? string? file) maxage ...)
+      (lambda* (rc body #:key pre-headers status mtime request-status)
+        (try-to-cache-static-file rc file 'private (->maxage maxage))))
+     ((or (? boolean? opts) (? list? opts))
+      (lambda* (rc body #:key (pre-headers '()) status mtime request-status)
+        (try-to-cache-body rc body #:cache-opts opts #:headers pre-headers)))
+     (else (throw 'artanis-err 500 cache-maker
+                  "Invalid pattern!" pattern))))
+  (lambda (rc . args)
+    (format (artanis-current-output)
+            "You don't have to call :cache explicitly!")))
 
 ;; for #:cookies
 ;; NOTE: Support cookies customization, which let users define special cookies.

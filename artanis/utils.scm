@@ -90,7 +90,7 @@
             is-guile-compatible-server-core? positive-integer? negative-integer?
             io-exception:peer-is-shutdown? io-exception:out-of-memory?
             out-of-system-resources? allow-long-live-connection?
-            free-JS-announcement)
+            free-JS-announcement generate-rule-uid gen-cache-file)
   #:re-export (the-environment
                utf8->string
                bytevector?
@@ -1576,3 +1576,17 @@
         */
     </script>
 ")
+
+;; FIXME: MD5 may not be the best choice
+(define-syntax-rule (generate-rule-uid rule)
+  (string->md5 rule))
+
+(define (gen-cache-file path)
+  (define-syntax-rule (-> str)
+    (string-trim-both
+     (irregex-replace/all "[/]+" str "_")
+     (lambda (x) (memv x '(#\sp #\_)))))
+  (let ((p (-> path)))
+    (if (string-null? p)
+        (format #f "~a/tmp/cache/index.html" (current-toplevel))
+        (format #f "~a/tmp/cache/~a.html" (current-toplevel) (-> path)))))

@@ -130,35 +130,47 @@
      ((string? body) (string->bytevector body (get-conf '(server charset))))
      ((not body) #vu8())
      (else body))) ; just let it be checked by http-write
+  (define* (return-response body #:key (pre-headers (prepare-headers '()))
+                            (status 200)
+                            (mtime (generate-modify-time (current-time)))
+                            (request-status 'ok))
+    (run-before-response-hooks rc body)
+    (let* ((reformed-body (->bytevector body))
+           (headers `((server . ,(get-conf '(server info)))
+                      (host . ,(current-myhost #:for-header? #t))
+                      (last-modified . ,mtime)
+                      ,(gen-content-length reformed-body)
+                      ,@pre-headers
+                      ,@(generate-cookies (rc-set-cookie rc))))
+           (response (build-response #:code status #:headers headers)))
+      (let ((type (assq-ref pre-headers 'content-type)))
+        (and type (artanis-log 'client status (car type) #:request (rc-req rc))))
+      ;; NOTE: For inner-server, sanitize-response will handle 'HEAD method
+      ;;       though rc-method is 'GET when request-method is 'HEAD,
+      ;;       sanitize-response only checks method from request.
+      (if (is-guile-compatible-server-core? (get-conf '(server engine)))
+          (values response reformed-body)
+          (values response reformed-body
+                  ;; NOTE: return the status while handling the request.
+                  request-status))))
   (call-with-values
       (lambda ()
-        (if (thunk? handler)
-            (handler)
-            (handler rc)))
-    (lambda* (body #:key (pre-headers (prepare-headers '()))
-                   (status 200)
-                   (mtime (generate-modify-time (current-time)))
-                   (request-status 'ok))
-      (run-before-response-hooks rc body)
-      (let* ((reformed-body (->bytevector body))
-             (response
-              (build-response #:code status
-                              #:headers `((server . ,(get-conf '(server info)))
-                                          (host . ,(current-myhost #:for-header? #t))
-                                          (last-modified . ,mtime)
-                                          ,(gen-content-length reformed-body)
-                                          ,@pre-headers
-                                          ,@(generate-cookies (rc-set-cookie rc))))))
-        (let ((type (assq-ref pre-headers 'content-type)))
-          (and type (artanis-log 'client status (car type) #:request (rc-req rc))))
-        ;; NOTE: For inner-server, sanitize-response will handle 'HEAD method
-        ;;       though rc-method is 'GET when request-method is 'HEAD,
-        ;;       sanitize-response only checks method from request.
-        (if (is-guile-compatible-server-core? (get-conf '(server engine)))
-            (values response reformed-body)
-            (values response reformed-body
-                    ;; NOTE: return the status while handling the request.
-                    request-status))))))
+        (cond
+         ((has-cache-handler? (get-rule-uid rc))
+          => (lambda (cache)
+               (call-with-values
+                   (lambda ()
+                     (if (thunk? handler)
+                         (handler)
+                         (handler rc)))
+                 (lambda* (body #:key pre-headers status mtime request-status)
+                   (cache rc body #:pre-headers pre-headers #:status status
+                          #:mtime mtime #:request-status request-status)))))
+         (else
+          (if (thunk? handler)
+              (handler)
+              (handler rc)))))
+    return-response))
 
 (define (generate-http-options req)
   (define (http-options->methods digest)

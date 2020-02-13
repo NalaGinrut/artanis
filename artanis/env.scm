@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2016,2017,2018,2019
+;;  Copyright (C) 2014,2015,2016,2017,2018,2019,2020
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -71,7 +71,9 @@
             is-mmapped-file?
             register-mmapped-file!
             http-status
-            get-syspage-handler))
+            get-syspage-handler
+            register-cache-handler!
+            has-cache-handler?))
 
 ;; WARNING:
 ;; For concurrency in green-thread, all these stuffs should be immutable
@@ -245,3 +247,8 @@
   (hashv-set! *sys-page-handlers* status thunk))
 (define (get-syspage-handler status)
   (hashv-ref *sys-page-handlers* status #f))
+
+(define *cache-handlers-table* (make-hash-table))
+(define (register-cache-handler! rule handler)
+  (hash-set! *cache-handlers-table* rule handler))
+(define (has-cache-handler? uid) (hash-ref *cache-handlers-table* uid))

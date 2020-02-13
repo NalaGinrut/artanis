@@ -28,6 +28,7 @@
             handler-context?
             handler-context-handler
             handler-context-keys
+            handler-context-uid
             handler-context-oht
             get-handler-context
 
@@ -59,13 +60,17 @@
             get-from-qstr
             get-referer
             rc-oht-ref
-            params))
+            params
+            get-rule-uid))
 
 (define-record-type handler-context
-  (make-handler-context handler keys oht)
+  (make-handler-context handler keys uid oht)
   handler-context?
   (handler handler-context-handler)
   (keys handler-context-keys)
+  ;; NOTE: We record an uid of each raw-rule so that we don't have to match the rule
+  ;;       redundantly.
+  (uid handler-context-uid)
   (oht handler-context-oht))
 
 (define (get-handler-context handler-key)
@@ -201,3 +206,10 @@
   ((current-encoder)
    (or (assoc-ref (rc-bt rc) key)
        (get-from-qstr rc key))))
+
+(define (get-rule-uid rc)
+  (let ((hc (get-handler-context (rc-rhk rc))))
+    (when (not hc)
+      (throw 'artanis-err 500 get-rule-uid
+             "BUG: If handler-context is missing, then there shouldn't be a rc!"))
+    (handler-context-uid hc)))
