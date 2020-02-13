@@ -41,3 +41,27 @@ This would be helpful to avoid EADDRNOTAVAIL that occurs too much.
 * Implement real non-blocking for sending regular file on Linux
 
 * Implement OPTIONS return content by page-options
+- Half finished
+- Implement route
+
+* Enhance Cache module
+- Only options, don't let users call :cache explicitly
+- Add hook before response (maybe rc-cache field?)
+- Combine headers of emit and cache
+
+#|
+no-db-init
+PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 1)
+SSL_OptionSet(sslSocket, SSL_HANDSHAKE_AS_CLIENT, PR_TRUE)
+s = connect()
+tcp_sock = PR_ImportTCPSocket (s)
+ssl_sock = SSL_ImportFD(NULL, tcpSocket)
+PR_Write(sslSocket, buffer, n)
+PR_Read(sslSocket, buffer, sizeof(buffer) - 1)
+PR_Close(sslSocket)
+SSL_ClearSessionCache();
+NSS_Shutdown();
+PR_Cleanup();
+
+;; TODO: call NSS_Shutdown when artanis quit
+|#

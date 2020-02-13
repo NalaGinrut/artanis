@@ -4,7 +4,7 @@ ENV         LANG C.UTF-8
 RUN     echo "deb http://mirrors.ustc.edu.cn/debian buster main contrib non-free" > /etc/apt/sources.list \
         && echo "deb-src http://mirrors.ustc.edu.cn/debian buster main contrib non-free" >> /etc/apt/sources.list
 RUN     apt-get update \
-        && apt-get install -y --no-install-recommends guile-2.2 guile-2.2-dev libmariadbclient-dev mariadb-server git ca-certificates \
+        && apt-get install -y --no-install-recommends libnss3 guile-2.2 guile-2.2-dev libmariadbclient-dev mariadb-server git ca-certificates \
         && apt-get build-dep -y --no-install-recommends guile-2.2 \
         && rm -rf /var/lib/apt/lists/*
 
