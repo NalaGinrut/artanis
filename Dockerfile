@@ -4,9 +4,18 @@ ENV         LANG C.UTF-8
 RUN     echo "deb http://mirrors.ustc.edu.cn/debian buster main contrib non-free" > /etc/apt/sources.list \
         && echo "deb-src http://mirrors.ustc.edu.cn/debian buster main contrib non-free" >> /etc/apt/sources.list
 RUN     apt-get update \
-        && apt-get install -y --no-install-recommends libnss3 guile-2.2 guile-2.2-dev libmariadbclient-dev mariadb-server git ca-certificates \
+        && apt-get install -y --no-install-recommends libnss3 wget libmariadbclient-dev mariadb-server git ca-certificates lzip \
         && apt-get build-dep -y --no-install-recommends guile-2.2 \
         && rm -rf /var/lib/apt/lists/*
+
+ARG CACHE_GUILE=1
+RUN set -ex \
+       && wget http://ftp.gnu.org/gnu/guile/guile-3.0.0.tar.lz \
+       && tar xvf guile-3.0.0.tar.lz \
+       && cd guile-3.0.0 \
+       && ./configure --prefix=/usr \
+       && make -j \
+       && make install && ldconfig && cd .. && rm -fr guile-3.0.0
 
 ARG CACHE_DBI=1
 RUN set -ex \
