@@ -220,7 +220,7 @@
   (sigaction SIGINT (lambda (i)
                       (run-when-sigint-hook)
                       (format (artanis-current-output)
-                              "~%Fare you well, you server is cold.~%")
+                              "~%Fare you well, your server is cold.~%")
                       (quit)))
   (set! is-init-server-run? #t))
 
