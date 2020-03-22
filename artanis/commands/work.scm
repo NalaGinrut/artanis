@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2016,2017,2018,2019
+;;  Copyright (C) 2015,2016,2017,2018,2019,2020
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -70,7 +70,8 @@
   (let ((recompile (format #f "find ~a -name \"*.scm\" -exec touch {} \\;" (current-toplevel)))
         (clean (format #f "rm -fr ~a/tmp/cache/tpl/*" (current-toplevel))))
     (system recompile)
-    (system clean)))
+    (system clean)
+    (run-hook *refresh-hook*)))
 
 (define (try-load-entry)
   (let ((entry (string-append (current-toplevel) "/" *artanis-entry*)))
@@ -132,14 +133,14 @@
     (define-syntax-rule (->opt k) (option-ref options k #f))
     (define-syntax-rule (get-conf-file)
       (or (->opt 'config) (gen-local-conf-file)))
-    (when (->opt 'refresh)
-      (refresh-current-app))
     (cond
      ((->opt 'help) (show-help))
      ((->opt 'options-list) (display-it (option-spec-str)))
      (else
       (parameterize ((current-conf-file (get-conf-file)))
         (try-load-entry)
+        (when (->opt 'refresh)
+          (refresh-current-app))
         (run-before-run! init-work)
         (run #:host (->opt 'host)
              #:port (and=> (->opt 'port) string->number)

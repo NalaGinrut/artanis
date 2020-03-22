@@ -67,7 +67,7 @@
             alist->klist alist->kblist is-hash-table-empty?
             symbol-downcase symbol-upcase normalize-column run-before-run!
             sxml->xml-string run-after-request! run-before-response! run-when-DB-init! run-when-sigint-hook
-            run-when-sigint! make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
+            run-when-sigint! run-when-refresh! make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
             generate-kv-from-post-qstr handle-proper-owner run-after-websocket-handshake!
             generate-data-url verify-ENTRY exclude-dbd
             draw-expander remove-ext scan-app-components cache-this-route!
@@ -697,6 +697,9 @@
 
 (define (run-when-sigint-hook)
   (run-hook *when-sigint-hook*))
+
+(define (run-when-refresh! proc)
+  (add-hook! *refresh-hook* proc))
 
 ;; NOTE: For `pipeline' methodology, please read my post:
 ;; http://nalaginrut.com/archives/2014/04/25/oba-pipeline-style%21
