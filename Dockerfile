@@ -10,12 +10,12 @@ RUN     apt-get update \
 
 ARG CACHE_GUILE=1
 RUN set -ex \
-       && wget http://ftp.gnu.org/gnu/guile/guile-3.0.0.tar.lz \
-       && tar xvf guile-3.0.0.tar.lz \
-       && cd guile-3.0.0 \
+       && wget http://ftp.gnu.org/gnu/guile/guile-2.2.7.tar.lz \
+       && tar xvf guile-2.2.7.tar.lz \
+       && cd guile-2.2.7 \
        && ./configure --prefix=/usr \
        && make -j \
-       && make install && ldconfig && cd .. && rm -fr guile-3.0.0
+       && make install && ldconfig && cd .. && rm -fr guile-2.2.7
 
 ARG CACHE_DBI=1
 RUN set -ex \
