@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2017,2018
+;;  Copyright (C) 2013,2014,2015,2017,2018,2020
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -60,9 +60,9 @@
 
 (define (->mysql mysql)
   (match mysql
-    (($ <mysql> ($ <db> _ username passwd) dbname addr #f)
+    (($ <mysql> username passwd dbname addr #f)
      (format #f "~a:~a:~a:tcp:~a" username passwd dbname addr))
-    (($ <mysql> ($ <db> _ username passwd) dbname #f socketfile)
+    (($ <mysql> username passwd dbname #f socketfile)
      (format #f "~a:~a:~a:socket:~a" username passwd dbname socketfile))
     (else (error 'mysql "Wrong connection config!" mysql))))
 
@@ -74,7 +74,7 @@
 
 (define (->sqlite3 sqlite3)
   (match sqlite3
-    (($ <sqlite3> ($ <db> _ username passwd) dbname)
+    (($ <sqlite3> username passwd dbname)
      ;; FIXME: is it necessary for sqlite3 to require username/passwd??
      ;; NOTE: sqlite3 requires the dbname to be postfixed by ".db", or it
      ;;       complains that DB open failed.
@@ -87,9 +87,9 @@
 
 (define (->postgresql postgresql)
   (match postgresql
-    (($ <postgresql> ($ <db> _ username passwd) dbname addr #f)
+    (($ <postgresql> username passwd dbname addr #f)
      (format #f "~a:~a:~a:tcp:~a" username passwd dbname addr))
-    (($ <postgresql> ($ <db> _ username passwd) dbname #f socketfile)
+    (($ <postgresql> username passwd dbname #f socketfile)
      (format #f "~a:~a:~a:socket:~a" username passwd dbname socketfile))
     (else (error 'postgresql "Wrong connection config!" postgresql))))
 
@@ -125,7 +125,7 @@
 ;; e.g: (connect-db "mysql" "root:123:artanis:tcp:localhost:3306")
 (define connect-db
   (case-lambda*
-      ((dbd str) (%do-connect dbd str))
+    ((dbd str) (%do-connect dbd str))
     ((dbd #:key (db-name "artanis") (db-username "root") (db-passwd "")
           (addr "localhost:3306") (proto 'tcp))
      (let ((str (case dbd

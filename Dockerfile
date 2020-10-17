@@ -10,12 +10,12 @@ RUN     apt-get update \
 
 ARG CACHE_GUILE=1
 RUN set -ex \
-       && wget http://ftp.gnu.org/gnu/guile/guile-2.2.7.tar.lz \
-       && tar xvf guile-2.2.7.tar.lz \
-       && cd guile-2.2.7 \
+       && wget http://ftp.gnu.org/gnu/guile/guile-3.0.4.tar.lz \
+       && tar xvf guile-3.0.4.tar.lz \
+       && cd guile-3.0.4 \
        && ./configure --prefix=/usr \
        && make -j \
-       && make install && ldconfig && cd .. && rm -fr guile-2.2.7
+       && make install && ldconfig && cd .. && rm -fr guile-3.0.4
 
 ARG CACHE_DBI=1
 RUN set -ex \
@@ -28,7 +28,7 @@ RUN set -ex \
         && make install && ldconfig && cd ../../ && rm -fr guile-dbi
 
 ARG CACHE_ARTANIS=1
-RUN     git clone --depth 1 git://git.savannah.gnu.org/artanis.git \
+RUN     git clone --depth 1 --single-branch --branch guile3 git://git.savannah.gnu.org/artanis.git \
         && cd artanis \
 	&& ./autogen.sh \
 	&& ./configure \
