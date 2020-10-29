@@ -170,7 +170,7 @@
     ((_ table set pairs cond-str)
      (string-concatenate (list (sql-update table set pairs) cond-str)))
     ((_ table set pairs where rest ...)
-     (->where end (sql-update table set pairs) (sql-where rest ...)))))
+     (->where end (sql-update table set pairs) rest ...))))
 
 (define-syntax sql-delete
   (syntax-rules (* from where)
@@ -183,7 +183,7 @@
     ((_ from table cond-str)
      (-> "from ~a ~a" table cond-str))
     ((_ from table where rest ...)
-     (->where end (sql-delete from table) (sql-where rest ...)))))
+     (->where end (sql-delete from table) rest ...))))
 
 (define-syntax sql-create
   (syntax-rules (table view as select index unique on if exists not database)
