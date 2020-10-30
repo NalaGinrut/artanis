@@ -34,8 +34,9 @@
 
 (define *url-re* (string->irregex "(http|https)://*"))
 (define (include-the-file args)
-  (let ((filename (string-trim-both
-                   (format #f "~a/pub/~a" (current-toplevel) args))))
+  (let* ((pub (basename (get-conf '(server pub))))
+         (filename (string-trim-both
+                    (format #f "~a/~a/~a" (current-toplevel) pub args))))
     (if (file-exists? filename)
         ;;(format #f "~s" (cat filename #f))
         (call-with-input-string (cat filename #f) tpl-read)
@@ -45,33 +46,32 @@
 (define (gen-command cmd args)
   (define-syntax-rule (-> x)
     (string-trim-both x (lambda (ch) (char-set-contains? char-set:whitespace ch))))
-  (define-syntax-rule (->url pub args)
+  (define-syntax-rule (->url args)
     (let ((file (-> args)))
       (cond
        ((irregex-search *url-re* file)
         args)
        (else
         (case cmd
-          ((css) (format #f "/~a/css/~a" pub file))
-          ((icon) (format #f "/~a/img/~a" pub file))
-          ((js module) (format #f "/~a/js/~a" pub file))
+          ((css) (format #f "/css/~a" file))
+          ((icon) (format #f "/img/~a" file))
+          ((js module) (format #f "/js/~a" file))
           (else
            (throw 'artanis-err 500 gen-command
                   "Invalid command `~a' in template!" cmd)))))))
-  (let ((pub (basename (get-conf '(server pub)))))
-    (case cmd
-      ((css)
-       (format #f "\"<link rel=\\\"stylesheet\\\" href=\\\"~a\\\" />\"" (->url pub args)))
-      ((icon)
-       (format #f "\"<link rel=\\\"icon\\\" href=\\\"~a\\\" type=\\\"image/x-icon\\\" />\"" (->url pub args)))
-      ((module)
-       (format #f "\"<script type=\\\"module\\\" src=\\\"~a\\\"> </script>\"" (->url pub args)))
-      ((js)
-       (format #f "\"<script type=\\\"text/javascript\\\" src=\\\"~a\\\"> </script>\"" (->url pub args)))
-      ((free-js-ann) (object->string free-JS-announcement))
-      (else
-       (throw 'artanis-err 500 gen-command
-              "Invalid command `~a' in template!" cmd)))))
+  (case cmd
+    ((css)
+     (format #f "\"<link rel=\\\"stylesheet\\\" href=\\\"~a\\\" />\"" (->url args)))
+    ((icon)
+     (format #f "\"<link rel=\\\"icon\\\" href=\\\"~a\\\" type=\\\"image/x-icon\\\" />\"" (->url args)))
+    ((module)
+     (format #f "\"<script type=\\\"module\\\" src=\\\"~a\\\"> </script>\"" (->url args)))
+    ((js)
+     (format #f "\"<script type=\\\"text/javascript\\\" src=\\\"~a\\\"> </script>\"" (->url args)))
+    ((free-js-ann) (object->string free-JS-announcement))
+    (else
+     (throw 'artanis-err 500 gen-command
+            "Invalid command `~a' in template!" cmd))))
 
 (define (make-parser)
   (lalr-parser
