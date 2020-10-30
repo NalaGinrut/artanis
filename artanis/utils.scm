@@ -277,8 +277,8 @@
 
 (define-syntax-rule (static-filename path)
   (if (current-toplevel)
-      (format #f "~a/~a" (current-toplevel) path)
-      (format #f "./~a" path)))
+      (format #f "~a/pub/~a" (current-toplevel) path)
+      (format #f "./pub/~a" path)))
 
 (define-syntax-rule (request-ip req)
   ;; TODO: support AF_INET6 in the future

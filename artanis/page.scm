@@ -363,7 +363,17 @@
 
 ;; When you don't want to use cache, use static-page-emitter.
 (define* (static-page-emitter rc #:key (dir #f))
-  (let ((filename (if dir
-                      (format #f "~a/~a" dir (rc-path rc))
-                      (static-filename (rc-path rc)))))
+  (define (harm-filter s)
+    (list->string
+     (string-fold-right
+      (lambda (c p)
+        (if (and (char=? c #\.) (char=? (car p) #\.))
+            (cdr p)
+            (cons c p)))
+      '() s)))
+  (let ((filename (harm-filter
+                   (if dir
+                       (format #f "~a/~a" dir (rc-path rc))
+                       (static-filename (rc-path rc))))))
+    (pk "filename" filename)
     (emit-response-with-file filename (request-port (rc-req rc)))))
