@@ -49,7 +49,7 @@
     ((_ fmt args ...)
      (format #f fmt args ...))))
 
-;; NOTE: According to SQL standard, we should always use single-quote. 
+;; NOTE: According to SQL standard, we should always use single-quote.
 (define *double-quote-re* (string->irregex "\""))
 (define-syntax-rule (->end name arg)
   (irregex-replace/all *double-quote-re* (-> end "~a ~a" name arg) "'"))
@@ -67,13 +67,13 @@
      (-> "~a where ~a" sentence (sql-where rest ...)))))
 
 (define-syntax-rule (->lst pairs)
-  (map (lambda (l) (-> "~{~a~^=~s~}" l)) pairs))
+  (map (lambda (l) (-> "~{~a~^='~a'~}" l)) pairs))
 
 (define (->cond lst)
   (define (->logical and/or ll)
     (string-join (map ->cond ll) (format #f " ~a " and/or)))
   (define (->op2 op a1 a2) (-> "~a~a~s" a1 op a2))
-  (define (->opn opn . ll) (-> "~a ~{~s~^ ~}" opn ll))
+  (define (->opn opn . ll) (-> "~a ~{'~a'~^ ~}" opn ll))
   (match lst
     (() "")
     (('and ll ...) (->logical 'and ll))
@@ -98,9 +98,9 @@
     ((_ column in (select rest ...))
      (-> "~a in (~{~a~^,~}) in (select ~a)" 'column (sql-select rest ...)))
     ((_ column like pattern)
-     (-> "~a like ~s" 'column pattern))
+     (-> "~a like '~a'" 'column pattern))
     ((_ column between a and b)
-     (-> "~a between ~s and ~s" 'column a b))
+     (-> "~a between '~a' and '~a'" 'column a b))
     ((_ column is null)
      (-> "~a is null" 'column))
     ;; e.g.   (->sql select * from 'user where (and (= user "name") (> age 15)))
@@ -153,14 +153,14 @@
     ((_ into table select rest ...)
      (-> "into ~a select ~a" table (sql-select rest ...)))
     ((_ into table values lst)
-     (-> "into ~a values (~{~s~^,~})" table lst))
+     (-> "into ~a values (~{'~a'~^,~})" table lst))
     ((_ into table values lst select rest ...)
-     (-> "into ~a values (~{~s~^,~}) select ~a"
+     (-> "into ~a values (~{'~a'~^,~}) select ~a"
          table lst (sql-select rest ...)))
     ((_ into table fields values lst)
-     (-> "into ~a (~{~a~^,~}) values (~{~s~^,~})" table fields lst))
+     (-> "into ~a (~{~a~^,~}) values (~{'~a'~^,~})" table fields lst))
     ((_ into table fields values lst select rest ...)
-     (-> "into ~a (~{~a~^,~}) values (~{~s~^,~}) select ~a"
+     (-> "into ~a (~{~a~^,~}) values (~{'~a'~^,~}) select ~a"
          table fields lst (sql-select rest ...)))))
 
 (define-syntax sql-update
@@ -344,9 +344,9 @@
          ;; (artanis-check-if-current-DB-support key)
          (let ((k (symbol->string key)))
            (if (list? v)
-               (format #f " ~a ~{~s~^, ~} " k v)
-               (format #f " ~a ~s " k v))))
-        (else (format #f "~a~s" key v)))))
+               (format #f " ~a ~{'~a'~^, ~} " k v)
+               (format #f " ~a '~a' " k v))))
+        (else (format #f "~a '~a'" key v)))))
   (match conds
     (() "")
     (((? string? c1) (? string? c2) . rest)
@@ -399,5 +399,5 @@
   (match lst
     (() "")
     ((column (? list? vals))
-     (format #f " ~a in (~{~s~^,~}) " column vals))
+     (format #f " ~a in (~{'~a'~^,~}) " column vals))
     (else (throw 'artanis-err 500 /in "Invalid args" lst))))
