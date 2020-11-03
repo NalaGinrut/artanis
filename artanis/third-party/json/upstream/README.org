@@ -1,9 +1,7 @@
-
 * guile-json
 
-guile-json is a JSON module for Guile. It supports parsing and
-building JSON documents according to the http://json.org
-specification.
+guile-json is a JSON module for Guile. It supports parsing and building JSON
+documents according to the http://json.org specification.
 
 - Complies with http://json.org specification.
 
@@ -14,13 +12,9 @@ specification.
 
 * Installation
 
-guile-json is freely available for download under the terms of the GNU General
-Public License version 3 (GPLv3) as well as the GNU Lesser General Public
-License version 3 (LGPLv3).
-
 Download the latest tarball and untar it:
 
-- [[http://download.savannah.gnu.org/releases/guile-json/guile-json-1.1.0.tar.gz][guile-json-1.1.0.tar.gz]]
+- [[http://download.savannah.gnu.org/releases/guile-json/guile-json-4.4.0.tar.gz][guile-json-4.4.0.tar.gz]]
 
 If you are cloning the repository make sure you run this first:
 
@@ -39,37 +33,43 @@ If everything installed successfully you should be up and running:
 
     : $ guile
     : scheme@(guile-user)> (use-modules (json))
-    : scheme@(guile-user)> (scm->json '(1 2 3))
-    : [1, 2, 3]
+    : scheme@(guile-user)> (scm->json #(1 2 3))
+    : [1,2,3]
 
-It might be that you installed guile-json somewhere differently than
-your system's Guile. If so, you need to indicate Guile where to find
-guile-json, for example:
+It might be that you installed guile-json somewhere differently than your
+system's Guile. If so, you need to indicate Guile where to find guile-json,
+for example:
 
     : $ GUILE_LOAD_PATH=/usr/local/share/guile/site guile
 
-A pkg-list.scm file is also provided for users of the
-Guildhall/Dorodango packaging system.
+A pkg-list.scm file is also provided for users of the Guildhall/Dorodango
+packaging system.
 
 
 * Usage
 
-guile-json provides a few procedures to parse and build a JSON
-document. A JSON document is transformed into or from native Guile
-values according to the following table:
+guile-json provides a few procedures to parse and build a JSON document. A
+JSON document is transformed into or from native Guile values according to the
+following table:
 
-| JSON   | Guile       |
-|--------+-------------|
-| string | string      |
-| number | number      |
-| object | hash-table* |
-| array  | list        |
-| true   | #t          |
-| false  | #f          |
-| null   | #nil        |
+| JSON   | Guile  |
+|--------+--------|
+| string | string |
+| number | number |
+| object | alist  |
+| array  | vector |
+| true   | #t     |
+| false  | #f     |
+| null   | 'null  |
 
-*Note* (*): Association lists are also tranformed to JSON objects, in
-this case ordered will be preserved.
+Why are JSON arrays converted to vectors and JSON objects to alists? See this
+[[https://lists.gnu.org/archive/html/guile-user/2018-12/msg00039.html][discussion]]
+for details.
+
+By default the value of JSON "null" is mapped to the symbol 'null. However,
+all guile-json functions allow changing the default null value by specifying
+the #:null keyword argument with another value. This other value needs to be
+recognized by /eq?/.
 
 To start using guile-json procedures and macros you first need to load
 the module:
@@ -79,83 +79,228 @@ the module:
 
 ** Procedures
 
-- (*json->scm* #:optional port) : Reads a JSON document from the given
-  port, or from the current input port if none is given.
+- *(json->scm #:optional port #:key null)* : Reads a JSON document from the
+  given port, or from the current input port if none is given.
+
+  Optional arguments:
 
   - /port/ : is optional, it defaults to the current input port.
 
-- (*json-string->scm* str) : Reads a JSON document from the given
+  Keyword arguments:
+
+  - /null/ : value for JSON's null, it defaults to the 'null symbol.
+
+- *(json-string->scm str  #:key null)* : Reads a JSON document from the given
   string.
 
-- (*scm->json* native #:optional port #:key escape pretty) : Creates a
-  JSON document from the given native Guile value. The JSON document is
-  written into the given port, or to the current output port if non is
+  Keyword arguments:
+
+  - /null/ : value for JSON's null, it defaults to the 'null symbol.
+
+- *(scm->json native #:optional port #:key escape unicode pretty validate null)* :
+  Creates a JSON document from the given native Guile value. The JSON document
+  is written into the given port, or to the current output port if non is
   given.
 
+  Optional arguments:
+
   - /port/ : it defaults to the current output port.
-  - /escape/ : if true, the slash (/ solidus) character will be escaped.
-  - /pretty/ : if true, the JSON document will be pretty printed.
 
-- (*scm->json-string* native #:key escape pretty) : Creates a JSON
-  document from the given native Guile value into a string.
+  Keyword arguments:
 
-  - /escape/ : if true, the slash (/ solidus) character will be escaped.
-  - /pretty/ : if true, the JSON document will be pretty printed.
+  - /solidus/ : if true, the slash (/ solidus) character will be escaped
+    (defaults to false).
+
+  - /unicode/ : if true, additional to control characters, non-ASCII
+    characters will be escaped as well (defaults to false).
+
+  - /null/ : value for JSON's null (defaults to the 'null symbol).
+
+  - /validate/ : if true, the native value will be validated before starting
+    to print the JSON document (defaults to true).
+
+  - /pretty/ : if true, the JSON document will be pretty printed (defaults to
+    false).
+
+- *(scm->json-string native #:key escape unicode pretty validate)* : Creates a
+  JSON document from the given native Guile value into a string.
+
+  Keyword arguments:
+
+  - /solidus/ : if true, the slash (/ solidus) character will be escaped
+    (defaults to false).
+
+  - /unicode/ : if true, additional to control characters, non-ASCII
+    characters will be escaped as well (defaults to false).
+
+  - /null/ : value for JSON's null (defaults to the 'null symbol).
+
+  - /validate/ : if true, the native value will be validated before starting
+    to print the JSON document (defaults to true).
+
+  - /pretty/ : if true, the JSON document will be pretty printed (defaults to
+    false).
+
+  Note that when using alists to build JSON objects, symbols or numbers might
+  be used as keys and they both will be converted to strings.
 
 
 ** Exceptions
 
-A /json-invalid/ exception is thrown if an error is found during the
-JSON parsing. Since version 0.2.0, the /json-invalid/ exception has a
-single parser argument (see predicate and accessors below). The line or
-column where the error occured can be easily obtained from the parser
-port (calling /port-line/ or /port-column/ on the port).
+A /json-invalid/ exception is thrown if an error is found during the JSON
+parsing with a single port argument. The line or column where the error
+occured can be easily obtained from the port by calling /port-line/ or
+/port-column/.
 
-- (*json-parser?* parser) : Tells whether the given argument is a JSON
-  parser record type.
+When building a JSON document from a native type a /json-invalid/ exception
+might be thrown with the offending value as an argument (see table above for
+supported types).
 
-- (*json-parser-port* parser) : Get the port that the parser was reading
-  from.
+
+** JSON Objects and Records
+
+guile-json 4.2.0 introduces a new feature to allow converting a JSON object
+into a record type and vice versa. This feature works very well, for example,
+when creating REST APIs.
+
+- *(define-json-mapping rtd ctor pred json->record [<=> record->json [<=> scm->record <=> record->scm]]
+                        (field getter spec ...) ...)* :
+  Define a new mapping between a JSON object and a record type, à la SRFI-9.
+
+  - /rtd/ : the name of the record type.
+
+  - /ctor/ : the name for the record constructor procedure.
+
+  - /pred/ : a predicate procedure to check if a given argument holds a record
+    of this type.
+
+  - /json->record/ : the name of the procedure to convert a JSON object into a
+    record of this type.
+
+  - /<=> record->json/ : optional name of the procedure to convert a record of
+    this type to JSON object.
+
+  - /<=> scm->record/ : optional name of the procedure to convert an alist
+    representation of this record into a record of this type.
+
+  - /<=> record->scm/ : optional name of the procedure to convert a record of
+    this type to a native alist whose values should be compatible with
+    guile-json's supported type. This might be used when record fields contain
+    other records.
+
+  - /((field getter spec ...) ...)/ : a series of field specifications.
+
+    - /field/ : the name of a JSON object field.
+
+    - /getter/ : the name of the procedure to get the value of this field
+      given a record of this type.
+
+    - /spec/ : a different name for the field of this JSON object. If given,
+      this name will be used instead of field.
+
+    - /json->value/ : an optional procedure that will be used to convert the
+      JSON value to the value contained in the record.
+
+    - /value->scm/ : an optional procedure that will be used to convert the
+      value contained in the record to one of the native Guile values
+      supported by guile-json.
+
+When serializing a record to JSON it is possible to set a field to the
+=*unspecified*= value in order to omit it from serialization.
+
+*** Example
+
+- A simple example that defines an account type with two fields: /id/ and
+  /username/:
+
+    : > (define-json-mapping <account>
+    :     make-account
+    :     account?
+    :     json->account <=> account->json
+    :     (id       account-id)
+    :     (username account-username))
+
+- We can create a new account and check its contents as with regular records:
+
+    : > (define my-account (make-account "11111" "user-one"))
+    : > (account-id my-account)
+    : "11111"
+    : > (account-username my-account)
+    : "user-one"
+
+- Now we can convert it to a JSON object:
+
+    : > (account->json my-account)
+    : "{\"id\":\"11111\",\"username\":\"user-one\"}"
+
+- Or, given a JSON object we can create a new record:
+
+    : > (define json-account "{\"id\":\"22222\",\"username\":\"user-two\"}")
+    : > (define my-other-account (json->account json-account))
+    : > (account-id my-other-account)
+    : "22222"
+    : > (account-username my-other-account)
+    : "user-two"
 
 
 ** Examples
 
 - Build the string "hello world":
 
-    : scheme@(guile-user)> (scm->json "hello world ")
+    : > (scm->json "hello world")
     : "hello world"
 
 - Build the [1, 2, 3] array:
 
-    : scheme@(guile-user)> (scm->json '(1 2 3))
-    : [1, 2, 3]
+    : > (scm->json #(1 2 3))
+    : [1,2,3]
 
-- Build the [1, 2, 3, 4] array using unquote-splicing:
+- Build the object { "project" : "foo", "author" : "bar" } using an alist:
 
-    : scheme@(guile-user)> (define values '(2 3))
-    : scheme@(guile-user)> (scm->json `(1 ,@values 4))
-    : [1, 2, 3, 4]
+    : > (scm->json '(("project" . "foo") ("author" . "bar")))
+    : {"project":"foo","author":"bar"}
 
-- Build the object { "project" : "foo", "author" : "bar" } using an
-  association list (see how symbols can also be used):
+- Build the same object but this time using symbols:
 
-    : scheme@(guile-user)> (scm->json '(("project" . "foo") (author . bar)))
-    : {"project" : "foo","author" : "bar"}
-
-- Build again the same object { "project" : "foo", "author" : "bar" }
-  using a hash table:
-
-    : scheme@(guile-user)> (scm->json (alist->hash-table '((project . foo) (author . bar))))
-    : {"project" : "foo","author" : "bar"}
+    : > (scm->json '((project . foo) ("author" . "bar")))
+    : {"project":"foo","author":"bar"}
 
 - Build the object { "values" : [ 234, 98.56 ] }:
 
-    : scheme@(guile-user)> (scm->json '(("values" 234 98.56)))
-    : {"values" : [234, 98.56]}
+    : > (scm->json '(("values" . #(234 98.56))))
+    : {"values":[234,98.56]}
 
 - Build the object { "values" : [ 234, 98.56 ] } again, this time using
   a variable:
 
-    : scheme@(guile-user)> (define values '(234 98.56))
-    : scheme@(guile-user)> (scm->json `(("values" ,@values)))
-    : {"values" : [234, 98.56]}
+    : > (define values #(234 98.56))
+    : > (scm->json `(("values" . ,values)))
+    : {"values":[234,98.56]}
+
+- Default null value is the 'null symbol:
+
+    : > (scm->json 'null)
+    : null
+
+- The default null value can be changed to something else:
+
+    : > (scm->json #nil #:null #nil)
+    : null
+
+
+* License
+
+Copyright (C) 2013-2020 Aleix Conchillo Flaque <aconchillo@gmail.com>
+
+guile-json is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+
+guile-json is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with guile-json. If not, see https://www.gnu.org/licenses/.
