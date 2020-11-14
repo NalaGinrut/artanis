@@ -599,6 +599,8 @@
                         "SQLite3 doesn't support table column modification!"))
       (else (throw 'artanis-err 500 index-rename
                    "Unsupported DBD `~a'!" (get-conf '(db dbd))))))
+  (define (row-delete tname t)
+    (->sql delete from tname t))
   (define (gen-sql tname op args)
     (case op
       ((add) (apply table-add tname args))
@@ -608,6 +610,7 @@
       ((rename) (apply table-rename tname args))
       ((column-rename) (apply column-rename tname args))
       ((index-rename) (apply index-rename args))
+      ((row-delete) (apply row-delete tname args))
       (else (throw 'artanis-err 500 make-table-modifier
                    "Invalid op `~a'!" op))))
   (lambda (tname op . args)
