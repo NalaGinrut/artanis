@@ -69,6 +69,7 @@
              :cookies-update!
              :cookies-remove!
              :cookies-setattr!
+             :cookies-check
              :mime
              :auth
              :session
@@ -228,6 +229,7 @@
       ((set) (cut cset! ckl <> <> <>))
       ((ref) (cut cref ckl <> <>))
       ((setattr) (cut setattr ckl <> <...>))
+      ((check) (cut cookie-has-key? (rc-cookie rc) <>))
       ((update) (cut update ckl <>))
       (else (throw 'artanis-err 500 cookies-maker
                    "Invalid operation!" op))))
@@ -790,6 +792,8 @@
   ((:cookies rc 'ref) ck k))
 (define-syntax-rule (:cookies-setattr! rc ck kargs ...)
   ((:cookies rc 'setattr) ck kargs ...))
+(define-syntax-rule (:cookies-check rc name)
+  ((:cookies rc 'check) name))
 (define-syntax-rule (:cookies-update! rc)
   ((:cookies rc 'update) rc))
 (run-before-response! (lambda (rc body) (:cookies-update! rc)))

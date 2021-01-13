@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2017,2018
+;;  Copyright (C) 2013,2014,2015,2017,2018,2021
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -89,9 +89,10 @@
                         (string-trim-both e)))
                   (string-split str #\;)))
          (nvp (let lp((rest ll) (result '()))
-                (cond ((or (null? rest) (is-cookie-keywords? (car rest)))
-                       result) ; drop the pair after keyword-value-pair
-                      (else (lp (cdr rest) (cons (car rest) result))))))
+                (cond
+                 ((or (null? rest) (is-cookie-keywords? (car rest)))
+                  result) ; drop the pair after keyword-value-pair
+                 (else (lp (cdr rest) (cons (car rest) result))))))
          (cookie (new-cookie #:expires (get-from-cookie ll "Expires")
                              #:path (get-from-cookie ll "Path")
                              #:domain (get-from-cookie ll "Domain")
@@ -160,7 +161,5 @@
     ;;(format #t "cookies-str: ~a~%" cookies-str)
     (map header-string->cookie cookies-str)))
 
-(define (cookie-has-key? ck key)
-  (if (null? ck)
-      #f ; no cookie
-      (any (lambda (x) (and (cookie-ref x key) x)) ck)))
+(define (cookie-has-key? ckl key)
+  (any (lambda (x) (and (cookie-ref x key) x)) ckl))

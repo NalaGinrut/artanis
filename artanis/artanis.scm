@@ -75,6 +75,7 @@
                :cookies-update!
                :cookies-remove!
                :cookies-setattr!
+               :cookies-check
                :mime
                :auth
                :session
