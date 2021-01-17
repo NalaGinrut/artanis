@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2016,2017,2018,2019,2020
+;;  Copyright (C) 2014,2015,2016,2017,2018,2019,2020,2021
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -131,14 +131,9 @@
          (h (and oht (hash-ref oht opt))))
     (if h
         (h rc args ...)
-        (if (eq? opt #:cookies)
-            ;; #:cookies is special that no need to initialize first,
-            ;; and it could be used to operate the existing cookies
-            ;; from the requests.
-            values
-            (throw 'artanis-err 500 'oht-ref
-                   "The opt ~a isn't initialized for ~a"
-                   opt (rc-path rc))))))
+        (throw 'artanis-err 500 'oht-ref
+               "The opt ~a isn't initialized for ~a"
+               opt (rc-path rc)))))
 
 (define-syntax-rule (auth-enabled? rc)
   (hash-ref (rc-oht rc) #:auth))
@@ -236,6 +231,7 @@
       (else (throw 'artanis-err 500 cookies-maker
                    "Invalid operation!" op))))
   (match mode
+    (#t (cut cookie-handler '() <> <>))
     (((or 'new 'names) names ...)
      (let ((ckl (init-cookies names)))
        (cut cookie-handler ckl <> <>)))
