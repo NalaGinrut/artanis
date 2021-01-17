@@ -33,6 +33,7 @@
             new-cookie
             request-cookies
             cookie-has-key?
+            get-value-from-cookie-name
             cookies-maker
             cookie-modify))
 
@@ -120,18 +121,19 @@
 (define (generate-cookies cookies)
   (map (lambda (c) `(set-cookie . ,(cookie->header-string c))) cookies))
 
-(define *the-remove-expires* "Thu, 01-Jan-70 00:00:01 GMT")
+(define *the-remove-expires* "Thu, 01 Jan 1970 00:00:00 GMT")
 
 ;; NOTE: expires should be integer
 ;; NOTE: When we set #:expires to #t for removing the cookie, #:path MUST be "/".
 ;;       Otherwise the client may not clear the cookie correctly.
 (define* (new-cookie #:key (expires 3600) ; expires in seconds
                      (npv '())
-                     (path (and (eq? expires #t) "/")) (domain #f)
+                     (path #f) (domain #f)
                      (secure #f) (http-only #t))
-  (let ((e (cond ((integer? expires) (make-expires expires))
-                 ((eq? expires #t) *the-remove-expires*)
-                 (else #f)))) ; else #f for no expires
+  (let ((e (cond
+            ((eq? expires #t) *the-remove-expires*)
+            ((integer? expires) (make-expires expires))
+            (else #f)))) ; else #f for no expires
     (make-cookie npv e domain path secure http-only)))
 
 (define (cookie-set! cookie name value)
@@ -163,3 +165,6 @@
 
 (define (cookie-has-key? ckl key)
   (any (lambda (x) (and (cookie-ref x key) x)) ckl))
+
+(define (get-value-from-cookie-name ckl key)
+  (any (lambda (x) (and=> (cookie-ref x key) car)) ckl))

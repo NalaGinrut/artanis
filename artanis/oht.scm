@@ -70,6 +70,7 @@
              :cookies-remove!
              :cookies-setattr!
              :cookies-check
+             :cookies-value
              :mime
              :auth
              :session
@@ -216,7 +217,7 @@
   (define (cref ckl ck k)
     (and=> (cget ckl ck) (cut (current-cref) <> k)))
   (define (update ckl rc)
-    (rc-set-cookie! rc (map cdr ckl)))
+    (rc-set-cookie! rc (append (rc-set-cookie rc) (map cdr ckl))))
   (define (setattr ckl ck . kargs)
     (apply (current-setattr) (cget ckl ck) kargs))
   (define-syntax-rule (init-cookies names)
@@ -230,6 +231,7 @@
       ((ref) (cut cref ckl <> <>))
       ((setattr) (cut setattr ckl <> <...>))
       ((check) (cut cookie-has-key? (rc-cookie rc) <>))
+      ((value) (cut get-value-from-cookie-name (rc-cookie rc) <>))
       ((update) (cut update ckl <>))
       (else (throw 'artanis-err 500 cookies-maker
                    "Invalid operation!" op))))
@@ -794,6 +796,8 @@
   ((:cookies rc 'setattr) ck kargs ...))
 (define-syntax-rule (:cookies-check rc name)
   ((:cookies rc 'check) name))
+(define-syntax-rule (:cookies-value rc name)
+  ((:cookies rc 'value) name))
 (define-syntax-rule (:cookies-update! rc)
   ((:cookies rc 'update) rc))
 (run-before-response! (lambda (rc body) (:cookies-update! rc)))
