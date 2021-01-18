@@ -818,10 +818,16 @@
             (cond
              ((or h (eq? k #:handler))
               ;; #:handler is user customed handler
-              (when (eq? k #:with-auth)
-                ;; If #:session and #:with-auth are not initialized
-                ;; simultaneously, then init it with default option
+              (cond
+               ((eq? k #:with-auth)
+                ;; 1. If #:session and #:with-auth are not initialized
+                ;;    simultaneously, then init it with default option
+                ;; 2. Both require #:cookies
+                (init-oht! oht #:cookies #t rule keys)
                 (init-oht! oht #:session #t rule keys))
+               ((eq? k #:session)
+                ;; #:session requires #:cookies
+                (init-oht! oht #:cookies #t rule keys)))
               (hash-set! oht k (h v rule keys)))
              (else #f))))
         opts)
