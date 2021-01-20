@@ -797,7 +797,7 @@
   ((:cookies rc 'update) rc))
 (run-before-response!
  (lambda (rc body)
-   (when (hash-ref (rc-oht rc) #:cookies)
+   (when (and=> (rc-oht rc) (lambda (ht) (hash-ref ht #:cookies)))
      ;; Call update iff the cookies is initialized
      (:cookies-update! rc))))
 (define (:cookies-remove! rc k)
