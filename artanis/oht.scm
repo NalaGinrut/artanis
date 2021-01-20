@@ -129,11 +129,17 @@
 (define-syntax-rule (=> opt rc args ...)
   (let* ((oht (rc-oht rc))
          (h (and oht (hash-ref oht opt))))
-    (if h
-        (h rc args ...)
-        (throw 'artanis-err 500 'oht-ref
-               "The opt ~a isn't initialized for ~a"
-               opt (rc-path rc)))))
+    (cond
+     (h (h rc args ...))
+     ((and (eq? opt #:cookies)
+           (not (null? (list args ...)))
+           (eq? 'update (car (list args ...))))
+      ;; If the cookies wasn't initialized, then we don't call update.
+      (lambda _ #f))
+     (else
+      (throw 'artanis-err 500 'oht-ref
+             "The opt ~a isn't initialized for ~a"
+             opt (rc-path rc))))))
 
 (define-syntax-rule (auth-enabled? rc)
   (hash-ref (rc-oht rc) #:auth))
@@ -777,7 +783,6 @@
 (meta-handler-register cookies)
 (meta-handler-register cache)
 (meta-handler-register mime)
-(meta-handler-register cookies)
 (meta-handler-register auth)
 (meta-handler-register session)
 (meta-handler-register from-post)
@@ -819,7 +824,7 @@
              ((or h (eq? k #:handler))
               ;; #:handler is user customed handler
               (cond
-               ((eq? k #:with-auth)
+               ((or (eq? k #:auth) (eq? k #:with-auth))
                 ;; 1. If #:session and #:with-auth are not initialized
                 ;;    simultaneously, then init it with default option
                 ;; 2. Both require #:cookies
