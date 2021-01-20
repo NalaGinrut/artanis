@@ -131,15 +131,9 @@
          (h (and oht (hash-ref oht opt))))
     (cond
      (h (h rc args ...))
-     ((and (eq? opt #:cookies)
-           (not (null? (list args ...)))
-           (eq? 'update (car (list args ...))))
-      ;; If the cookies wasn't initialized, then we don't call update.
-      (lambda _ #f))
-     (else
-      (throw 'artanis-err 500 'oht-ref
-             "The opt ~a isn't initialized for ~a"
-             opt (rc-path rc))))))
+     (else (throw 'artanis-err 500 'oht-ref
+                  "The opt ~a isn't initialized for ~a"
+                  opt (rc-path rc))))))
 
 (define-syntax-rule (auth-enabled? rc)
   (hash-ref (rc-oht rc) #:auth))
@@ -801,7 +795,11 @@
   ((:cookies rc 'value) name))
 (define-syntax-rule (:cookies-update! rc)
   ((:cookies rc 'update) rc))
-(run-before-response! (lambda (rc body) (:cookies-update! rc)))
+(run-before-response!
+ (lambda (rc body)
+   (when (hash-ref (rc-oht rc) #:cookies)
+     ;; Call update iff the cookies is initialized
+     (:cookies-update! rc))))
 (define (:cookies-remove! rc k)
   (rc-set-cookie!
    rc
