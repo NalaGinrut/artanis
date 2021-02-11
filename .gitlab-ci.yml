@@ -1,28 +1,19 @@
-image: buildpack-deps:stretch
+image: debian:sid-slim
 
 before_script:
-  - echo "deb http://ftp.us.debian.org/debian/ stretch main contrib non-free" >> /etc/apt/sources.list
-  - echo "deb-src http://ftp.us.debian.org/debian/ stretch main contrib non-free" >> /etc/apt/sources.list
   - apt-get -qq update
-  - apt-get -qq -y build-dep guile-2.0
-  - apt-get -qq -y install automake autoconf libtool libmariadbclient-dev libmariadbd-dev libnss3 libnss3-dev
-  - wget -c https://ftp.gnu.org/gnu/guile/guile-2.2.3.tar.gz
-  - tar xvzf guile-2.2.3.tar.gz
-  - cd guile-2.2.3
+  - apt-get -qq -y install guile-3.0 automake autoconf libtool libmariadbclient-dev libmariadbd-dev libnss3 libnss3-dev
+  - git clone --depth 1 git://github.com/opencog/guile-dbi.git 
+  - cd guile-dbi/guile-dbi
+  - ./autogen.sh 
   - ./configure --prefix=/usr && make
-  - make install
-  - cd ..
-  - wget -c https://github.com/yagelix/guile-dbi/archive/guile-dbi-2.1.6.tar.gz
-  - tar xvzf guile-dbi-2.1.6.tar.gz
-  - cd guile-dbi-guile-dbi-2.1.6 && ./autogen.sh && ./configure --prefix=/usr && make
-  - make install
-  - cd ..
-  - wget -c http://ftp.gnu.org/gnu/automake/automake-1.15.tar.xz
-  - tar xvf automake-1.15.tar.xz
-  - cd automake-1.15
-  - ./configure --prefix=/usr && make
-  - make install
-  - cd ..
+  - make install 
+  - ldconfig 
+  - cd .. 
+  - cd guile-dbd-mysql 
+  - ./autogen.sh 
+  - ./configure --prefix=/usr && make 
+  - make install && ldconfig && cd ..
 test:
   stage: test
   script:
