@@ -1,6 +1,6 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
 ;;  === MIME tests ===
-;;  Copyright (C) 2015,2017,2018,2019
+;;  Copyright (C) 2015,2017,2018,2019,2021
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML,
        (:mime rc '(("name" . "nala") ("age" . "15")) #:jsonp (params rc "jsonp"))))
 
 (define test1-expect-body
-  (string->bytevector "func({\"name\" : \"nala\",\"age\" : \"15\"})" "utf-8"))
+  (string->bytevector "func({\"name\":\"nala\",\"age\":\"15\"})" "utf-8"))
 (define test1-expect-res
   (build-response
    #:version '(1 . 1)

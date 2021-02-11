@@ -1,6 +1,6 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
 ;;  === Post tests ===
-;;  Copyright (C) 2015,2018,2019
+;;  Copyright (C) 2015,2018,2019,2021
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -185,7 +185,7 @@ aa.scm\r
          (pk "mime 4"(:mime rc `(("file" . ,file) ("size" . ,size)))))
         (else (format #t "BUG: ~a~%" ret) "BUG!!!")))))
 
-(define test4-expect-body "{\"file\" : \"aa.scm\",\"size\" : 40}")
+(define test4-expect-body "{\"file\":\"aa.scm\",\"size\":40}")
 
 (define test4-expect-res
   (build-response
@@ -196,7 +196,7 @@ aa.scm\r
 ;; TEST 5
 (define post-test-post-single-file-upload (gen-req-test5))
 
-(define test5-expect-body "{\"note\" : \"note\",\"files\" : [\"test.scm\"],\"size\" : [96]}")
+(define test5-expect-body "{\"note\":\"note\",\"files\":[\"test.scm\"],\"size\":[96]}")
 
 (define test5-expect-res
   (build-response
@@ -217,11 +217,11 @@ aa.scm\r
         (let* ((mo (:from-post rc 'get-mfds-op))
                (note (pk "note"(mfds-op-ref rc mo "note")))
                (mfds (mfds-operator-mfds mo))
-               (size (filter-map mfd-size mfds))
-               (files (filter-map mfd-filename mfds)))
+               (size (list->vector (filter-map mfd-size mfds)))
+               (files (list->vector (filter-map mfd-filename mfds))))
           (pk "mime 5"(:mime rc `(("note" . ,note) ("files" . ,files) ("size" . ,size))))))
       (lambda (k . reason)
-        (format #t "test5 BUG:~a" reason)
+        (format fp "test5 BUG:~a" reason)
         (let ((msg (format #f "~a" reason)))
           (:mime rc  `((BUG . ,msg))))))))
 
