@@ -19,7 +19,7 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 
 # Check for Guile
-GUILE_PKG(2.2 2.3 3.0)
+GUILE_PKG(3.0)
 GUILE_PROGS
 
 AC_CONFIG_FILES([Makefile bin/art])
