@@ -2,7 +2,7 @@ image: debian:sid-slim
 
 before_script:
   - apt-get -qq update
-  - apt-get -qq -y install guile-3.0 automake git autoconf libtool libmariadbclient-dev libmariadbd-dev libnss3 libnss3-dev
+  - apt-get -qq -y install guile-3.0 build-essentials automake git autoconf libtool libmariadbclient-dev libmariadbd-dev libnss3 libnss3-dev
   - git clone --depth 1 git://github.com/opencog/guile-dbi.git 
   - cd guile-dbi/guile-dbi
   - ./autogen.sh 
