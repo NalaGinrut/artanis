@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2019,2020
+;;  Copyright (C) 2019,2020,2021
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -23,6 +23,7 @@
   #:use-module (system foreign)
   #:use-module (rnrs)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 format)
   #:export (nss:no-db-init
             nss:init
             nss:init-rw
