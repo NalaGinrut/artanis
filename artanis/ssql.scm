@@ -335,6 +335,10 @@
       (else (throw 'artanis-err 500 gen-cond
                    (format #f "[SQL]~a: invalid range" (get-prefix))
                    lst))))
+  (define (->quote v)
+    (if (number? v)
+        v
+        (format #f "'~a'" v)))
   (define (get-the-conds-str key val)
     (let ((v (if (list? val) (->range val) val)))
       (match key
@@ -344,9 +348,9 @@
          ;; (artanis-check-if-current-DB-support key)
          (let ((k (symbol->string key)))
            (if (list? v)
-               (format #f " ~a ~{'~a'~^, ~} " k v)
-               (format #f " ~a '~a' " k v))))
-        (else (format #f "~a '~a'" key v)))))
+               (format #f " ~a ~{~a~^, ~} " k (->quote v))
+               (format #f " ~a~a " k (->quote v)))))
+        (else (format #f "~a~a" key (->quote v))))))
   (match conds
     (() "")
     (((? string? c1) (? string? c2) . rest)
@@ -371,8 +375,8 @@
     ;; (where #:name '("John" "Tom" "Jim")) ==> name="John" or name="Tom" or name="Jim"
     (((? keyword? key) (vals ...) . rest)
      (let* ((kp (->key/pred key))
-            (fmt (string-concatenate `(,(get-prefix) "~{" ,kp "'~a'~^" ,(->or/and kp) "~}"))))
-       (format #f fmt vals)))
+            (fmt (string-concatenate `(,(get-prefix) "~{" ,kp "~a~^" ,(->or/and kp) "~}"))))
+       (format #f fmt (map ->quote vals))))
     (else (throw 'artanis-err 500 gen-cond
                  (format #f "[SQL]~a: invalid condition pattern" (get-prefix))
                  conds))))
