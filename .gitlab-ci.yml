@@ -13,7 +13,7 @@ before_script:
   - cd guile-dbd-mysql 
   - ./autogen.sh 
   - ./configure --prefix=/usr && make 
-  - make install && ldconfig && cd ..
+  - make install && ldconfig && cd ../..
 test:
   stage: test
   script:
