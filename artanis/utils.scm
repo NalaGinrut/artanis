@@ -46,7 +46,7 @@
                           utf8->string put-bytevector
                           bytevector-u8-ref string->utf8 bytevector-length
                           make-bytevector bytevector-s32-native-ref bytevector?
-                          define-record-type record-rtd record-accessor
+                          define-record-type record-rtd
                           get-string-all bitwise-ior))
   #:export (regexp-split
             hash-keys cat bv-cat get-global-time sanitize-response
@@ -1083,7 +1083,7 @@
   (list (symbol-append 'make- bt) v))
 
 (define-syntax-rule (box-type-treasure t)
-  (record-accessor (record-rtd t) 0))
+  ((@ (rnrs) record-accessor) (record-rtd t) 0))
 
 (define-syntax-rule (unbox-type t)
   (let ((treasure-getter (box-type-treasure t)))

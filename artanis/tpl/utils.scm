@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015
+;;  Copyright (C) 2013,2014,2015,2021
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -23,7 +23,22 @@
   #:use-module (system base language)
   #:use-module (system base compile)
   #:use-module (system base lalr)
-  #:use-module (system base pmatch))
+  #:use-module (system base pmatch)
+  #:export (is-whitespace?
+            not!
+            group-checker
+            location
+            unget-char1
+            syntax-error
+            lex-error
+            *eof-object*
+            make-reader
+            port-source-location
+            return
+            ->
+            pmatch/source
+            hash-keys
+            make-token-checker))
 
 (module-export-all! (current-module))
 
@@ -99,7 +114,7 @@
 (define* (make-token-checker tokenizer)
   (lambda* (src #:optional (mode 'slim))
     (let ((tokens (call-with-input-string src tokenizer)))
-    (case mode
-      ((slim) (map lexical-token-category tokens))
-      ((all) tokens)
-      (else (error make-token-checker "wrong mode" mode))))))
+      (case mode
+        ((slim) (map lexical-token-category tokens))
+        ((all) tokens)
+        (else (error make-token-checker "wrong mode" mode))))))

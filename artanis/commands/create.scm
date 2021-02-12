@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2017
+;;  Copyright (C) 2015,2017,2021
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -37,7 +37,7 @@
 
 (define conf-header
   "##  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-##  Copyright (C) 2015,2016,2017,2018
+##  Copyright (C) 2021
 ##      \"Mu Lei\" known as \"NalaGinrut\" <NalaGinrut@gmail.com>
 ##  Artanis is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU General Public License as published by
@@ -126,7 +126,7 @@
                          (format port "~%~a~{~a~^.~} = ~a~%" (->comments comments) ns (->proper (read-config-val ns val))))
                         (else (error create-local-config "BUG: Invalid conf value!" c))))
                     ctb))))
-    (let* ((ctb ((@@ (artanis config) default-conf-values)))
+    (let* ((ctb (default-conf-values))
            (cstr (->cstr ctb))
            (fp (open-file (-> "artanis.conf") "w")))
       (display conf-header fp)

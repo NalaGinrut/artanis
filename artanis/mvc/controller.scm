@@ -42,19 +42,19 @@
              #:use-module (artanis utils))
            (define-syntax-rule (#,(datum->syntax x 'view-render) method e)
              (let ((file (format #f "~a/app/views/~a/~a.html.tpl"
-                                  (current-toplevel) 'name method)))
+                                 (current-toplevel) 'name method)))
                (cond
                 ((file-exists? file)
                  (let ((html ((@@ (artanis tpl) tpl-render-from-file) file e)))
-                   (response-emit html)))
-                (else (response-emit "" #:status 404)))))
+                   ((@ (artanis artanis) response-emit) html)))
+                (else ((@ (artanis artanis) response-emit) "" #:status 404)))))
            (define-syntax #,(datum->syntax #'name (symbol-append (syntax->datum #'name) '-define))
              (syntax-rules ::: ()
-               ((_ method rest rest* :::)
-                (hash-set!
-                 (@ (artanis env) *controllers-table*)
-                 (format #f "/~a/~a" 'name 'method)
-                 (draw-expander rest rest* :::))))))))))
+                           ((_ method rest rest* :::)
+                            (hash-set!
+                             (@ (artanis env) *controllers-table*)
+                             (format #f "/~a/~a" 'name 'method)
+                             (draw-expander rest rest* :::))))))))))
 
 (define-syntax-rule (scan-controllers) (scan-app-components 'controllers))
 
@@ -72,11 +72,11 @@
 
 (define (gen-controller-header cname)
   (call-with-output-string
-   (lambda (port)
-     (format port ";; Controller ~a definition of ~a~%" cname (current-appname))
-     (display ";; Please add your license header here.\n" port)
-     (display ";; This file is generated automatically by GNU Artanis.\n" port)
-     (format port "(define-artanis-controller ~a) ; DO NOT REMOVE THIS LINE!!!~%~%" cname))))
+    (lambda (port)
+      (format port ";; Controller ~a definition of ~a~%" cname (current-appname))
+      (display ";; Please add your license header here.\n" port)
+      (display ";; This file is generated automatically by GNU Artanis.\n" port)
+      (format port "(define-artanis-controller ~a) ; DO NOT REMOVE THIS LINE!!!~%~%" cname))))
 
 (define (do-controller-create name methods port)
   (format (artanis-current-output) "create ~10t app/controllers/~a.scm~%" name)

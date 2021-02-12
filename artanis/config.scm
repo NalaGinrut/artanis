@@ -29,7 +29,8 @@
             get-conf
             current-conf-file
             init-database-config
-            current-myhost))
+            current-myhost
+            default-conf-values))
 
 (define server-info artanis-version)
 (define *default-conf-file* "/etc/artanis/artanis.conf")
