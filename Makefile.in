@@ -28,7 +28,7 @@ MOD_PATH := $(shell $(GUILE) -c "(display (%site-dir))")
 MOD_TARGET_PATH := $(MOD_COMPILED_PATH)
 endif
 
-GUILE_CFLAGS := -Wunsupported-warning -Wunbound-variable -Warity-mismatch -Wduplicate-case-datum -Wbad-case-datum
+GUILE_CFLAGS := -Wunsupported-warning -Wunbound-variable -Warity-mismatch -Wduplicate-case-datum -Wbad-case-datum -Wmacro-use-before-definition -Wuse-before-definition -Wnon-idempotent-definition -Wduplicate-case-datum -Wformat
 GUILEC := GUILE_LOAD_COMPILED_PATH=$(TEMP_LIB_PATH) GUILE_AUTO_COMPILE=0 @GUILD@ compile $(GUILE_CFLAGS)
 ARTANIS_ETC := $(SRC)/etc/artanis
 ARTANIS_PAGES := $(SRC)/pages
