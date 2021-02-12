@@ -203,7 +203,7 @@ Shortcuts
 * Raw SQL::
 * String template::
 * SQL-Mapping shortcut (unfinished)::
-* Authentication: Authentication 1. 
+* Authentication: Authentication (1). 
 
 Websocket (Experimental)
 
@@ -222,7 +222,7 @@ Websocket APIs
 
 Ragnarok server core
 
-* Introduction: Introduction 1. 
+* Introduction: Introduction (1). 
 * Principles::
 * Features::
 * Ragnarok APIs::
@@ -338,7 +338,7 @@ guile-dbi-2.1.7 (The tarball included guile-dbd) @strong{[Optional]}
 wget -c https://github.com/opencog/guile-dbi/archive/guile-dbi-2.1.7.tar.gz
 
 tar xvzf guile-dbi-2.1.7.tar.gz
-cd guile-dbi-guile-dbi-2.1.7/guile-dbi && ./configure && make
+cd guile-dbi-guile-dbi-2.1.7/guile-dbi && ./autogen.sh --no-configure && ./configure && make
 sudo make install
 @end example
 
@@ -349,7 +349,7 @@ guile-dbd @strong{[Optional]}. The dbd plugins connect to an actual database ser
 @example
 
 tar xvzf guile-dbd-mysql-2.1.6.tar.gz
-cd guile-dbi-guile-dbi-2.1.7/guile-dbd-mysql && ./configure && make
+cd guile-dbi-guile-dbi-2.1.7/guile-dbd-mysql && ./autogen.sh --no-configure && ./configure && make
 sudo make install
 @end example
 MySQL is used for the examples in this manual. You may find dbd plugins for other databases @uref{http://download.gna.org/guile-dbi, here} or at this
@@ -360,7 +360,7 @@ MySQL is used for the examples in this manual. You may find dbd plugins for othe
 @example
 wget -c http://ftp.gnu.org/gnu/artanis/artanis-latest.tar.bz2
 tar xvjf artanis-latest.tar.bz2
-cd artanis-latest && ./configure && make
+cd artanis-latest && ./autogen.sh --no-configure && ./configure && make
 sudo make install
 @end example
 
@@ -433,7 +433,7 @@ To get the current hostname in GNU Artanis environment.
 
 If you are already familiar with Guile, you may skip this section.
 
-Type `guile' in your console to enter the Guile REPL. You should see the following text displayed on your screen:
+Type `guile' in your console to enter the Guile REPL@. You should see the following text displayed on your screen:
 @example
 GNU Guile 2.2.2
 Copyright (C) 1995-2017 Free Software Foundation, Inc.
@@ -577,7 +577,7 @@ You can use a DB (such as mysql) with GUI tools such as "adminer", independently
 
 @itemize
 @item
-@emph{map-table-from-DB} is the GNU Artanis API handling tables in a DB. Here, we define this mapping as the var @emph{mtable}.
+@emph{map-table-from-DB} is the GNU Artanis API handling tables in a DB@. Here, we define this mapping as the var @emph{mtable}.
 @end itemize
 
 
@@ -639,7 +639,7 @@ API @emph{object->string} to convert the query result into a string.
 This chapter introduces some useful documents to help you understand Scheme language.
 Feel free to come back here if you have any problems with the Scheme syntax.
 
-Scheme was introduced in 1975 by Gerald J. Sussman and Guy L. Steele Jr. and was the first dialect of Lisp to fully support lexical scoping,
+Scheme was introduced in 1975 by Gerald J@. Sussman and Guy L@. Steele Jr. and was the first dialect of Lisp to fully support lexical scoping,
 first-class procedures, and continuations. In its earliest form it was a small language intended primarily for research and teaching,
 supporting only a handful of predefined syntactic forms and procedures. Scheme is now a complete general-purpose programming language, though
 it still derives its power from a small set of key concepts. Early implementations of the language were interpreter-based and slow, but
@@ -765,7 +765,7 @@ Please read @ref{URL handling}.
 
 @strong{body} is the response body, it can be a bytevector or literal string (in HTML).
 
-@code{#:status} is the HTTP status, 200 in default, which means OK.
+@code{#:status} is the HTTP status, 200 in default, which means OK@.
 
 @code{#:headers} lets you specify custom HTTP headers. The headers must follow a certain format. Please read @uref{http://www.gnu.org/software/guile/manual/html_node/HTTP-Headers.html#Response-Headers, Response Headers} for details.
 
@@ -908,7 +908,7 @@ Options:
   -c, [--create]   # Create WebAPI
 
 Example:
-  art api -c  
+  art api -c
   art api -c -v v3
 @end example
 Please see @ref{RESTful API} for more details.
@@ -960,7 +960,7 @@ Options:
                                    Default: disable
   -s, [--server=SERVER]          # Specify server core
                                    Default: Ragnarok (New server core since 0.2)
-  --refresh                      # Clean caches, and force to re-compile all source code.                                                         
+  --refresh                      # Clean caches, and force to re-compile all source code.
   --help                         # Show this screen
 @end example
 
@@ -1051,7 +1051,7 @@ For a POST method:
 @node OPTIONS method
 @section OPTIONS method
 
-OPTIONS method is used to return the other methods supported by the server-side at the given URL.
+OPTIONS method is used to return the other methods supported by the server-side at the given URL@.
 By default in GNU Artanis, for a specified URL, every method whose handler was registerted would be added to its own OPTIONS list.
 
 If you want to deny certain methods for security consideration, you may need to set @strong{server.allowedmethods} in config.
@@ -1183,7 +1183,7 @@ Get the current request handler. The tricky part is that you can only get this h
 within this handler unless you can go no where to run @emph{rc-handler} correctly.
 @itemize
 @item
-It's on your own risk to use this API. But now that we have powerful first class lambda,
+It's on your own risk to use this API@. But now that we have powerful first class lambda,
 you may do some magic. Well, depends on you.
 @end itemize
 @end itemize
@@ -1339,7 +1339,7 @@ For the @emph{controller} component, you get a @emph{show} method handler, as:
 Of course, you're free to use or not use these templates. If you want to use the @emph{view template}, just
 uncomment the last line @code{(view-render "show")}.
 
-@strong{NOTE:} The views template generated by MVC will defaultly announce FreeJS. The reason was well explained in [BROKEN LINK:  http://www.gnu.org/philosophy/javascript-trap.en.html].
+@strong{NOTE:} The views template generated by MVC will defaultly announce FreeJS@. The reason was well explained in [BROKEN LINK:  http://www.gnu.org/philosophy/javascript-trap.en.html].
 It's optional, you may remove it with your free will, but I put it there in the hope that you can support free software with us.
 
 For more detail about template in Views, please see @ref{Layouts and Rendering in GNU Artanis}.
@@ -1404,7 +1404,7 @@ you don't need a URL rule using a regex, so the "?" is unnecessary here.
 @end example
 
 Please notice that @code{#:from-post 'qstr} is necessary when you're trying to
-get data from POST. And you should use @code{:from-post} to get related data
+get data from POST@. And you should use @code{:from-post} to get related data
 from query-string.
 
 @example
@@ -1470,7 +1470,7 @@ BTW, you may get the parsed query-string as an assoc-list as well:
 @node Templating
 @section Templating
 
-Templating provides a way to mix programmatic code into HTML.
+Templating provides a way to mix programmatic code into HTML@.
 
 @node Templating for Pythoners
 @section Templating for Pythoners
@@ -1535,7 +1535,7 @@ Write a tpl file named "my.tpl":
 </html>
 @end example
 
-The filename extension ".tpl" is mandatory when using the MVC. Since the MVC will find the template by detecting
+The filename extension ".tpl" is mandatory when using the MVC@. Since the MVC will find the template by detecting
 controller name automatically.
 
 If you don't use the MVC, and are rather writing all in one script
@@ -1620,7 +1620,7 @@ To refer to a CSS file:
 @end example
 This will be expanded like this:
 @example
-<link rel="stylesheet" href="/pub/css/filename.css">
+<link rel="stylesheet" href="/css/filename.css">
 @end example
 
 To refer to a JS (javascript) file in the HTML head:
@@ -1629,7 +1629,7 @@ To refer to a JS (javascript) file in the HTML head:
 @end example
 This will be expanded like this:
 @example
-<script type="text/javascript" src="/pub/js/filename.js"> </script>
+<script type="text/javascript" src="/js/filename.js"> </script>
 @end example
 
 To specify an icon for the domain:
@@ -1638,7 +1638,7 @@ To specify an icon for the domain:
 @end example
 This will be expanded like this:
 @example
-<link rel="icon" href="/pub/img/favicon.ico" type="image/x-icon">
+<link rel="icon" href="/img/favicon.ico" type="image/x-icon">
 @end example
 
 @node SXML Templates
@@ -1793,7 +1793,7 @@ Here are some known ways to solve ORM related problems:
 
 @itemize
 @item
-2. @strong{@emph{Give up relational storage model}}. Don't use a relational DB. Use another DB style, such as No-SQL. Well, this way is not cool when you must use a relational DB.
+2. @strong{@emph{Give up relational storage model}}. Don't use a relational DB@. Use another DB style, such as No-SQL@. Well, this way is not cool when you must use a relational DB@.
 @end itemize
 
 
@@ -1805,7 +1805,7 @@ Here are some known ways to solve ORM related problems:
 
 @itemize
 @item
-4. @strong{@emph{Limited ORM}}. Limiting the utility of ORM. And use ORM to solve part of your work rather than whole, depends on you. This may avoid some problems.
+4. @strong{@emph{Limited ORM}}. Limiting the utility of ORM@. And use ORM to solve part of your work rather than whole, depends on you. This may avoid some problems.
 @end itemize
 
 
@@ -1826,7 +1826,7 @@ Here are some known ways to solve ORM related problems:
 7. @strong{@emph{Stateless}}. This is the critical hit to counter complexity and unreliability.
 @end itemize
 
-Basically, GNU Artanis has no ORM yet, and maybe never will. GNU Artanis is trying to experiment new ways to solve the problems of ORM.
+Basically, GNU Artanis has no ORM yet, and maybe never will. GNU Artanis is trying to experiment new ways to solve the problems of ORM@.
 
 GNU Artanis provides three ways to complete this mission. All of them, are @strong{experimental} at present.
 
@@ -2147,14 +2147,14 @@ You should use @code{api-define} to define the RESTful API:
 (api-define rule handler)
 @end example
 
-@code{api-define} is an overloaded method of the controller define function. So you may use it like what you do with the controller in MVC. Here's a pseudo example:
+@code{api-define} is an overloaded method of the controller define function. So you may use it like what you do with the controller in MVC@. Here's a pseudo example:
 @example
 (define (auth-err)
   (scm->json `((status ,status) (reason "Auth error!"))))
 
 (api-define article/list
   (options #:mime 'json #:with-auth auth-err)
-  (lambda (rc) ...)) 
+  (lambda (rc) ...))
 @end example
 Although the registered URL is @code{"article/list"}, the actual API would be @code{"v1/article/list"}, depends on the specified API version.
 
@@ -2218,7 +2218,7 @@ You can use the #:mime method to handle CSV:
 @node XML
 @section XML
 
-In Scheme, XML is handled with SXML. Another way would be to append the text to a common string.
+In Scheme, XML is handled with SXML@. Another way would be to append the text to a common string.
 @example
 (get "/xml" #:mime 'xml
      (lambda (rc)
@@ -2284,9 +2284,9 @@ However, you may use the low-level API for more configurations as well:
 
 @code{#:path} is the specified path to put uploaded files.
 
-@code{#:uid} is new UID for the uploaded files, #f uses the default UID.
+@code{#:uid} is new UID for the uploaded files, #f uses the default UID@.
 
-@code{#:gid} specifies the GID.
+@code{#:gid} specifies the GID@.
 
 @code{#:simple-ret?} specifies the mode of return:
 @itemize
@@ -2390,10 +2390,14 @@ You can use @code{#:cookies mode} to define a URL rule handler.
 @strong{mode} can be:
 @itemize
 @item
-('names names @dots{}) to specify the list name for the cookies.
+('names names @dots{}) to create cookie objects with specified names.
 @item
 ('custom (names @dots{}) maker setter getter modifier) to specify a more complicated customized cookie handler.
 @end itemize
+
+Cookie object is used to create/modify the cookie that will return to the client automatically. This is the instance of a cookie which can be controlled in server-side.
+
+If you want to get the cookie from the client, you should use @code{:cookies-copy}.
 
 And the APIs:
 @example
@@ -2405,11 +2409,8 @@ And the APIs:
                    #:path #f #:secure #f #:http-only #f)
 
 (:cookies-remove! rc key) ; remove cookie from client
-
-(:cookies-update! rc) ; cookie operations won't work unless you update it
+(:cookies-copy rc name) ; get cookie from the client
 @end example
-
-@strong{NOTE}: You don't have to call @code{:cookies-update!} yourself, since it will be called automatically by the hook before the response.
 
 For example:
 @example
@@ -2420,10 +2421,14 @@ For example:
 
 (get "/cookie/:expires" #:cookies '(names cc)
      (lambda (rc)
-       (:cookies-set! rc 'cc "sid" "123321")
+       ;; link the cookie object with actual cookie
+       (:cookies-set! rc 'cc "sid" (:cookies-value rc "sid"))
        (:cookies-setattr! rc 'cc #:expir (string->number (params rc "expires")))
        "ok"))
 @end example
+
+You should link the actual cookie "sid" to the created cookie 'cc, then you can control it. Otherwise it doesn't work.
+
 
 You can use these commands in your console to see the results:
 @example
@@ -2509,7 +2514,7 @@ static, standard HTTP headers, which means that no extra handshakes are necessar
 
 The BA mechanism provides no protection for the transmitted credentials. They are merely
 encoded with Base64, but not encrypted or hashed in any way. For that reason, Basic Authentication
-is typically used over HTTPS.
+is typically used over HTTPS@.
 
 @emph{@strong{GNU Artanis doesn't support HTTPS at present. There are plans to support it in the future.}}
 
@@ -2550,7 +2555,7 @@ APIs:
 
 There are multiple authentication methods that can be used by developers. Most of them are sort of tricky hacks. Here are the most common.
 
-The most common, and relatively safe way to authenticate, is to use the POST method, and check the username and passwd from a table in the DB.
+The most common, and relatively safe way to authenticate, is to use the POST method, and check the username and passwd from a table in the DB@.
 
 There are several ways to provide authentication.
 
@@ -2636,13 +2641,13 @@ Here's available @strong{options}:
 @item
 @code{#t} means the default failure activity: redirect to @strong{/login} page.
 @item
-URL in string, specify the login page URL. For example, @code{#:with-auth "/admin/login"}.
+URL in string, specify the login page URL@. For example, @code{#:with-auth "/admin/login"}.
 @item
 @code{'status} will return a 401 page with status code 401, which could be checked by cilent.
 @item
 @strong{Thunk} can be used to generate customized response by users. A thunk is a function without parameter.
 For example, @code{#:with-auth (lambda () (scm->json-string '((status . 401) (reason . "No auth"))))}.
-This is useful to customize your protocol in JSON for RESTful API.
+This is useful to customize your protocol in JSON for RESTful API@.
 @end itemize
 
 @strong{NOTE:} Different from other @ref{Shortcuts, , shortcuts}, there's no @code{:with-auth} @strong{apply} for user customized operations
@@ -2743,7 +2748,7 @@ Let's set a simple cache setting for dynamic content:
 
 If you want to cache a static file, and permit proxies cache the content:
 @example
-(get "/hide" #:cache '(public "pub/some.html")
+(get "/hide" #:cache '(public "/some.html")
      (lambda (rc)
        (:cache rc)))
 @end example
@@ -2753,7 +2758,7 @@ But, if your current URL rule is used for authentication (once you use @code{#:a
 (get "/pauth"
   #:auth `(basic ,(lambda (rc u p) (and (string=? u "nala")
                                         (string=? p "123"))))
-  #:cache '(public "pub/some.html") ; will be changed to 'private' forcely.
+  #:cache '(public "/some.html") ; will be changed to 'private' forcely.
   (lambda (rc) (:cache rc)))
 @end example
 
@@ -2766,7 +2771,7 @@ But, if your current URL rule is used for authentication (once you use @code{#:a
 * Raw SQL::
 * String template::
 * SQL-Mapping shortcut (unfinished)::
-* Authentication: Authentication 1. 
+* Authentication: Authentication (1). 
 @end menu
 
 @node What is shortcuts?
@@ -2907,7 +2912,7 @@ Fetch the sql-mapping with @emph{name} rendered from @emph{sql-template}.
 @end itemize
 @end itemize
 
-@node Authentication 1
+@node Authentication (1)
 @section Authentication
 
 See @ref{Authentication}.
@@ -2935,7 +2940,7 @@ Websockets are important for GNU Artanis's design. Please see @ref{Principles} f
 @node Websocket basic usage
 @section Websocket basic usage
 
-In GNU Artanis, a Websocket handling is triggered by setting it on a specific URL.
+In GNU Artanis, a Websocket handling is triggered by setting it on a specific URL@.
 You should use @code{#:websocket} to configure the Websocket.
 Here's the API definition:
 @example
@@ -3214,13 +3219,13 @@ The Websocket authentication hasn't been unsupported yet.
 @chapter Ragnarok server core
 
 @menu
-* Introduction: Introduction 1. 
+* Introduction: Introduction (1). 
 * Principles::
 * Features::
 * Ragnarok APIs::
 @end menu
 
-@node Introduction 1
+@node Introduction (1)
 @section Introduction
 
 Since version 0.2, GNU Artanis has started to use a strong server core for high concurrency.
@@ -3432,7 +3437,7 @@ TODO
 @section React + Typescript
 
 It is strongly recommended to use Typescript to replace Javascript.
-And Typescript transpiler is licensed with Apache-2.0 which is compatible with GPL.
+And Typescript transpiler is licensed with Apache-2.0 which is compatible with GPL@.
 Although Typescript was dismissed because of the size and little slower performance,
 the rubustness should be more important in the development.
 
@@ -3599,7 +3604,7 @@ Then, under project folders, open a new terminal, and type:
 art work
 @end example
 
-OK, now open @strong{@uref{http://localhost:3000/pub/index.html}} to see your work.
+OK, now open @strong{@uref{http://localhost:3000/index.html}} to see your work.
 
 It's just a Hello World. Feel free to modify it for your cases.
 
@@ -3661,7 +3666,7 @@ The “Cover Texts” are certain short passages of text that are listed, as Fro
 
 A “Transparent” copy of the Document means a machine-readable copy, represented in a format whose specification is available to the general public, that is suitable for revising the document straightforwardly with generic text editors or (for images composed of pixels) generic paint programs or (for drawings) some widely available drawing editor, and that is suitable for input to text formatters or for automatic translation to a variety of formats suitable for input to text formatters. A copy made in an otherwise Transparent file format whose markup, or absence of markup, has been arranged to thwart or discourage subsequent modification by readers is not Transparent. An image format is not Transparent if used for any substantial amount of text. A copy that is not “Transparent” is called “Opaque”.
 
-Examples of suitable formats for Transparent copies include plain ASCII without markup, Texinfo input format, @LaTeX{} input format, SGML or XML using a publicly available DTD, and standard-conforming simple HTML, PostScript or PDF designed for human modification. Examples of transparent image formats include PNG, XCF and JPG. Opaque formats include proprietary formats that can be read and edited only by proprietary word processors, SGML or XML for which the DTD and/or processing tools are not generally available, and the machine-generated HTML, PostScript or PDF produced by some word processors for output purposes only.
+Examples of suitable formats for Transparent copies include plain ASCII without markup, Texinfo input format, @LaTeX{} input format, SGML or XML using a publicly available DTD, and standard-conforming simple HTML, PostScript or PDF designed for human modification. Examples of transparent image formats include PNG, XCF and JPG@. Opaque formats include proprietary formats that can be read and edited only by proprietary word processors, SGML or XML for which the DTD and/or processing tools are not generally available, and the machine-generated HTML, PostScript or PDF produced by some word processors for output purposes only.
 
 The “Title Page” means, for a printed book, the title page itself, plus such following pages as are needed to hold, legibly, the material this License requires to appear in the title page. For works in formats which do not have any title page as such, “Title Page” means the text near the most prominent appearance of the work’s title, preceding the beginning of the body of the text.
 

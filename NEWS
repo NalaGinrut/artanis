@@ -169,3 +169,10 @@ Changes in 0.4.1
 - Polish sendmail module
 - Refactor command module for better reusing
 - Add missing 'art migrate create'
+
+Changes in 0.5
+* Notable changes
+- Support Guile-3
+- Use libnss for hash algorithms
+- Fix cookies to work
+- Fix ssql for SQL standard
