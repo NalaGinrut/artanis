@@ -45,12 +45,12 @@
   (make-cookie nvp expires domain path secure http-only)
   cookie?
   (nvp cookie-nvp cookie-nvp!)          ; Name-Value-Pairs of the cookie
-  (expires cookie-expires cookie-expires!)    ; The expiration in Greenwich Mean Time
+  (expires cookie-expires cookie-expires!) ; The expiration in Greenwich Mean Time
   (domain cookie-domain cookie-domain!) ; The domain the cookie is good for
   (path cookie-path cookie-path!)       ; The path the cookie is good for
   ;; keep cookie communication limited to encrypted transmission
   (secure cookie-secure cookie-secure!) ; The secure need of cookie
-  (http-only cookie-httponly cookie-httponly!)); http-only
+  (http-only cookie-httponly cookie-httponly!)) ; http-only
 
 ;; NOTE: expires should be positive integer
 (define* (cookie-modify ck #:key expires domain path secure http-only)
