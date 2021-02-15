@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019,2021
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -24,6 +24,7 @@
   #:use-module (artanis irregex)
   #:use-module (artanis tpl utils)
   #:use-module (artanis tpl lexer)
+  #:use-module (artanis third-party json)
   #:use-module (system base lalr)
   #:export (tpl-read))
 
@@ -46,6 +47,13 @@
 (define (gen-command cmd args)
   (define-syntax-rule (-> x)
     (string-trim-both x (lambda (ch) (char-set-contains? char-set:whitespace ch))))
+  (define-syntax-rule (->js-hash filename)
+    (let* ((path (get-conf '(server jsmanifest)))
+           (mfile (format #f "~a/~a/manifest.json" (current-toplevel) path))
+           (jsmap (and (file-exists? mfile)
+                       (call-with-input-file mfile json->scm))))
+      (or (and jsmap (assoc-ref jsmap filename))
+          filename)))
   (define-syntax-rule (->url args)
     (let ((file (-> args)))
       (cond
@@ -55,19 +63,23 @@
         (case cmd
           ((css) (format #f "/css/~a" file))
           ((icon) (format #f "/img/~a" file))
-          ((js module) (format #f "/js/~a" file))
+          ((js module) (format #f "/js/~a" (->js-hash file)))
           (else
            (throw 'artanis-err 500 gen-command
                   "Invalid command `~a' in template!" cmd)))))))
   (case cmd
     ((css)
-     (format #f "\"<link rel=\\\"stylesheet\\\" href=\\\"~a\\\" />\"" (->url args)))
+     (format #f "\"<link rel=\\\"stylesheet\\\" href=\\\"~a\\\" />\""
+             (->url args)))
     ((icon)
-     (format #f "\"<link rel=\\\"icon\\\" href=\\\"~a\\\" type=\\\"image/x-icon\\\" />\"" (->url args)))
+     (format #f "\"<link rel=\\\"icon\\\" href=\\\"~a\\\" type=\\\"image/x-icon\\\" />\""
+             (->url args)))
     ((module)
-     (format #f "\"<script type=\\\"module\\\" src=\\\"~a\\\"> </script>\"" (->url args)))
+     (format #f "\"<script type=\\\"module\\\" src=\\\"~a\\\"> </script>\""
+             (->url args)))
     ((js)
-     (format #f "\"<script type=\\\"text/javascript\\\" src=\\\"~a\\\"> </script>\"" (->url args)))
+     (format #f "\"<script type=\\\"text/javascript\\\" src=\\\"~a\\\"> </script>\""
+             (->url args)))
     ((free-js-ann) (object->string free-JS-announcement))
     (else
      (throw 'artanis-err 500 gen-command
