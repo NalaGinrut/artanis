@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019,2021
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -251,6 +251,11 @@ server.mmapped = <boolean>")
      (HEAD GET POST PUT)
      "The allowed HTTP methods.
 server.allowedmethods = <methods-list>")
+
+    ((server jsmanifest)
+     "pub"
+     "The path to find \"manifest.json\".
+server.jsmanifest = <string>")
 
     ((websocket maxpayload)
      ,(1- (ash 1 64))
