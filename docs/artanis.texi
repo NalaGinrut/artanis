@@ -62,7 +62,8 @@ Introduction
 
 Installation
 
-* For users::
+* For Guix users::
+* For hardcore users::
 * For contributors::
 
 Configuration
@@ -307,22 +308,31 @@ This is described in full in the licenses.}
 @chapter Installation
 
 @menu
-* For users::
+* For Guix users::
+* For hardcore users::
 * For contributors::
 @end menu
 
-@node For users
-@section For users
+@node For Guix users
+@section For Guix users
 
-@strong{Install GNU Guile-2.2.2 or higher version:}
+GNU Guix is the advanced functional & transactional package manager, we recommend you to try it.
+You may read the @uref{https://guix.gnu.org/manual/en/html_node/Installation.html, GNU Guix installation} .
+@example
+guix install artanis
+@end example
 
-Since GNU Artanis-0.2, the GNU Guile-2.2+ is required because of the @uref{https://www.gnu.org/software/guile/manual/html_node/Non_002dBlocking-I_002fO.html, suspendable-ports}, which is the key to implement asynchronous
-non-blocking server core in GNU Artanis.
+@node For hardcore users
+@section For hardcore users
+
+@strong{Install GNU Guile-3.0.5 or higher version:}
+
+Since GNU Artanis-0.5, the GNU Guile-3+ is required.
 
 @example
-wget -c ftp://ftp.gnu.org/gnu/guile/guile-2.2.2.tar.xz
-tar xvf guile-2.2.2.tar.xz
-cd guile-2.2.2 && ./configure && make #(NOTE: this may take very long time even looks like halting)
+wget -c ftp://ftp.gnu.org/gnu/guile/guile-3.0.5.tar.xz
+tar xvf guile-3.0.5.tar.xz
+cd guile-3.0.5 && ./configure && make #(NOTE: this may take very long time even looks like halting)
 sudo make install
 @end example
 
