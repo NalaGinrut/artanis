@@ -2,7 +2,7 @@ FROM        debian:sid-slim
 MAINTAINER  Mu Lei
 ENV         LANG C.UTF-8
 RUN     apt-get update \
-        && apt-get install -y texinfo guile-3.0 guile-3.0-dev build-essential automake git autoconf libtool libmariadbclient-dev libmariadbd-dev libnss3 libnss3-dev redis redis-server
+        && apt-get install -y texinfo guile-3.0 guile-3.0-dev build-essential automake git autoconf libtool libmariadbclient-dev libmariadbd-dev libnss3 libnss3-dev redis redis-server \
         && rm -rf /var/lib/apt/lists/*
 
 ARG CACHE_DBI=1
