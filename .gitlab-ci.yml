@@ -26,7 +26,11 @@ test:
     - master
 docker:
   stage: production
-  - docker build -t register.gitlab.com/nalaginrut/artanis:latest .
-  - docker push register.gitlab.com/nalaginrut/artanis:latest
+  script:
+   - docker build -t register.gitlab.com/nalaginrut/artanis:latest .
+   - docker push register.gitlab.com/nalaginrut/artanis:latest
+  only:
+    - master
 stages:
   - test
+  - production
