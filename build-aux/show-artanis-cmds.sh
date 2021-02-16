@@ -1,5 +1,5 @@
 ##  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-##  Copyright (C) 2015
+##  Copyright (C) 2015,2021
 ##      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ##  Artanis is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU General Public License and GNU
@@ -33,6 +33,11 @@ _art()
         local second=${COMP_WORDS[COMP_CWORD-1]}
         # create draw help migrate version work
         case $second in
+            "create")
+                local res=`art create --options-list`
+                COMPREPLY=($(compgen -W "$res" -- "$cur"));
+                return 0;
+                ;;
             "draw")
                 local res=`art draw --component`
                 COMPREPLY=($(compgen -W "$res" -- "$cur"));
@@ -58,7 +63,7 @@ _art()
                 return 0;
                 ;;
             "migrate")
-               local res=`art migrate --scandir-list`
+                local res=`art migrate --scandir-list`
                 COMPREPLY=($(compgen -W "$res" -- "$cur"));
                 return 0;
                 ;;
@@ -67,21 +72,21 @@ _art()
         local second=${COMP_WORDS[1]}
         case $second in
             "draw")
-                  local res=`art draw --options-list`
-                  COMPREPLY=($(compgen -W "$res" -- "$cur"));
-                  return 0;
-                  ;;
+                local res=`art draw --options-list`
+                COMPREPLY=($(compgen -W "$res" -- "$cur"));
+                return 0;
+                ;;
             "migrate")
-                  local res=`art migrate --options-list`
-                  COMPREPLY=($(compgen -W "$res" -- "$cur"));
-                  return 0;
-                  ;;
+                local res=`art migrate --options-list`
+                COMPREPLY=($(compgen -W "$res" -- "$cur"));
+                return 0;
+                ;;
             "work")
                 local res=`art work --options-list`
                 COMPREPLY=($(compgen -W "$res" -- "$cur"));
                 return 0;
                 ;;
-            esac
+        esac
     fi
     return
 }
