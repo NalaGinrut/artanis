@@ -29,6 +29,7 @@ test:
 docker:
   stage: production
   script:
+   - cd ..
    - docker build -t register.gitlab.com/nalaginrut/artanis:latest .
    - docker push register.gitlab.com/nalaginrut/artanis:latest
   only:
