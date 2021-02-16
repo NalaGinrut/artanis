@@ -28,6 +28,8 @@ test:
     - master
 docker:
   stage: production
+  variables:
+    DOCKER_HOST: tcp://localhost:2375
   script:
    - cd ..
    - docker build -t register.gitlab.com/nalaginrut/artanis:latest .
