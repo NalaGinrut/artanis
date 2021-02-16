@@ -474,6 +474,7 @@ debug.monitor = <PATHs>")))
     (('sendfile v) (conf-set! '(server sendfile) (->bool v)))
     (('mmapped v) (conf-set! '(server mmapped) (->bool v)))
     (('allowedmethods ml) (conf-set! '(server allowedmethods) (->methods ml)))
+    (('jsmanifest jm) (conf-set! '(server jsmanifest) (->none/str jm)))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 
 (define (parse-namespace-websocket item)
