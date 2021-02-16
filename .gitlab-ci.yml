@@ -2,7 +2,7 @@ image: debian:sid-slim
 
 before_script:
   - apt-get -qq update
-  - apt-get -qq -y install texinfo guile-3.0 guile-3.0-dev build-essential automake git autoconf libtool libmariadbclient-dev libmariadbd-dev libnss3 libnss3-dev
+  - apt-get -qq -y install texinfo guile-3.0 guile-3.0-dev build-essential automake git autoconf libtool libmariadbclient-dev libmariadbd-dev libnss3 libnss3-dev docker-ce docker-ce-cli containerd.io
   - git clone --depth 1 git://github.com/opencog/guile-dbi.git 
   - cd guile-dbi/guile-dbi
   - ./autogen.sh 
@@ -24,5 +24,9 @@ test:
    - make test && guile -c '(display (@ (artanis artanis) artanis-version))'
   only:
     - master
+docker:
+  stage: production
+  - docker build -t register.gitlab.com/nalaginrut/artanis:latest .
+  - docker push register.gitlab.com/nalaginrut/artanis:latest
 stages:
   - test
