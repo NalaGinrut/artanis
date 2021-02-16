@@ -2,7 +2,7 @@ image: debian:sid-slim
 
 before_script:
   - apt-get -qq update
-  - apt-get -qq -y install texinfo guile-3.0 guile-3.0-dev build-essential automake git autoconf libtool libmariadbclient-dev libmariadbd-dev libnss3 libnss3-dev docker-ce docker-ce-cli containerd.io
+  - apt-get -qq -y install texinfo guile-3.0 guile-3.0-dev build-essential automake git autoconf libtool libmariadbclient-dev libmariadbd-dev libnss3 libnss3-dev docker docker-engine docker.io runc
   - git clone --depth 1 git://github.com/opencog/guile-dbi.git 
   - cd guile-dbi/guile-dbi
   - ./autogen.sh 
