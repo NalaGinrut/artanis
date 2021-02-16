@@ -2,7 +2,7 @@ image: debian:sid-slim
 
 before_script:
   - apt-get -qq update
-  - apt-get -qq -y install texinfo guile-3.0 guile-3.0-dev build-essential automake git autoconf libtool libmariadbclient-dev libmariadbd-dev libnss3 libnss3-dev docker docker-engine docker.io runc
+  - apt-get -qq -y install texinfo guile-3.0 guile-3.0-dev build-essential automake git autoconf libtool libmariadbclient-dev libmariadbd-dev libnss3 libnss3-dev apt-transport-https ca-certificates curl gnupg2 software-properties-common
   - git clone --depth 1 git://github.com/opencog/guile-dbi.git 
   - cd guile-dbi/guile-dbi
   - ./autogen.sh 
@@ -27,6 +27,10 @@ test:
 docker:
   stage: production
   script:
+   - curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add
+   - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian buster stable" 
+   - apt-get update
+   - apt-get install docker-ce docker-ce-cli containerd.io
    - docker build -t register.gitlab.com/nalaginrut/artanis:latest .
    - docker push register.gitlab.com/nalaginrut/artanis:latest
   only:
