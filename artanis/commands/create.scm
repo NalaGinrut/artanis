@@ -18,6 +18,7 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis commands create)
+  #:use-module (artanis version)
   #:use-module (artanis config)
   #:use-module (artanis utils)
   #:use-module (artanis env)
@@ -33,6 +34,9 @@
 (define (show-help)
   (display announce-head)
   (display "\nUsage:\n  art create proj-path\n")
+  (display "\n[Special]
+  art create --upgrade
+  * Upgade webapp to current Artanis and keep existing configs.\n")
   (display announce-foot))
 
 (define conf-header
@@ -122,6 +126,9 @@
         (lambda (port)
           (for-each (lambda (c)
                       (match c
+                        (('(server info) _ comments)
+                         (format port "~%~aserver.info = ~a~%"
+                                 (->comments comments) artanis-version))
                         ((ns val comments)
                          (format port "~%~a~{~a~^.~} = ~a~%" (->comments comments) ns (->proper (read-config-val ns val))))
                         (else (error create-local-config "BUG: Invalid conf value!" c))))
@@ -254,6 +261,7 @@
     (irregex-search "^-.*" x))
   (match args
     (("create" "--upgrade") (upgrade-config))
+    (("create" "--options-list") (display "--upgrade --help\n"))
     (("create" (or () (? validname?) "help" "--help" "-help" "-h")) (show-help))
     (("create" name) (create-project name))
     (else (show-help))))
