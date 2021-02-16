@@ -3,7 +3,8 @@ image: debian:sid-slim
 before_script:
   - apt-get -qq update
   - apt-get -qq -y install texinfo guile-3.0 guile-3.0-dev build-essential automake git autoconf libtool libmariadbclient-dev libmariadbd-dev libnss3 libnss3-dev
-  - apt-get -qq -y install  apt-transport-https ca-certificates curl gnupg2 software-properties-common redis redis-server
+  - apt-get -qq -y install docker docker.io redis redis-server
+  - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
   - git clone --depth 1 git://github.com/opencog/guile-dbi.git 
   - cd guile-dbi/guile-dbi
   - ./autogen.sh 
@@ -15,24 +16,19 @@ before_script:
   - ./autogen.sh 
   - ./configure --prefix=/usr && make 
   - make install && ldconfig && cd ../..
+  - ./autogen.sh
+  - mkdir -p build && cd build && ../configure
+  - make V=
+  - make install
 test:
   stage: test
   script:
-   - ./autogen.sh
-   - mkdir -p build && cd build && ../configure
-   - make V=
-   - make install
    - make test && guile -c '(display (@ (artanis artanis) artanis-version))'
   only:
     - master
 docker:
   stage: production
   script:
-   - curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add
-   - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian buster stable" 
-   - apt-get update
-   - apt-get -qq -y install docker-ce docker-ce-cli containerd.io
-   - service docker start
    - docker build -t register.gitlab.com/nalaginrut/artanis:latest .
    - docker push register.gitlab.com/nalaginrut/artanis:latest
   only:
