@@ -299,10 +299,10 @@
        (or (check-it rc sid) (apply spawn-handler rc args)))
       ('spawn (apply spawn-handler rc args))
       ('drop
-       (session-destory! (get-sid rc "sid"))
+       (session-destroy! (get-sid rc "sid"))
        (:cookies-remove! rc "sid"))
       (`(drop ,sid)
-       (session-destory! (get-sid rc sid))
+       (session-destroy! (get-sid rc sid))
        (:cookies-remove! rc sid))
       (else (throw 'artanis-err 500 session-maker "Invalid call cmd: ~a" cmd)))))
 

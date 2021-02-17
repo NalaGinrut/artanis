@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017,2018
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2021
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -34,7 +34,7 @@
             session-ref
             session-expired?
             session-spawn
-            session-destory!
+            session-destroy!
             session-restore
             session-from-correct-client?
             add-new-session-backend
@@ -45,7 +45,7 @@
             session-backend-name
             session-backend-init
             session-backend-store!
-            session-backend-destory!
+            session-backend-destroy!
             session-backend-restore
             session-backend-set!
             session-backend-ref))
@@ -100,7 +100,7 @@
    meta ; anything necessary for a specific backend
    init ; -> session-backend
    store! ; -> session-backend -> string -> hash-table
-   destory! ; -> session-backend -> string
+   destroy! ; -> session-backend -> string
    restore ; -> session-backend -> string
    set! ; -> session-backend -> string -> string -> object
    ref)) ; -> session-backend -> string -> string
@@ -115,7 +115,7 @@
         (s (object->string (session->alist ss))))
     (backend-impl:set!/redis redis sid s)))
 
-(define (backend:session-destory/redis sb sid)
+(define (backend:session-destroy/redis sb sid)
   (let ((redis (session-backend-meta sb)))
     (if (backend:session-restore/redis sb sid)
         (backend-impl:remove!/redis redis sid))
@@ -156,7 +156,7 @@
                         (new-lpc-backend/redis #:host host  #:port port)
                         backend:session-init/redis
                         backend:session-store/redis
-                        backend:session-destory/redis
+                        backend:session-destroy/redis
                         backend:session-restore/redis
                         backend:session-set/redis
                         backend:session-ref/redis))
@@ -188,7 +188,7 @@
     (mt 'set 'Sessions #:sid sid #:expires expires #:client client
         #:data data #:valid valid)))
 
-(define (backend:session-destory/db sb sid)
+(define (backend:session-destroy/db sb sid)
   (let ((mt (map-table-from-DB (session-backend-meta sb))))
     (mt 'set 'Sessions #:valid "0")))
 
@@ -221,7 +221,7 @@
                         (current-connection)
                         backend:session-init/db
                         backend:session-store/db
-                        backend:session-destory/db
+                        backend:session-destroy/db
                         backend:session-restore/db
                         backend:session-set/db
                         backend:session-ref/db))
@@ -234,7 +234,7 @@
   (hash-set! (session-backend-meta sb) sid ss))
 
 ;; FIXME: lock needed?
-(define (backend:session-destory/simple sb sid)
+(define (backend:session-destroy/simple sb sid)
   (hash-remove! (session-backend-meta sb) sid))
 
 (define (backend:session-restore/simple sb sid)
@@ -262,7 +262,7 @@
                         (make-hash-table) ; here, meta is session table
                         backend:session-init/simple
                         backend:session-store/simple
-                        backend:session-destory/simple
+                        backend:session-destroy/simple
                         backend:session-restore/simple
                         backend:session-set/simple
                         backend:session-ref/simple))
@@ -299,7 +299,7 @@
     (DEBUG "[Session] store session `~a' to file~%" sid)
     (save-session-to-file sid s)))
 
-(define (backend:session-destory/file sb sid)
+(define (backend:session-destroy/file sb sid)
   (let ((f (get-session-file sid)))
     (and (file-exists? f)
          (delete-file f))))
@@ -339,7 +339,7 @@
                         #f ; here, no meta is needed.
                         backend:session-init/file
                         backend:session-store/file
-                        backend:session-destory/file
+                        backend:session-destroy/file
                         backend:session-restore/file
                         backend:session-set/file
                         backend:session-ref/file))
@@ -354,8 +354,8 @@
    (current-session-backend)
    k))
 
-(define (session-destory! sid)
-  ((session-backend-destory! (current-session-backend))
+(define (session-destroy! sid)
+  ((session-backend-destroy! (current-session-backend))
    (current-session-backend)
    sid))
 
@@ -369,8 +369,8 @@
     (if session
         (cond
          ((session-expired? session)
-          (DEBUG "[Session] sid: ~a is expired, destory!~%" sid)
-          (session-destory! sid)
+          (DEBUG "[Session] sid: ~a is expired, destroy!~%" sid)
+          (session-destroy! sid)
           'expired) ; expired then return #f
          (else
           (DEBUG "[Session] Restored session: ~a~%"
