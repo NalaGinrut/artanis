@@ -184,13 +184,13 @@
         (expires (hash-ref ss "expires"))
         (client (hash-ref ss "client"))
         (data (object->string (hash-ref ss "data")))
-        (valid "1"))
+        (valid 1))
     (mt 'set 'Sessions #:sid sid #:expires expires #:client client
         #:data data #:valid valid)))
 
 (define (backend:session-destroy/db sb sid)
   (let ((mt (map-table-from-DB (session-backend-meta sb))))
-    (mt 'set 'Sessions #:valid "0")))
+    (mt 'set 'Sessions #:valid 0)))
 
 (define (backend:session-restore/db sb sid)
   (let* ((mt (map-table-from-DB (session-backend-meta sb)))
