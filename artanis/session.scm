@@ -194,7 +194,7 @@
 
 (define (backend:session-restore/db sb sid)
   (let* ((mt (map-table-from-DB (session-backend-meta sb)))
-         (cnd (where #:sid sid #:valid "1"))
+         (cnd (where #:sid sid #:valid 1))
          (valid (mt 'get 'Sessions #:condition cnd #:ret 'top)))
     (DEBUG "[backend:session-restore/db] ~a~%" valid)
     (and (not (null? valid)) (apply make-session valid))))
@@ -202,7 +202,7 @@
 (define (backend:session-set/db sb sid k v)
   (define-syntax-rule (-> x) (and x (call-with-input-string x read)))
   (let* ((mt (map-table-from-DB (session-backend-meta sb)))
-         (cnd (where #:sid sid #:valid "1"))
+         (cnd (where #:sid sid #:valid 1))
          (data (-> (mt 'ref 'Sessions #:columns '(data) #:condition cnd))))
     (and data
          (mt 'set 'Sessions
@@ -212,7 +212,7 @@
 (define (backend:session-ref/db sb sid k)
   (define-syntax-rule (-> x) (and x (call-with-input-string x read)))
   (let* ((mt (map-table-from-DB (session-backend-meta sb)))
-         (cnd (where #:sid sid #:valid "1"))
+         (cnd (where #:sid sid #:valid 1))
          (data (-> (mt 'ref 'Sessions #:columns '(data) #:condition cnd))))
     (and data (assoc-ref data k))))
 
