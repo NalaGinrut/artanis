@@ -5,33 +5,35 @@ This file is about the security issues of Artanis, include some advices or conve
 1. DO NOT use any escapable chars in the binding field, say, whitespaces:
    e.g: /conn/lei mu/
    Please use underscore: /conn/lei_mu
-   In cause you forget to avoid to use uri-decode, see Rule 2 below.
+   In case you forget to avoid to use uri-decode, see Rule 2 below.
 
 2. DO NOT use uri-decode on binding field:
    e.g: /fucked/lei%22;select%20*%20from%20Persons%20where%20Lastname=%22ada
    If you use (:conn rc (uri-decode (params rc "name"))),
    then you're fucked...
+   (The result would be: "/fucked/lei\";select * from Persons where Lastname=\"ada".)
    Fortunatly, guile-dbd-mysql-2.0.4 doesn't enable CLIENT_MULTI_STATEMENTS
    in default, which could avoid the injection mentioned above.
-   
+
    BUT I suggest you do not rely on this lucky point, please follow the
-   conventions I written here.
-   
+   conventions I have written here.
+
    It's still possibly to be SQL-injected, say, passwd checking:
    /list_my_info?username=lei%20or%20%22x%22=%22x%20;%23
    And if someone is stupid enough to use uri-decode on
-   `username' because of using whitespaces in `username',
-   it's fucked! list_my_info is expected to list the info what user has specified
+   `username', because of using whitespaces in `username',
+   it's fucked!
+   (The result would be: "lei or \"x\"=\"x ;#", which will always be true.)
+   list_my_info is expected to list the info what user has specified
    in `username', but now, it'll show all the users' info include passwd.
 
 * DO NOT use uri-decode when the result will be fed to DB.
   You are allowed to use uri-decode when the result is ready to be sent to client.
 
-* The response may return redundant http headers if users didn't make it
+* The response may return redundant HTTP headers, if users didn't make it
   properly. Artanis is not going to check the redundant headers, it's the users'
   duty to do it.
 
-* If you want to use `prompts' with your own named `propmt-tag', please make sure that
+* If you want to use `prompts' with your own named `prompt-tag', please make sure that
   you use `abort-to-prompt' to abort to the tag you specified when delimiting. DO NOT use
   `abort' since it's using the result of (default-prompt-tag).
-  
