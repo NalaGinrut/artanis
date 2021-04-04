@@ -175,7 +175,7 @@
                  (client varchar 39) ; 39 for IPv6
                  ;; NOTE: Since Boolean type is not supported by all
                  ;;       DBDs, so we choose Integer to make them happy.
-                 (valid integer)))) ; 1 for valid, 0 for expired
+                 )))
     (mt 'create 'Sessions defs #:if-exists? 'ignore #:primary-keys '(sid))
     (DEBUG "Init session DB backend is done!~%")))
 
@@ -183,18 +183,17 @@
   (let ((mt (map-table-from-DB (session-backend-meta sb)))
         (expires (hash-ref ss "expires"))
         (client (hash-ref ss "client"))
-        (data (object->string (hash-ref ss "data")))
-        (valid 1))
+        (data (object->string (hash-ref ss "data"))))
     (mt 'set 'Sessions #:sid sid #:expires expires #:client client
-        #:data data #:valid valid)))
+        #:data data)))
 
 (define (backend:session-destroy/db sb sid)
   (let ((mt (map-table-from-DB (session-backend-meta sb))))
-    (mt 'set 'Sessions #:valid 0)))
+    (mt 'set 'Sessions)))
 
 (define (backend:session-restore/db sb sid)
   (let* ((mt (map-table-from-DB (session-backend-meta sb)))
-         (cnd (where #:sid sid #:valid 1))
+         (cnd (where #:sid sid))
          (valid (mt 'get 'Sessions #:condition cnd #:ret 'top)))
     (DEBUG "[backend:session-restore/db] ~a~%" valid)
     (and (not (null? valid)) (apply make-session valid))))
@@ -202,7 +201,7 @@
 (define (backend:session-set/db sb sid k v)
   (define-syntax-rule (-> x) (and x (call-with-input-string x read)))
   (let* ((mt (map-table-from-DB (session-backend-meta sb)))
-         (cnd (where #:sid sid #:valid 1))
+         (cnd (where #:sid sid))
          (data (-> (mt 'ref 'Sessions #:columns '(data) #:condition cnd))))
     (and data
          (mt 'set 'Sessions
@@ -212,7 +211,7 @@
 (define (backend:session-ref/db sb sid k)
   (define-syntax-rule (-> x) (and x (call-with-input-string x read)))
   (let* ((mt (map-table-from-DB (session-backend-meta sb)))
-         (cnd (where #:sid sid #:valid 1))
+         (cnd (where #:sid sid))
          (data (-> (mt 'ref 'Sessions #:columns '(data) #:condition cnd))))
     (and data (assoc-ref data k))))
 
