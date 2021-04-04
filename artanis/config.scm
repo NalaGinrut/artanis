@@ -290,8 +290,8 @@ websocket.timeout = <integer>")
     ((host name)
      #f
      "If disabled, you will have to use the IP address to connect instead of the
-hostname. e.g. `host.addr = 127.0.0.1'.
-host.name = enable | disable | <boolean>")
+hostname. e.g. `host.name = lambdachip.com'.
+host.name = <string> | disable")
 
     ((host addr)
      "127.0.0.1"
