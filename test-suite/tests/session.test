@@ -1,6 +1,6 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
 ;;  === Session tests ===
-;;  Copyright (C) 2013,2014,2015,2018
+;;  Copyright (C) 2013,2014,2015,2018,2021
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -29,8 +29,8 @@
 
   (pass-if "config-set"
     (let ((conf (list 'redis "127.0.0.1" 6379)))
-     (conf-set! '(session backend) conf)
-     (equal? conf (get-conf '(session backend)))))
+      (conf-set! '(session backend) conf)
+      (equal? conf (get-conf '(session backend)))))
 
   (pass-if "session-store-restore"
     (let* ((conf (list 'redis "127.0.0.1" 6379))
@@ -68,8 +68,5 @@
            (s '(("data") ("client" . "127.0.0.1") ("expires" . "Thu, 18 Oct 2018 11:56:45 GMT")))
            (ss (make-session s)))
       (backend:session-store/redis sb sid ss)
-      (backend:session-destory/redis sb sid)
-      (if (backend:session-restore/redis (maker) sid)
-          #f
-          #t))))
-
+      (backend:session-destroy/redis sb sid)
+      (not (backend:session-restore/redis (maker) sid)))))
