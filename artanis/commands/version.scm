@@ -22,19 +22,19 @@
   #:use-module (ice-9 command-line)
   #:export (show-version))
 
-(define copyright-year "2013~2015")
+(define copyright-year "2013~2021")
 (define author-str "NalaGinrut <mulei@gnu.org>\n")
 
 (define version-str
   (string-append
    (with-output-to-string
-    (lambda ()
-      (version-etc "GNU Artanis is a lightweight web framework written in Guile Scheme.\n" ""
-		   #:copyright-holder "Mu Lei known as NalaGinrut" #:license "GPLv3+ & LGPLv3+" #:copyright-year copyright-year)))
-;;   (show-commands)
+     (lambda ()
+       (version-etc "GNU Artanis is a lightweight web framework written in Guile Scheme.\n" ""
+                    #:copyright-holder "Mu Lei known as NalaGinrut" #:license "GPLv3+ & LGPLv3+" #:copyright-year copyright-year)))
+   ;;   (show-commands)
    author-str
    "Version: " artanis-version ".\n"
-   "God bless hacking.\n\n")) 
+   "God bless hacking.\n\n"))
 
 (define (show-version) (display version-str))
 
