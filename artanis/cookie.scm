@@ -126,7 +126,7 @@
 ;; NOTE: expires should be integer
 ;; NOTE: When we set #:expires to #t for removing the cookie, #:path MUST be "/".
 ;;       Otherwise the client may not clear the cookie correctly.
-(define* (new-cookie #:key (expires 3600) ; expires in seconds
+(define* (new-cookie #:key (expires (get-conf '(cookie expire))) ; expires in seconds
                      (npv '())
                      (path #f) (domain #f)
                      (secure #f) (http-only #t))
