@@ -528,13 +528,13 @@ debug.monitor = <PATHs>")))
 (define (parse-namespace-cache item)
   (match item
     (('maxage maxage) (conf-set! '(cache maxage) (->integer maxage)))
-    (else (error parse-namespace-mail "Config: Invalid item" item))))
+    (else (error parse-namespace-cache "Config: Invalid item" item))))
 
 (define (parse-namespace-debug item)
   (match item
     (('enable enable) (conf-set! 'debug-mode (->bool enable)))
     (('monitor monitor) (conf-set! '(debug monitor) (->list monitor)))
-    (else (error parse-namespace-cache "Config: Invalid item" item))))
+    (else (error parse-namespace-debug "Config: Invalid item" item))))
 
 (define (parse-config-item item)
   (match item
