@@ -558,6 +558,7 @@ debug.monitor = <PATHs>")
     (('upload rest ...) (parse-namespace-upload rest))
     (('mail rest ...) (parse-namespace-mail rest))
     (('cache rest ...) (parse-namespace-cache rest))
+    (('debug rest ...) (parse-namespace-debug rest))
     (('cookie rest ...) (parse-namespace-cookie rest))
     (((? string-null?)) #t) ; skip
     (else (error parse-config-item "Unsupported config namespace!" item))))
