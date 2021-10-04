@@ -261,7 +261,7 @@
 ;; for #:session
 (define (session-maker mode rule keys)
   (define* (%spawn rc #:key (idname "sid") (proc session-spawn)
-                   (path "/") domain (expires (get-conf '(cookie expire))) secure (http-only #t))
+                   (path "/") domain (expires (get-conf '(cookie expires))) secure (http-only #t))
     (call-with-values
         (lambda () (proc rc #:expires expires))
       (lambda (sid session)
