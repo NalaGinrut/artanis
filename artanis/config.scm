@@ -364,13 +364,13 @@ debug.enable = <boolean>")
 This will take advantage of `inotify' in GNU/Linux kernel.
 NOTE: We may support GNU/Hurd as well, with its file monitor mechanism, in the future.
 debug.monitor = <PATHs>")
- ((cookie expire)
+ ((cookie expires)
        3600
       "Cookie expiration time in seconds.
        1 hour is 3600
        6 hours 21600
        1 month 2592000
- cookie.expire = <integer>")))
+ cookie.expires = <integer>")))
 
 ;; Init all fields with default values
 (for-each (lambda (x) (conf-set! (car x) (cadr x))) (default-conf-values))
@@ -545,7 +545,7 @@ debug.monitor = <PATHs>")
 
 (define (parse-namespace-cookie item)
   (match item
-     (('expire expire) (conf-set! '(cookie expire) (->integer expire)))
+     (('expire expire) (conf-set! '(cookie expires) (->integer expire)))
     (else (error parse-namespace-cookie "Config: Invalid item" item))))
 
 (define (parse-config-item item)
