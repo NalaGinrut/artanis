@@ -384,7 +384,7 @@
    sid session)
   session)
 
-(define* (session-spawn rc #:key (data '()) (expires 3600))
+(define* (session-spawn rc #:key (data '()) (expires (get-conf '(cookie expires))))
   (define (is-valid-session? s)
     (case s
       ((expired not-found) #f)

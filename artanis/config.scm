@@ -363,7 +363,14 @@ debug.enable = <boolean>")
      "The paths that needs to be monitored in debug-mode.
 This will take advantage of `inotify' in GNU/Linux kernel.
 NOTE: We may support GNU/Hurd as well, with its file monitor mechanism, in the future.
-debug.monitor = <PATHs>")))
+debug.monitor = <PATHs>")
+ ((cookie expires)
+       3600
+      "Cookie expiration time in seconds.
+       1 hour is 3600
+       6 hours 21600
+       1 month 2592000
+ cookie.expires = <integer>")))
 
 ;; Init all fields with default values
 (for-each (lambda (x) (conf-set! (car x) (cadr x))) (default-conf-values))
@@ -536,6 +543,11 @@ debug.monitor = <PATHs>")))
     (('monitor monitor) (conf-set! '(debug monitor) (->list monitor)))
     (else (error parse-namespace-debug "Config: Invalid item" item))))
 
+(define (parse-namespace-cookie item)
+  (match item
+     (('expire expire) (conf-set! '(cookie expires) (->integer expire)))
+    (else (error parse-namespace-cookie "Config: Invalid item" item))))
+
 (define (parse-config-item item)
   (match item
     (('db rest ...) (parse-namespace-db rest))
@@ -547,6 +559,7 @@ debug.monitor = <PATHs>")))
     (('mail rest ...) (parse-namespace-mail rest))
     (('cache rest ...) (parse-namespace-cache rest))
     (('debug rest ...) (parse-namespace-debug rest))
+    (('cookie rest ...) (parse-namespace-cookie rest))
     (((? string-null?)) #t) ; skip
     (else (error parse-config-item "Unsupported config namespace!" item))))
 
