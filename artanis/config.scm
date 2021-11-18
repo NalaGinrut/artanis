@@ -640,7 +640,7 @@ debug.monitor = <PATHs>")))
   (define fp (open-input-file
               (cond
                ((and conf-file (file-exists? conf-file))
-                (format (artanis-current-output) "Loading conf/artanis.conf...")
+                (format (artanis-current-output) "Loading ~a..." conf-file)
                 conf-file)
                ((file-exists? *default-conf-file*)
                 (format (artanis-current-output) "Loading ~a..." *default-conf-file*)
