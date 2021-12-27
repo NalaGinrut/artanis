@@ -176,3 +176,11 @@ Changes in 0.5
 - Use libnss for hash algorithms
 - Fix cookies to work
 - Fix ssql for SQL standard
+
+Changes in 0.5.1
+* Notable changes
+- Fix cookies
+- Fix redirect-to to use host.name if set
+- Remove useless valid field in session
+- Show 'art create' options in auto complete
+- Support js hash

@@ -21,3 +21,8 @@ Thanks these guys who gave me help:
   Polished upload module.
 * Christopher Baines <mail@cbaines.net>
   Fix socketfile data connection.
+* Mortimer Cladwell <mbcladwell@gmail.com>
+  Fix cookies. Reported many issues.
+* Zelphir Kaltstahl <zelphirkaltstahl@posteo.de>
+  Fix wording in security warning.
+
