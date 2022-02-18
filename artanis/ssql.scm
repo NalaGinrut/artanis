@@ -250,7 +250,7 @@
       (-> "table ~a change column ~a ~a ~a" name old new type)))
     ((_ table name rename column old new)
      (with-dbd
-      'postgresql
+      '(postgresql sqlite3)
       (-> "table ~a rename column ~a to ~a" name old new)))
     ((_ table old-name rename new-name)
      (with-dbd

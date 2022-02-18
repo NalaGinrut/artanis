@@ -331,8 +331,27 @@
 (define (->postgresql-opts dbd opts)
   (format #t "PostgreSQL migration hasn't been supported yet!~%"))
 
-(define (->sqlite3-opts dbd opts)
-  (format #t "SQLite3 migration hasn't been supported yet!~%"))
+(define (->sqlite3-opts x opts)
+  (define-syntax-rule (->value o x)
+    (format #f "~:@(~a~) ~s" o (kw-arg-ref opts x)))
+  (case x
+    ((#:not-null) "NOT NULL")
+    ((#:null) "NULL")
+    ((#:default) "DEFAULT")
+    ((#:unique) "UNIQUE")
+    ((#:unique-key) (throw 'artanis-err 500 "Unique Key is not supported in sqlite3 during table creation."))
+    ((#:primary-key) "PRIMARY KEY")
+    ((#:key) (throw 'artanis-err 500 "Key is not supported in sqlite3 during table creation."))
+    ((#:auto-increment) "AUTOINCREMENT")
+    ((#:auto-now-once) "DEFAULT CURRENT_TIMESTAMP")
+    (else
+     (cond
+     ((keyword? x)
+      (if (is-exception-opt? x)
+          ""
+          (throw 'artanis-err 500 ->mysql-opts
+                 (format #f "Invalid opts `~a' for SQLite3 table definition!" x)))
+       "")))))
 
 (define *table-builder-opts-handler*
   `((mysql . ,->mysql-opts)
@@ -578,17 +597,13 @@
                    (get-conf '(db dbd))))))
   (define (column-drop tname cname)
     (case (get-conf '(db dbd))
-      ((mysql postgresql) (->sql alter table tname drop column cname))
-      ((sqlite3) (throw 'artanis-err 500 column-drop
-                        "SQLite3 doesn't support table column modification!"))
+      ((mysql postgresql sqlite3) (->sql alter table tname drop column cname))
       (else (throw 'artanis-err 500 column-drop
                    "Unsupported DBD!" (get-conf '(db dbd))))))
   (define (column-rename tname old new . type)
     (case (get-conf '(db dbd))
       ((mysql) (let ((t (car type))) (->sql alter table tname change column old new t)))
-      ((postgresql) (->sql alter table tname rename column old new))
-      ((sqlite3) (throw 'artanis-err 500 column-rename
-                        "SQLite3 doesn't support table column modification!"))
+      ((postgresql sqlite3) (->sql alter table tname rename column old new))
       (else (throw 'artanis-err 500 column-rename
                    "Unsupported DBD `~a'!" (get-conf '(db dbd))))))
   (define (index-rename tname old new)
@@ -658,7 +673,13 @@
     (define-syntax-rule (-> c) (map (cut normalize-column <> ci?) c))
     (and (srfi-1:every (lambda (x) (memq x schema)) (-> args)) #t))
   (define (table-exists? tname)
-    (DB-query rc/conn (format #f "show tables like '~a';" tname))
+    (case (get-conf '(db dbd))
+      ((mysql) (DB-query rc/conn (format #f "show tables like '~a';" tname)))
+      ((postgresql) (DB-query rc/conn (format #f "select from information_schema.tables where table_schema='public' and table_name='~a';" tname)))
+      ((sqlite3) (DB-query rc/conn (format #f "select * from sqlite_master where type='table' and name='~a'" tname)))
+      (else (throw 'artanis-err 500 table-exists?
+                   "Unsupported DBD `~a'!" (get-conf '(db dbd))))
+    )
     ;; If there's no result, dbi will return #f as the result.
     (DB-get-top-row rc/conn))
   (lambda (cmd tname . args)
