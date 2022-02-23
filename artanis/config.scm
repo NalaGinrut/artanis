@@ -364,9 +364,9 @@ debug.enable = <boolean>")
 This will take advantage of `inotify' in GNU/Linux kernel.
 NOTE: We may support GNU/Hurd as well, with its file monitor mechanism, in the future.
 debug.monitor = <PATHs>")
- ((cookie expires)
-       3600
-      "Cookie expiration time in seconds.
+    ((cookie expires)
+     3600
+     "Cookie expiration time in seconds.
        1 hour is 3600
        6 hours 21600
        1 month 2592000
@@ -545,7 +545,7 @@ debug.monitor = <PATHs>")
 
 (define (parse-namespace-cookie item)
   (match item
-     (('expire expire) (conf-set! '(cookie expires) (->integer expire)))
+    (('expires expires) (conf-set! '(cookie expires) (->integer expires)))
     (else (error parse-namespace-cookie "Config: Invalid item" item))))
 
 (define (parse-config-item item)
@@ -565,28 +565,28 @@ debug.monitor = <PATHs>")
 
 (define (parse-line line)
   (call-with-input-string
-      line
-    (lambda (port)
-      (let lp((next (read-char port)) (key? #t) (word '()) (ret '()))
-        (cond
-         ((or (eof-object? next)
-              (char=? next #\#)) ; skip comment
-          (reverse (cons (list->string (reverse word)) ret)))
-         ((char-set-contains? char-set:whitespace next)
-          ;; skip all whitespaces
-          (lp (read-char port) key? word ret))
-         ((and key? (char=? next #\.))
-          ;; a namespace end
-          (lp (read-char port) key? '() (cons (list->symbol (reverse word)) ret)))
-         ((and key? (char=? next #\=))
-          ;; value start
-          (lp (read-char port) #f '() (cons (list->symbol (reverse word)) ret)))
-         ((not key?)
-          ;; store chars of value
-          (lp (read-char port) key? (cons next word) ret))
-         (else
-          ;; store chars of key
-          (lp (read-char port) key? (cons next word) ret)))))))
+   line
+   (lambda (port)
+     (let lp((next (read-char port)) (key? #t) (word '()) (ret '()))
+       (cond
+        ((or (eof-object? next)
+             (char=? next #\#)) ; skip comment
+         (reverse (cons (list->string (reverse word)) ret)))
+        ((char-set-contains? char-set:whitespace next)
+         ;; skip all whitespaces
+         (lp (read-char port) key? word ret))
+        ((and key? (char=? next #\.))
+         ;; a namespace end
+         (lp (read-char port) key? '() (cons (list->symbol (reverse word)) ret)))
+        ((and key? (char=? next #\=))
+         ;; value start
+         (lp (read-char port) #f '() (cons (list->symbol (reverse word)) ret)))
+        ((not key?)
+         ;; store chars of value
+         (lp (read-char port) key? (cons next word) ret))
+        (else
+         ;; store chars of key
+         (lp (read-char port) key? (cons next word) ret)))))))
 
 (define (init-inner-database-item)
   (define dbd (get-conf '(db dbd)))
