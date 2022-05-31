@@ -8,7 +8,7 @@ RUN     apt-get update \
 
 ARG CACHE_DBI=1
 RUN set -ex \
-        && git clone --depth 1 git://github.com/opencog/guile-dbi.git \
+        && git clone --depth 1 https://github.com/opencog/guile-dbi.git \
         && cd guile-dbi/guile-dbi && ./autogen.sh && ./configure && make -j \
         && make install && ldconfig && cd .. \
         \
