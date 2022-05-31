@@ -3,8 +3,8 @@ image: debian:sid-slim
 before_script:
   - apt-get -qq update
   - apt-get -qq -y install texinfo guile-3.0 guile-3.0-dev build-essential automake git autoconf libtool libmariadb-dev-compat libmariadb-dev libnss3 libnss3-dev
-  - apt-get -qq -y install redis redis-server
-  - git clone --depth 1 git://github.com/opencog/guile-dbi.git 
+  - apt-get -qq -y install redis redis-server libcurl4-nss-dev
+  - git clone --depth 1 https://github.com/opencog/guile-dbi.git 
   - cd guile-dbi/guile-dbi
   - ./autogen.sh 
   - ./configure --prefix=/usr && make
@@ -15,10 +15,14 @@ before_script:
   - ./autogen.sh 
   - ./configure --prefix=/usr && make 
   - make install && ldconfig && cd ../..
+  - git clone --depth 1 https://github.com/spk121/guile-curl.git
+  - cd guile-curl && ./bootstrap && ./configure && make -j 
+  - make install && ldconfig && cd .. 
   - ./autogen.sh
   - mkdir -p build && cd build && ../configure
   - make V=
   - make install
+
 test:
   stage: test
   script:
