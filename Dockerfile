@@ -3,7 +3,7 @@ MAINTAINER  Mu Lei
 ENV         LANG C.UTF-8
 RUN     apt-get update \
         && apt-get install -y texinfo guile-3.0 guile-3.0-dev build-essential automake git autoconf libtool libmariadbd-dev libnss3 libnss3-dev redis redis-server \
-        && apt-get install -y libcurl4-nss-dev \
+        && apt-get install -y libcurl4-nss-dev gettext \
         && rm -rf /var/lib/apt/lists/*
 
 ARG CACHE_DBI=1
