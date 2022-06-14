@@ -9,24 +9,28 @@ RUN     apt-get update \
 ARG CACHE_DBI=1
 RUN set -ex \
         && git clone --depth 1 https://github.com/opencog/guile-dbi.git \
-        && cd guile-dbi/guile-dbi && ./autogen.sh && ./configure && make -j \
+        && cd guile-dbi/guile-dbi && ./autogen.sh && ./configure --prefix=/usr \
+	&& make -j \
         && make install && ldconfig && cd .. \
         \
         && cd guile-dbd-mysql \
-        && ./autogen.sh && ./configure && make -j \
+        && ./autogen.sh && ./configure --prefix=/usr \
+	&& make -j \
         && make install && ldconfig && cd ../../ && rm -fr guile-dbi
 
 ARG CACHE_CURL=1
 RUN set -ex \
         && git clone --depth 1 https://github.com/spk121/guile-curl.git \
-        && cd guile-curl && ./bootstrap && ./configure && make -j \
+        && cd guile-curl && ./bootstrap && ./configure --prefix=/usr \
+	&& make -j \
         && make install && ldconfig && cd .. \
+	&& ln -s /usr/lib/guile/3.0/extensions/libguile-curl.* /usr/lib/ \
         && rm -fr guile-curl
 
 ARG CACHE_ARTANIS=1
 RUN     git clone --depth 1 --single-branch --branch master git://git.savannah.gnu.org/artanis.git \
         && cd artanis \
 	&& ./autogen.sh \
-	&& ./configure \
+	&& ./configure --prefix=/usr \
 	&& make -j \
         && make install && cd .. && rm -fr artanis
