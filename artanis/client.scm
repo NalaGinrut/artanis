@@ -20,7 +20,7 @@
 (define-module (artanis client)
   #:use-module (web response)
   #:use-module (web uri)
-  #:use-module (srfi srif-11)
+  #:use-module (srfi srfi-11)
   #:use-module (curl)
   #:export (artanis:http-get))
 
