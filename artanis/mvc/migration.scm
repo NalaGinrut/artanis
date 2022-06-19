@@ -55,7 +55,7 @@
            (define #,(datum->syntax x '*migrate-handlers*) '())
            (define (#,(datum->syntax x 'migrate-add!) cmd handler)
              (set! *migrate-handlers*
-               (assoc-set! *migrate-handlers* cmd handler)))
+                   (assoc-set! *migrate-handlers* cmd handler)))
            (define-syntax #,(datum->syntax x 'migrate-create)
              (syntax-rules ::: ()
                            ((_ do-migrate-create :::)

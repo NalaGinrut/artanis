@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2016,2019
+;;  Copyright (C) 2015,2016,2019,2022
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -32,6 +32,7 @@
 
 (define (print-options)
   (display "\nOPTIONS:\n")
+  (format #t "~2t--all~%")
   (format #t "~2tVERSION=version~%")
   (format #t "~2t--debug~%"))
 
@@ -68,10 +69,10 @@
 
 (define (%migrate op name opts)
   (define *mfile-re*
-    (string->irregex (format #f "^~a_(\\d{14})\\.scm$" name)))
+    (string->irregex (format #f "^(~a)_(\\d{14})\\.scm$" name)))
   (define (compare-mfile x y)
-    (let ((mx (irregex-match-substring (irregex-search *mfile-re* x) 1))
-          (my (irregex-match-substring (irregex-search *mfile-re* y) 1)))
+    (let ((mx (irregex-match-substring (irregex-search *mfile-re* x) 2))
+          (my (irregex-match-substring (irregex-search *mfile-re* y) 2)))
       (>= (string->number mx) (string->number my))))
   (define (is-mfile s) (irregex-search *mfile-re* s))
   (define path (format #f "~a/db/migration" (current-toplevel)))
@@ -85,16 +86,50 @@
           (() (format #t "Migration: No migrations of `~a' were found!~%" name) #f)
           ((f . rest) (format #f "~a/~a" path f))
           (else (throw 'artanis-err 500 %migrate "Unknown error!")))))))
-  (let ((f (gen-migrate-file)))
-    (when (string? f)
-      (format #t "[Migrating ~a]~%" (basename f))
-      (use-modules (artanis mvc migration)) ; trick to make migrator happy
-      (load f)
-      (let ((m (resolve-module
-                `(db migration ,(string->symbol (gen-migrate-module-name f))))))
-        ((module-ref m 'migrator) op)
-        ;; TODO: do migration
-        ))))
+  (define (handle-one-migrate f)
+    (format #t "[Migrating ~a]~%" (basename f))
+    (use-modules (artanis mvc migration)) ; trick to make migrator happy
+    (load f)
+    (let ((m (resolve-module
+              `(db migration ,(string->symbol (gen-migrate-module-name f))))))
+      ((module-ref m 'migrator) op)))
+  (define (find-all-latest-migration)
+    (define re (string->irregex  "^([^_]+)_(\\d{14})\\.scm$"))
+    (define (is-valid-mfile? f)
+      (irregex-match re f))
+    (let ((fl (sort (scandir path is-valid-mfile?) string-ci<?)))
+      (fold (lambda (f p)
+              (cond
+               ((irregex-match re f)
+                => (lambda (m)
+                     (let ((mname (irregex-match-substring m 1))
+                           (timestamp (string->number (irregex-match-substring m 2))))
+                       (match p
+                         (() (cons (cons mname timestamp) p))
+                         (((mname-last . timestamp-last) rest ...)
+                          (cond
+                           ((string=? mname mname-last)
+                            (if (> timestamp timestamp-last)
+                                (cons (cons mname timestamp) (cdr p))
+                                p))
+                           (else
+                            (cons (cons mname timestamp) p))))))))
+
+               (else p)))
+            '()
+            fl)))
+  (define (gen-migrate)
+    (match name
+      ("--all" (find-all-latest-migration))
+      (else (gen-migrate-file))))
+  (let ((f (gen-migrate)))
+    (cond
+     ((string? f) (handle-one-migrate f))
+     ((list? f)
+      (for-each handle-one-migrate f))
+     (else (throw 'artanis-err 500 %migrate
+                  "Invalid migration name `~a'!"
+                  f)))))
 
 (define (valid-operator? op)
   (case (string->symbol op)
@@ -115,7 +150,8 @@
   (let* ((scandir_list (scandir "db/migration"))
          (filter_list (filter-map filter_fun scandir_list))
          (list_to_hash (alist->hash-table (map (lambda(x) (cons x x)) filter_list))))
-    (hash-for-each (lambda (k  v) (display k) (newline)) list_to_hash)))
+    (hash-for-each (lambda (k v) (display k) (newline)) list_to_hash)
+    (display "--all\n")))
 
 (define (do-migrate . args)
   (define (validname? x)
