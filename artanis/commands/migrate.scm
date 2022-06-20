@@ -94,39 +94,40 @@
               `(db migration ,(string->symbol (gen-migrate-module-name f))))))
       ((module-ref m 'migrator) op)))
   (define (find-all-latest-migration)
-    (define re (string->irregex  "^([^_]+)_(\\d{14})\\.scm$"))
+    (define re (string->irregex "^([^_]+)_(\\d{14})\\.scm$"))
     (define (is-valid-mfile? f)
       (irregex-match re f))
     (let ((fl (sort (scandir path is-valid-mfile?) string-ci<?)))
-      (fold (lambda (f p)
-              (cond
-               ((irregex-match re f)
-                => (lambda (m)
-                     (let ((mname (irregex-match-substring m 1))
-                           (timestamp (string->number (irregex-match-substring m 2))))
-                       (match p
-                         (() (cons (cons mname timestamp) p))
-                         (((mname-last . timestamp-last) rest ...)
-                          (cond
-                           ((string=? mname mname-last)
-                            (if (> timestamp timestamp-last)
-                                (cons (cons mname timestamp) (cdr p))
-                                p))
-                           (else
-                            (cons (cons mname timestamp) p))))))))
+      (map
+       (lambda (x) (format #f "~a/~a_~a.scm" path (car x) (cdr x)))
+       (fold (lambda (f p)
+               (cond
+                ((irregex-match re f)
+                 => (lambda (m)
+                      (let ((mname (irregex-match-substring m 1))
+                            (timestamp (string->number (irregex-match-substring m 2))))
+                        (match p
+                          (() (cons (cons mname timestamp) p))
+                          (((mname-last . timestamp-last) rest ...)
+                           (cond
+                            ((string=? mname mname-last)
+                             (if (> timestamp timestamp-last)
+                                 (cons (cons mname timestamp) (cdr p))
+                                 p))
+                            (else
+                             (cons (cons mname timestamp) p))))))))
 
-               (else p)))
-            '()
-            fl)))
+                (else p)))
+             '()
+             fl))))
   (define (gen-migrate)
     (match name
-      ("--all" (find-all-latest-migration))
+      ('--all (find-all-latest-migration))
       (else (gen-migrate-file))))
   (let ((f (gen-migrate)))
     (cond
      ((string? f) (handle-one-migrate f))
-     ((list? f)
-      (for-each handle-one-migrate f))
+     ((list? f) (for-each handle-one-migrate f))
      (else (throw 'artanis-err 500 %migrate
                   "Invalid migration name `~a'!"
                   f)))))
