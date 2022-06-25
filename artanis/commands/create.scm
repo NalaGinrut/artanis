@@ -208,8 +208,8 @@
               (artanis utils))
  ;; Put whatever you want to be called before server initilization here
 
- (init-server)
-
+ (init-server #:statics '(png gif jpg jpeg ico html js json csv xml css woff woff2 ttf))
+ (add-to-load-path (string-append (current-toplevel) \"/lib\"))
  ;; Put whatever you want to be called before server running here
 ")
 
