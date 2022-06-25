@@ -33,7 +33,6 @@
   #:use-module (artanis debug)
   #:use-module (artanis third-party csv)
   #:use-module (artanis third-party json)
-  #:use-module (artanis mvc model)
   #:use-module (artanis server)
   #:use-module (artanis cache)
   #:use-module (artanis websocket)
@@ -185,9 +184,6 @@
 
                ;; server
                schedule-task
-
-               ;; mvc/model
-               artanis-load-model
 
                ;; version
                artanis-version)
