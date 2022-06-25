@@ -314,6 +314,9 @@
     ((#:column-format) "COLUMN_FORMAT")
     ((#:storage) (->value 'storage x))
     ((#:reference-definition) "reference_definition")
+    ((#:signed) "signed")
+    ((#:unsigned) "unsigned")
+    ((#:zerofill) "zerofill")
     (else
      (cond
       ((keyword? x)
@@ -346,11 +349,11 @@
     ((#:auto-now-once) "DEFAULT CURRENT_TIMESTAMP")
     (else
      (cond
-     ((keyword? x)
-      (if (is-exception-opt? x)
-          ""
-          (throw 'artanis-err 500 ->mysql-opts
-                 (format #f "Invalid opts `~a' for SQLite3 table definition!" x)))
+      ((keyword? x)
+       (if (is-exception-opt? x)
+           ""
+           (throw 'artanis-err 500 ->mysql-opts
+                  (format #f "Invalid opts `~a' for SQLite3 table definition!" x)))
        "")))))
 
 (define *table-builder-opts-handler*
@@ -679,7 +682,7 @@
       ((sqlite3) (DB-query rc/conn (format #f "select * from sqlite_master where type='table' and name='~a'" tname)))
       (else (throw 'artanis-err 500 table-exists?
                    "Unsupported DBD `~a'!" (get-conf '(db dbd))))
-    )
+      )
     ;; If there's no result, dbi will return #f as the result.
     (DB-get-top-row rc/conn))
   (lambda (cmd tname . args)
