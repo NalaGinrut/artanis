@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2018,2019
+;;  Copyright (C) 2015,2018,2019,2022
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -277,7 +277,7 @@
 ;;   (last_name char-field (#:maxlen 30 #:not-null)))
 (define-syntax create-artanis-model
   (lambda (x)
-    (syntax-case x ()
+    (syntax-case x (:deps)
       ((_ name) (identifier? #'name)
        #`(begin
            (define-module (app models name)
@@ -288,7 +288,7 @@
            (format (artanis-current-output)
                    (WARN-TEXT "You have created model `~a' without any definition!~%")
                    'name)))
-      ((_ name rest rest* ...) (identifier? #'name)
+      ((_ name (:deps deps* ...) rest rest* ...) (identifier? #'name)
        #`(begin
            ;; NOTE: we have to encapsulate them to a module for protecting namespaces
            ;; NOTE: we're not going to imort (artanis env) directly to avoid revealing global
@@ -298,17 +298,26 @@
              #:use-module (artanis utils)
              #:use-module (artanis db)
              #:use-module (artanis fprm))
-           (define-public #,(datum->syntax #'name (symbol-append '$ (syntax->datum #'name)))
-             (let ((raw (parse-raw-fields (list `rest `rest* ...)))
-                   (mt (map-table-from-DB (current-connection))))
-               (when (not (mt 'table-exists? 'name))
-                 (format (artanis-current-output)
-                         "Creating table `~a' defined in model......"
-                         'name)
-                 (apply mt 'try-create 'name raw)
-                 (format (artanis-current-output) "Done.~%"))
-               (lambda (cmd . args)
-                 (apply mt cmd 'name args)))))))))
+
+           (eval-when (expand load eval)
+             (when (not (null? (list 'deps* ...)))
+               (process-use-modules
+                (list
+                 (map (lambda (m) `(app models ,m))
+                      (list `deps* ...)))))
+
+             (define-public #,(datum->syntax #'name (symbol-append '$ (syntax->datum #'name)))
+               (let ((raw (parse-raw-fields (list `rest `rest* ...)))
+                     (mt (map-table-from-DB (current-connection))))
+                 (when (not (mt 'table-exists? 'name))
+                   (format (artanis-current-output)
+                           "Creating table `~a' defined in model......"
+                           'name)
+                   (apply mt 'try-create 'name raw)
+                   (recycle-DB-conn (current-connection))
+                   (format (artanis-current-output) "Done.~%"))
+                 (lambda (cmd . args)
+                   (apply mt cmd 'name args))))))))))
 
 (define (gen-model-header name)
   (call-with-output-string
@@ -336,18 +345,23 @@
 
 (define-syntax-rule (scan-models) (scan-app-components 'models))
 
+(define (artanis-load-model name)
+  (let ((toplevel (current-toplevel)))
+    ))
+
 (define (load-app-models)
   (define toplevel (current-toplevel))
   (display "Loading models...\n" (artanis-current-output))
   (use-modules (artanis mvc model)) ; black magic to make Guile happy
   (let ((cs (scan-models)))
-    (for-each (lambda (s)
-                (load (format #f "~a/app/models/~a.scm" toplevel s)))
+    (for-each (lambda (m)
+                (load (format #f "~a/app/models/~a.scm" toplevel m)))
               cs)))
 
 ;; NOTE: id will be generated automatically, as primary-key.
 ;;       You may remove it to add your own primary-key.
 ;; NOTE: Each field will be set as #:not-null, modify it as you wish.
 (define (do-model-create name fields port)
+  (display "(import (artanis mvc model))\n" port)
   (display (gen-model-header name) port)
   )
