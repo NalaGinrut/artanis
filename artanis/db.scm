@@ -43,7 +43,8 @@
             init-DB
             connect-db
             make-<connection>
-            <connection>?))
+            <connection>?
+            recycle-DB-conn))
 
 ;; NOTE:
 ;; <db> is the temporal info of specific database config, it doens't contain
@@ -218,11 +219,11 @@
   (display "connection pools are initilizing...")
   (let ((poolsize (get-conf '(db poolsize))))
     (set! *conn-pool*
-      (let ((dbconns
-             (map
-              (lambda (_) (create-new-DB-conn))
-              (iota poolsize))))
-        (list->queue dbconns)))
+          (let ((dbconns
+                 (map
+                  (lambda (_) (create-new-DB-conn))
+                  (iota poolsize))))
+            (list->queue dbconns)))
     (display "DB pool init ok!\n")
     (format #t "Now the size of connection pool is ~a.~%" poolsize)))
 
