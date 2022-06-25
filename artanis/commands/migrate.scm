@@ -94,7 +94,7 @@
               `(db migration ,(string->symbol (gen-migrate-module-name f))))))
       ((module-ref m 'migrator) op)))
   (define (find-all-latest-migration)
-    (define re (string->irregex "^([^_]+)_(\\d{14})\\.scm$"))
+    (define re (string->irregex "^(.+)_(\\d{14})\\.scm$"))
     (define (is-valid-mfile? f)
       (irregex-match re f))
     (let ((fl (sort (scandir path is-valid-mfile?) string-ci<?)))
