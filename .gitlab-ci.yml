@@ -18,8 +18,8 @@ before_script:
   - git clone --depth 1 https://github.com/spk121/guile-curl.git
   - cd guile-curl && ./bootstrap && ./configure --prefix=/usr && make -j 
   - make install
+  - ln -s /usr/lib/guile/3.0/extensions/libguile-curl.* /usr/lib/ 
   - ldconfig
-  - ln -s /usr/lib/guile/3.0/extensions/libguile-curl.* /usr/lib/ \
   - cd .. 
   - ./autogen.sh
   - mkdir -p build && cd build && ../configure --prefix=/usr
