@@ -345,10 +345,6 @@
 
 (define-syntax-rule (scan-models) (scan-app-components 'models))
 
-(define (artanis-load-model name)
-  (let ((toplevel (current-toplevel)))
-    ))
-
 (define (load-app-models)
   (define toplevel (current-toplevel))
   (display "Loading models...\n" (artanis-current-output))
