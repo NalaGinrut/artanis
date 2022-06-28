@@ -89,7 +89,7 @@
 
 (define (create-table name . fl)
   (let* ((raw ((@@ (artanis mvc model) parse-raw-fields) fl))
-         (conn (current-connection))
+         (conn (get-conn-from-pool!))
          (mt (map-table-from-DB conn)))
     (format (artanis-current-output) "Creating table `~a'......" name)
     (apply mt 'try-create name raw)
@@ -98,7 +98,7 @@
     (display "DONE.\n" (artanis-current-output))))
 
 (define (change-table name cl)
-  (let* ((conn (current-connection))
+  (let* ((conn (get-conn-from-pool!))
          (mt (map-table-from-DB conn)))
     (format (artanis-current-output) "Changing table `~a'......" name)
     (mt 'mod 'alter name cl)
@@ -106,7 +106,7 @@
     (display "DONE.\n" (artanis-current-output))))
 
 (define (drop-table name)
-  (let* ((conn (current-connection))
+  (let* ((conn (get-conn-from-pool!))
          (mt (map-table-from-DB conn)))
     (format (artanis-current-output) "Dropping table `~a'.........." name)
     (mt 'drop name)
@@ -114,7 +114,7 @@
     (display "DONE.\n" (artanis-current-output))))
 
 (define (rename-table old new)
-  (let* ((conn (current-connection))
+  (let* ((conn (get-conn-from-pool!))
          (mt (map-table-from-DB conn)))
     (format (artanis-current-output)
             "Renaming table `~a' to `~a'.........." old new)
@@ -123,7 +123,7 @@
     (display "DONE.\n" (artanis-current-output))))
 
 (define (add-column tname . cl)
-  (let* ((conn (current-connection))
+  (let* ((conn (get-conn-from-pool!))
          (mt (map-table-from-DB conn)))
     (format (artanis-current-output)
             "Adding columns `(~{~a~^,~})' to table `~a'.........."
@@ -133,7 +133,7 @@
     (display "DONE.\n" (artanis-current-output))))
 
 (define (change-column tname col type)
-  (let* ((conn (current-connection))
+  (let* ((conn (get-conn-from-pool!))
          (mt (map-table-from-DB conn)))
     (format (artanis-current-output)
             "Changing column `~a' of table `~a'.........."
@@ -143,7 +143,7 @@
     (display "DONE.\n" (artanis-current-output))))
 
 (define (rename-column tname oldcol newcol . type)
-  (let* ((conn (current-connection))
+  (let* ((conn (get-conn-from-pool!))
          (mt (map-table-from-DB conn)))
     (format (artanis-current-output)
             "Renaming column `~a' to `~a' from `~a'.........."
@@ -153,7 +153,7 @@
     (display "DONE.\n" (artanis-current-output))))
 
 (define (remove-column tname cname)
-  (let* ((conn (current-connection))
+  (let* ((conn (get-conn-from-pool!))
          (mt (map-table-from-DB conn)))
     (format (artanis-current-output)
             "Removing column `~a' in table `~a'.........."

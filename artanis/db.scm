@@ -38,8 +38,7 @@
             DB-get-top-row
             DB-get-n-rows
             db-conn-success?
-            get-conn-from-pool
-            current-connection
+            get-conn-from-pool!
             init-DB
             connect-db
             make-<connection>
@@ -166,7 +165,7 @@
     (run-hook *DB-conn-init-hook* conn)
     conn))
 
-(define (get-conn-from-pool)
+(define (get-conn-from-pool!)
   (if *conn-pool*
       (if (queue-empty? *conn-pool*)
           (case (get-conf '(db pool))
@@ -175,12 +174,12 @@
              (DEBUG "There's no DB connection from pool, wait for a moment!~%")
              (try-to-recycle-resources) ; must be in front of scheduling
              (schedule-task)
-             (get-conn-from-pool))
+             (get-conn-from-pool!))
             (else
-             (throw 'artanis-err 500 get-conn-from-pool
+             (throw 'artanis-err 500 get-conn-from-pool!
                     "BUG: Invalid DB pool mode `~a'" (get-conf '(db pool)))))
           (queue-out! *conn-pool*))
-      (error get-conn-from-pool "Seems the *conn-pool* wasn't well initialized!"
+      (error get-conn-from-pool! "Seems the *conn-pool* wasn't well initialized!"
              *conn-pool*)))
 
 (define (recycle-DB-conn conn)
@@ -233,7 +232,7 @@
   (let ((cur-conn (rc-conn rc)))
     (if cur-conn
         cur-conn
-        (let ((conn (get-conn-from-pool)))
+        (let ((conn (get-conn-from-pool!)))
           (<connection>-status-set! conn 'open)
           (rc-conn! rc conn)
           conn))))
@@ -344,9 +343,6 @@
           (lp (dbi-get_row (<connection>-conn conn)) (1+ cnt) (cons next result))
           (reverse! result))))))
 ;;--------------------------------------------------------------------
-
-(define (current-connection)
-  (get-conn-from-pool))
 
 (define (init-DB)
   (init-connection-pool))

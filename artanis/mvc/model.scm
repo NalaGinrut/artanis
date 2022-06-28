@@ -300,22 +300,22 @@
              #:use-module (artanis fprm))
 
            (eval-when (expand load eval)
+             (display "before\n")
              (when (not (null? (list 'deps* ...)))
                (process-use-modules
                 (list
                  (map (lambda (m) `(app models ,m))
                       (list `deps* ...)))))
+             (display "after\n")
 
              (define-public #,(datum->syntax #'name (symbol-append '$ (syntax->datum #'name)))
                (let ((raw (parse-raw-fields (list `rest `rest* ...)))
-                     (mt (map-table-from-DB (current-connection))))
-                 (when (not (mt 'table-exists? 'name))
-                   (format (artanis-current-output)
-                           "Creating table `~a' defined in model......"
-                           'name)
-                   (apply mt 'try-create 'name raw)
-                   (recycle-DB-conn (current-connection))
-                   (format (artanis-current-output) "Done.~%"))
+                     (mt (map-table-from-DB (get-conn-from-pool!))))
+                 (format (artanis-current-output)
+                         "Creating table `~a' defined in model~%......~%"
+                         'name)
+                 (apply mt 'try-create 'name raw)
+                 (format (artanis-current-output) "Done.~%")
                  (lambda (cmd . args)
                    (apply mt cmd 'name args))))))))))
 
@@ -346,13 +346,11 @@
 (define-syntax-rule (scan-models) (scan-app-components 'models))
 
 (define (load-app-models)
-  (define toplevel (current-toplevel))
-  (display "Loading models...\n" (artanis-current-output))
-  (use-modules (artanis mvc model)) ; black magic to make Guile happy
-  (let ((cs (scan-models)))
-    (for-each (lambda (m)
-                (load (format #f "~a/app/models/~a.scm" toplevel m)))
-              cs)))
+  ;; NOTE:
+  ;; 1. For common cases, we don't need to load models in init stage, we can postpone it
+  ;;    when users need to.
+  ;; 2. For special cases, we can put stuffs here for them.
+  #t)
 
 ;; NOTE: id will be generated automatically, as primary-key.
 ;;       You may remove it to add your own primary-key.

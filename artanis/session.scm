@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2021
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2021,2022
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -217,7 +217,7 @@
 
 (define (new-session-backend/db)
   (make-session-backend 'db
-                        (current-connection)
+                        (get-conn-from-pool!)
                         backend:session-init/db
                         backend:session-store/db
                         backend:session-destroy/db
@@ -403,7 +403,7 @@
 
 (define (add-new-session-backend name maker)
   (set! *session-backend-table*
-    (assoc-set! *session-backend-table* name maker)))
+        (assoc-set! *session-backend-table* name maker)))
 
 (define (create-new-session conf)
   (match conf
