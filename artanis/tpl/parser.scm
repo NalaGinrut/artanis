@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019,2021
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019,2021,2022
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -34,6 +34,9 @@
   (make-reader make-parser make-tpl-tokenizer port))
 
 (define *url-re* (string->irregex "(http|https)://*"))
+(define *charset-re* (string->irregex "charset=([^ ]+)"))
+(define *file-re* (string->irregex "(.+[.][^ ]+)"))
+
 (define (include-the-file args)
   (let* ((pub (basename (get-conf '(server pub))))
          (filename (string-trim-both
@@ -46,7 +49,15 @@
 
 (define (gen-command cmd args)
   (define-syntax-rule (-> x)
-    (string-trim-both x (lambda (ch) (char-set-contains? char-set:whitespace ch))))
+    (cond
+     ((irregex-search *file-re* x)
+      => (lambda (m)
+           (string-trim-both
+            (irregex-match-substring m 1)
+            (lambda (ch) (char-set-contains? char-set:whitespace ch)))))
+     (else
+      (throw 'artanis-err 500 gen-command
+             "Tempate rendering error: invalid args `~a'!" args))))
   (define-syntax-rule (->js-hash filename)
     (let* ((path (get-conf '(server jsmanifest)))
            (mfile (format #f "~a/~a/manifest.json" (current-toplevel) path))
@@ -67,6 +78,14 @@
           (else
            (throw 'artanis-err 500 gen-command
                   "Invalid command `~a' in template!" cmd)))))))
+  (define-syntax-rule (->charset args)
+    (format #f
+            "charset=\\\"~a\\\""
+            (cond
+             ((irregex-search *charset-re* args)
+              => (lambda (m)
+                   (irregex-match-substring m 1)))
+             (else "utf-8"))))
   (case cmd
     ((css)
      (format #f "\"<link rel=\\\"stylesheet\\\" href=\\\"~a\\\" />\""
@@ -78,8 +97,8 @@
      (format #f "\"<script type=\\\"module\\\" src=\\\"~a\\\"> </script>\""
              (->url args)))
     ((js)
-     (format #f "\"<script type=\\\"text/javascript\\\" src=\\\"~a\\\"> </script>\""
-             (->url args)))
+     (format #f "\"<script type=\\\"text/javascript\\\" ~a src=\\\"~a\\\"> </script>\""
+             (->charset args) (->url args)))
     ((free-js-ann) (object->string free-JS-announcement))
     (else
      (throw 'artanis-err 500 gen-command
