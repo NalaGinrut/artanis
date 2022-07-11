@@ -217,7 +217,9 @@
 (define-public (exists-in-epoll? epfd fd)
   (let* ((ees (make-epoll-event-set))
          (ret (epoll-ctl epfd EPOLL_CTL_ADD fd ees #:check-exists? #t)))
-    (epoll-ctl epfd EPOLL_CTL_DEL fd #f)
+    (when (not ret)
+      ;; Must remove it after test
+      (epoll-ctl epfd EPOLL_CTL_DEL fd #f))
     ret))
 
 ;; NOTE: do NOT use this function outside this module!!!
