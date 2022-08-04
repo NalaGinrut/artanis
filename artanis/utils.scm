@@ -47,7 +47,7 @@
                           bytevector-u8-ref string->utf8 bytevector-length
                           make-bytevector bytevector-s32-native-ref bytevector?
                           define-record-type record-rtd
-                          get-string-all bitwise-ior))
+                          get-string-all bitwise-ior div))
   #:export (regexp-split
             hash-keys cat bv-cat get-global-time sanitize-response
             get-local-time unsafe-random parse-date write-date
@@ -134,7 +134,7 @@
 (define* (get-random-from-dev #:key (length 8) (uppercase #f))
   (call-with-input-file "/dev/urandom"
     (lambda (port)
-      (let* ((bv ((@ (rnrs) get-bytevector-n) port length))
+      (let* ((bv ((@ (rnrs) get-bytevector-n) port (div length 2)))
              (str (format #f "~{~2,'0x~}" ((@ (rnrs) bytevector->u8-list) bv))))
         (if uppercase
             (string-upcase str)
@@ -1064,9 +1064,9 @@
               (dynamic-wind
                 (lambda ()
                   (set! handler
-                    (sigaction SIGINT (lambda (sig)
-                                        (run-when-sigint-hook)
-                                        (throw 'interrupt)))))
+                        (sigaction SIGINT (lambda (sig)
+                                            (run-when-sigint-hook)
+                                            (throw 'interrupt)))))
                 thunk
                 (lambda ()
                   (if handler
