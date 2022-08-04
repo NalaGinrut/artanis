@@ -736,7 +736,7 @@
           (lp (peek-char in))))))))
 
 (define *terrible-HTML-entities*
-  '((#\< . "&lt;") (#\> . "&gt;") (#\& . "&amp;") (#\" . "&quot;")
+  '((#\< . "&lt;") (#\> . "&gt;") (#\& . "&amp;") (#\" . "&quot;") (#\sp . "&nbsp;")
     ("%3C" . "&lt;") ("%3E" . "&gt;") ("%26" . "&amp;") ("%22" . "&quot;")))
 ;; NOTE: cooked for anti-XSS.
 (define (eliminate-evil-HTML-entities content)
