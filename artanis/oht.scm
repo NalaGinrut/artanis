@@ -490,7 +490,9 @@
       (string=? p stored-pw)))
   (define (init-post rc)
     (and (rc-body rc)
-         (generate-kv-from-post-qstr (rc-body rc) #:no-evil? #t)))
+         (generate-kv-from-post-qstr
+          (rc-body rc)
+          #:no-evil? (get-conf '(db encodeparams)))))
   (define (default-hmac pw salt)
     ;; We still have sha384, sha512 as options, but I think sha256 is enough.
     (string->sha-256 (string-append pw salt)))
