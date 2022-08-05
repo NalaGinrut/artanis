@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019,2021
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019,2021,2022
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -119,6 +119,9 @@ db.pool = increase | fixed")
     ((db encodeparams)
      #f
      "Whether to encode params automatically.
+(params rc \"your_key\") will be encoded by uri-encode.
+The username and passwd in :auth will be encoded by uri-encode.
+NOTE: It's your duty to call uri-decode to get proper value.
 NOTE: If you enable db.encodeparams then it's better to decode the related value
 twice in the client-side, since some requests may be sent from browsers, and
 they're already encoded.
@@ -565,28 +568,28 @@ debug.monitor = <PATHs>")
 
 (define (parse-line line)
   (call-with-input-string
-   line
-   (lambda (port)
-     (let lp((next (read-char port)) (key? #t) (word '()) (ret '()))
-       (cond
-        ((or (eof-object? next)
-             (char=? next #\#)) ; skip comment
-         (reverse (cons (list->string (reverse word)) ret)))
-        ((char-set-contains? char-set:whitespace next)
-         ;; skip all whitespaces
-         (lp (read-char port) key? word ret))
-        ((and key? (char=? next #\.))
-         ;; a namespace end
-         (lp (read-char port) key? '() (cons (list->symbol (reverse word)) ret)))
-        ((and key? (char=? next #\=))
-         ;; value start
-         (lp (read-char port) #f '() (cons (list->symbol (reverse word)) ret)))
-        ((not key?)
-         ;; store chars of value
-         (lp (read-char port) key? (cons next word) ret))
-        (else
-         ;; store chars of key
-         (lp (read-char port) key? (cons next word) ret)))))))
+      line
+    (lambda (port)
+      (let lp((next (read-char port)) (key? #t) (word '()) (ret '()))
+        (cond
+         ((or (eof-object? next)
+              (char=? next #\#)) ; skip comment
+          (reverse (cons (list->string (reverse word)) ret)))
+         ((char-set-contains? char-set:whitespace next)
+          ;; skip all whitespaces
+          (lp (read-char port) key? word ret))
+         ((and key? (char=? next #\.))
+          ;; a namespace end
+          (lp (read-char port) key? '() (cons (list->symbol (reverse word)) ret)))
+         ((and key? (char=? next #\=))
+          ;; value start
+          (lp (read-char port) #f '() (cons (list->symbol (reverse word)) ret)))
+         ((not key?)
+          ;; store chars of value
+          (lp (read-char port) key? (cons next word) ret))
+         (else
+          ;; store chars of key
+          (lp (read-char port) key? (cons next word) ret)))))))
 
 (define (init-inner-database-item)
   (define dbd (get-conf '(db dbd)))
