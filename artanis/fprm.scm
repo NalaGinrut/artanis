@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019
+;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019,2022
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -640,6 +640,16 @@
                               "Invalid rc or conn `~a'!" rc/conn)))))
       (DB-query conn sql))))
 
+(define (make-table-counter rc/conn)
+  (lambda* (table-counter tname #:key (key "id") (column "count") (condition ""))
+    (let ((sql (format #f "select count(~a) as ~a from ~a ~a;" key column tname condition))
+          (conn (cond
+                 ((route-context? rc/conn) (DB-open rc/conn))
+                 ((<connection>? rc/conn) rc/conn)
+                 (else (throw 'artanis-err 500 make-table-counter
+                              "Invalid rc or conn `~a'!" rc/conn)))))
+      (DB-query conn sql))))
+
 ;; NOTE: the name of columns is charactar-caseless, at least in MySQL/MariaDB.
 (define (map-table-from-DB rc/conn)
   (define conn
@@ -653,6 +663,7 @@
   (define builder (make-table-builder conn))
   (define dropper (make-table-dropper conn))
   (define modifier (make-table-modifier conn))
+  (define counter (make-table-counter conn))
   ;; NOTE:
   ;; It maybe inefficient to fetch table-schema without any cache, because the request session may generate
   ;; table-schema each time. Although we may build a cache or delayed mechanism here, there's one reason
@@ -706,6 +717,7 @@
       ;; schema is always in downcase.
       ((schema) (get-table-schema tname))
       ((mod) (->call modifier))
+      ((count) (->call counter))
       (else (throw 'artanis-err 500 map-table-from-DB
                    "Invalid cmd: `~a'" cmd)))))
 
