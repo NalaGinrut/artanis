@@ -203,9 +203,9 @@
 ;; qstr
 ;; TODO: qstr should be independent from rules binding.
 (define (params rc key)
-  ((current-encoder)
-   (or (assoc-ref (rc-bt rc) key)
-       (get-from-qstr rc key))))
+  (let ((val (or (assoc-ref (rc-bt rc) key)
+                 (get-from-qstr rc key))))
+    (and val ((current-encoder) val))))
 
 (define (get-rule-uid rc)
   (let ((hc (get-handler-context (rc-rhk rc))))
