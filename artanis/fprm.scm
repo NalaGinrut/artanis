@@ -641,8 +641,13 @@
       (DB-query conn sql))))
 
 (define (make-table-counter rc/conn)
-  (lambda* (table-counter tname #:key (key "id") (column "count") (condition ""))
-    (let ((sql (format #f "select count(~a) as ~a from ~a ~a;" key column tname condition))
+  (lambda* (table-counter tname #:key (key "*")
+                          (column "count") (group-by #f) (condition ""))
+    (let ((sql (format #f "select ~acount(~a) as ~a from ~a~a~a;"
+                       (if group-by (string-append group-by ",") "")
+                       key column tname
+                       condition
+                       (if group-by (string-append " group by " group-by) "")))
           (conn (cond
                  ((route-context? rc/conn) (DB-open rc/conn))
                  ((<connection>? rc/conn) rc/conn)
