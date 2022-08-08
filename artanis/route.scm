@@ -61,7 +61,8 @@
             get-referer
             rc-oht-ref
             params
-            get-rule-uid))
+            get-rule-uid
+            get-sid-from-client-cookie))
 
 (define-record-type handler-context
   (make-handler-context handler keys uid oht)
@@ -213,3 +214,6 @@
       (throw 'artanis-err 500 get-rule-uid
              "BUG: If handler-context is missing, then there shouldn't be a rc!"))
     (handler-context-uid hc)))
+
+(define* (get-sid-from-client-cookie rc #:optional (idname "sid"))
+  (any (lambda (c) (and=> (cookie-ref c idname) car)) (rc-cookie rc)))

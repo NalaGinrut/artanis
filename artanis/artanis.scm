@@ -26,6 +26,7 @@
   #:use-module (artanis fprm)
   #:use-module (artanis ssql)
   #:use-module (artanis session)
+  #:use-module (artanis cookie)
   #:use-module (artanis oht)
   #:use-module (artanis route)
   #:use-module (artanis page)
@@ -137,6 +138,7 @@
                get-from-qstr
                get-referer
                params
+               get-sid-from-client-cookie
 
                ;; csv
                make-csv-reader
@@ -187,7 +189,8 @@
 
                ;; version
                artanis-version)
-  #:export (result-ref
+  #:export (get-spawned-session-id
+            result-ref
             init-server
             form-tag
             label-tag
@@ -195,6 +198,9 @@
             p-tag
             div-tag
             run))
+
+(define* (get-spawned-session-id rc #:optional (sid "sid"))
+  (car (cookie-ref (car (rc-cookie rc)) sid)))
 
 (define* (result-ref alst key #:key (decode? #t))
   (and=> (assoc-ref alst key) (if decode? uri-decode identity)))

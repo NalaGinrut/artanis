@@ -277,10 +277,8 @@
       (`(spawn ,sid) (cut %spawn <> #:idname sid <...>))
       (`(spawn ,sid ,proc) (cut %spawn <> #:idname sid #:proc proc <...>))
       (else (throw 'artanis-err 500 session-maker "Invalid config mode: ~a" mode))))
-  (define (get-sid rc idname)
-    (any (lambda (c) (and=> (cookie-ref c idname) car)) (rc-cookie rc)))
   (define (check-it rc idname)
-    (let* ((sid (get-sid rc idname))
+    (let* ((sid (get-sid-from-client-cookie rc idname))
            (session (session-restore (or sid ""))))
       (case session
         ((expired)
@@ -298,11 +296,13 @@
       (`(check-and-spawn ,sid)
        (or (check-it rc sid) (apply spawn-handler rc args)))
       ('spawn (apply spawn-handler rc args))
+      ('get (session-restore (get-sid-from-client-cookie rc "sid")))
+      (`(get ,sid) (session-restore (get-sid-from-client-cookie rc sid)))
       ('drop
-       (session-destroy! (get-sid rc "sid"))
+       (session-destroy! (get-sid-from-client-cookie rc "sid"))
        (:cookies-remove! rc "sid"))
       (`(drop ,sid)
-       (session-destroy! (get-sid rc sid))
+       (session-destroy! (get-sid-from-client-cookie rc sid))
        (:cookies-remove! rc sid))
       (else (throw 'artanis-err 500 session-maker "Invalid call cmd: ~a" cmd)))))
 
