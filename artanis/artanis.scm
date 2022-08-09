@@ -200,7 +200,7 @@
             run))
 
 (define* (get-spawned-session-id rc #:optional (sid "sid"))
-  (car (cookie-ref (car (rc-cookie rc)) sid)))
+  (cookie-ref (car (rc-set-cookie rc)) sid))
 
 (define* (result-ref alst key #:key (decode? #t))
   (and=> (assoc-ref alst key) (if decode? uri-decode identity)))
