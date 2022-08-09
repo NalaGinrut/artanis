@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015
+;;  Copyright (C) 2013,2014,2015,2022
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -333,7 +333,7 @@
     (model/x3d+binary (x3db))
     (text/cache-manifest (manifest))
     (text/calendar (ics icz))
-    (text/css (css))
+    (text/css (css ttf))
     (text/csv (csv))
     (text/h323 (323))
     (text/html (html htm shtml))
@@ -432,9 +432,9 @@
     *mime-types-table*
     (cond
      ((symbol? mime) mime)
-    ((string? mime) (string->symbol mime))
-    (else (throw 'artanis-err 500
-                 "mime-check: Invalid MIME! Should be symbol or string" mime))))
+     ((string? mime) (string->symbol mime))
+     (else (throw 'artanis-err 500
+                  "mime-check: Invalid MIME! Should be symbol or string" mime))))
    (throw 'artanis-err 500
           "mime-check: MIME check failed, maybe your program has bug?")))
 
