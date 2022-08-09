@@ -641,8 +641,7 @@
       (DB-query conn sql))))
 
 (define (make-table-counter rc/conn)
-  (lambda* (table-counter tname #:key (key "*")
-                          (column "count") (group-by #f) (condition ""))
+  (lambda* (tname #:key (key "*") (column "count") (group-by #f) (condition ""))
     (let ((sql (format #f "select ~acount(~a) as ~a from ~a~a~a;"
                        (if group-by (string-append group-by ",") "")
                        key column tname
@@ -653,7 +652,8 @@
                  ((<connection>? rc/conn) rc/conn)
                  (else (throw 'artanis-err 500 make-table-counter
                               "Invalid rc or conn `~a'!" rc/conn)))))
-      (DB-query conn sql))))
+      (DB-query conn sql)
+      (DB-get-all-rows conn))))
 
 ;; NOTE: the name of columns is charactar-caseless, at least in MySQL/MariaDB.
 (define (map-table-from-DB rc/conn)
