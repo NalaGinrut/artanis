@@ -300,13 +300,11 @@
              #:use-module (artanis fprm))
 
            (eval-when (expand load eval)
-             (display "before\n")
              (when (not (null? (list 'deps* ...)))
                (process-use-modules
                 (list
                  (map (lambda (m) `(app models ,m))
                       (list `deps* ...)))))
-             (display "after\n")
 
              (define-public #,(datum->syntax #'name (symbol-append '$ (syntax->datum #'name)))
                (let ((raw (parse-raw-fields (list `rest `rest* ...)))
