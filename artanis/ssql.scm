@@ -378,8 +378,8 @@
             (fmt (string-concatenate `(,(get-prefix) "~{" ,kp "~a~^" ,(->or/and kp) "~}"))))
        (format #f fmt (map ->quote vals))))
     (else (throw 'artanis-err 500 gen-cond
-                 (format #f "[SQL]~a: invalid condition pattern" (get-prefix))
-                 conds))))
+                 (format #f "[SQL]~a: invalid condition pattern `~a'"
+                         (get-prefix) conds)))))
 
 ;; Order of Precedence in SQL
 ;; It is important to understand how the database evaluates multiple comparisons in the WHERE clause.
