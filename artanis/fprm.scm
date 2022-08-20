@@ -453,17 +453,11 @@
         (() (values kvs w))
         (else (throw 'artanis-err 500 make-table-setter "Invalid kargs `~a'" next)))))
   (define (->kv kvp) (srfi-1:unzip2 kvp))
-  (define (guard vl)
-    (map (lambda (s)
-           ;; TODO: drop unsafe substrings
-           s)
-         vl))
   (lambda (tname . kargs)
     (let-values (((kvp wcond) (->kvp kargs)))
       (let ((sql (if (string-null? wcond)
                      (let-values (((k v) (->kv kvp)))
-                       (let ((sv (guard v)))
-                         (->sql insert into tname k values sv)))
+                       (->sql insert into tname k values v))
                      ;; NOTE: If there's no cond string (say, `where' clauses), you MUSTN'T
                      ;;       use UPDATE because it'll effect all the records!!! In such case,
                      ;;       you should use INSERT.
