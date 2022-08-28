@@ -526,6 +526,7 @@ debug.monitor = <PATHs>")
 (define (parse-namespace-session item)
   (match item
     (('path path) (conf-set! '(session path) path))
+    (('hijackcheck check) (conf-set! '(session hijackcheck) (->bool check)))
     (('backend backend) (conf-set! '(session backend) (parse-namespace-backend backend)))
     (else (error parse-namespace-session "Config: Invalid item" item))))
 
