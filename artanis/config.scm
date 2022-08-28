@@ -317,6 +317,12 @@ host.family = ipv4 | ipv6")
      "Specify the session files path. Change according to your session engine.
 session.path = <PATH>")
 
+    ((session hijackcheck)
+     "false"
+     "Check the valid session, if it appears in multiple client IP, then fail. This may
+cause problems when your hosting is behind CDN, you may need to disable it if so.
+session.hijackcheck = <boolean>")
+
     ((session backend)
      simple
      "Specify session engine. Here're supported backends:
