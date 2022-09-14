@@ -3,12 +3,12 @@ GNU Artanis needs a logo, contribution is welcome!
 
 NOTICE
 =========
-Since Jun 4th 2018, Microsoft has aquired GitHub, then GNU Artanis will never try to organize community on GigHub, include issues and PR.
+Since Jun 4th 2018, Microsoft has acquired GitHub, therefore GNU Artanis will never try to organize community on GitHub, include issues and PR.
 Please visit https://gitlab.com/NalaGinrut/artanis
 
 According to [GNU Ethical Repository Criteria Evaluations](https://www.gnu.org/software/repo-criteria-evaluation.html). GNU Artanis as GNU official project is not proper to be maintained on GitHub.
-So I **will not** do maintenance work for GNU Artanis on github to show my position on free software.
-That means I **will not** response to issues or pull requests on GitHub. Until GitHub show some respect to freedom of users on these issues:
+So I **will not** do maintenance work for GNU Artanis on Github to show my position on free software.
+That means I **will not** respond to issues or pull requests on GitHub, until they show some respect to freedom of users on these issues:
 * No other nonfree software is required to use the site (thus, no Flash).
 * Does not discriminate against classes of users, or against any country.
 
