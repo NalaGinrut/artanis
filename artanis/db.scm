@@ -38,6 +38,7 @@
             DB-get-top-row
             DB-get-n-rows
             db-conn-success?
+            db-conn-is-closed?
             get-conn-from-pool!
             init-DB
             connect-db
@@ -182,12 +183,6 @@
       (error get-conn-from-pool! "Seems the *conn-pool* wasn't well initialized!"
              *conn-pool*)))
 
-(define (recycle-DB-conn conn)
-  (if *conn-pool*
-      (queue-in! *conn-pool* conn)
-      (error recycle-DB-conn "Seems the *conn-pool* wasn't well initialized!"
-             *conn-pool*)))
-
 (define (%db-conn-stat conn ret)
   (ret (dbi-get_status (<connection>-conn conn))))
 
@@ -210,6 +205,17 @@
                           (else
                            (throw 'artanis-err 500 db-conn-is-closed?
                                   "Unsupported DBD `~a'" (get-conf '(db dbd))))))))
+
+(define (recycle-DB-conn conn)
+  (cond
+   (*conn-pool*
+    (if (db-conn-is-closed? conn)
+        ;; if the connection is unfortunetly closed, then we make a new one
+        (queue-in! *conn-pool* (create-new-DB-conn))
+        (queue-in! *conn-pool* conn)))
+   (else
+    (error recycle-DB-conn "Seems the *conn-pool* wasn't well initialized!"
+           *conn-pool*))))
 
 (define (db-conn-failed-reason conn)
   (%db-conn-stat conn cdr))

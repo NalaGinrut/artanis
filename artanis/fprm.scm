@@ -651,18 +651,28 @@
 
 ;; NOTE: the name of columns is charactar-caseless, at least in MySQL/MariaDB.
 (define (map-table-from-DB rc/conn)
-  (define conn
+  (define (init-one-conn r/c)
     (cond
-     ((route-context? rc/conn) (DB-open rc/conn))
-     ((<connection>? rc/conn) rc/conn)
+     ((not r/c)
+      ;; if c is #f then we try to get a new connection
+      (get-conn-from-pool!))
+     ((route-context? r/c) (DB-open r/c))
+     ((<connection>? r/c) r/c)
      (else (throw 'artanis-err 500 map-table-from-DB
-                  "Invalid rc/conn `~a'" rc/conn))))
-  (define getter (make-table-getter conn))
-  (define setter (make-table-setter conn))
-  (define builder (make-table-builder conn))
-  (define dropper (make-table-dropper conn))
-  (define modifier (make-table-modifier conn))
-  (define counter (make-table-counter conn))
+                  "Invalid rc or connection `~a'" r/c))))
+  (define conn (init-one-conn rc/conn))
+  (define (gen-one-conn)
+    (cond
+     ((db-conn-is-closed? conn)
+      (set! conn (init-one-conn #f))
+      conn)
+     (else conn)))
+  (define (getter) (make-table-getter (gen-one-conn)))
+  (define (setter) (make-table-setter (gen-one-conn)))
+  (define (builder) (make-table-builder (gen-one-conn)))
+  (define (dropper) (make-table-dropper (gen-one-conn)))
+  (define (modifier) (make-table-modifier (gen-one-conn)))
+  (define (counter) (make-table-counter (gen-one-conn)))
   ;; NOTE:
   ;; It maybe inefficient to fetch table-schema without any cache, because the request session may generate
   ;; table-schema each time. Although we may build a cache or delayed mechanism here, there's one reason
@@ -674,7 +684,8 @@
   ;; PS: I'm not boasting that the whole Artanis would be stateless, but FPRM should do it as possible.
   ;; I maybe wrong and fail, but it's worth to try.
   (define (get-table-schema tname)
-    (let* ((sql (->sql select '("lcase(column_name)") from
+    (let* ((conn (gen-one-conn))
+           (sql (->sql select '("lcase(column_name)") from
                        (select * from 'information_schema.columns (having #:table_name tname))
                        as 'tmp_alias))
            (sch (DB-get-all-rows (DB-query conn sql))))
@@ -686,37 +697,39 @@
     (define-syntax-rule (-> c) (map (cut normalize-column <> ci?) c))
     (and (srfi-1:every (lambda (x) (memq x schema)) (-> args)) #t))
   (define (table-exists? tname)
-    (case (get-conf '(db dbd))
-      ((mysql) (DB-query rc/conn (format #f "show tables like '~a';" tname)))
-      ((postgresql) (DB-query rc/conn (format #f "select from information_schema.tables where table_schema='public' and table_name='~a';" tname)))
-      ((sqlite3) (DB-query rc/conn (format #f "select * from sqlite_master where type='table' and name='~a'" tname)))
-      (else (throw 'artanis-err 500 table-exists?
-                   "Unsupported DBD `~a'!" (get-conf '(db dbd))))
-      )
-    ;; If there's no result, dbi will return #f as the result.
-    (DB-get-top-row rc/conn))
+    (let ((conn (gen-one-conn)))
+      (case (get-conf '(db dbd))
+        ((mysql) (DB-query conn (format #f "show tables like '~a';" tname)))
+        ((postgresql) (DB-query conn (format #f "select from information_schema.tables where table_schema='public' and table_name='~a';" tname)))
+        ((sqlite3) (DB-query conn (format #f "select * from sqlite_master where type='table' and name='~a'" tname)))
+        (else (throw 'artanis-err 500 table-exists?
+                     "Unsupported DBD `~a'!" (get-conf '(db dbd)))))
+      ;; If there's no result, dbi will return #f as the result.
+      (DB-get-top-row conn)))
   (lambda (cmd tname . args)
     (define-syntax-rule (->call func)
       (apply func (cons tname args)))
     (case cmd
+      ;; NOTE: valid? is only used for RC initialized conn, and sometimes we need to
+      ;;       check it immediately.
       ((valid?) (db-conn-success? conn))
-      ((get) (->call getter))
-      ((set) (->call setter))
+      ((get) (->call (getter)))
+      ((set) (->call (setter)))
       ((table-exists?) (table-exists? tname))
       ((try-create try-build)
        (if (table-exists? tname)
            (format (artanis-current-output) "Table `~a' already exists!~%" tname)
-           (->call builder)))
-      ((create build) (->call builder))
-      ((remove delete drop) (->call dropper))
+           (->call (builder))))
+      ((create build) (->call (builder)))
+      ((remove delete drop) (->call (dropper)))
       ;; (_ exists? 'Persons 'city 'lastname)
       ((check exists?) (apply checker #f tname args))
       ;; (_ ci-exists? 'Persons 'City 'LastName)
       ((ci-check ci-exists?) (apply checker #t tname args))
       ;; schema is always in downcase.
       ((schema) (get-table-schema tname))
-      ((mod) (->call modifier))
-      ((count) (->call counter))
+      ((mod) (->call (modifier)))
+      ((count) (->call (counter)))
       (else (throw 'artanis-err 500 map-table-from-DB
                    "Invalid cmd: `~a'" cmd)))))
 
