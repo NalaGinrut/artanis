@@ -250,6 +250,15 @@
 ;; FIXME: The first level to avoid SQL-injection is that run only one valid statment each time.
 ;;        So we have to find the index of first valid semi-colon, then use substring.
 (define* (DB-query conn sql #:key (check? #f))
+  (define (recreate-DB-conn!)
+    (let ((new-conn (create-new-DB-conn)))
+      (cond
+       ((db-conn-is-closed? conn)
+        (format (artanis-current-output)
+                "The current DB connection was lost, reconnecting it...~%")
+        (recreate-DB-conn!))
+       (else
+        (<connection>-conn-set! conn new-conn)))))
   (cond
    ((not (<connection>? conn))
     (throw 'artanis-err 500 DB-query
@@ -257,6 +266,9 @@
    ((not (eq? (<connection>-status conn) 'open))
     (throw 'artanis-err 500 DB-query
            "Can't query from a closed connection ~a!" conn))
+   ((db-conn-is-closed? conn)
+    (recreate-DB-conn!)
+    (DB-query conn sql #:check? check?))
    ((not (string? sql))
     (throw 'artanis-err 500 DB-query
            "Invalid SQL string ~a!" sql))
