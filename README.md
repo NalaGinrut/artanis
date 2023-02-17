@@ -1,4 +1,7 @@
-GNU Artanis needs a logo, contribution is welcome!
+<center>
+<img src="logo/final-logo-complete.svg" alt="artanis logo"/>
+</center>
+
 =========
 
 NOTICE
@@ -112,6 +115,6 @@ are likely to be easily applied. Larger contributions should be discussed firsta
 Artwork and document are also important contributions and greatly appreciated bythe GNU Artanis community. Advocating on GNU Artanis on your blogs, wikis, and
 webcast tutorials are good ways to help grow the GNU Artanis community.
 
-If you're using GNU Artanis in your project, please share your experiences. GNU 
+If you're using GNU Artanis in your project, please share your experiences. GNU
 Artanis wants to be a friendly community to help people learn about free
 software and increase use of functional programming in industry.
