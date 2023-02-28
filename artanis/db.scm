@@ -113,7 +113,7 @@
   (fields
    ;; status provides a simple way to avoid reopen or reclose
    (mutable status) ; open or closed
-   conn))
+   (mutable conn)))
 
 (define (%do-connect dbd str)
   (define-syntax-rule (-> s) (format #f "~a" s))
