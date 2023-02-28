@@ -251,14 +251,14 @@
 ;;        So we have to find the index of first valid semi-colon, then use substring.
 (define* (DB-query conn sql #:key (check? #f))
   (define (recreate-DB-conn!)
-    (let ((new-conn (create-new-DB-conn)))
-      (cond
-       ((db-conn-is-closed? conn)
+    (cond
+     ((db-conn-is-closed? conn)
+      (let ((new-conn (create-new-DB-conn)))
         (format (artanis-current-output)
                 "The current DB connection was lost, reconnecting it...~%")
-        (recreate-DB-conn!))
-       (else
-        (<connection>-conn-set! conn new-conn)))))
+        (<connection>-conn-set! conn new-conn)
+        (recreate-DB-conn!)))
+     (else #t)))
   (cond
    ((not (<connection>? conn))
     (throw 'artanis-err 500 DB-query
