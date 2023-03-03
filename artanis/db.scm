@@ -113,7 +113,7 @@
   (fields
    ;; status provides a simple way to avoid reopen or reclose
    (mutable status) ; open or closed
-   (mutable conn)))
+   (mutable conn))) ; dbi raw connection
 
 (define (%do-connect dbd str)
   (define-syntax-rule (-> s) (format #f "~a" s))
@@ -253,10 +253,11 @@
   (define (recreate-DB-conn!)
     (cond
      ((db-conn-is-closed? conn)
-      (let ((new-conn (create-new-DB-conn)))
+      (let ((new-conn (<connection>-conn (create-new-DB-conn))))
         (format (artanis-current-output)
                 "The current DB connection was lost, reconnecting it...~%")
         (<connection>-conn-set! conn new-conn)
+        (<connection>-status-set! conn 'open)
         (recreate-DB-conn!)))
      (else #t)))
   (cond
