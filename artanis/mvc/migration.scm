@@ -162,6 +162,14 @@
     (recycle-DB-conn conn)
     (display "DONE.\n" (artanis-current-output))))
 
+(define (set-row tname . fl)
+  (let* ((conn (get-conn-from-pool!))
+         (mt (map-table-from-DB conn)))
+    (format (artanis-current-output) "Setting row of table `~a'......" tname)
+    (apply mt 'set tname fl)
+    (recycle-DB-conn conn)
+    (display "DONE.\n" (artanis-current-output))))
+
 (define (add-index)
   ;; TODO
   #t)
