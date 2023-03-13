@@ -2,39 +2,6 @@
 <img src="logo/final-logo-complete.svg" alt="artanis logo"/>
 </center>
 
-=========
-
-NOTICE
-=========
-Since Jun 4th 2018, Microsoft has acquired GitHub, therefore GNU Artanis will
-never try to organize community on GitHub, include issues and PR. Please visit
-https://gitlab.com/hardenedlinux/artanis
-
-According to
-[GNU Ethical Repository Criteria Evaluations](https://www.gnu.org/software/repo-criteria-evaluation.html).
-GNU Artanis as GNU official project is not proper to be maintained on GitHub.
-So I **will not** do maintenance work for GNU Artanis on GitHub to show my
-position on free software. That means I **will not** respond to issues or pull
-requests on GitHub, until they show some respect to freedom of users on these
-issues:
-* No other nonfree software is required to use the site (thus, no Flash).
-* Does not discriminate against classes of users, or against any country.
-
-The maintenance repo will be these two:
-* [GNU official repo](http://git.savannah.gnu.org/cgit/artanis.git/)
-Accepts patches and issues on mailing-list artanis@gnu.org
-
-* [GitLab repo](https://gitlab.com/hardenedlinux/artanis)
-Accepts issues and pull requests.
-
-For historical reasons, GNU Artanis will maintain the site with gh-pages on
-GitHub since the pages service on GitLab is very different so I can't just move
-it simply. Before we have a better/modern Savannah, we have to endure this
-situation.
-
-GNU Artanis
-=========
-
 GNU Artanis aims to be a web application framework for Scheme. The philosophy of
 Artanis is to be very radical, and to try cutting-edge things.  So use it at
 your own risk...however, playing with it may result in some cool experiences!
