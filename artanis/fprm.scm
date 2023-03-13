@@ -149,6 +149,7 @@
     ;; YEAR() A year in two-digit or four-digit format.
     ;; NOTE: Values allowed in four-digit format: 1901 to 2155.
     ;;       Values allowed in two-digit format: 70 to 69, representing years from 1970 to 2069
+    ((boolean) (->0 name args)) ; BOOLEAN Stores TRUE or FALSE values
     ((year) (->0 name args))
     (else (throw 'artanis-err 500 ->mysql-type "Invalid type name `~a'" name))))
 
