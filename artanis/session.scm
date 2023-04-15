@@ -346,11 +346,13 @@
 (define (session-set! sid k v)
   ((session-backend-set! (current-session-backend))
    (current-session-backend)
+   sid
    k v))
 
 (define (session-ref sid k)
   ((session-backend-ref (current-session-backend))
    (current-session-backend)
+   sid
    k))
 
 (define (session-destroy! sid)
