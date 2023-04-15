@@ -243,7 +243,9 @@
 (define (backend:session-set/simple sb sid k v)
   (cond
    ((backend:session-restore/simple sb sid)
-    => (lambda (ss) (hash-set! ss k v)))
+    => (lambda (ss)
+        (let ((data (assoc-ref ss "data")))
+          (hash-set! ss "data" (assoc-set! data k v)))))
    (else
     (throw 'artanis-err 500 backend:session-restore/simple
            "Session id (~a) doesn't hit anything!~%" sid))))
@@ -251,7 +253,7 @@
 (define (backend:session-ref/simple sb sid k)
   (cond
    ((backend:session-restore/simple sb sid)
-    => (lambda (ss) (hash-ref (hash-ref ss "data") k)))
+    => (lambda (ss) (assoc-ref (hash-ref ss "data") k)))
    (else
     (throw 'artanis-err 500 backend:session-ref/simple
            "Session id (~a) doesn't hit anything!~%" sid))))
