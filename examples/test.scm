@@ -20,7 +20,7 @@
 ;;  and GNU Lesser General Public License along with this program.
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
-(use-modules (artanis artanis) (artanis utils))
+(use-modules (artanis artanis) (artanis utils) (artanis session))
 ;; exclude *.html static file to be handled by default static-page-emitter
 ;; we need to handle foo.html in rule test-18, this can avoid the conflict.
 (init-server)
@@ -183,6 +183,24 @@
      (lambda (rc)
        (cond
         ((:session rc 'check) "yes login!")
+        (else (redirect-to rc "/login?login_failed=true")))))
+
+;; 16.2
+;; test for session-set! success
+(get "/session-set" #:session #t
+     (lambda (rc)
+       (cond
+         ((:session rc 'check) (session-set! (get-sid-from-client-cookie rc "sid") "some-key" "some-value") "Session variable has been set")
+        (else (redirect-to rc "/login?login_failed=true")))))
+
+;; 16.3
+;; test for session-ref success
+(get "/session-get" #:session #t
+     (lambda (rc)
+       (cond
+         ((:session rc 'check)
+          (let ((sess-var (session-ref (get-sid-from-client-cookie rc "sid") "some-key")))
+            (string-append "Got session variable " sess-var)))
         (else (redirect-to rc "/login?login_failed=true")))))
 
 ;; 17
