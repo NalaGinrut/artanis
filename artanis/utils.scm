@@ -44,10 +44,20 @@
   #:use-module ((rnrs)
                 #:select (get-bytevector-all
                           utf8->string put-bytevector
-                          bytevector-u8-ref string->utf8 bytevector-length
-                          make-bytevector bytevector-s32-native-ref bytevector?
-                          define-record-type record-rtd
-                          get-string-all bitwise-ior div))
+                          bytevector-u8-ref
+                          string->utf8
+                          bytevector-length
+                          make-bytevector
+                          bytevector-s32-native-ref
+                          bytevector?
+                          define-record-type
+                          record-rtd
+                          get-string-all
+                          bitwise-ior
+                          div
+                          get-u8
+                          get-bytevector-n
+                          bytevector->u8-list))
   #:export (regexp-split
             hash-keys cat bv-cat get-global-time sanitize-response
             get-local-time unsafe-random parse-date write-date
@@ -132,13 +142,23 @@
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
 (define* (get-random-from-dev #:key (length 8) (uppercase #f))
+  (define-syntax-rule (gen-for-even port)
+    (let ((bv (get-bytevector-n port (div length 2))))
+      (format #f "~{~2,'0x~}" (bytevector->u8-list bv))))
+
   (call-with-input-file "/dev/urandom"
     (lambda (port)
-      (let* ((bv ((@ (rnrs) get-bytevector-n) port (div length 2)))
-             (str (format #f "~{~2,'0x~}" ((@ (rnrs) bytevector->u8-list) bv))))
-        (if uppercase
-            (string-upcase str)
-            str)))))
+      ;; generate token directly when length is even, otherwise, add the last byte with 8bit length.
+      (and=>
+       (cond
+        ((even? length) (gen-for-even port))
+        (else
+         (string-append (gen-for-even port)
+                        (format #f "~x" (logand #xf (get-u8 port))))))
+       (lambda (str)
+         (if uppercase
+             (string-upcase str)
+             str))))))
 
 (define-syntax-rule (local-eval-string str e)
   (local-eval
@@ -180,24 +200,24 @@
 ;; default time is #f, get current time
 (define* (get-global-time #:optional (time #f) (nsec 0))
   (call-with-output-string
-    (lambda (port)
-      ;; NOTE: (time-utc->data t 0) to get global time.
-      (write-date
-       (time-utc->date
-        (if time (make-time 'time-utc nsec time) (current-time))
-        0)
-       port))))
+   (lambda (port)
+     ;; NOTE: (time-utc->data t 0) to get global time.
+     (write-date
+      (time-utc->date
+       (if time (make-time 'time-utc nsec time) (current-time))
+       0)
+      port))))
 
 
 ;; default time is #f, get current time
 (define* (get-local-time #:optional (time #f) (nsec 0))
   (call-with-output-string
-    (lambda (port)
-      ;; NOTE: (time-utc->data t) to get local time.
-      (write-date
-       (time-utc->date
-        (if time (make-time 'time-utc nsec time) (current-time)))
-       port))))
+   (lambda (port)
+     ;; NOTE: (time-utc->data t) to get local time.
+     (write-date
+      (time-utc->date
+       (if time (make-time 'time-utc nsec time) (current-time)))
+      port))))
 
 (define* (regexp-split regex str #:optional (flags 0))
   (let ((ret (fold-matches
@@ -674,8 +694,8 @@
 
 (define* (sxml->xml-string sxml #:key (escape? #f))
   (call-with-output-string
-    (lambda (port)
-      (sxml->xml sxml port escape?))))
+   (lambda (port)
+     (sxml->xml sxml port escape?))))
 
 (define (run-after-request! proc)
   (add-hook! *after-request-hook* proc))
@@ -715,25 +735,25 @@
        ((= n 3) (list->string (reverse! ret)))
        (else (lp (1+ n) (cons (read-char port) ret))))))
   (call-with-output-string
-    (lambda (out)
-      (let lp((c (peek-char in)))
-        (cond
-         ((eof-object? c) #t)
-         ((hit? c)
-          => (lambda (str)
-               (display str out)
-               (read-char in)
-               (lp (peek-char in))))
-         ((char=? c #\%)
-          (let* ((s (get-estr in))
-                 (e (hit? s)))
-            (if e
-                (display e out)
-                (display s out))
-            (lp (peek-char in))))
-         (else
-          (display (read-char in) out)
-          (lp (peek-char in))))))))
+   (lambda (out)
+     (let lp((c (peek-char in)))
+       (cond
+        ((eof-object? c) #t)
+        ((hit? c)
+         => (lambda (str)
+              (display str out)
+              (read-char in)
+              (lp (peek-char in))))
+        ((char=? c #\%)
+         (let* ((s (get-estr in))
+                (e (hit? s)))
+           (if e
+               (display e out)
+               (display s out))
+           (lp (peek-char in))))
+        (else
+         (display (read-char in) out)
+         (lp (peek-char in))))))))
 
 (define *terrible-HTML-entities*
   '((#\< . "&lt;") (#\> . "&gt;") (#\& . "&amp;") (#\" . "&quot;") (#\sp . "&nbsp;")
@@ -941,9 +961,9 @@
 
 (define (subbv->string bv encoding start len)
   (call-with-output-string
-    (lambda (port)
-      (set-port-encoding! port encoding)
-      (put-bytevector port bv start len))))
+   (lambda (port)
+     (set-port-encoding! port encoding)
+     (put-bytevector port bv start len))))
 
 (define* (bv-u8-index bv u8 #:optional (time 1))
   (let ((len (bytevector-length bv)))
