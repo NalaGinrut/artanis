@@ -22,7 +22,8 @@
   #:use-module (web uri)
   #:use-module (srfi srfi-11)
   #:use-module (curl)
-  #:export (artanis:http-get))
+  #:export (artanis:http-get
+            artanis:http-post))
 
 ;; It's recommend to use (artanis client) rather than (web client)
 
@@ -67,3 +68,10 @@
   (let ((handle (curl-easy-init)))
     (curl-easy-setopt handle 'httpget #t)
     (get-result url artanis:http-get handle headers cert)))
+
+(define* (artanis:http-post url #:key (headers '()) (cert #f) (body '()))
+  (let ((handle (curl-easy-init)))
+    (curl-easy-setopt handle 'httpget #f)
+    (curl-easy-setopt handle 'post #t)
+    (curl-easy-setopt handle 'postfields body)
+    (get-result url artanis:http-post handle headers cert)))
