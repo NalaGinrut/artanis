@@ -123,6 +123,7 @@
     (application/x-7z-compressed (7z))
     (application/x-bzip2 (bz2))
     (application/x-gzip (gz))
+    (application/x-xz (xz))
     (application/x-abiword (abw))
     (application/x-apple-diskimage (dmg))
     (application/x-bcpio (bcpio))
