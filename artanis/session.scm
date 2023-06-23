@@ -71,7 +71,7 @@
   (let* ((ip (remote-info (rc-req rc)))
          (client (hash-ref session "client"))
          (ret (string=? client ip)))
-    (when (not ret)
+    (when (and (conf-get '(session hijackcheck)) (not ret))
       (format (current-error-port)
               "[Session Hijack!] Valid sid from two different client: ~a - ~a!~%"
               ip client))
