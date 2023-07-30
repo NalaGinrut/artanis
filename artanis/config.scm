@@ -651,7 +651,7 @@ debug.monitor = <PATHs>")
 ;; And init-server should be called automatically.
 (define current-conf-file (make-parameter #f))
 (define* (current-myhost #:key (for-header? #f))
-  (let* ((host (get-conf '(host name)))
+  (let* ((host (or (getenv "DOMAIN_NAME") (get-conf '(host name))))
          (real-host (if host host (get-conf '(host addr))))
          (port (get-conf '(host port))))
     (if for-header?
