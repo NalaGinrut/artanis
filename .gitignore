@@ -64,3 +64,5 @@ examples/upload
 configure
 etc/artanis/artanis.conf
 typescript
+.gitconfig
+*.patch
