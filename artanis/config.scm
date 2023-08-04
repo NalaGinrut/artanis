@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019,2021,2022
+;;  Copyright (C) 2013-2023
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -311,6 +311,11 @@ host.port = <integer>")
      "Specify the protocol family.
 host.family = ipv4 | ipv6")
 
+    ((host detectpath)
+     false
+     "Detect host or domain-name from specified path. This is useful when you run GNU Artanis inside a container.
+host.detectpath = <PATH>|<boolean>")
+
     ;; for session namespace
     ((session path)
      "session"
@@ -433,6 +438,12 @@ debug.monitor = <PATHs>")
       #f
       x))
 
+(define-syntax-rule (->string/boolean x)
+  (case (string->symbol (string-downcase x))
+    ((true on yes enable) "true")
+    ((false off no disable) "false")
+    (else x)))
+
 (define-syntax-rule (->dbd x)
   (let ((d (->symbol x)))
     (if (eq? 'mariadb d)
@@ -508,6 +519,7 @@ debug.monitor = <PATHs>")
     (('family family) (conf-set! '(host family) (->symbol family)))
     (('addr addr) (conf-set! '(host addr) addr))
     (('port port) (conf-set! '(host port) (->integer port)))
+    (('detectpath path) (conf-set! '(host detectpath) (->string/boolean path)))
     (else (error parse-namespace-host "Config: Invalid item" item))))
 
 (define (parse-namespace-backend backend)
@@ -651,7 +663,22 @@ debug.monitor = <PATHs>")
 ;; And init-server should be called automatically.
 (define current-conf-file (make-parameter #f))
 (define* (current-myhost #:key (for-header? #f))
-  (let* ((host (or (getenv "DOMAIN_NAME") (get-conf '(host name))))
+  (define (domain file)
+    (if (and file (file-exists? file))
+        (string-trim-both (call-with-input-file file read-line))
+        #f))
+  (define (get-domain-name)
+    (cond
+     ((domain (get-conf '(host detectpath))) => identity)
+     ((getenv "DOMAIN_NAME") => identity)
+     ((file-exists? "/proc/sys/kernel/domainname")
+      (let ((domain (string-trim-both
+                     (call-with-input-file "/proc/sys/kernel/domainname" read-line))))
+        (if (string=? "(none)" domain)
+            #f
+            domain)))
+     (else #f)))
+  (let* ((host (or (get-domain-name) (get-conf '(host name))))
          (real-host (if host host (get-conf '(host addr))))
          (port (get-conf '(host port))))
     (if for-header?
