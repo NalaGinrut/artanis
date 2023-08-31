@@ -312,7 +312,7 @@ host.port = <integer>")
 host.family = ipv4 | ipv6")
 
     ((host detectpath)
-     false
+     #f
      "Detect host or domain-name from specified path. This is useful when you run GNU Artanis inside a container.
 host.detectpath = <PATH>|<boolean>")
 
@@ -440,8 +440,8 @@ debug.monitor = <PATHs>")
 
 (define-syntax-rule (->string/boolean x)
   (case (string->symbol (string-downcase x))
-    ((true on yes enable) "true")
-    ((false off no disable) "false")
+    ((true on yes enable) #t)
+    ((false off no disable) #f)
     (else x)))
 
 (define-syntax-rule (->dbd x)
