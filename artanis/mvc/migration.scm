@@ -35,7 +35,8 @@
             rename-column
             remove-column
             add-index
-            remove-index))
+            remove-index
+            set-row))
 
 (define-syntax create-artanis-migration
   (lambda (x)
