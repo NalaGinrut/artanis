@@ -38,9 +38,9 @@
                                    (string-capitalize (symbol->string (car e)))
                                    (cdr e)))
                          headers))
-  (let ((ret (curl-easy-perform handle #f #t))
-        (code (curl-error-code))
-        (errstr (curl-error-string)))
+  (let* ((ret (curl-easy-perform handle #f #t))
+         (code (curl-error-code))
+         (errstr (curl-error-string)))
     (values ret code errstr)))
 
 (define (get-result url method handle headers cert)
