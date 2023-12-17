@@ -23,7 +23,8 @@
   #:use-module (srfi srfi-11)
   #:use-module (curl)
   #:export (artanis:http-get
-            artanis:http-post))
+            artanis:http-post
+            artanis:http-patch))
 
 ;; It's recommend to use (artanis client) rather than (web client)
 
@@ -70,10 +71,19 @@
     (curl-easy-setopt handle 'httpget #t)
     (get-result url artanis:http-get handle headers cert bytevector?)))
 
-(define* (artanis:http-post url #:key (headers '()) (cert #f) (body '())
+(define* (artanis:http-post url #:key (headers '()) (cert #f) (body #u8(0))
                             (bytevector? #f))
   (let ((handle (curl-easy-init)))
     (curl-easy-setopt handle 'httpget #f)
     (curl-easy-setopt handle 'post #t)
     (curl-easy-setopt handle 'postfields body)
     (get-result url artanis:http-post handle headers cert bytevector?)))
+
+(define* (artanis:http-patch url #:key (headers '()) (cert #f) (body #u8(0))
+                             (bytevector? #f))
+  (let ((handle (curl-easy-init)))
+    (curl-easy-setopt handle 'httpget #f)
+    (curl-easy-setopt handle 'post #t)
+    (curl-easy-setopt handle 'customrequest "PATCH")
+    (curl-easy-setopt handle 'postfields body)
+    (get-result url artanis:http-patch handle headers cert bytevector?)))
