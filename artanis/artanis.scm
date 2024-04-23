@@ -38,6 +38,7 @@
   #:use-module (artanis cache)
   #:use-module (artanis websocket)
   #:use-module (artanis lpc)
+  #:use-module (artanis security nss)
   #:use-module (artanis version)
   #:use-module (web server)
   #:use-module (srfi srfi-1)
@@ -228,6 +229,7 @@
   (sigaction SIGPIPE SIG_IGN) ; surpass SIGPIPE signal since we want to handle EPIPE by self
   (sigaction SIGINT (lambda (i)
                       (run-when-sigint-hook)
+                      (nss:pr-cleanup)
                       (format (artanis-current-output)
                               "~%Fare you well, your server is cold.~%")
                       (quit)))

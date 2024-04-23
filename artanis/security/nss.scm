@@ -39,7 +39,8 @@
             nss:sha-512
             nss:md5
             nss:sha-1
-            nss:hash-it))
+            nss:hash-it
+            nss:pr-cleanup))
 
 (define *nss-error-msg*
   "
@@ -59,6 +60,8 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
     (define-c-function '* NSSBase64_DecodeBuffer ('* '* '* unsigned-int))
     (define-c-function '* NSSBase64_EncodeItem ('* '* unsigned-int '*))
     (define-c-function int PK11_HashBuf (int '* '* uint32))
+    (define-c-function int PL_ArenaFinish '())
+    (define-c-function int PR_Cleanup '())
     )
 
   (ffi-binding "libssl3"
@@ -248,3 +251,8 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
 (define (pr-close) #t)
 
 (define (pr-cleanup) #t)
+
+(define (nss:pr-cleanup)
+  (when (nss:is-initialized?)
+    (pr-areana-finish)
+    (pr-cleanup)))
