@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2019,2020,2021
+;;  Copyright (C) 2019-2024
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -60,8 +60,6 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
     (define-c-function '* NSSBase64_DecodeBuffer ('* '* '* unsigned-int))
     (define-c-function '* NSSBase64_EncodeItem ('* '* unsigned-int '*))
     (define-c-function int PK11_HashBuf (int '* '* uint32))
-    (define-c-function int PL_ArenaFinish '())
-    (define-c-function int PR_Cleanup '())
     )
 
   (ffi-binding "libssl3"
