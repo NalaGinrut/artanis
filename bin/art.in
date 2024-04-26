@@ -3,7 +3,7 @@
 !#
 
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2018
+;;  Copyright (C) 2015-2024
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -29,6 +29,12 @@
              (artanis commands)
              (artanis commands help))
 
+(define *cmds-without-folder*
+  '("help" "create" "version"))
+
+(define (check-only? cmd)
+  (member cmd *cmds-without-folder*))
+
 (define main
   (lambda (args)
     (cond
@@ -38,7 +44,7 @@
         (cond
          ((string=? name "help") ((module-ref mod 'main)))
          (else
-          (parameterize ((%current-toplevel (find-ENTRY-path identity (string=? name "create"))))
+          (parameterize ((%current-toplevel (find-ENTRY-path identity (check-only? name))))
             (apply (module-ref mod 'main) (if (no-command-args? args)
                                               '()
                                               (cdr args))))))))
