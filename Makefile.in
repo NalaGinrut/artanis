@@ -66,8 +66,8 @@ test-cases := $(shell find $(TESTS) -name '*.test')
 
 ALL_TARGETS :=	version	 \
 		modules	 \
-		etc-conf \
-		scripts
+		$(SRC)/etc/artanis/artanis.conf \
+		script
 
 all: Makefile $(ALL_TARGETS)
 
@@ -88,12 +88,10 @@ $(MOD)/version.scm:
 	$(V)cat $(HEADER) > $@
 	$(V)$(GUILE) -c '(let ((port (open-file "$@" "a")))(format port "(define-module (artanis version) #:export (artanis-version)) (define artanis-version \"GNU Artanis-~a\")~%" "$(VERSION)"))'
 
-.PHONY: upload upload.gz upload.bz2 announce release.gz release.bz2 prepare clean modules install distclean distclean-mk bin version test docs scripts clean-obj etc-conf
+.PHONY: upload upload.gz upload.bz2 announce release.gz release.bz2 prepare clean modules install distclean distclean-mk bin version test docs clean-obj script
 
-etc-conf:
-	$(V)$(eval AELOG=build.err.etc-conf)
-	$(V)script -e -c "$(GUILE) -L $(SRC) -c '((@@ (artanis commands create) conf-handler) \"$(SRC)/etc/artanis/\")'" -f $(AELOG) > /dev/null || (cat $(AELOG) && exit 15)
-	$(V)-rm -f $(AELOG)
+$(SRC)/etc/artanis/artanis.conf:
+	$(V)$(GUILE) -L $(SRC) -C $(OBJ) -c '((@@ (artanis commands create) conf-handler) "$(SRC)/etc/artanis/")' > /dev/null || exit 15
 	$(V)-rm -f etc/artanis/README
 
 announce: release.gz release.bz2
@@ -143,7 +141,7 @@ clean-tarball:
 clean-config:
 	-rm -f config.{h,log}
 
-install: $(ALL_TARGETS)
+install: version modules $(SRC)/etc/artanis/artanis.conf
 	mkdir -p $(MOD_PATH)
 	$(CP) $(MOD) $(MOD_PATH)/
 	mkdir -p $(MOD_TARGET_PATH)/
@@ -154,7 +152,7 @@ ifdef DESTDIR
 	$(CP) $(ARTANIS_ETC) $(DESTDIR)/etc/
 	$(CP) $(ARTANIS_PAGES) $(DESTDIR)/etc/artanis/
 	mkdir -p $(DESTDIR)/bin/
-	$(CP) $(BIN)/art $(DESTDIR)/bin/
+	$(CP) -p $(BIN)/art $(DESTDIR)/bin/
 	if [ -e /etc/bash_completion ]; then \
 	  mkdir -p $(DESTDIR)/etc/bash_completion.d/; \
 	  $(CP) $(CMDCOMP) $(DESTDIR)/etc/bash_completion.d/; \
@@ -164,7 +162,7 @@ else
 	$(CP) $(ARTANIS_ETC) /etc/
 	$(CP) $(ARTANIS_PAGES) /etc/artanis/
 	mkdir -p $(PREFIX)/bin/
-	$(CP) $(BIN)/art $(PREFIX)/bin/
+	$(CP) -p $(BIN)/art $(PREFIX)/bin/
 	if [ -e /etc/bash_completion ]; then \
 	  mkdir -p /etc/bash_completion.d/; \
 	  $(CP) $(CMDCOMP) /etc/bash_completion.d/; \
@@ -221,6 +219,6 @@ docs: $(TEXI_SRC)
 	GENDOCS_TEMPLATE_DIR=$(BUILD_AUX) $(GENDOCS) --email bug-artanis@gnu.org -s $< -o $(MANUALS) "GNU Artanis Manual" --html --no-headers
 	-rm -f ./*.{cp,ky,tp,aux,fn,log,pg,toc,vr}
 
-scripts:
+script:
 	$(V)echo -ne "Generating bin/art\n\r"
 	$(V)chmod +x $(BIN)/art
