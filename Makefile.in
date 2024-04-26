@@ -58,7 +58,7 @@ else
 V :=
 endif
 
-mod-sfile := $(sort $(shell find $(MOD) -name '*.scm' ! -name "version.scm"))
+mod-sfile := $(sort $(shell find $(MOD) -name '*.scm' ! -wholename "$(MOD)/artanis/version.scm"))
 mod-ofile := $(mod-sfile:.scm=.go)
 mod-ofile := $(subst $(MOD)/,$(MOD_OBJ)/,$(mod-ofile))
 
