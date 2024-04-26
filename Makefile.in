@@ -58,7 +58,7 @@ else
 V :=
 endif
 
-mod-sfile := $(sort $(shell find $(MOD) -name '*.scm'))
+mod-sfile := $(sort $(shell find $(MOD) -name '*.scm' ! -name "version.scm"))
 mod-ofile := $(mod-sfile:.scm=.go)
 mod-ofile := $(subst $(MOD)/,$(MOD_OBJ)/,$(mod-ofile))
 
@@ -77,7 +77,7 @@ $(MOD_OBJ)/%.go: $(MOD)/%.scm
 	$(V)echo -ne "+ compiling $<\n\r"
 	$(V)mkdir -p $(@D)
 	$(V)script -e -c "$(GUILEC) -L $(SRC) $< -o $@" -f $(AELOG) > /dev/null || (cat $(AELOG) && exit 15)
-	$(V)if [ -e $(AELOG) ]; then cat $(AELOG) | grep warning; rm $(AELOG); :; fi
+	$(V)-rm -f $(AELOG)
 
 Makefile: $(SRC)/Makefile.in $(SRC)/configure
 	sh configure
@@ -93,8 +93,8 @@ $(MOD)/version.scm:
 etc-conf:
 	$(V)$(eval AELOG=build.err.etc-conf)
 	$(V)script -e -c "$(GUILE) -L $(SRC) -c '((@@ (artanis commands create) conf-handler) \"$(SRC)/etc/artanis/\")'" -f $(AELOG) > /dev/null || (cat $(AELOG) && exit 15)
+	$(V)-rm -f $(AELOG)
 	$(V)-rm -f etc/artanis/README
-	$(V)if [ -e $(AELOG) ]; then cat $(AELOG) | grep warning; rm $(AELOG); :; fi
 
 announce: release.gz release.bz2
 	$(V) $(ANN_GEN) --release-type=$(RELEASE_TYPE) --package-name=artanis --previous-version=$(PREV_VER) --current-version=$(VERSION) --gpg-key-id=$(GPG_KEY) --url-directory=$(URL_DIR) --news=NEWS --bootstrap-tools=$(BOOT_TOOLS)
