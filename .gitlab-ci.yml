@@ -6,15 +6,16 @@ before_script:
   - apt-get -qq -y install gettext redis redis-server libcurl4-openssl-dev
   - apt-get -qq -y upgrade
   - git clone --depth 1 https://github.com/opencog/guile-dbi.git 
-  - cd guile-dbi/guile-dbi
+  - cd guile-dbi
   - git checkout guile-dbi-2.1.8 
+  - cd guile-dbi
   - ./autogen.sh 
   - ./configure --prefix=/usr && make
   - make install 
   - ldconfig 
   - cd .. 
-  - cd guile-dbd-mysql 
   - git checkout guile-dbd-mysql-2.1.8
+  - cd guile-dbd-mysql 
   - ./autogen.sh 
   - ./configure --prefix=/usr && make 
   - make install && ldconfig && cd ../..
