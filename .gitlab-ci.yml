@@ -7,12 +7,14 @@ before_script:
   - apt-get -qq -y upgrade
   - git clone --depth 1 https://github.com/opencog/guile-dbi.git 
   - cd guile-dbi/guile-dbi
+  - git checkout guile-dbi-2.1.8 
   - ./autogen.sh 
   - ./configure --prefix=/usr && make
   - make install 
   - ldconfig 
   - cd .. 
   - cd guile-dbd-mysql 
+  - git checkout guile-dbd-mysql-2.1.8
   - ./autogen.sh 
   - ./configure --prefix=/usr && make 
   - make install && ldconfig && cd ../..
