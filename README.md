@@ -3,8 +3,10 @@
 </center>
 
 GNU Artanis aims to be a web application framework for Scheme. The philosophy of
-Artanis is to be very radical, and to try cutting-edge things.  So use it at
+Artanis is to be very radical, and to try cutting-edge things. So use it at
 your own risk...however, playing with it may result in some cool experiences!
+
+https://artanis.dev
 
 ## Features:
 
@@ -22,7 +24,12 @@ continuations.
 
 ## Prerequisite
 
-Guile-2.2+
+- GNU Guile-3.0+
+- guile-json
+- guile-csv
+- NSS (Network Security Services)
+- guile-dbi [optional]
+- guile-redis [optional]
 
 ## Install
 
