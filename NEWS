@@ -1,5 +1,5 @@
 Artanis NEWS --- history of user-visible changes.
-Copyright (C) 2015-2019
+Copyright (C) 2015-2024
 "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 See the end for copying conditions.
 
@@ -126,15 +126,15 @@ Changes in 0.3.2
 - Migration cache was removed since it's useless now
 - Fix misc bugs in migration
 - Enhanced Models API
-  - If no models defined then it throws warning
+- If no models defined then it throws warning
 - Boolean option supports `disable'
 - Fix socketfile data connection
-  - Thanks "Christopher Baines <mail@cbaines.net>"
+- Thanks "Christopher Baines <mail@cbaines.net>"
 - Fix wrong length of Websocket frame
 - Register default sigint handler before run
 - Fixed bugs in upload module
-  - Fix wrong HEADER in upload client
-  - Fix file description leaking after the file was uploaded
+- Fix wrong HEADER in upload client
+- Fix file description leaking after the file was uploaded
 
 Changes in 0.4
 * Notable changes
@@ -184,3 +184,9 @@ Changes in 0.5.1
 - Remove useless valid field in session
 - Show 'art create' options in auto complete
 - Support js hash
+
+Change in 0.6
+* Notable changes
+- Add (artanis client)
+- Fix many bugs in DB operations
+- Fix cookie expires
