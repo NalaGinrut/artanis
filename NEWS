@@ -185,7 +185,7 @@ Changes in 0.5.1
 - Show 'art create' options in auto complete
 - Support js hash
 
-Change in 0.6
+Changes in 0.6
 * Notable changes
 - Add (artanis client)
 - Fix many bugs in DB operations
