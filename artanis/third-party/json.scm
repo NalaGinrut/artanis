@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2017
+;;  Copyright (C) 2014-2024
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -25,8 +25,8 @@
 
 (define-module (artanis third-party json)
   #:use-module (artanis env)
-  #:use-module (artanis third-party json upstream builder)
-  #:use-module (artanis third-party json upstream parser)
+  #:use-module (json builder)
+  #:use-module (json parser)
   #:use-module (artanis irregex)
   #:use-module (srfi srfi-1)
   #:export (->json-string
@@ -35,9 +35,7 @@
   #:re-export (scm->json
                scm->json-string
                json->scm
-               json-string->scm
-               json-parser?
-               json-parser-port))
+               json-string->scm))
 
 (define *word-re* (string->irregex "^[a-zA-Z0-9_]+$"))
 
