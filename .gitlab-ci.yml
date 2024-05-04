@@ -36,6 +36,7 @@ before_script:
   - cd ..
   - git clone https://github.com/aconchillo/guile-json.git
   - cd guile-json && git checkout -b 4.7.3
+  - autoreconf -iv
   - ./configure --prefix=/usr
   - make
   - make install
