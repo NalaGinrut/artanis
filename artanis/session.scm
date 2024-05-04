@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2021,2022
+;;  Copyright (C) 2013-2024
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -125,6 +125,7 @@
   (let* ((redis (session-backend-meta sb))
          (line (backend-impl:ref/redis redis sid))
          (ss (and line
+                  (not (null? line))
                   (and=> (call-with-input-string line read) make-session))))
     ss))
 
@@ -153,7 +154,7 @@
 
 (define* (new-session-backend/redis #:key (host "127.0.0.1") (port 6379))
   (make-session-backend 'redis
-                        (new-lpc-backend/redis #:host host  #:port port)
+                        (new-lpc-backend/redis #:host host #:port port)
                         backend:session-init/redis
                         backend:session-store/redis
                         backend:session-destroy/redis
@@ -244,8 +245,8 @@
   (cond
    ((backend:session-restore/simple sb sid)
     => (lambda (ss)
-        (let ((data (assoc-ref ss "data")))
-          (hash-set! ss "data" (assoc-set! data k v)))))
+         (let ((data (assoc-ref ss "data")))
+           (hash-set! ss "data" (assoc-set! data k v)))))
    (else
     (throw 'artanis-err 500 backend:session-restore/simple
            "Session id (~a) doesn't hit anything!~%" sid))))

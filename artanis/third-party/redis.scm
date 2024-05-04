@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2018
+;;  Copyright (C) 2018-2024
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -24,9 +24,26 @@
 ;;; Code:
 
 (define-module (artanis third-party redis)
-  #:use-module (artanis third-party redis upstream main)
-  #:use-module (artanis third-party redis upstream commands)
-  #:re-export (;; from main
+  #:use-module (redis utils)
+  #:use-module (redis main)
+  #:use-module (redis connection)
+  #:use-module ((redis commands) #:renamer (lambda (symbol)
+                                             (case symbol
+                                               ((redis-command?
+                                                 redis-cmd-name
+                                                 redis-cmd-args
+                                                 redis-cmd-reply)
+                                                symbol)
+                                               (else
+                                                ((symbol-prefix-proc 'redis-) symbol)))))
+  #:re-export (;; from commands
+               redis-create-command
+               redis-command?
+               redis-cmd-name
+               redis-cmd-args
+               redis-cmd-reply
+
+               ;; from main
                redis-connect
                redis-close
                redis-send
@@ -64,7 +81,10 @@
                redis-keys
                redis-migrate
                redis-move
-               redis-object
+               redis-object-encoding
+               redis-object-freq
+               redis-object-idletime
+               redis-object-refcount
                redis-persist
                redis-pexpire
                redis-pexpireat
@@ -96,12 +116,10 @@
                redis-rpushx
 
                ;; from publish
-               redis-psubscribe
-               redis-pubsub
-               redis-publish
-               redis-punsubscribe
-               redis-subscribe
-               redis-unsubscribe
+               redis-pubsub-channels
+               redis-pubsub-numpat
+               redis-pubsub-numsub
+               redis-pubsub-shardchannels
 
                ;; scripting
                redis-eval
@@ -122,8 +140,6 @@
                redis-config-set
                redis-config-resetstat
                redis-dbsize
-               redis-debug-object
-               redis-debug-segfault
                redis-flushall
                redis-flushdb
                redis-info
@@ -132,7 +148,6 @@
                redis-save
                redis-shutdown
                redis-slaveof
-               redis-slowlog
                redis-sync
                redis-time
 
