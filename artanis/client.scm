@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2022-2023
+;;  Copyright (C) 2022-2024
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -22,9 +22,12 @@
   #:use-module (web uri)
   #:use-module (srfi srfi-11)
   #:use-module (curl)
-  #:export (artanis:http-get
+  #:export (artanis:http-head
+            artanis:http-get
             artanis:http-post
-            artanis:http-patch))
+            artanis:http-patch
+            artanis:http-delete
+            artanis:http-put))
 
 ;; It's recommend to use (artanis client) rather than (web client)
 
@@ -72,18 +75,26 @@
     (get-result url artanis:http-get handle headers cert bytevector?)))
 
 (define* (artanis:http-post url #:key (headers '()) (cert #f) (body #u8(0))
-                            (bytevector? #f))
+                            (bytevector? #f) (customrequest #f))
   (let ((handle (curl-easy-init)))
     (curl-easy-setopt handle 'httpget #f)
     (curl-easy-setopt handle 'post #t)
+    (when customized
+      (curl-easy-setopt handle 'customrequest customrequest))
     (curl-easy-setopt handle 'postfields body)
     (get-result url artanis:http-post handle headers cert bytevector?)))
 
 (define* (artanis:http-patch url #:key (headers '()) (cert #f) (body #u8(0))
                              (bytevector? #f))
-  (let ((handle (curl-easy-init)))
-    (curl-easy-setopt handle 'httpget #f)
-    (curl-easy-setopt handle 'post #t)
-    (curl-easy-setopt handle 'customrequest "PATCH")
-    (curl-easy-setopt handle 'postfields body)
-    (get-result url artanis:http-patch handle headers cert bytevector?)))
+  (artanis:http-post url #:headers headers #:cert cert #:body body
+                     #:bytevector? bytevector? #:customrequest "PATCH"))
+
+(define* (artanis:http-delete url #:key (headers '()) (cert #f) (body #u8(0))
+                              (bytevector? #f))
+  (artanis:http-post url #:headers headers #:cert cert #:body body
+                     #:bytevector? bytevector? #:customrequest "DELETE"))
+
+(define* (artanis:http-put url #:key (headers '()) (cert #f) (body #u8(0))
+                           (bytevector? #f))
+  (artanis:http-post url #:headers headers #:cert cert #:body body
+                     #:bytevector? bytevector? #:customrequest "PUT"))
