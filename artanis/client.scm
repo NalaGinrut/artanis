@@ -79,7 +79,7 @@
   (let ((handle (curl-easy-init)))
     (curl-easy-setopt handle 'httpget #f)
     (curl-easy-setopt handle 'post #t)
-    (when customized
+    (when customerequest
       (curl-easy-setopt handle 'customrequest customrequest))
     (curl-easy-setopt handle 'postfields body)
     (get-result url artanis:http-post handle headers cert bytevector?)))
