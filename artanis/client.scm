@@ -35,7 +35,8 @@
   (curl-easy-setopt handle 'url url)
   (curl-easy-setopt handle 'http-version 2)
   (when (not cert)
-    (curl-easy-setopt handle 'ssl-verifypeer #f))
+    (curl-easy-setopt handle 'ssl-verifypeer #f)
+    (curl-easy-setopt handle 'ssl-verifyhost #f))
   (curl-easy-setopt handle 'httpheader
                     (map (lambda (e)
                            (format #f "~a: ~a"
@@ -49,16 +50,24 @@
 
 (define (get-result url method handle headers cert bv?)
   (let-values (((ret code errstr) (request-it url handle headers cert bv?)))
+    (when (not ret)
+      (curl-easy-cleanup handle)
+      (throw 'artanis-error 500 get-result
+             (format #f "client error: method `~a', code `~a', errstr `~a'!"
+                     method code errstr)))
     (let* ((res (call-with-input-string (car ret) read-response))
            (body (cadr ret))
            (status (response-code res)))
       (cond
        ((or (= status 301) (= status 302))
-        (let ((new-url (uri->string (assoc-ref (response-headers res) 'location))))
+        (let ((new-url (uri->string (assoc-ref (response-headers res)
+                                               'location))))
           (get-result new-url method handle headers cert bv?)))
        ((not (zero? code))
         (curl-easy-cleanup handle)
-        (throw 'artanis-error 500 method errstr))
+        (throw 'artanis-error 500 get-result
+               (format #f "client error: method `~a', code `~a', errstr `~a'!"
+                       method code errstr)))
        (else
         (curl-easy-cleanup handle)
         (values res body))))))
@@ -79,7 +88,7 @@
   (let ((handle (curl-easy-init)))
     (curl-easy-setopt handle 'httpget #f)
     (curl-easy-setopt handle 'post #t)
-    (when customerequest
+    (when customrequest
       (curl-easy-setopt handle 'customrequest customrequest))
     (curl-easy-setopt handle 'postfields body)
     (get-result url artanis:http-post handle headers cert bytevector?)))
