@@ -28,8 +28,8 @@ continuations.
 - guile-json
 - guile-csv
 - NSS (Network Security Services)
-- guile-dbi [optional]
-- guile-redis [optional]
+- guile-redis
+- guile-dbi
 
 ## Install
 
@@ -79,9 +79,6 @@ Artanis. The preferred way to discuss internals of Artanis is to send mail to
 good for archive. And you could discuss the bugs in issues for better tracking
 than mails.
 
-I'll write articles about GNU Artanis occasionally on my blog:
-http://nalaginrut.com
-
 GNU Artanis is aiming for production quality, since it's going to be used in a
 real product. So we need high quality contributions.  Small and/or obvious fixes
 are likely to be easily applied. Larger contributions should be discussed firstaduring the planning phase as they will require strict review.
@@ -92,3 +89,7 @@ webcast tutorials are good ways to help grow the GNU Artanis community.
 If you're using GNU Artanis in your project, please share your experiences. GNU
 Artanis wants to be a friendly community to help people learn about free
 software and increase use of functional programming in industry.
+
+* Blog
+
+https://www.artanis.dev/blog.html
