@@ -317,7 +317,7 @@
     (call-with-output-string
       (lambda (port)
         (for-each (lambda (s f)
-                    (format port "<p>Upload succeeded! ~a: ~a bytes!</p>" s f))
+                    (format port "<p>Upload succeeded! ~a: ~a bytes!</p>" f s))
                   size-list filename-list))))
   (define (default-no-file-ret) "<p>No uploaded files!</p>")
   (define* (store-the-bv rc #:key (uid 33) (gid 33) (path (get-conf '(upload path)))
