@@ -38,7 +38,7 @@
     (let ((ost (stat ofile))
           (cst (stat cfile)))
       (> (stat:mtime ost) (stat:mtime cst))))
-  (let ((cfile (format #f "~a/tmp/cache/tpl/~a" (proper-toplevel) file)))
+  (let ((cfile (format #f "~a/cache/tpl/~a" (current-tmp) file)))
     (and (file-exists? cfile)
          (cache-is-old? cfile file)
          (cat file #f))))
@@ -47,8 +47,8 @@
   (call-with-input-string tpl tpl-read))
 
 (define (cache-the-file expr ofile)
-  (let* ((cdir (format #f "~a/tmp/cache/tpl/~a/"
-                       (proper-toplevel) (dirname ofile)))
+  (let* ((cdir (format #f "~a/cache/tpl/~a/"
+                       (current-tmp) (dirname ofile)))
          (cfile (string-append cdir (basename ofile) ".cache")))
     (when (not (file-exists? cdir))
       (DEBUG "Create cache directory ~a~%" cdir)
@@ -64,9 +64,9 @@
   (let ((expr (tpl->expr tpl)))
     (cache-the-file expr cache-file)
     (call-with-output-string
-      (lambda (port)
-        (parameterize ((current-output-port port))
-          (local-eval-string expr e))))))
+     (lambda (port)
+       (parameterize ((current-output-port port))
+         (local-eval-string expr e))))))
 
 (define-syntax-rule (tpl-render-from-file file e)
   (cond

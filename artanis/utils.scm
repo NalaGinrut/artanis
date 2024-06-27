@@ -91,7 +91,7 @@
             colorize-string WARN-TEXT ERROR-TEXT REASON-TEXT
             NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr request-path
             response-keep-alive? request-keep-alive? file->bytevector
-            procedure-name->string proper-toplevel gen-content-length
+            procedure-name->string gen-content-length
             make-file-sender file-sender? file-sender-size file-sender-thunk
             get-string-all-with-detected-charset make-unstop-exception-handler
             artanis-log exception-from-client exception-from-server render-sys-page
@@ -866,11 +866,16 @@
   (define (write-header port)
     (format port ";; Do not touch anything!!!~%")
     (format port ";; All things here should be automatically handled properly!!!~%"))
-  (define route-cache (string-append (current-toplevel) "/tmp/cache/route.cache"))
+  (define cache-dir (format #f "~a/cache" (current-tmp)))
+  (define route-cache (format #f "~a/cache/route.cache" (current-tmp)))
   (when (not (file-exists? route-cache))
     (format (artanis-current-output) "Regenerating route cache ...~%")
-    (call-with-output-file route-cache
-      (lambda (port) (write-header port) (write '() port))))
+    (when (not (file-exists? cache-dir))
+      (mkdir cache-dir))
+    (let ((port (open-file route-cache "w")))
+      (write-header port)
+      (write '() port)
+      (close port)))
   (when (and url meta)
     (let ((rl (call-with-input-file route-cache read)))
       (delete-file route-cache)
@@ -892,7 +897,7 @@
 
 (define (dump-route-from-cache)
   (define toplevel (current-toplevel))
-  (define route-cache (string-append toplevel "/tmp/cache/route.cache"))
+  (define route-cache (format #f "~a/cache/route.cache" (current-tmp)))
   (define route (string-append toplevel "/.route"))
   (define (load-customized-router)
     (let ((croute (string-append toplevel "conf/route")))
@@ -1082,18 +1087,18 @@
           (catch 'interrupt
             (lambda ()
               (dynamic-wind
-                (lambda ()
-                  (set! handler
-                        (sigaction SIGINT (lambda (sig)
-                                            (run-when-sigint-hook)
-                                            (throw 'interrupt)))))
-                thunk
-                (lambda ()
-                  (if handler
-                      ;; restore Scheme handler, SIG_IGN or SIG_DFL.
-                      (sigaction SIGINT (car handler) (cdr handler))
-                      ;; restore original C handler.
-                      (sigaction SIGINT #f)))))
+                  (lambda ()
+                    (set! handler
+                          (sigaction SIGINT (lambda (sig)
+                                              (run-when-sigint-hook)
+                                              (throw 'interrupt)))))
+                  thunk
+                  (lambda ()
+                    (if handler
+                        ;; restore Scheme handler, SIG_IGN or SIG_DFL.
+                        (sigaction SIGINT (car handler) (cdr handler))
+                        ;; restore original C handler.
+                        (sigaction SIGINT #f)))))
             (lambda (k . _) (handler-thunk)))))))
 
 (define-syntax-rule (define-box-type name)
@@ -1298,9 +1303,6 @@
 
 (define (procedure-name->string proc)
   (symbol->string (procedure-name proc)))
-
-(define-syntax-rule (proper-toplevel)
-  (or (current-toplevel) ""))
 
 (define-record-type file-sender
   (fields size thunk))
@@ -1611,5 +1613,5 @@
      (lambda (x) (memv x '(#\sp #\_)))))
   (let ((p (-> path)))
     (if (string-null? p)
-        (format #f "~a/tmp/cache/index.html" (current-toplevel))
-        (format #f "~a/tmp/cache/~a.html" (current-toplevel) (-> path)))))
+        (format #f "~a/cache/index.html" (current-tmp))
+        (format #f "~a/cache/~a.html" (current-tmp) (-> path)))))

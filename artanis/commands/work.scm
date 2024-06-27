@@ -68,7 +68,7 @@
 
 (define (refresh-current-app)
   (let ((recompile (format #f "find ~a -name \"*.scm\" -exec touch {} \\;" (current-toplevel)))
-        (clean (format #f "rm -fr ~a/tmp/cache/tpl/*" (current-toplevel))))
+        (clean (format #f "rm -fr ~a/cache/tpl/*" (current-tmp))))
     (system recompile)
     (system clean)
     (run-hook *refresh-hook*)))
@@ -113,7 +113,7 @@
 
 (define (clean-stuffs)
   (define toplevel (current-toplevel))
-  (define route-cache (format #f "~a/tmp/cache/route.cache" toplevel))
+  (define route-cache (format #f "~a/cache/route.cache" (current-tmp)))
   (define route (format #f "~a/.route" toplevel))
   (define-syntax-rule (clean-it f)
     (when (file-exists? f) (delete-file f)))

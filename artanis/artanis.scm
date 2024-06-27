@@ -237,39 +237,39 @@
                    (class #f) (tag-class #f) (tag-id #f) (form-method "get"))
   (lambda tags
     (call-with-output-string
-      (lambda (port)
-        (format port "<form accept-charset='~a'" (get-conf '(server charset)))
-        (format port " action='~a'"
-                (call-with-output-string
-                  (lambda (port2)
-                    (display "/" port2)
-                    (and controller (format port2 "~a/" controller))
-                    (and action (format port2 "~a?" action))
-                    (and method (format port2 "method=~a" method))
-                    (and class (format port2 "&class=~a" class)))))
-        (format port " method='~a'" method)
-        (and tag-class (format port " class='~a'" tag-class))
-        (and tag-id (format port " id='~a'" tag-id))
-        (display ">\n" port)
-        (for-each (lambda (tag) (format port "~a~%" tag)) tags)
-        (format port "</form>~%")))))
+     (lambda (port)
+       (format port "<form accept-charset='~a'" (get-conf '(server charset)))
+       (format port " action='~a'"
+               (call-with-output-string
+                (lambda (port2)
+                  (display "/" port2)
+                  (and controller (format port2 "~a/" controller))
+                  (and action (format port2 "~a?" action))
+                  (and method (format port2 "method=~a" method))
+                  (and class (format port2 "&class=~a" class)))))
+       (format port " method='~a'" method)
+       (and tag-class (format port " class='~a'" tag-class))
+       (and tag-id (format port " id='~a'" tag-id))
+       (display ">\n" port)
+       (for-each (lambda (tag) (format port "~a~%" tag)) tags)
+       (format port "</form>~%")))))
 
 (define (make-general-tag tag)
   (lambda attrs
     (lambda (contents)
       (call-with-output-string
-        (lambda (port)
-          (format port "<~a" tag)
-          (let lp((next attrs))
-            (cond
-             ((null? next)
-              (display ">\n" port)
-              (display contents port)
-              (newline port)
-              (format port "</~a>" tag))
-             (else
-              (format port " ~a='~a'" (keyword->symbol (car next)) (cadr next))
-              (lp (cddr attrs))))))))))
+       (lambda (port)
+         (format port "<~a" tag)
+         (let lp((next attrs))
+           (cond
+            ((null? next)
+             (display ">\n" port)
+             (display contents port)
+             (newline port)
+             (format port "</~a>" tag))
+            (else
+             (format port " ~a='~a'" (keyword->symbol (car next)) (cadr next))
+             (lp (cddr attrs))))))))))
 
 (define label-tag (make-general-tag 'label))
 (define a-tag (make-general-tag 'a))

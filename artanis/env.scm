@@ -41,6 +41,8 @@
             *artanis-entry*
             %current-toplevel
             current-toplevel
+            proper-toplevel
+            current-tmp
             find-ENTRY-path
             cmd:is-dry-run?
             cmd:is-force?
@@ -133,6 +135,15 @@
 (define (current-toplevel)
   (or (%current-toplevel)
       (find-ENTRY-path identity #t)))
+
+(define-syntax-rule (proper-toplevel)
+  (or (current-toplevel) "./"))
+
+(define (current-tmp)
+  (let ((tmp (format #f "~a/tmp" (proper-toplevel))))
+    (when (not (file-exists? tmp))
+      (mkdir tmp))
+    tmp))
 
 ;; parameters for command
 (define cmd:is-dry-run? (make-parameter #f))
@@ -233,7 +244,7 @@
 (define (oh-define! lst) (set! *options-meta-handler-table* lst))
 (define (oh-set! k h)
   (set! *options-meta-handler-table*
-    (assq-set! *options-meta-handler-table* k h)))
+        (assq-set! *options-meta-handler-table* k h)))
 (define (oh-ref o)
   (assq-ref *options-meta-handler-table* o))
 
