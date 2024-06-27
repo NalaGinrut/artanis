@@ -252,5 +252,4 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
 
 (define (nss:pr-cleanup)
   (when (nss:is-initialized?)
-    (pr-areana-finish)
     (pr-cleanup)))
