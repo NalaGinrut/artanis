@@ -25,4 +25,6 @@ Thanks these guys who gave me help:
   Fix cookies. Reported many issues.
 * Zelphir Kaltstahl <zelphirkaltstahl@posteo.de>
   Fix wording in security warning.
+* Yarl Baudig <yarl-baudig@mailoo.org>
+  Fix epoll issue on Aarch64
 
