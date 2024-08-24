@@ -86,9 +86,6 @@
 (define-public (gen-write-event) (logior *error-event* (get-trigger) *write-event*))
 (define-public (gen-oneshot-event) (logior EPOLLONESHOT (gen-rw-event)))
 
-(define-public epoll-data-meta (list '* int uint32 uint64))
-(define-public epoll-data-size (sizeof epoll-data-meta))
-
 (define-public (epoll-data-ptr ed) (car ed))
 (define-public (epoll-data-ptr-set! ed ptr)
   (list-set! (cadr ed) 0 ptr))
@@ -102,14 +99,11 @@
 (define-public (epoll-data-u64-set! ed u64)
   (list-set! (cadr ed) 3 u64))
 
-(define-public epoll-event-meta (list uint32 epoll-data-meta))
 (define-public (make-epoll-event fd events)
   (let ((ees (make-bytevector %sizeof-struct-epoll-event)))
     (bytevector-s32-native-set! ees (fd-offset 0) fd)
     (bytevector-u32-native-set! ees (events-offset 0) events)
     ees))
-(define (parse-epoll-event e)
-  (parse-c-struct epoll-event-meta e))
 
 (define-public (epoll-event-events ee) (car ee))
 (define-public (epoll-event-events-set! ee e)
@@ -119,8 +113,8 @@
   (list-set! ee 1 data))
 
 ;; FIXME: These sizes are fine on x64, but I'm not sure for i386
-(define %sizeof-struct-epoll-event 12)
-(define %offsetof-struct-epoll-event-fd 4)
+(define %sizeof-struct-epoll-event (if (string= (utsname:machine (uname)) "x86_64") 12 16))
+(define %offsetof-struct-epoll-event-fd (- %sizeof-struct-epoll-event 8))
 (define epoll-event-size %sizeof-struct-epoll-event)
 
 (define (fd-offset n)
