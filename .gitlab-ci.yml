@@ -1,4 +1,4 @@
-image: debian:sid-slim
+image: ubuntu:latest
 
 before_script:
   - apt-get -qq update
