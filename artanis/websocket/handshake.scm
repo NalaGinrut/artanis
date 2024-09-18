@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2017,2018,2019
+;;  Copyright (C) 2017-2019,2024
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -26,6 +26,7 @@
   #:use-module (artanis irregex)
   #:use-module (artanis websocket frame)
   #:use-module (artanis websocket protocols)
+  #:use-module (artanis security nss)
   #:use-module (ice-9 iconv)
   #:use-module (rnrs bytevectors)
   #:use-module ((rnrs) #:select (define-record-type))
@@ -59,12 +60,12 @@
 (define (this-rule-enabled-websocket! rule protocol)
   (DEBUG "this-rule-enabled-websocket! ~a~%" rule)
   (set! *rules-with-websocket*
-    (cons (cons (string->irregex rule) protocol) *rules-with-websocket*)))
+        (cons (cons (string->irregex rule) protocol) *rules-with-websocket*)))
 
 (define (this-rule-enabled-inexclusive-websocket! rule protocol)
   (DEBUG "this-rule-enabled-inexclusive-websocket! ~a~%" rule)
   (set! *rules-with-inexclusive-websocket*
-    (cons (cons (string->irregex rule) protocol) *rules-with-inexclusive-websocket*)))
+        (cons (cons (string->irregex rule) protocol) *rules-with-inexclusive-websocket*)))
 
 (define (get-websocket-protocol rule)
   (define (check pp)
