@@ -99,7 +99,7 @@
             is-guile-compatible-server-core? positive-integer? negative-integer?
             io-exception:peer-is-shutdown? io-exception:out-of-memory?
             out-of-system-resources? allow-long-live-connection?
-            free-JS-announcement gen-cache-file)
+            free-JS-announcement gen-cache-file current-route-cache)
   #:re-export (the-environment
                utf8->string
                bytevector?
@@ -885,10 +885,13 @@
                ))
           (flock port LOCK_UN))))))
 
+(define (current-route-cache)
+  (format #f "~a/.route" (current-tmp)))
+
 (define (dump-route-from-cache)
   (define toplevel (current-toplevel))
   (define route-cache (format #f "~a/cache/route.cache" (current-tmp)))
-  (define route (string-append toplevel "/.route"))
+  (define route (current-route-cache))
   (define (load-customized-router)
     (let ((croute (string-append toplevel "conf/route")))
       (cond

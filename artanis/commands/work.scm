@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2016,2017,2018,2019,2020
+;;  Copyright (C) 2015-2020,2024
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -75,7 +75,9 @@
 
 (define (try-load-entry)
   (let ((entry (string-append (current-toplevel) "/" *artanis-entry*)))
-    (load entry)))
+    (pk 111)
+    (load entry)
+    (pk 222)))
 
 (define (try-load-app)
   (load-app-models)
@@ -91,7 +93,7 @@
 (define *component-meta-table*
   `((controller . ,*controllers-table*)))
 (define (load-compent-rules component)
-  (define rf (string-append (current-toplevel) "/.route"))
+  (define rf (current-route-cache))
   (define (-> k)
     (module-ref (resolve-module '(artanis artanis)) k))
   (when (not (file-exists? rf))
