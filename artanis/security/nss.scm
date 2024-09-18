@@ -33,12 +33,15 @@
             nss:base64-decode
             nss:base64-encode
             nss:hash
-            nss:sha-224
-            nss:sha-256
-            nss:sha-384
-            nss:sha-512
-            nss:md5
-            nss:sha-1
+
+            string->md5
+            string->sha-1
+            string->sha-224
+            string->sha-256
+            string->sha-384
+            string->sha-512
+            generate-rule-uid
+
             nss:hash-it
             nss:pr-cleanup))
 
@@ -208,23 +211,23 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
       (nss:no-db-init))
     (pk11-haskbuf algo out in len algo-len)))
 
-(define (nss:sha-512 str/bv)
+(define (string->sha-512 str/bv)
   (nss:hash SEC_OID_SHA512 SHA512_DIGEST_LENGTH str/bv))
 
-(define (nss:sha-384 str/bv)
+(define (string->sha-384 str/bv)
   (nss:hash SEC_OID_SHA384 SHA384_DIGEST_LENGTH str/bv))
 
-(define (nss:sha-256 str/bv)
+(define (string->sha-256 str/bv)
   (nss:hash SEC_OID_SHA256 SHA256_DIGEST_LENGTH str/bv))
 
 #;
 (define (nss:sha-224 str)
 (nss:hash SEC_OID_HMAC_SHA224 SHA224_DIGEST_LENGTH str))
 
-(define (nss:sha-1 str/bv)
+(define (string->sha-1 str/bv)
   (nss:hash SEC_OID_SHA1 SHA1_DIGEST_LENGTH str/bv))
 
-(define (nss:md5 str/bv)
+(define (string->md5 str/bv)
   (nss:hash SEC_OID_MD5 MD5_DIGEST_LENGTH str/bv))
 
 (define PR_USER_THREAD 0)
@@ -253,3 +256,7 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
 (define (nss:pr-cleanup)
   (when (nss:is-initialized?)
     (pr-cleanup)))
+
+;; FIXME: MD5 may not be the best choice
+(define-syntax-rule (generate-rule-uid rule)
+  (string->md5 rule))

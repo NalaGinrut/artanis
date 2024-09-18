@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2016,2017,2018,2019,2020,2021
+;;  Copyright (C) 2014-2021,2024
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -40,6 +40,7 @@
   #:use-module (artanis third-party json)
   #:use-module (artanis third-party csv)
   #:use-module (artanis server scheduler)
+  #:use-module (artanis security nss)
   #:use-module (artanis irregex)
   #:use-module (artanis lpc)
   #:use-module (ice-9 match)
@@ -151,11 +152,11 @@
 (define (conn-maker yes? rule keys)
   (and yes?
        (case-lambda
-         ((rc) (DB-open rc))
-         ((rc sql)
-          (let ((conn (DB-open rc)))
-            (DB-query conn sql)
-            conn)))))
+        ((rc) (DB-open rc))
+        ((rc sql)
+         (let ((conn (DB-open rc)))
+           (DB-query conn sql)
+           conn)))))
 
 (define (raw-sql-maker sql rule keys)
   (lambda (rc mode)
@@ -315,10 +316,10 @@
         '()))
   (define (default-success-ret size-list filename-list)
     (call-with-output-string
-      (lambda (port)
-        (for-each (lambda (s f)
-                    (format port "<p>Upload succeeded! ~a: ~a bytes!</p>" f s))
-                  size-list filename-list))))
+     (lambda (port)
+       (for-each (lambda (s f)
+                   (format port "<p>Upload succeeded! ~a: ~a bytes!</p>" f s))
+                 size-list filename-list))))
   (define (default-no-file-ret) "<p>No uploaded files!</p>")
   (define* (store-the-bv rc #:key (uid 33) (gid 33) (path (get-conf '(upload path)))
                          (mode #o664) (path-mode #o775) (sync #f) (simple-ret? #t)

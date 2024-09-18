@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2016,2017,2018,2019,2020
+;;  Copyright (C) 2013-2020,2024
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -18,7 +18,6 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis utils)
-  #:use-module (artanis security nss)
   #:use-module (artanis tpl sxml)
   #:use-module (artanis config)
   #:use-module (artanis irregex)
@@ -100,7 +99,7 @@
             is-guile-compatible-server-core? positive-integer? negative-integer?
             io-exception:peer-is-shutdown? io-exception:out-of-memory?
             out-of-system-resources? allow-long-live-connection?
-            free-JS-announcement generate-rule-uid gen-cache-file)
+            free-JS-announcement gen-cache-file)
   #:re-export (the-environment
                utf8->string
                bytevector?
@@ -126,16 +125,7 @@
                request-headers
                request-method
                request-content-length
-               request-port
-
-               (nss:md5 . string->md5)
-               (nss:sha-1 . string->sha-1)
-               (nss:sha-224 . string->sha-224)
-               (nss:sha-256 . string->sha-256)
-               (nss:sha-384 . string->sha-384)
-               (nss:sha-512 . string->sha-512)
-               nss:base64-encode
-               nss:base64-decode))
+               request-port))
 
 (define parse-date (@@ (web http) parse-date))
 (define write-date (@@ (web http) write-date))
@@ -1601,10 +1591,6 @@
         */
     </script>
 ")
-
-;; FIXME: MD5 may not be the best choice
-(define-syntax-rule (generate-rule-uid rule)
-  (string->md5 rule))
 
 (define (gen-cache-file path)
   (define-syntax-rule (-> str)
