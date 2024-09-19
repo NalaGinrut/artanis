@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2016,2017
+;;  Copyright (C) 2015-2017,2024
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -36,7 +36,6 @@
            ;; NOTE: we're not going to imort (artanis env) directly to avoid revealing global
            ;;       env vars to users.
            (define-module (app controllers name)
-             #:autoload (app models name) (#,(datum->syntax #'name (symbol-append '$ (syntax->datum #'name))))
              #:use-module (artanis artanis)
              #:use-module (artanis env)
              #:use-module (artanis utils))
@@ -50,11 +49,11 @@
                 (else ((@ (artanis artanis) response-emit) "" #:status 404)))))
            (define-syntax #,(datum->syntax #'name (symbol-append (syntax->datum #'name) '-define))
              (syntax-rules ::: ()
-                           ((_ method rest rest* :::)
-                            (hash-set!
-                             (@ (artanis env) *controllers-table*)
-                             (format #f "/~a/~a" 'name 'method)
-                             (draw-expander rest rest* :::))))))))))
+               ((_ method rest rest* :::)
+                (hash-set!
+                 (@ (artanis env) *controllers-table*)
+                 (format #f "/~a/~a" 'name 'method)
+                 (draw-expander rest rest* :::))))))))))
 
 (define-syntax-rule (scan-controllers) (scan-app-components 'controllers))
 
@@ -72,11 +71,11 @@
 
 (define (gen-controller-header cname)
   (call-with-output-string
-    (lambda (port)
-      (format port ";; Controller ~a definition of ~a~%" cname (current-appname))
-      (display ";; Please add your license header here.\n" port)
-      (display ";; This file is generated automatically by GNU Artanis.\n" port)
-      (format port "(define-artanis-controller ~a) ; DO NOT REMOVE THIS LINE!!!~%~%" cname))))
+   (lambda (port)
+     (format port ";; Controller ~a definition of ~a~%" cname (current-appname))
+     (display ";; Please add your license header here.\n" port)
+     (display ";; This file is generated automatically by GNU Artanis.\n" port)
+     (format port "(define-artanis-controller ~a) ; DO NOT REMOVE THIS LINE!!!~%~%" cname))))
 
 (define (do-controller-create name methods port)
   (format (artanis-current-output) "create ~10t app/controllers/~a.scm~%" name)
