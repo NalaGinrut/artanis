@@ -216,6 +216,11 @@
   (when (and (not (linux-version>=? "3.9")) (get-conf '(server multi)))
     (error "It's required to have Linux-3.9+ to enable server.multi feature!")))
 
+;; NOTE: Don't put this global var into (artanis env)
+;; https://lists.gnu.org/archive/html/guile-user/2024-09/msg00038.html
+;; https://lists.gnu.org/archive/html/guile-user/2024-09/msg00039.html
+(define is-init-server-run? #f)
+
 ;; make sure to call init-server at the beginning
 (define* (init-server #:key (statics '(png jpg jpeg ico html js css))
                       (cache-statics? #f) (exclude '()))

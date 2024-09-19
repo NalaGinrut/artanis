@@ -63,7 +63,6 @@
             %system-arch
             kernel-version>=?
             linux-version>=?
-            is-init-server-run?
             current-encoder
             *lpc-instance-pool*
             out-of-task-prompt?
@@ -229,8 +228,6 @@
 ;; TODO: check uname here and provide features
 ;; either 'epoll or 'kqueue to use in cond-expand inside ragnarok
 ;; to select proper module for event-queue implementation.
-
-(define is-init-server-run? #f)
 
 (define current-encoder (make-parameter identity))
 
