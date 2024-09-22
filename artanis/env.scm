@@ -75,7 +75,8 @@
             http-status
             get-syspage-handler
             register-cache-handler!
-            has-cache-handler?))
+            has-cache-handler?
+            is-init-server-run?))
 
 ;; WARNING:
 ;; For concurrency in green-thread, all these stuffs should be immutable
@@ -262,3 +263,7 @@
 (define (register-cache-handler! rule handler)
   (hash-set! *cache-handlers-table* rule handler))
 (define (has-cache-handler? uid) (hash-ref *cache-handlers-table* uid))
+
+;; NOTE: We solve global access properly with parameters
+;; https://lists.gnu.org/archive/html/guile-user/2024-09/msg00043.html
+(define is-init-server-run? (make-parameter #f))

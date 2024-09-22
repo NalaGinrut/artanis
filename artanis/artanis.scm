@@ -216,11 +216,6 @@
   (when (and (not (linux-version>=? "3.9")) (get-conf '(server multi)))
     (error "It's required to have Linux-3.9+ to enable server.multi feature!")))
 
-;; NOTE: Don't put this global var into (artanis env)
-;; https://lists.gnu.org/archive/html/guile-user/2024-09/msg00038.html
-;; https://lists.gnu.org/archive/html/guile-user/2024-09/msg00039.html
-(define is-init-server-run? #f)
-
 ;; make sure to call init-server at the beginning
 (define* (init-server #:key (statics '(png jpg jpeg ico html js css))
                       (cache-statics? #f) (exclude '()))
@@ -236,7 +231,7 @@
                       (format (artanis-current-output)
                               "~%Fare you well, your server is cold.~%")
                       (quit)))
-  (set! is-init-server-run? #t))
+  (is-init-server-run? #t))
 
 (define* (form-tag #:key (controller #f) (action #f) (method #f)
                    (class #f) (tag-class #f) (tag-id #f) (form-method "get"))
@@ -313,7 +308,7 @@
           (print-websocket-frame body)
           "<websocket-frame>"))
      (else (throw 'artanis-err 500 ->proper-body-display "Invalid body type `~a'!" body))))
-  (when (not is-init-server-run?)
+  (when (not (is-init-server-run?))
     (error "Sorry, but you have to run (init-server) in the begining of you main program!"))
   (and host (conf-set! '(host addr) host))
   (and port (conf-set! '(host port) port))
