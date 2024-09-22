@@ -75,9 +75,7 @@
 
 (define (try-load-entry)
   (let ((entry (string-append (current-toplevel) "/" *artanis-entry*)))
-    (pk 111)
-    (load entry)
-    (pk 222)))
+    (load entry)))
 
 (define (try-load-app)
   (load-app-models)
