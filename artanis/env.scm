@@ -99,7 +99,7 @@
 ;; NOTE: The init queue size equals to (server wqlen).
 ;;       If all the available DB conn were blocked, a new DB conn will be
 ;;       created, and never closed but just recycled by *conn-pool*.
-(define *conn-pool* #f)
+(define *conn-pool* (make-parameter #f))
 
 (define *before-response-hook* (make-hook 2))
 (define *after-request-hook* (make-hook 2))

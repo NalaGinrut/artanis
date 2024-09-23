@@ -167,8 +167,8 @@
     conn))
 
 (define (get-conn-from-pool!)
-  (if *conn-pool*
-      (if (queue-empty? *conn-pool*)
+  (if (*conn-pool*)
+      (if (queue-empty? (*conn-pool*))
           (case (get-conf '(db pool))
             ((increase) (create-new-DB-conn))
             ((fixed)
@@ -179,9 +179,9 @@
             (else
              (throw 'artanis-err 500 get-conn-from-pool!
                     "BUG: Invalid DB pool mode `~a'" (get-conf '(db pool)))))
-          (queue-out! *conn-pool*))
+          (queue-out! (*conn-pool*)))
       (error get-conn-from-pool! "Seems the *conn-pool* wasn't well initialized!"
-             *conn-pool*)))
+             (*conn-pool*))))
 
 (define (%db-conn-stat conn ret)
   (ret (dbi-get_status (<connection>-conn conn))))
@@ -208,14 +208,14 @@
 
 (define (recycle-DB-conn conn)
   (cond
-   (*conn-pool*
+   ((*conn-pool*)
     (if (db-conn-is-closed? conn)
         ;; if the connection is unfortunetly closed, then we make a new one
-        (queue-in! *conn-pool* (create-new-DB-conn))
-        (queue-in! *conn-pool* conn)))
+        (queue-in! (*conn-pool*) (create-new-DB-conn))
+        (queue-in! (*conn-pool*) conn)))
    (else
     (error recycle-DB-conn "Seems the *conn-pool* wasn't well initialized!"
-           *conn-pool*))))
+           (*conn-pool*)))))
 
 (define (db-conn-failed-reason conn)
   (%db-conn-stat conn cdr))
@@ -223,12 +223,12 @@
 (define (init-connection-pool)
   (display "connection pools are initilizing...")
   (let ((poolsize (get-conf '(db poolsize))))
-    (set! *conn-pool*
-          (let ((dbconns
-                 (map
-                  (lambda (_) (create-new-DB-conn))
-                  (iota poolsize))))
-            (list->queue dbconns)))
+    (*conn-pool* ; hey, don't forget *conn-pool* is a parameter
+     (let ((dbconns
+            (map
+             (lambda (_) (create-new-DB-conn))
+             (iota poolsize))))
+       (list->queue dbconns)))
     (display "DB pool init ok!\n")
     (format #t "Now the size of connection pool is ~a.~%" poolsize)))
 
