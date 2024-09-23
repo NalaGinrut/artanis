@@ -411,6 +411,9 @@
                   (dump #f) (primary-keys '()))
     (let* ((types (map ->types defs))
            (pks (gen-primary-keys primary-keys))
+           (engine (if (eq? 'mysql (get-conf '(db dbd)))
+                       engine
+                       ""))
            (sql (case if-exists?
                   ((overwrite drop)
                    (table-drop! tname)
