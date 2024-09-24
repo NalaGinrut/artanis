@@ -295,7 +295,7 @@
        (else sql)))))
 
 (define *exception-opts*
-  '(#:no-edit #:default #:comment #:storage))
+  '(#:no-edit #:default #:comment #:storage #:unsigned))
 (define (is-exception-opt? x)
   (memq x *exception-opts*))
 
