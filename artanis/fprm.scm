@@ -542,7 +542,7 @@
                   ;;        FROM table_name
                   ;;        ORDER BY column_name [ASC|DESC]
                   (condition "")
-                  ;; Conditions, for example: #:cond (where #:name "nala")
+                  ;; Conditions, e.g, #:condition (where #:name "nala")
                   (foreach '())
                   ;; #:foreach accepts an associative list according to this form:
                   ;; (column-name (val1 val2 val3 ...))
