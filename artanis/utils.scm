@@ -762,9 +762,15 @@
                    "Fatal! Can't be here `~a'!" lst))))
   (define (-> x)
     (string-trim-both x (lambda (c) (member c '(#\sp #\: #\return)))))
+  (define (fix x)
+    (cond
+     ((string? x) x)
+     ((bytevector? x) (utf8->string x))
+     (else (throw 'artanis-err 500 generate-kv-from-post-qstr
+                  "Fatal! Can't be here `~a'!" x))))
   (map (lambda (x)
          (%convert (map -> (string-split (cook x) #\=))))
-       (string-split (utf8->string body) #\&)))
+       (string-split (fix body) #\&)))
 
 ;; NOTE: We accept warnings, which means if warnings occurred, it'll be 200(OK) anyway, but
 ;;       Artanis will throw warnings in the server-side log.
