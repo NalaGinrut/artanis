@@ -2,7 +2,7 @@
 #+AUTHOR: Mu Lei known as NalaGinrut
 #+EMAIL: mulei@gnu.org
 #+LANGUAGE: en
-#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="../css/manual.css" />
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="manual.css" />
 #+STARTUP: hidestar latexpreview
 
 #+TEXINFO_FILENAME: artanis.texi

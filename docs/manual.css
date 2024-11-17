@@ -1,0 +1,183 @@
+@charset "UTF-8";
+
+@font-face {
+        font-family: "Spirax";
+        src: url("./Spirax-Regular.ttf")
+}
+
+@font-face {
+  font-family: 'Lato';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Lato Regular'), local('Lato-Regular'), url(./Lato.woff) format('woff');
+}
+
+body {
+    margin-left: 20px;
+    font-family: "Lato";
+
+    color: #AEC5AD;
+    background: rgba(20,88,121,1);
+}
+
+a:link {
+    color: #b6a754;
+    text-decoration: none;
+}
+
+h2 {
+    font-weight: 500;
+    line-height: 1.1;
+    margin: 0.67em 0;
+    margin-top: 21px;
+    margin-bottom: 10.5px;
+    font-size: 22px;
+    word-spacing: .10em;
+    color: inherit;
+}
+
+h3 {
+    font-weight: 500;
+    font-size: 20px;
+    word-spacing: .1em;
+    color: inherit;
+}
+
+#content {
+    width: 1170px;
+    margin-right: auto;
+    margin-left: auto;
+    margin-top: -23px;
+    padding-bottom: 10px;
+    padding-left: 15px;
+    padding-right: 15px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+}
+
+p, ul {
+    font-size: 1.2rem;
+    word-spacing: .16em;
+    line-height: 1.3;
+    margin: 0 0 10.5px;
+}
+
+/* p.author            author information, including email */
+p.author {
+    font-style: italic;
+}
+
+/*     p.date              publishing date */
+
+/*     p.creator           creator info, about org mode version */
+
+/*     .title              document title */
+.title {
+    font-family: 'Spirax', Helvetica, Arial;
+    font-weight: 100;
+    font-size: 35px;
+    font-style: italic;
+    word-spacing: .25em;
+}
+
+/*     .todo               TODO keywords, all not-done states */
+/*     .done               the DONE keywords, all states that count as done */
+/*     .WAITING            each TODO keyword also uses a class named after itself */
+/*     .timestamp          timestamp */
+/*     .timestamp-kwd      keyword associated with a timestamp, like SCHEDULED */
+/*     .timestamp-wrapper  span around keyword plus timestamp */
+/*     .tag                tag in a headline */
+/*     ._HOME              each tag uses itself as a class, "@" replaced by "_" */
+/*     .target             target for links */
+/*     .linenr             the line number in a code example */
+/*     .code-highlighted   for highlighting referenced code lines */
+/*     div.outline-N       div for outline level N (headline plus text)) */
+/*     div.outline-text-N  extra div for text at outline level N */
+/*     .section-number-N   section number in headlines, different for each level */
+
+/*.section-number-2 {
+    font-family: "Lato";
+    font-size: 25px;
+}
+
+.section-number-3 {
+    font-family: "Lato";
+    font-size: 20px;
+}
+*/
+
+/*     .figure-number      label like "Figure 1:" */
+/*     .table-number       label like "Table 1:" */
+/*     .listing-number     label like "Listing 1:" */
+/*     div.figure          how to format an inlined image */
+
+pre {
+box-shadow: 0 0 0 black;
+}
+/*     pre.src             formatted source code */
+pre.src {
+    font-family: Monaco, "Lucida Console", monospace;
+    font-size: 13px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    background: rgba(19,32,27,0.87);
+    color: wheat;
+    border: 0;
+}
+
+/*     pre.example         normal example */
+/*     p.verse             verse paragraph */
+/*     div.footnotes       footnote section headline */
+/*     p.footnote          footnote definition paragraph, containing a footnote */
+/*     .footref            a footnote reference number (always a <sup>) */
+/*     .footnum            footnote number in footnote definition (always <sup>) */
+
+#text-table-of-contents a, a:visited {
+    //color: #90A1CD;
+    font-size: 17px;
+    font-family: "Lato";
+}
+
+#text-table-of-contents a:hover {
+    color: #E89234;
+}
+
+#text-table-of-contents ul, menu, dir {
+    list-style-type: none;
+}
+
+a.artanis,
+a.artanis:visited {
+    font-family: "Spirax";
+    font-style: italic;
+    font-size: 20px;
+    text-decoration: none;
+    color: #18bc9c;
+    right-margin: 5px;
+}
+
+#postamble {
+    color: #e0e0e0;
+    font-family: "Lato";
+    margin-top: 10px;
+    word-spacing: .1em;
+}
+
+#postamble a, a:visited {
+    color: #b6a754;
+    text-decoration: none;
+}
+
+code.src {
+    padding-left: 3px;
+    padding-right: 3px;
+    margin-right: 8px;
+    margin-left: 3px;
+    font-family: Monaco, "Lucida Console", monospace;
+    font-size: 13px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    background: rgba(19,32,27,0.87);
+    color: wheat;
+    border: 0;
+}

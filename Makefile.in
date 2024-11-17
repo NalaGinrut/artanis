@@ -215,6 +215,7 @@ test: modules
 	$(V)for t in $(test-cases); do GUILE_AUTO_COMPILE=0 $(GUILE) -L $(SRC) -L $(TEST_SUITE) -C $(OBJ) $$t; done
 
 docs: $(TEXI_SRC)
+	$(V)emacs docs/manual.org --batch -f org-html-export-to-html --kill
 	$(CHK_TEXINFO)
 	GENDOCS_TEMPLATE_DIR=$(BUILD_AUX) $(GENDOCS) --email bug-artanis@gnu.org -s $< -o $(MANUALS) "GNU Artanis Manual" --html --no-headers
 	-rm -f ./*.{cp,ky,tp,aux,fn,log,pg,toc,vr}
