@@ -1,0 +1,2821 @@
+#+TITLE: GNU Artanis web-framework Manual
+#+AUTHOR: Mu Lei known as NalaGinrut
+#+EMAIL: mulei@gnu.org
+#+LANGUAGE: en
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="../css/manual.css" />
+#+STARTUP: hidestar latexpreview
+
+#+TEXINFO_FILENAME: artanis.texi
+#+TEXINFO_HEADER: @syncodeindex pg cp
+#+TEXINFO_PRINTED_TITLE: GNU Artanis
+
+#+OPTIONS: H:3 toc:t \n:nil ::t |:t ^:nil -:t f:t *:t tex:t d:(HIDE) tags:not-in-toc
+#+OPTIONS: latex:t
+#+OPTIONS: tex:verbatim
+#+OPTIONS: broken-links:mark somewhere
+
+* Introduction
+
+#+begin_src nil
+Copyright (C)  2018  Mu Lei known as NalaGinrut.
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
+Texts.  A copy of the license is included in the section entitled 'GNU
+Free Documentation License'.
+#+end_src
+
+This manual documents GNU Artanis, a fast, monolithithic web framework of Scheme.
+
+A [[http://en.wikipedia.org/wiki/Web_application_framework][web application framework (WAF)]] is a software framework that is designed to support the development of dynamic websites,
+web applications, web services and web resources.
+This framework aims to alleviate the overhead associated with common activities in web development.
+GNU Artanis provides several tools for web development: database access, templating frameworks, session management, [[http://en.wikipedia.org/wiki/Rewrite_engine][URL-remapping]] for [[http://en.wikipedia.org/wiki/Representational_state_transfer][RESTful]], page caching, and more.
+
+Guile is the GNU Ubiquitous Intelligent Language for Extensions, the official extension language for the [[http://www.gnu.org/][GNU operating system]].
+Guile is also an interpreter and compiler for other dynamic programming languages including Scheme.
+
+[[http://en.wikipedia.org/wiki/Scheme_%28programming_language%29][Scheme]] is a functional programming language and one of the two main dialects of the programming language [[http://en.wikipedia.org/wiki/Lisp_(programming_language)][Lisp]].
+Scheme follows a minimalist design philosophy specifying a small standard core with powerful tools for language extension.
+** Conventions used in this manual
+In this manual the following syntax is used to demonstrate the use of the API:
+#+begin_src scheme
+(api-name arg1 arg2 #:key0 val0 ... [optional-arg1 <- default-value1] ...)
+#+end_src
+If you are new to Scheme, it is recommended that you read the [[Basic in Scheme][Basic in Scheme]] chapter first.
+** No warranty
+We distribute software in the hope that it will be useful, but without any warranty. No author or distributor of this software accepts responsibility to anyone for the consequences of using it or for whether it serves any particular purpose or works at all, unless they say so in writing. This is exactly the same warranty that proprietary software companies offer: none.
+* License
+GNU Artanis is [[http://www.gnu.org/philosophy/free-sw.html][Free Software]]. GNU Artanis is under the terms of the GNU GPLv3+ and GNU LGPLv3+.
+See the files COPYING and COPYING.LESSER in toplevel of source code.
+
+This manual is published under the terms of the [[http://www.gnu.org/copyleft/fdl.html][GNU Free Documentation License]] 1.3 or later.
+
+*You must be aware there is no warranty whatsoever for GNU Artanis. This is described in full in the
+This is described in full in the licenses.*
+* Installation
+** For Guix users
+GNU Guix is the advanced functional & transactional package manager, we recommend you to try it.
+You may read the [[https://guix.gnu.org/manual/en/html_node/Installation.html][GNU Guix installation]] .
+#+begin_src null
+guix install artanis
+#+end_src
+
+** For Ubuntu/Debian users to install dependencies
+#+begin_src null
+apt-get -qq -y install texinfo guile-3.0 guile-3.0-dev build-essential automake git autoconf libtool libmariadb-dev-compat libmariadb-dev libnss3 libnss3-dev
+
+apt-get -qq -y install gettext redis redis-server libcurl4-openssl-dev
+#+end_src
+
+** For hardcore users
+
+*Install GNU Guile-3.0.5 or higher version:*
+
+Since GNU Artanis-0.5, GNU Guile-3+ is required.
+
+Install pre-requisites (typically available in linux package distributions):
+a C compiler, [[https://www.gnu.org/software/autoconf/]autoconf],
+[[https://www.gnu.org/software/automake/]automake],
+[[https://sourceware.org/libffi/]libffi],
+[[https://curl.se/libcurl/]libcurl],
+[[https://www.gnu.org/software/libtool/]libtool and libltdl],
+[[https://www.gnu.org/software/libunistring/]libunistring],
+[[https://www.perl.org/]perl],
+[[https://firefox-source-docs.mozilla.org/security/nss/index.html]libnss (Network Security Services)],
+[[https://tiswww.case.edu/php/chet/readline/rltop.html]readline] and
+[[http://zlib.net/]zlib].
+
+#+begin_src null
+wget -c ftp://ftp.gnu.org/gnu/guile/guile-3.0.10.tar.xz
+tar xvf guile-3.0.10.tar.xz
+cd guile-3.0.10 && ./configure && make #(NOTE: this may take a very long time)
+sudo make install
+#+end_src
+
+I would NOT recommend trying to compile/install Guile from Git repo, since it'll take a long time.
+
+*Install dependencies:*
+
++ guile-dbi-2.1.8 (The tarball included guile-dbd) *[Optional]*
+#+begin_src null
+wget -c https://github.com/opencog/guile-dbi/archive/guile-dbi-2.1.8.tar.gz
+
+tar xvzf guile-dbi-2.1.8.tar.gz
+cd guile-dbi-guile-dbi-2.1.7/guile-dbi && ./autogen.sh --no-configure && ./configure && make
+sudo make install
+cd ../..
+#+end_src
+
++ guile-dbd *[Optional]*. The dbd plugins connect to an actual database server.
+#+begin_src null
+
+cd guile-dbi-guile-dbi-2.1.8/guile-dbd-mysql && ./autogen.sh --no-configure && ./configure && make
+sudo make install
+#+end_src
+MySQL is used for the examples in this manual. You may find dbd plugins for other databases
+[[ https://github.com/opencog/guile-dbi][here]]. The installation process is identical.
+
++ guile-curl for the client module.
+#+begin_src null
+git clone https://github.com/spk121/guile-curl.git
+cd guile-curl && git checkout v0.9
+./bootstrap && ./configure --prefix=/usr && make -j
+make install
+ln -s /usr/lib/guile/3.0/extensions/libguile-curl.* /usr/lib/
+ldconfig
+#+end_src
+**NOTE:** You may need to make necessary soft links according to above script.
+
++ guile-redis:
+#+begin_src null
+git clone https://github.com/aconchillo/guile-redis.git
+cd guile-redis
+git checkout -b 2.2.0
+autoreconf -vif
+./configure --prefix=/usr
+make
+make install
+#+end_src
+
++ guile-json:
+#+begin_src null
+git clone https://github.com/aconchillo/guile-json.git
+cd guile-json
+git checkout -b 4.7.3
+autoreconf -iv
+./configure --prefix=/usr
+make -j5
+sudo make install
+sudo ldconfig
+#+end_src
+
++ libnss (Network Security Services):
+Please follow the [[https://firefox-source-docs.mozilla.org/security/nss/build.html] official guide].
+It's better to install it with your distro's pkg manager.
+
+*Install the latest GNU Artanis:*
+
+,#+begin_src null
+wget -c http://ftp.gnu.org/gnu/artanis/artanis-latest.tar.bz2
+tar xvjf artanis-latest.tar.bz2
+cd artanis-latest && ./autogen.sh --no-configure && ./configure && make
+sudo make install
+#+end_src
+
+** For contributors
+First of all, thank you for contributing! You may clone the main git repository, or the mirror on GitLab:
+
+#+begin_src null
+git clone git://git.savannah.gnu.org/artanis.git
+
+# mirror on GitLab
+git clone https://gitlab.com/hardenedlinux/artanis.git
+#+end_src
+
+* Configuration
+A configuration file is required when Artanis is run for the first time.
+
++ If you're using minimum mode, say, all code are in a script file without application directory.
+  The configure file must be named src_conf[:exports code]{/etc/artanis/artanis.conf}.
+
++ If you're using application directory, the configure file src_conf[:exports code]{conf/artanis.conf} will be generated automatically for you.
+
+** Config APIs
+To change the default configurations:
+#+BEGIN_SRC scheme
+(conf-set! key value)
+;;e.g
+(conf-set! 'debug-mode #t)
+#+END_SRC
+
+To get the current configuration:
+#+BEGIN_SRC scheme
+(get-conf key)
+;;e.g
+(get-conf '(server charset))
+#+END_SRC
+
+To get the current hostname in GNU Artanis environment.
+#+BEGIN_SRC scheme
+(current-myhost)
+#+END_SRC
+* Hello World
+** Use Guile REPL and verify GNU Artanis installation
+If you are already familiar with Guile, you may skip this section.
+
+Type `guile' in your console to enter the Guile REPL. You should see the following text displayed on your screen:
+#+begin_src null
+GNU Guile 3.0.9
+Copyright (C) 1995-2023 Free Software Foundation, Inc.
+
+Guile comes with ABSOLUTELY NO WARRANTY; for details type `,show w'.
+This program is free software, and you are welcome to redistribute it
+under certain conditions; type `,show c' for details.
+
+Enter `,help' for help.
+scheme@(guile-user)>
+#+end_src
+
+Welcome to Guile world! We are now going to play with GNU Artanis. Before we start, we need to check that GNU Artanis is installed correctly:
+
+*(Just type them, you don't have to understand them at present)*
+
+#+begin_src scheme
+,use (artanis artanis)
+artanis-version
+#+end_src
+
+The expected output should be similar to this:
+#+begin_src scheme
+$1 = "GNU Artanis-x.x.x"
+#+end_src
+** Simple HTTP server
+Run this code in your console:
+#+begin_src bash
+guile -c "(use-modules (artanis artanis))(init-server)(run)"
+## You'll see this screen:
+Anytime you want to quit just try Ctrl+C, thanks!
+http://127.0.0.1:3000
+#+end_src
+
+Assuming there's a file named "index.html" in the current path. Now you may try http://localhost:3000/index.html in your browser.
+It's just simply fetching static file by the URL: http://localhost:3000/path/filename
+** Try simple URL remapping
+Type these code in Guile REPL:
+#+begin_src scheme
+(use-modules (artanis artanis))
+(init-server)
+(get "/hello" (lambda () "hello world"))
+(run #:port 8080)
+#+end_src
+
+Now you can visit http://localhost:8080/hello with your browser, and (hopefully) see the result.
+
+/If you encounter "[EXCEPTION] /favicon.ico is abnormal request" , please just ignore that warning./
+
+Let me explain the code:
+
++ /line 1:/ Load GNU Artanis module, (artanis artanis) is the name.
+
+
++ /line 2:/ The first argument /get/ is GNU Artanis' API correspondence to the GET method of the HTTP protocol.
+  The second argument "/hello" is the URL rule to register showing in the address line of e.g. firefox.
+  The third argument is the handler which will be triggered if the registered URL rule is hit.
+
++ /line 3:/ Run the GNU Artanis web server, and listen on socket port 8080.
+
+You may type Ctrl+C to quit and stop the server, see also the message printed on the screen accordingly.
+** More complex URL remapping
+Try this code:
+#+begin_src scheme
+(use-modules (artanis artanis))
+(init-server)
+(get "/hello/:who"
+  (lambda (rc)
+    (format #f "<p>hello ~a</p> " (params rc "who"))))
+(run #:port 8080)
+#+end_src
+
+Now you can try http://localhost:8080/hello/artanis in your browser.
+
+There are two differences compared to the simpler example:
++ 1. The special rule, "=/hello/:who=", /:who/ means you can use /params/ to refer to the value of the par of the URL with the key "who". Like: src_scheme[:exports code]{(params rc "who")}.
+
++ 2. You may have noticed that the handler is being defined as an anonymous function with /lambda/ has one argument /rc/. It means /route context/ which preserves all the related context information. Many GNU Artanis APIs need it, e.g.  /params/.
+
+And /format/ is a Scheme lib function. It is similar to /sprintf/ in the C language, which outputs text with a formatted pattern.
+The second argument #f (means FALSE) indicates that the formatted output should be returned in a string rather than printed out.
+** Regex in URL remapping
+You can use regular expressions as a URL rule argument.
+#+begin_src scheme
+(use-modules (artanis artanis))
+(init-server)
+(get "/.+\\.(png|gif|jpeg)" static-page-emitter)
+(run #:port 8080)
+#+end_src
+
+/static-page-emitter/ is a GNU Artanis API that sends a static file (images, data files) to the client.
+** Database operating
+GNU Artanis supports mysql/postgresql/sqlite3. We use mysql as an example here.
+
+Please ensure that your DB service was started before you run this code.
+
+*/If you encounter any problems, it's very likely it's with your DB config./*
+
+You can use a DB (such as mysql) with GUI tools such as "adminer", independently of the running web-server, e.g. artanis-based.
+#+begin_src scheme
+(use-modules (artanis artanis))
+(init-server)
+(define conn (connect-db 'mysql #:db-username "your_db_username"
+                         #:db-name "your_db_name" #:db-passwd "your_passwd"))
+(define mtable (map-table-from-DB conn))
+((mtable 'create 'Persons '((name varchar 10)
+                            (age integer)
+                            (email varchar 20)))
+ 'valid?)
+;; ==> #t
+(mtable 'set 'Persons #:name "nala" #:age 20 #:email "nala@artanis.dev")
+(mtable 'get 'Persons #:columns '(name email))
+;; ==> ((("name" . "nala") ("email" . "nala@artanis.com")))
+#+end_src
+
++ /map-table-from-DB/ is the GNU Artanis API handling tables in a DB. Here, we define this mapping as the var /mtable/.
+
+
++ We can use /mtable/ to handle tables, you can get the values from a table with the 'get command.
+
+
++ /mtable/ is a function which accepts the first argument as a command, say 'create, which is a command to create a new table. 'set is used to insert/update values in the table. And the 'get command to fetch the values of specific columns.
+
+
++ The second argument of /mtable/ is the name of the table as you can guess. Please note that it is case sensitive, while the column name isn't.
+
+
++ The /*'create*/ command returns a function too, which also accepts an argument as a command. Here, we use the /*'valid?*/ command to check if the table has been created successfully.
+
+This was just a simple introduction. You may read the DB section in this manual for details.
+
+Of course, you can use DB in your web application.
+#+begin_src scheme
+(get "/dbtest" #:conn #t ; apply for a DB connection from pool
+     (lambda (rc)
+       (let ((mtable (map-table-from-DB (:conn rc))))
+         (object->string
+          (mtable 'get 'Persons #:columns '(name email))))))
+
+(run #:use-db? #t #:dbd 'mysql #:db-username "your_db_username"
+     #:db-name "your_db_name" #:db-passwd "your_passwd" #:port 8080)
+#+end_src
+
+Now, try loading http://localhost:8080/dbtest in your browser.
+
+Here is quick explanation:
++ The keyword-value pair src_scheme[:exports code]{#:conn #t} means applying for a DB connection from connection-pool.
+  Then you can use src_scheme[:exports code]{(:conn rc)} to get the allocated connection for DB operations.
+
++ Finally, the handler needs to return a string as the HTTP response body, so in this example,
+we have to use the Guile
+  API /object->string/ to convert the query result into a string.
+
+/Exercise: Return a beautiful table in HTML rather than using object->string./
+* Scheme Basics
+This chapter introduces some useful documents to help you understand Scheme language.
+Feel free to come back here if you have any problems with the Scheme syntax.
+
+Scheme was introduced in 1975 by Gerald J. Sussman and Guy L. Steele Jr. and was the first dialect of Lisp to fully support lexical scoping,
+first-class procedures, and continuations. In its earliest form it was a small language intended primarily for research and teaching,
+supporting only a handful of predefined syntactic forms and procedures. Scheme is now a complete general-purpose programming language, though
+it still derives its power from a small set of key concepts. Early implementations of the language were interpreter-based and slow, but
+Guile Scheme is trying to implement sophisticated compiler that generate better optimized code, and even a plan for AOT compiler generated
+native code in the future.
+
+** For newbies
+
+If you're not familiar with Scheme and Guile in particular, here is a simple tutorial for you.
+
+If you already know the basics of the Scheme language, please feel free to skip this section.
+
+I would recommend newbies to type/paste the code in Guile REPL following the guide in tutorial:
+[[http://web-artanis.com/scheme.html][Learn Scheme in 15 minutes]]
+
+And here's a nice section in the Guile manual for basics in Scheme:
+[[https://www.gnu.org/software/guile/manual/guile.html#Hello-Scheme_0021][Hello Scheme]]
+
+Please don't spend too much time on these tutorials, the purpose is to let newbies get a little familiar with the grammar of Scheme.
+
+** For Pythonistas
+
+These are good pythonic articles for Pythoners:
+
+1. [[http://draketo.de/proj/guile-basics/][Guile basics from the perspective of a Pythonista]]
+2. [[http://draketo.de/proj/py2guile][Going from Python to Guile Scheme]]
+
+Still, please don't spend too much time on them, the purpose is to let newbies get a little familiar with the grammar of Scheme.
+
+** For Rubyist
+Here's a great article for Rubyist to learn Scheme:
+1. [[http://wiki.call-cc.org/chicken-for-ruby-programmers][Scheme for ruby programmers]]
+** For deep learners
+
+These two books are very good for learning Scheme seriously:
+
+1. [[http://www.scheme.com/tspl4/][The Scheme Programming Language]]
+2. [[http://mitpress.mit.edu/sicp/][Structure and Interpretation of Computer Programs(SICP)]]
+
+Please don't bother reading them if you simply want to use GNU Artanis to build your web application/site in few minutes.
+
+And if you really want to try to work these books seriously, please ignore GNU Artanis before you are done with them.
+
+But once you're done reading them *carefully*, you may want to write a new GNU Artanis all by yourself!
+
+Hold your horses. ;-)
+* GNU Artanis Basics
+** How to run a site with GNU Artanis
+This is the simplest way to run a site:
+#+begin_src scheme
+#!/bin/env guile
+!#
+(use-modules (artanis artanis))
+(init-server)
+(get "/hello" (lambda () "hello world"))
+(run)
+#+end_src
+** Initialization
+It's better to use (init-server) to init GNU Artanis.
+#+begin_src scheme
+(init-server #:statics '(png jpg jpeg ico html js css)
+             #:cache-statics? #f #:exclude '())
+#+end_src
+
+src_scheme[:exports code]{#:statics} specifies the static files with the file name extensions. GNU Artanis is based on URL remapping, so the requested URL will have to end in the requested file name, matching the string defined, and returning the file without any extra defintions per file type. By default, it covers the most common static file types.
+
+src_scheme[:exports code]{#:cache-statics?} controls whether the static files should be cached.
+
+src_scheme[:exports code]{#:exclude} specifies the types should be excluded. This is useful when you want to generate files dynamically. Even JavaScript/CSS could be generated dynamically, so it depends your design.
+** Registering handlers for HTTP methods
+Please read [[URL handling][URL handling]].
+** Emit a Response
+#+begin_src scheme
+(response-emit body #:status 200 #:headers '() #:mtime (current-time))
+#+end_src
+
+*body* is the response body, it can be a bytevector or literal string (in HTML).
+
+src_scheme[:exports code]{#:status} is the HTTP status, 200 in default, which means OK.
+
+src_scheme[:exports code]{#:headers} lets you specify custom HTTP headers. The headers must follow a certain format. Please read [[http://www.gnu.org/software/guile/manual/html_node/HTTP-Headers.html#Response-Headers][Response Headers]] for details.
+
+src_scheme[:exports code]{#:mtime} specifies the modified time in the response. GNU Artanis will generate it for you when not defined.
+
+#+begin_src scheme
+(emit-response-with-file filename [headers <- '()])
+#+end_src
+
+*filename* is the filename to be sent as a response.
+
+[headers] is the custom HTTP headers.
+
+** Running the server
+#+begin_src scheme
+(run #:host #f #:port #f #:debug #f #:use-db? #f
+     #:dbd #f #:db-username #f #:db-passwd #f #:db-name #f)
+#+end_src
+
+/keywords with the value #f, as default, will get the values from the config file./
+
+But you can define them as well.
+
+src_scheme[:exports code]{#:host} the hostname.
+
+src_scheme[:exports code]{#:port} the socket port of the server.
+
+src_scheme[:exports code]{#:debug} set #t if you want to enable debug mode. Logs will be more verbose.
+
+src_scheme[:exports code]{#:use-db?} set #t if you want to use DB, and GNU Artanis will initialize DB connections.
+
+src_scheme[:exports code]{#:dbd} choose a dbd. These are the supported three: mysql, postgresql, and sqlite3.
+
+src_scheme[:exports code]{#:db-username} the username of your DB server.
+
+src_scheme[:exports code]{#:db-passwd} the DB password for the user above.
+
+src_scheme[:exports code]{#:db-name} the DB name to use.
+** Working with Nginx
+You may try GNU Artanis+Nginx with a reverse proxy.
+
+*/Although GNU Artanis has good server core, I would recommend you use Nginx as the front server. In addition to the enhanced
+performance, it'll also be less vulnerable to attacks./*
+
+These are some sample lines for /etc/nginx/nginx.conf:
+
+#+begin_src conf
+location / {
+proxy_pass http://127.0.0.1:1234;
+proxy_set_header Host $host;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+#+end_src
+To make it work, restart Nginx after editing the file:
+
+#+begin_src null
+sudo service nginx restart
+#+end_src
+
+And run GNU Artanis:
+#+begin_src scheme
+(run #:port 1234)
+#+end_src
+* The Art command line
+GNU Artanis provides the *art* command line tool to save users' time.
+** art create
+If you want to set up your site/app in an application directory, and take advantage
+of the MVC features, you have to use this command to create the application directory
+first.
+
+#+begin_src nil
+art create proj_path
+#+end_src
+** art draw
+This command will generate the specified components:
+#+begin_src nil
+Usage:
+  art draw <component> NAME [options]
+
+component list:
+  model
+  controller
+  migration
+  view
+  lib
+
+Options:
+  -h, [--help]     # Print this screen
+  -d, [--dry]      # Dry run but do not make any changes
+  -f, [--force]    # Overwrite files that already exist
+  -s, [--skip]     # Skip files that already exist
+                   # If -s and -f are both provided, -f will be enabled
+  -q, [--quiet]    # Suppress status output
+
+Example:
+  art draw model myblog
+#+end_src
+
+Please see [[MVC][MVC]] to learn more about how to use these components.
+** art api
+This command is used to generate RESTful API skeleton.
+#+BEGIN_SRC nil
+Usage:
+  art api [options]
+
+Options:
+  -h, [--help]     # Print this screen
+  -d, [--dry]      # Dry run but do not make any changes
+  -f, [--force]    # Overwrite files that already exist
+  -s, [--skip]     # Skip files that already exist
+                   # If -s and -f are both provided, -f will be enabled
+  -q, [--quiet]    # Suppress status output
+  -l, [--list]     # List all defined APIs
+  -m, [--mode]     # Specify the WebAPI mode, the default is "restful"
+  -v, [--ver]      # Specify the WebAPI version, omit it to auto detect
+  -c, [--create]   # Create WebAPI
+
+Example:
+  art api -c
+  art api -c -v v3
+#+END_SRC
+Please see [[RESTful API][RESTful API]] for more details.
+** art migrate
+Migrate is used for Database migration.
+#+begin_src nil
+Usage:
+  art migrate operator name [OPTIONS]
+
+Operators:
+  up
+  down
+
+OPTIONS:
+  VERSION=version
+#+end_src
+Please see [[Migration][Migration]] for more detail.
+** art work
+This command is used to start the server when run in a project directory:
+#+begin_src nil
+Usage:
+  art work [options]
+
+Options:
+  -c, [--config=CONFIG]          # Specify config file
+                                   Default: conf/artanis.conf
+                                            if no, /etc/artanis/artanis.conf
+  -h, [--host=HOST]              # Specify the network host
+                                   Default: 0.0.0.0
+  -d, [--usedb]                  # Whether to use Database
+                                   Default: false
+  -b, [--dbd=DBD]                # Specify DBD, mysql/postgresql/sqlit3
+                                   Default: mysql
+  -n, [--name=DATABASE_NAME]     # Database name
+                                   Default: artanis
+  -w, [--passwd=PASSWD]          # Database password
+                                   Default: none
+  -u, [--user=USER]              # Database user name
+                                   Default: root
+  -p, [--port=PORT]              # Specify listening port
+                                   Default: 3000
+  -g, [--debug]                  # Debug mode
+                                   Default: disable
+  -s, [--server=SERVER]          # Specify server core
+                                   Default: Ragnarok (New server core since 0.2)
+  --refresh                      # Clean caches, and force to re-compile all source code.
+  --help                         # Show this screen
+#+end_src
+
++ For server core alternatives, please see src_config[:exports code]{server.config} in config.
++ For Database (DBD) alternatives, please see src_config[:exports code]{database.config} in config.
+
+*NOTE:* Please make sure use src_bash[:exports code]{art work --refresh} to recompile WebApp code each time you upgrade GNU Artanis.
+And if you want to clean the caches for debug, src_bash[:exports code]{--refresh} is also your friend.
+* URL remapping
+** Introduction to URL remapping
+URL remapping is used to modify a web URL's appearance to provide short, pretty or fancy, search engine friendly URLs.
+It's largely used in modern WAFs(web application framework) to provide RESTful web APIs.
+** URL handling
+According to RFC2616, the methods include GET, POST, etc. However, because of the naming conflict, GNU Artanis provides
+the methods by this list:
+- get
+- post
+- put
+- patch
+- page-delete
+- page-options
+
+/In GNU Artanis the HEAD method is handled by the server, so you can't define specific handlers directly for it within GNU Artanis./
+
+Usage:
+#+begin_src scheme
+(method rule handler)
+#+end_src
+
+And the handler could be one of two types, depending on your needs:
+#+begin_src scheme
+(lambda ()
+  ...
+  ret)
+
+(lambda (rc)
+  ...
+  ret)
+#+end_src
+
+*ret* also has two types:
+
++ 1. literal string as the returned response body
+
++ 2. See [[Emit a Response][Emit a Response]]
+
+#+begin_src scheme
+(get "/hello" (lambda () "hello world"))
+#+end_src
+
+For a POST method:
+#+begin_src scheme
+(post "/auth" (lambda (rc) ...))
+#+end_src
+** OPTIONS method
+OPTIONS method is used to return the other methods supported by the server-side at the given URL.
+By default in GNU Artanis, for a specified URL, every method whose handler was registerted would be added to its own OPTIONS list.
+
+If you want to deny certain methods for security consideration, you may need to set *server.allowedmethods* in config.
+
+*NOTE:* If you're not trying to use Cross-Origin Resource Sharing (CORS), then you may not need to care about it.
+** Get parameters from a URL
+#+begin_src scheme
+(params rc name)
+;; e.g
+(get "/hello/:who" (lambda (rc) (params rc "who")))
+#+end_src
+** Redirecting
+#+begin_src scheme
+(redirect-to rc path #:status 301 #:type '(text/html) #:headers '())
+;; e.g
+(get "/aaa" (lambda (rc) (redirect-to rc "/bbb")))
+(get "/bbb" (lambda () "ok bbb"))
+#+end_src
+
+The *path* could be 2 possible patterns:
+- URI created by [[https://www.gnu.org/software/guile/manual/html_node/URIs.html][string->uri]]. For example, src_scheme[:exports code]{(redirect-to rc (string->uri "https://nalaginrut.com/feed/atom"))}.
+- A relative path which will finally be converted to absolute URL append the *host.addr*.
+  For example, src_scheme[:exports code]{(redirect-to rc "/login")}.
+
+*NOTE:* redirect-to will always use absolute URL implicitly. Although the standard supports relative URL,
+there maybe some problems when you're behind a proxy. So we use absolute URL to avoid these issues.
+* Route context
+Route context is a struct type object which encapsulates the necessary information for the server from the current request context.
+We named it /route/ because it's related to the route of [[URL remapping][URL remapping]].
+Usually it's passed to the page handler as a unique argument. It's supposed to provide sufficient data about the current request.
+
+#+BEGIN_SRC scheme
+(HTTP-METHOD URL-rule (lambda (<route-context>) ...))
+;; e.g:
+(get "/hello" (lambda (rc) "world")) ; rc is <route-context> type
+#+END_SRC
+
+** Route context APIs
+
+#+BEGIN_SRC scheme
+(rc-path <route-context>)
+#+END_SRC
++ Get the requested path, that is to say, the actual URI visited by the client.
+
+#+BEGIN_SRC scheme
+;; e.g
+(get "/hello/world" (lambda (rc) (rc-path rc)))
+;; visit localhost:3000/hello/world or from any port you specified
+;; the result is "/hello/world".
+(get "/hello/:who" (lambda (rc) (rc-path rc)))
+;; visit localhost:3000/hello/world or from any port you specified
+;; the result is "/hello/world".
+#+END_SRC
+
+#+BEGIN_SRC scheme
+(rc-req <route-context>)
+#+END_SRC
++ Get the current HTTP request wrapped in record-type. About HTTP request
+  please see [[https://www.gnu.org/software/guile/manual/html_node/Requests.html][HTTP Request]]. It stores HTTP request of Guile.
+
+#+BEGIN_SRC scheme
+(rc-body <route-context>)
+#+END_SRC
++ Get the current request body:
+  + For a regular HTTP request, the body should be a bytevector;
+  + For a Websocket request, the body should be [[Websocket frame][Websocket frame]] as a record-type.
+
+#+BEGIN_SRC  scheme
+(rc-method <route-context>)
+#+END_SRC
++ Get the current requested HTTP method.
+
+#+BEGIN_SRC scheme
+(rc-conn <route-context>)
+#+END_SRC
++ Get the current DB connection if you've requested one, please checkout [[DB shortcut][DB shortcut]].
+
+#+BEGIN_SRC scheme
+(rc-qt <route-context>)
+#+END_SRC
++ Get query table, which is a key-value list parsed from [[Query String][query string]].
+
+#+BEGIN_SRC scheme
+(rc-handler <route-context>)
+#+END_SRC
++ Get the current request handler. The tricky part is that you can only get this handler
+  within this handler unless you can go no where to run /rc-handler/ correctly.
+  + It's on your own risk to use this API. But now that we have powerful first class lambda,
+    you may do some magic. Well, depends on you.
+
+#+BEGIN_SRC scheme
+(rc-mtime <route-context>) ; getter
+(rc-mtime! <route-context>) ; setter
+#+END_SRC
++ You may set it in the handler to return you customized modified time.
+  For static pages, the mtime is set automatically. But sometimes people
+  may want to set it in a dynamic generated page.
+
+#+BEGIN_SRC scheme
+(rc-cookie <route-context>)
+#+END_SRC
++ The cookies parsed from request header.
+
+#+BEGIN_SRC scheme
+(rc-set-cookie! <route-context>)
+#+END_SRC
++ Set response cookie from server side. If you want to return cookies to
+  the client, please use it.
+
+There're other APIs in /route-context/, but they're largely used for
+internals of Artanis, rarely useful for users. So we don't list them here.
+* Page status handling
+** HTTP status code
+HTTP response status codes are the error numbers show the status of a specific HTTP request. The responses are grouped in five classes:
+- Informational responses (100–199)
+- Successful responses (200–299)
+- Redirects (300–399)
+- Client errors (400–499)
+- Server errors (500–599)
+** The default behaviour of status handling
+On success, GNU Artanis returns the status code 200.
+
+If there's any issue prevents GNU Artanis to generate requested result successfully, then it'll throw the relavent exception somewhere issue
+happened. And finally it will be caught by the server-core. In theory, the status code other than 200 will trigger a system page generating
+operation. By default, status pages are put in */etc/artanis/pages*, but you may override it in *your_app_folder/sys/pages*. Each system page
+named with the status code, say, *404.html*. So you may easily customize your preferred status page.
+** Dynamic status page generating
+Sometimes you may need more complex status page generating. For example, you want to put a random public service advertising when the visitors
+encountered a 404 (page missing). Then you can do it like this:
+#+BEGIN_SRC scheme
+(http-status status-code thunk-handler)
+#+END_SRC
+- *status-code* must be an integer between 100~599.
+- *Thunk* implies a function without any argument.
+Let's see an example:
+
+#+BEGIN_SRC scheme
+;; You may put this code in any controller module.
+(http-status 404
+ (lambda ()
+   (view-render "psd_404" (the-environment))))
+#+END_SRC
+
+In this example, "psd" stands for public-service-advertising, and "psd_404" tells the *view-render* to find "psd_404.html" in
+*your_app_folder/sys/pages/psd_404.html*. So you can render the HTML template to generate a status page. Of course, there're a few ways to
+implement the similar idea. If you don't want to render template on the backend, you may generate a JSON and let the frontend framework to
+generate it.
+* MVC
+MVC is Model-View-Controller, the most classic architectural pattern for implementing
+user interfaces.
+It divides a given software application into three interconnected parts, so as to
+separate internal representations of information from the ways that information is
+presented to or accepted from the user.
+** Controllers/Views
+Let's make a controller named /article/:
+#+begin_src nil
+art draw controller article show edit
+#+end_src
+
+/show/ and /edit/ are the name of methods for the controller named /article/.
+
+This will generate both a *controller* and a *view* for /article/:
+#+begin_src nil
+drawing    controller article
+working    Controllers `article.scm'
+create     app/controllers/article.scm
+working    Views `article'
+create     app/views/article/show.html.tpl
+create     app/views/article/edit.html.tpl
+#+end_src
+
+These three files are generated:
+#+begin_src nil
+app/controllers/article.scm
+app/views/article/show.html.tpl
+app/views/article/edit.html.tpl
+#+end_src
+
+Based on this, the controller /article/ will have two methods mapped to the URL rule, /show/ and /edit/.
+As part of the /view/ component. An HTML template is generated for each method. For the /show/ method for example, the view file *show.html.tpl* is created.
+For the /controller/ component, you get a /show/ method handler, as:
+#+begin_src scheme
+(article-define show
+  (lambda (rc)
+    "<h1>This is article#show</h1><p>Find me in app/views/article/show.html.tpl</p>"
+    ;; TODO: add controller method `show'
+    ;; uncomment this line if you want to render view from template
+    ;; (view-render "show")
+    ))
+#+end_src
+Of course, you're free to use or not use these templates. If you want to use the /view template/, just
+uncomment the last line src_scheme[:exports code]{(view-render "show")}.
+
+*NOTE:* The views template generated by MVC will defaultly announce FreeJS. The reason was well explained in [[ http://www.gnu.org/philosophy/javascript-trap.en.html][The Javascript Trap]].
+It's optional, you may remove it with your free will, but I put it there in the hope that you can support free software with us.
+
+For more detail about template in Views, please see [[Layouts and Rendering in GNU Artanis][Layouts and Rendering in GNU Artanis]].
+** Models
+Models contains operations of database.
+
+*** Create models
+
+A Model a is usually connected to the same named Controller. However, in practical, users may create multiple Models for one Controller. Hence, GNU Artanis creates Model outside Controller, rather than autogenerate a Model when creating Controller.
+
+#+begin_src bash
+art create mytest
+cd mytest
+
+# Create model
+art draw model user
+# drawing    model user
+# working    Models `user.scm'
+
+# check result
+ls app/models/
+# user.scm
+#+end_src
+
+In this case, we created a Model named **user**. A file named **user.scm** is in **app/models** now, let's open it:
+
+#+begin_src scheme
+(import (artanis mvc model))
+;; Model user definition of mytest
+;; Please add your license header here.
+;; This file is generated automatically by GNU Artanis.
+(create-artanis-model user) ; DO NOT REMOVE THIS LINE!!!
+#+end_src
+
+It's done! These code are self-explain.
+
+Next, let's try to define an **user** table.
+
+*** Define table in Model
+
+In this example, we craete a table like this:
+
+#+begin_src nil
++-------------------------------------------------------------+
+| Field | Type        | Null | Key | Default | Extra          |
+|-------+-------------+------+-----+---------+----------------|
+| id    | auto        | NO   | PRI | NULL    | auto_increment |
+| name  | char-field  | NO   |     | NULL    |                |
+| email | char-field  | NO   |     | NULL    |                |
++-------------------------------------------------------------+
+#+end_src
+
+For Model definition syntax in GNU Artanis, we have:
+
+#+begin_src
+(create-artanis-model
+ user  ; model name
+ (:deps) ; deps list
+ (id auto (#:primary-key))
+ (name char-field (#:not-null #:maxlen 128))
+ (email char-field (#:not-null #:maxlen 128))
+ )
+#+end_src
+
+**NOTE:** If you have definition, and you've imported in any controller, when booting GNU Artanis with src_scheme[:exports code](art work),
+then the defined table will be created automatically in the specified database. Don't worry, it will be created only once.
+
+**NOTE:** The Model name **must** be the same with Model file's name.
+
+*** Tables dependencies
+
+Since the tables will be auto-created when booting the server core, however, the MVC doesn't know the dependency chain. To help the auto-creation doing correct work, you may want to specify the table dependencies in the table definition:
+
+For example, you have another Model named **article** which is designed for your blog system. Obviously, it's related to **user** table since every article requires at least one user as an author.
+
+#+begin_src
+(create-artanis-model
+ article  ; model name
+ (:deps user) ; deps list
+ (id auto (#:primary-key))
+ (author_id tinyint (#:not-null))
+ (title char-field (#:not-null #:maxlen 128))
+ (timestamp bigint (#:unsigned #:not-null))
+ )
+#+end_src
+
+You may realized we've added src_scheme[:exports code]((:deps user)) to hint the MVC system that **article** table should be created after **user** table. So when it meets **article** Model during booting, it'll make sure to create **user** then **article**.
+
+**NOTE:**: src_scheme[:exports code]((:deps models_list ...))
+**NOTE:** This feature is useful when you do DB migration.
+
+*** Model API
+
+The model definition API:
+
+src_scheme[:exports code]((create-artanis-model model_name (:deps deps_list ...) fields_def ...))
+
+The **fields_def** syntax is:
+
+src_scheme[:exports code]((field_name type (options ...)))
+
+**** Field Type
+
+To unify API amoung all the DB backend supported by GNU Artanis, we provide abstract types:
+
+- auto: auto incremental index
+- tiny-integer:
+- small-integer:
+- big-integer: 0~2^64
+- text: long text
+- boolean:
+- float
+- double
+- char-field: varchar
+  - you need to specify src_scheme[:exports code](#:maxlen positive_integer) in the options.
+- date-field
+  - These options imply src_scheme[:exports code](#:no-edit)
+  - src_scheme[:exports code](#:auto-now)
+  - src_scheme[:exports code](#:auto-now-once)
+
+**NOTE:** if these types can't meet your requirements, just write the known type for your configured DB backend supported types, it will be passed directly to the backend, however, without the framework specific feature like type checking.
+
+The **options** has specific syntax for different DB backend.
+
+**** MySQL/MariaDB options
+
+The specific options are:
+- src_scheme[:exports code](#:not-null)
+- src_scheme[:exports code](#:null)
+- src_scheme[:exports code](#:default) to speficy default value.
+- src_scheme[:exports code](#:unique)
+- src_scheme[:exports code](#:unique-key)
+- src_scheme[:exports code](#:primary-key)
+- src_scheme[:exports code](#:key) to specify keys.
+- src_scheme[:exports code](#:auto-incremental)
+- src_scheme[:exports code](#:comment) for commenting.
+- src_scheme[:exports code](#:column-format)
+- src_scheme[:exports code](#:storage mode) DISK or MEMORY mode.
+- src_scheme[:exports code](#:signed)
+- src_scheme[:exports code](#:unsigned)
+- src_scheme[:exports code](#:zerofill)
+
+****  PostgreSQL options
+PostgreSQL migration hasn't been supported yet...patches are welcome.
+
+**** SQLite3 options
+
+- src_scheme[:exports code](#:not-null)
+- src_scheme[:exports code](#:null)
+- src_scheme[:exports code](#:default value)
+- src_scheme[:exports code](#:unique)
+- src_scheme[:exports code](#:unique-key)
+- src_scheme[:exports code](#:primary-key)
+- src_scheme[:exports code](#:key)
+- src_scheme[:exports code](#:auto-increment)
+- src_scheme[:exports code](#:auto-now-once) for timestamp.
+
+** Model mapping
+
+If you defined a model, for example, an article table:
+
+#+begin_src
+(create-artanis-model
+ article  ; model name
+ (:deps user) ; deps list
+ (id auto (#:primary-key))
+ (author_id tinyint (#:not-null))
+ (title char-field (#:not-null #:maxlen 128))
+ (timestamp bigint (#:unsigned #:not-null))
+ )
+#+end_src
+
+There will be a closure named **$article** in this module, and could be exported. The **$** sign is auto added to the name of the table name. We call it **model mapping** so that you can control this table easily.
+
+*** Table get
+
+#+begin_src
+($article 'get #:columns (columns ...)
+               #:functions '() ; put SQL functions here, e.g, '((count Article.name))
+               #:ret 'all ; values: top | all | postive-number
+               #:group-by column-name
+               #:order-by "column-name ASC | DESC"
+               #:condition "" ; (where #:name "nala")
+               #:foreach '() ; #:foreach '(city ("sz" "bj" "sh"))
+               #:dump #f ; set #t if you want to check the SQL string
+               #:mode 'raw ; raw to return all rows; getter to return a getter function)
+#+end_src
+
+*** Table set
+
+You can update value to field in a natural way.
+
+#+begin_src
+($article 'set #:key value ...)
+
+;; for example
+($article 'set #:title "new title" #:timestamp (current-time)
+               #:condition (where #:id 1))
+#+end_src
+
+*** Table existance
+
+Check table existance:
+
+#+begin_src
+($article 'table-exists?)
+#+end_src
+
+Check fields existance:
+
+#+begin_src
+($article 'exists? fields ...)
+#+end_src
+
+For the case-insensitively.
+#+begin_src
+($article 'ci-exists? fields ...)
+#+end_src
+
+*** Table schema get
+
+#+begin_src
+($article 'schema)
+#+end_src
+
+*** Table create
+
+#+begin_src
+($article 'create fields-definitions ...)
+#+end_src
+
+*NOTE: This is the low-level API called by the model or migration to create a new table. It is not recommended you to use it directly.*
+
+*** Table remove
+
+#+begin_src
+($article 'remove)
+#+end_src
+
+*NOTE: This is the low-level API called by the model or migration to remove a table. It is not recommended you to use it directly.*
+
+*** Table modify
+
+#+begin_src
+($article 'mod definitions ...)
+#+end_src
+
+*NOTE: This is the low-level API called by the model or migration to modify a table. It is not recommended you to use it directly.*
+
+*** Further reading
+
+For modifying tables, you should read [[Migration][Migration]].
+
+For other DB operation, please read [[FPRM (experimental)][FPRM]].
+* Query String
+A query string is a special part of a URL:
+
+#+begin_src bash
+http://example.com/over/there?name=ferret&color=purple
+#+end_src
+
+In this example, "name" and "color" are query strings with the values "ferret" and "purple" respectively.
+It's useful to pass parameters to the server side like this.
+
+GNU Artanis provides a convenient API to handle query strings.
+
+** Query string from GET
+The query string would be encoded in the URL on the GET method.
+
+#+begin_src bash
+http://example.com/over/there?name=ferret&color=purple
+#+end_src
+Please notice that URL-remapping supports regex. So you could register a URL rule like this:
+#+begin_src scheme
+(get "/there?"
+  (lambda (rc)
+    (get-from-qstr rc "name")))
+#+end_src
+Or it will throw 404 since URL-remapping failed to hit the rule with the query string.
+** Query string from POST
+The query string would be encoded in the HTTP body on the POST method.
+
+There's only a slight difference when you pass query string by POST instead of with GET:
+you don't need a URL rule using a regex, so the "?" is unnecessary here.
+#+begin_src scheme
+(post "/there" #:from-post 'qstr
+      (lambda (rc)
+        (:from-post rc 'get "name")))
+#+end_src
+
+Please notice that src_scheme[:exports code]{#:from-post 'qstr} is necessary when you're trying to
+get data from POST. And you should use src_scheme[:exports code]{:from-post} to get related data
+from query-string.
+
+#+BEGIN_SRC scheme
+#:from-post <mode>
+#+END_SRC
+
+The mode includes:
+- src_scheme[:exports code]{#t} or src_scheme[:exports code]{'qstr}: handle query-string for you.
+- src_scheme[:exports code]{'json}: returns a parsed json as hashtable.
+- src_scheme[:exports code]{'qstr-safe}: similar to 'qstr, but try to eliminate evil HTML entities first.
+- src_scheme[:exports code]{'bv}: returns the body as bytevector.
+- src_scheme[:exports code]{'store rest ...}: It's for [[Upload files][Upload files]].
+
+The reason to design :from-post is for the efficient purpose.
+Artanis will not try to auto parse POST body as query-string for at least 2
+reasons:
++ 1. It may not be query-string, maybe json, or uploaded file
++ 2. It may be long query-string, and could be deleyed to parse. This is
+useful to avoid redundant parsing. However, each time you call
+src_scheme[:exports code]{:from-post}, it will parse the query-string again, the correct way to
+fetch multiple values is:
+#+BEGIN_SRC scheme
+(:from-post rc 'get-vals "key1" "key2" "key3")
+
+;; For example:
+;; let-values is imported from srfi-11
+(let-values (((title sub-title old-passwd new-passwd)
+              (:from-post rc 'get-vals "title" "sub-title"
+                          "old-passwd" "new-passwd")))
+  ..........
+  )
+#+END_SRC
+
+BTW, you may get the parsed query-string as an assoc-list as well:
+#+BEGIN_SRC scheme
+(let ((qstr (:from-post rc 'get)))
+  (assoc-ref qstr "key-1"))
+#+END_SRC
+* Layouts and Rendering in GNU Artanis
+** Templating
+Templating provides a way to mix programmatic code into HTML.
+** Templating for Pythoners
+If you're familiar with Django, which implemented a DSL(Domain Specific Language) to express presentation rather than program logic. Templating in GNU Artanis follows a different philosophy.
+
+Templating in GNU Artanis, is just writing Scheme code in the HTML document. Why? Because of the philosophy of FP(Functional Programming), everything is a function. So, src_scheme[:exports code]{(filesizeformat size)} is easy enough to grasp for anyone with scheme experience. It's just a simple function calling in prefix-notation. There's no need to implement DSL like src_python[:exports code]{size|filesizeformat} to increase the complexity of code. Let alone the syntax is very different from Python.
+
+The syntax src_python[:exports code]{size | filesizeformat} follows postfix-notation, used in stack-based languages, say Forth. Such a language used to delegate another programming paradigm named concatenative programming. It's very different from the paradigm of Scheme (functional programming), and the paradigm of Python (imperative programming).
+
+The philosophy of GNU Artanis templating is to bring it into correspondence with the paradigm of the language. And reduce unnecessary complexities. [[http://en.wikipedia.org/wiki/KISS_principle][KISS]].
+** Templating for Rubyists
+Templating in GNU Artanis looks very similar to Rails.
+
+The Rails code:
+
+#+begin_src python
+<% if( @fullscreen == 1 ) %>
+<%= "<div class='full'><p>...</p></div>" %>
+<% end %>
+#+end_src
+
+And the same function in GNU Artanis code:
+
+#+begin_src scheme
+<% (if (= fullscreen 1) %>
+       <% "<div class='full'><p>...</p></div>" %>
+       <% ) %>
+#+end_src
+** Templating APIs
+#+begin_src scheme
+(tpl->response filename/sxml [environment <- (the-environment)] [escape? <- #f])
+
+(tpl->html filename/sxm [environment <- (the-environment)] [escape? <- #f])
+#+end_src
+
+/The difference is that tpl->html returns a string, but tpl->response returns an HTTP object response./
+
+[environment] is the environment you want to use. We often ignore it. If you want to ref some vars defined outside your
+template string, you need to pass this variable.
+
+[escape?] If you want to char-escape the HTML with the returned string, set it to #t.
+
+There are two main ways of writing templates:
+** Embedded Templates
+Example:
+Write a tpl file named "my.tpl":
+#+begin_src html
+<html>
+  <p> <%= "This is tpl test!" %> </p>
+  <p> <% (format #t "And this is ~a" (getcwd)) %> </p>
+  <p> <%= external-var %> </p>
+</html>
+#+end_src
+
+The filename extension ".tpl" is mandatory when using the MVC. Since the MVC will find the template by detecting
+controller name automatically.
+
+If you don't use the MVC, and are rather writing all in one script
+file loading GNU Artanis modules. Then you don't need to follow this rule.
+
+*NOTE:* Don't wrap code in double-quotes, for example:
+#+BEGIN_SRC html
+<a href="<%= my-url %>">click me</a> <!-- Wrong! -->
+<a href=<%= my-url %> >click me</a> <!-- Correct! -->
+#+END_SRC
+
+If you need to output a double-quoted string, please use src_scheme[:exports code]{object->string} to convert in Scheme first.
+#+BEGIN_SRC html
+<a href=<%= (object->string my-url) %> >click me</a> <!-- If my-url is not properly quoted -->
+#+END_SRC
+
+#+begin_src scheme
+(get "/test"
+  (lambda (rc)
+    (let ((external-var 123))
+      (tpl->response "my.tpl" (the-environment)))))
+(run #:port 8080)
+#+end_src
+
+In this case, make sure to put my.tpl in the same path as your GNU Artanis code.
+
+Since *external-var* is defined outside the file "my.tpl", and it's bound in /let/ with 123, you have to pass (the-environment). Or the template render will complain aobut not being able to find the variable *external-var*.
+
+If you don't need to refer to any external vars, just use src_scheme[:exports code]{(tpl->response "file.tpl")}.
+
+To test, access http://localhost:3000/test in your browser.
+
+*** Template special commands
+GNU Artanis provides special helper commands.
+
+Please notice that GNU Artanis constrains the path of sources in the application directory for
+security reasons. The resources files, CSS, JS etc, should be put int *pub* directory in
+the application directory, or the client won't be able to access them.
+
+These special commands are useful to expand the path for you, and they should be added
+into the tamplate file, for example:
+#+BEGIN_SRC html
+<html>
+  <head>
+    <@icon favicon.ico %>
+      <@js functions.js %>
+        <@css blog.css %>
+  </head>
+
+  <@include sidebar.html %>
+
+    <body>
+      ...
+    </body>
+</html>
+#+END_SRC
+
+*NOTE:* The command name is prefixed with *@*, as, *@include*, *@css*, etc. Please do
+not seperate the *@*, or it will throw exception.
+
+You can include html files with the *include* command:
+#+BEGIN_SRC scheme
+;; @include is the command name, not <@ include filename %>
+<@include filename.html %>
+#+END_SRC
+This will be expanded like this:
+#+BEGIN_SRC bash
+/current_toplevel/pub/filename.html
+#+END_SRC
+*NOTE:* Please make sure the included file is in the *pub* directory in the application
+directory.
+
+To refer to a CSS file:
+#+BEGIN_SRC scheme
+<@css filename.css %>
+#+END_SRC
+This will be expanded like this:
+#+BEGIN_SRC html
+<link rel="stylesheet" href="/css/filename.css">
+#+END_SRC
+
+To refer to a JS (javascript) file in the HTML head:
+#+BEGIN_SRC scheme
+<@js filename.js %>
+#+END_SRC
+This will be expanded like this:
+#+BEGIN_SRC html
+<script type="text/javascript" src="/js/filename.js"> </script>
+#+END_SRC
+
+To specify an icon for the domain:
+#+BEGIN_SRC scheme
+<@icon favicon.ico %>
+#+END_SRC
+This will be expanded like this:
+#+BEGIN_SRC html
+<link rel="icon" href="/img/favicon.ico" type="image/x-icon">
+#+END_SRC
+
+** SXML Templates
+[[http://en.wikipedia.org/wiki/SXML][SXML]] is an alternative syntax for writing XML data, using the form of S-expressions.
+
+SXML is to Scheme as JSON is to ECMAScript(the so-called Javascript). Maybe this explains it clearer.
+
+One benefit of SXML is that it takes advantage of the quasiquote in Scheme. Please search in the internet "scheme quasiquote" for more details.
+
+This is an SXML expression:
+#+begin_src scheme
+(tpl->response '(html (body (p (@ (id "content")) "hello world"))))
+#+end_src
+
+The above would result the following HTML code:
+#+begin_src html
+<html><body><p id="content">hello world</p></body></html>
+#+end_src
+
+Sometimes you may need quasiquote to refer to a variable, for example:
+
+#+begin_src scheme
+(let ((content "hello world"))
+  (tpl->response `(html (body (p (@ (id "content")) ,content)))))
+#+end_src
+Here, the "html" block is being quoted with the backtick, which in combination with
+a "," character before the variable name, makes the variable be referred to instead
+of just passing a string.
+
+* Databases
+** DB init hooks
+Sometimes you need to do some configurations before using DB, Artanis provide an API
+for that, you should put it to ENTRY file before run the server.
+
+For example, assuming you're using MySQL/MariaDB, and you need to configure it to UTF-8,
+you should add these lines to you ENTRY file. Or if you're using minimal mode without
+application folder, just put it before running the server.
+
+#+BEGIN_SRC scheme
+(run-when-DB-init!
+ (lambda (conn)
+   (DB-query conn "set names utf8;")))
+#+END_SRC
+
+*NOTE: Don't forget `!' here, it implies the side-effects in Scheme!*
+
+** DB connection pool
+GNU Artanis will create a connection pool when you run src_bash[:exports code]{art work}.
+Its size is decided by src_config[:exports code]{db.poolsize}.
+The pool is increasing by default for development and test.
+It is strongly recommended you to set src_config[:exports code]{db.pool} to src_config[:exports code]{fixed} when you deploy.
+The increasing pool will cause the effects that is similar to the memory leak. If you set it to fixed, then the request handler will be
+safely scheduled when there's no available DB connection, and it will be awake when it's available.
+** Migration
+Migrations provide a way to do complicated modification of tables in a database by GNU Artanis.
+Here's an example.
+
+First, draw a migration:
+#+begin_src nil
+# art draw migration person
+drawing    migration person
+working    Migration `20151107040209_person.scm'
+#+end_src
+You'll see something similar like above.
+
+Then you'd edit the file db/migration/20151107040209_person.scm:
+#+begin_src scheme
+(migrate-up
+ (create-table
+  'person
+  '(id auto (#:primary-key))
+  '(name char-field (#:not-null #:maxlen 10))
+  '(age tiny-integer (#:not-null))
+  '(email char-field (#:maxlen 20))))
+
+(migrate-down
+ (drop-table 'person))
+#+end_src
+
+Then you run the *up* command for migration:
+#+begin_src nil
+art migrate up person
+#+end_src
+
+Then migrate-up function will be called, and this will create a table named /person/:
+#+begin_src nil
++-------+---------------------+------+-----+---------+----------------+
+| Field | Type                | Null | Key | Default | Extra          |
++-------+---------------------+------+-----+---------+----------------+
+| id    | bigint(20) unsigned | NO   | PRI | NULL    | auto_increment |
+| name  | varchar(10)         | NO   |     | NULL    |                |
+| age   | tinyint(4)          | NO   |     | NULL    |                |
+| email | varchar(20)         | YES  |     | NULL    |                |
++-------+---------------------+------+-----+---------+----------------+
+#+end_src
+
+If you run the *down* command of migration, as:
+#+begin_src nil
+art migrate down person
+#+end_src
+The table /person/ will be dropped.
+** ORM problem
+ORM stands for Object Relational Mapping, which is a popular approach to handle relational DB nowadays, especially for Object-Oriented Programming.
+
+Of course, Guile has it's own Object System named [[https://www.gnu.org/software/guile/manual/html_node/GOOPS.html#GOOPS][GOOPS]]. Users can use OOP with it. And it's possible to implement ORM in GNU Artanis as well.
+
+However, FP fans realized that they don't have to use OOP if they can use FP features reasonably.
+
+Besides, there're some critics about ORM:
++ [[http://martinfowler.com/bliki/OrmHate.html][ORM Hate]]
+
++ [[http://blogs.tedneward.com/2006/06/26/The+Vietnam+Of+Computer+Science.aspx][Vietnam of Computer Science]]
+
++ [[http://blog.codinghorror.com/object-relational-mapping-is-the-vietnam-of-computer-science/][Object-Relational Mapping is the Vietnam of Computer Science]]
+
+Here are some known ways to solve ORM related problems:
+
++ 1. */Give up ORM/*.
+
+
++ 2. */Give up relational storage model/*. Don't use a relational DB. Use another DB style, such as No-SQL. Well, this way is not cool when you must use a relational DB.
+
+
++ 3. */Manual mapping/*. Write SQL code directly. It's fine sometimes. But the code increases when things get complicated. Refactoring and reusing would be worth to consider.
+
+
++ 4. */Limited ORM/*. Limiting the utility of ORM. And use ORM to solve part of your work rather than whole, depends on you. This may avoid some problems.
+
+
++ 5. */SQL related DSL/*. Design a new language. Microsoft's LINQ is such a case.
+
+
++ 6. */Integration of relational concepts into frameworks/*. Well, harder than 5, but worth to try.
+
+
++ 7. */Stateless/*. This is the critical hit to counter complexity and unreliability.
+
+Basically, GNU Artanis has no ORM yet, and maybe never will. GNU Artanis is trying to experiment new ways to solve the problems of ORM.
+
+GNU Artanis provides three ways to complete this mission. All of them, are *experimental* at present.
+
++ SSQL (1,3,5)
+
++ FPRM (4,7)
+
++ SQL Mapping (1,3,6)
+** SSQL
+The concept of SSQL is to write SQL in [[https://en.wikipedia.org/wiki/S-expression][s-expression]].
+
+Usage:
+#+begin_src scheme
+(->sql sql-statement)
+(where #:key val ... [literal string])
+(having #:key val ... [literal string])
+(/or conds ...)
+(/and conds ...)
+#+end_src
+
+For example:
+#+begin_src scheme
+(->sql select * from 'Persons (where #:city "Tokyo"))
+(->sql select '(age name) from 'Persons (where "age < 30"))
+#+end_src
+The SQL update command is quite different to SQL grammar. Example:
+#+BEGIN_SRC scheme
+(->sql update 'table set (list (list phone_number "08080001234")) (where #:name "john"))
+#+END_SRC
+** FPRM (experimental)
+FPRM stands for Functional Programming Relational Mapping. It's a new word I invented. But it's not new concept. FP here indicates *stateless*.
+
+/FPRM is still experimental and work-in-progress./
+*** Connect to DB server
+#+begin_src scheme
+;; usage 1:
+(connect-db dbd init-str)
+
+;; usage 2:
+(connect-db dbd #:db-name "artanis" #:db-username "root" #:db-passwd ""
+            #:proto "tcp" #:host "localhost" #:port 3306)
+#+end_src
+
++ *dbd* is a string. It must match any of these: "mysql", "postgresql", or "sqlite3".
+
+
++ *init-str* is a string for DB init, for example:
+#+begin_src scheme
+(connect-db "mysql" "root:123:artanis:tcp:localhost:3306")
+#+end_src
+
++ src_scheme[:exports code]{#:db-name} specifies the DB name.
+
+
++ src_scheme[:exports code]{#:db-username} specifies the DB username.
+
+
++ src_scheme[:exports code]{#:proto} specifies the socket protocol, which is related to the DB server of your choice.
+
+
++ src_scheme[:exports code]{#:host} specifies the host name.
+
+
++ src_scheme[:exports code]{#:port} specifies the socket port.
+*** Map DB table
+This step will generate an new instance (as a closure) mapped to database table or view.
+In ORM, it is often called an [[http://www.martinfowler.com/eaaCatalog/activeRecord.html][Active Record.]] It maps the database view to a class object.
+
+There are two main differences to SSQL:
++ FPRM doesn't create an object for each table. It maps the whole database, and generates an SQL for each table as you use it. So it might be lighter compared to an ORM object.
++ FPRM doesn't maintain any states at all. It's stateless as an object (Not in the database).
+
+These two points may decrease the power of FPRM, but our main philosophy in GNU Artanis is that
++ /The best way to control DB is SQL, don't bother with other guile schemes./
+
+That means we're not going to develop a complicated ORM in GNU Artanis, but a promising way to interact with SQL easily.
+This is what [[SQL Mapping (experimental)][SQL Mapping]] provided. FPRM aims to reduce states & complexity to provide reliability. And SQL-Mapping will provide a convenient way
+to handle complex SQL queries for better performance and security (SQL-Injection, etc).
+
+#+begin_src scheme
+(define m (map-table-from-DB rc/conn))
+#+end_src
+
+*rc/conn* can be a route-context or a DB connection.
+
+map-table-from-DB returns a function, named *m* here for simplicity.
+*** Create table
+#+begin_src scheme
+(m 'create table-name defs #:if-exists? #f #:primary-keys '() #:engine #f)
+#+end_src
+
++ *table-name* specifies the name of the DB table.
+
+
++ *defs* is a list to define the type of columns. For example:
+#+begin_src scheme
+'((name varchar 10) (age integer) (email varchar 20))
+#+end_src
+
+
++ src_scheme[:exports code]{#:if-exists?} has two kinds of possible options:
+  + '*overwrite* and '*drop*, which will overwrite the existing table.
+  + '*ignore* means to ignore the table when it already exists.
+
+
++ src_scheme[:exports code]{#:primary-keys} specifies the primary keys in the created table.
+
+
++ src_scheme[:exports code]{#:engine} specifies the DB engine. It depends on what dbd you chose.
+*** Get columns from table
+#+begin_src scheme
+(m 'get table-name #:columns '(*) #:functions '() #:ret 'all
+   #:group-by #f #:order-by #f)
+#+end_src
+
++ src_scheme[:exports code]{#:column} is the list of columns to get.
+
+
++ src_scheme[:exports code]{#:functions} is a function to call, e.g:
+#+begin_src scheme
+#:functions '((count Persons.Lastname))
+#+end_src
+
+
++ src_scheme[:exports code]{#:ret} specifies how to return the result, there are three options:
+  + 'all for returning all results
+  + 'top for returning the first result
+  + integer (larger than 0), to give it the end of a range from 0 to this number to give as result.
+
+
++ src_scheme[:exports code]{#:group-by} used in conjunction with the aggregate functions to group the result-set by one or more columns.
+
+
++ src_scheme[:exports code]{#:order-by} used to sort the result-set by one or more columns.
+
+
+For example, to get Lastname and City column, and return the first result.
+#+begin_src scheme
+(m 'get 'Persons #:columns '(Lastname City) #:ret 'top)
+#+end_src
+*** Set values to table
+#+begin_src scheme
+(m 'set table-name . kargs)
+#+end_src
+
+*kargs* is a var-list that takes key-value arguments.
+
+For example:
+#+begin_src scheme
+(m 'set 'Persons #:name "nala" #:age 99 #:email "nala@artanis.com")
+#+end_src
+
+*** Drop a table
+#+begin_src scheme
+(m 'drop table-name)
+#+end_src
+*** Check existence of table
+#+begin_src scheme
+;; case sensitive
+(m 'exists? table-name . columns)
+;; or for case-insensitive
+(m 'ci-exists? table-name . columns)
+#+end_src
+
+For example:
+#+begin_src scheme
+(m 'exists? 'Persons 'city 'lastname)
+#+end_src
+*** Get schema of a table
+#+begin_src scheme
+(m 'schema table-name)
+#+end_src
+
+/NOTE: all the returned names of the schema will be in lowercase./
+** SQL Mapping (experimental)
+To be continued ...
+* RESTful API
+GNU Artanis provides a command src_bash[:exports code]{art api} to generate RESTful API skeleton, and the API version can be managed.
+
+#+BEGIN_SRC bash
+art api -c
+
+creating   restful API v1
+create     app/api/v1.scm
+#+END_SRC
+
+The generated file *app/api/v1.scm* will contain such a line:
+#+BEGIN_SRC scheme
+(define-restful-api v1) ; DO NOT REMOVE THIS LINE!!!
+#+END_SRC
+
+*v1* is the default version, if you may specify your prefered API version, for example, *v3*:
+#+BEGIN_SRC bash
+art api -c -v v3
+#+END_SRC
+src_bash[:exports code]{-c} means to create.
+
+You should use src_scheme[:exports code]{api-define} to define the RESTful API:
+#+BEGIN_SRC scheme
+(api-define rule handler)
+#+END_SRC
+
+src_scheme[:exports code]{api-define} is an overloaded method of the controller define function. So you may use it like what you do with the controller in MVC. Here's a pseudo example:
+#+BEGIN_SRC scheme
+(define (auth-err)
+  (scm->json `((status ,status) (reason "Auth error!"))))
+
+(api-define article/list
+  (options #:mime 'json #:with-auth auth-err)
+  (lambda (rc) ...))
+#+END_SRC
+Although the registered URL is src_scheme[:exports code]{"article/list"}, the actual API would be src_scheme[:exports code]{"v1/article/list"}, depends on the specified API version.
+* MIME
+src_scheme[:exports code]{#:mime} method is used to return the proper MIME type in the HTTP response.
+#+begin_src scheme
+#:mime type ; for registering type
+(:mime rc body) ; to emit the reponse with the proper MIME
+#+end_src
+** JSON
+GNU Artanis integrates the third-party module [[https://github.com/aconchillo/guile-json][guile-json]] to parse json.
+You can use the #:mime method to handle JSON:
+#+begin_src scheme
+(get "/json" #:mime 'json
+     (lambda (rc)
+       (let ((j (scm->json-string '(("name" . "nala") ("age" . 15)))))
+         (:mime rc j))))
+#+end_src
+
+For example:
+#+begin_src scheme
+(define my-json
+  '((name . nala) (age . 15)
+    (read_list
+     ("book1" "The interpreter and structure of Artanis")
+     ("book2" "The art of Artanis programming"))))
+(scm->json-string my-json) ; scm->json will print a json string
+;; ==> {"name" : "nala",
+;;      "age" : 15,
+;;      "read_list" : {"book2" : "The art of Artanis programming",
+;;                     "book1" : "The interpreter and structure of Artanis"}}
+#+end_src
+
+src_scheme[:exports code]{scm->json} will return a hash-table to represent a JSON object.
+
+If you need to format JSON as a string to return to the client, please use src_scheme[:exports code]{scm->json-string}.
+** CSV
+GNU Artanis integrates the third-party module [[https://github.com/NalaGinrut/guile-csv][guile-csv]] to parse csv.
+You can use the #:mime method to handle CSV:
+#+begin_src scheme
+(get "/csv" #:mime 'csv
+     (lambda (rc)
+       (:mime rc '(("a" "1") ("b" "2")))))
+#+end_src
+** XML
+In Scheme, XML is handled with SXML. Another way would be to append the text to a common string.
+#+begin_src scheme
+(get "/xml" #:mime 'xml
+     (lambda (rc)
+       (:mime rc '(*TOP* (WEIGHT (@ (unit "pound"))
+                                 (NET (@ (certified "certified")) "67")
+                                 (GROSS "95"))))))
+#+end_src
+
+The rendered result to the client will be:
+#+begin_src xml
+<WEIGHT unit="pound">
+  <NET certified="certified">67</NET>
+  <GROSS>95</GROSS>
+</WEIGHT>
+#+end_src
+
+** SXML
+You can use SXML to replace XML for exchanging data format. This way saves some bandwidth.
+#+begin_src scheme
+(get "/sxml" #:mime 'sxml
+     (lambda (rc)
+       (:mime rc '((a 1) (b 2)))))
+#+end_src
+* Upload files
+If you want to be able to upload files, store-uploaded-files is your friend.
+** Receive an upload from the client
+The typical configuration of an uploading WebAPI looks like this:
+
+#+BEGIN_SRC scheme
+(post "/upload" #:from-post '(store #:path "upload" #:sync #f)
+      (lambda (rc)
+        (case (:from-post rc 'store)
+          ((success) (response-emit "upload succeeded!"))
+          ((none) (response-emit "No uploaded files!"))
+          (else (response-emit "Impossible! please report bug!")))))
+#+END_SRC
+
+However, you may use the low-level API for more configurations as well:
+#+begin_src scheme
+(store-uploaded-files rc #:path (current-upload-path)
+                      #:uid #f
+                      #:gid #f
+                      #:simple-ret? #t
+                      #:mode #o664
+                      #:path-mode #o775
+                      #:sync #f)
+#+end_src
+
+*rc* is the route-context.
+
+src_scheme[:exports code]{#:path} is the specified path to put uploaded files.
+
+src_scheme[:exports code]{#:uid} is new UID for the uploaded files, #f uses the default UID.
+
+src_scheme[:exports code]{#:gid} specifies the GID.
+
+src_scheme[:exports code]{#:simple-ret?} specifies the mode of return:
++ if #t, there're only two possible return value, 'success for success, 'none for nothing has been done.
++ if #f, and while it's successful, it returns a list to show more details: (success size-list filename-list).
+
+src_scheme[:exports code]{#:mode} chmod files to mode.
+
+src_scheme[:exports code]{#:path-mode} chmod upload path to mode.
+
+src_scheme[:exports code]{#:sync} sync while storing files.
+** Send an upload to a Server
+Although GNU Artanis is often used in server-side, we provide this function for users to upload files from the client.
+#+begin_src scheme
+(upload-files-to uri pattern)
+#+end_src
+
+*uri* is standard HTTP URL:
+#+begin_src nil
+scheme://[user:password@]domain:port/path?query_string#fragment_id
+#+end_src
+
+*pattern* should be:  ((file filelist ...) (data datalist ...)), for example:
+#+begin_src scheme
+(upload-files-to "ftp://nala:123@myupload.com/"
+                 '((data ("data1" "hello world"))
+                   (file ("file1" "filename") ("file2" "filename2"))))
+#+end_src
+* Sessions
+You can use src_scheme[:exports code]{#:session mode} to define a URL rule handler.
+#+begin_src scheme
+(post "/auth" #:session mode
+      (lambda (rc) ...))
+#+end_src
+
+*mode* can be:
++ #t or 'spawn, to spawn a new session, the name of the SID is "sid" by default.
++ `(spawn ,sid) to specify the name of the sid to spawn.
++ `(spawn ,sid ,proc) to specify the name of the sid and a proc to *define your own session spawner*.
+
+And the APIs of the session is :session
+#+begin_src scheme
+(:session rc cmd)
+#+end_src
+
+*cmd* can be:
++  'check to check the session with name "sid".
++  `(check ,sid) to check the session with a specified sid name.
++  'check-and-spawn to check "sid" first, if it doesn't exist, then spawn new.
++  `(check-and-spawn ,sid) to do the same as above, but with specifying the sid name.
++  `(check-and-spawn-and-keep ,sid) to check, then spawn, then keep, specifying the sid name.
++  'spawn to spawn a session with the name "sid".
++  'spawn-and-keep to spawn a session then keep with the name "sid".
++  'drop to remove the current session by "sid".
++  `(drop ,sid) to remove the session by the specifed sid.
+
+** Session backend
+Artanis provide several backends for implementing sessions in the lower-level. Please take a look
+at the description of src_scheme[:exports code]{session.backend} in your artanis.conf.
+* Cookies
+You can use src_scheme[:exports code]{#:cookies mode} to define a URL rule handler.
+#+begin_src scheme
+(get "/certain-rule" #:cookies mode
+     (lambda (rc) ...))
+#+end_src
+
+*mode* can be:
++ ('names names ...) to create cookie objects with specified names.
++ ('custom (names ...) maker setter getter modifier) to specify a more complicated customized cookie handler.
+
+Cookie object is used to create/modify the cookie that will return to the client automatically. This is the instance of a cookie which can be controlled in server-side.
+
+If you want to get the cookie from the client, you should use src_scheme[:exports code]{:cookies-value}.
+
+And the APIs:
+#+begin_src scheme
+(:cookies-set! rc cookie-name key val)
+
+(:cookies-ref rc cookie-name key)
+
+(:cookies-setattr! rc cookie-name #:expir #f #:domain #f
+                   #:path #f #:secure #f #:http-only #f)
+
+(:cookies-remove! rc key) ; remove cookie from client
+(:cookies-value rc name) ; get cookie from the client
+#+end_src
+
+For example:
+#+begin_src scheme
+(get "/cookie" #:cookies '(names cc)
+     (lambda (rc)
+       (:cookies-set! rc 'cc "sid" "123321")
+       "ok"))
+
+(get "/cookie/:expires" #:cookies '(names cc)
+     (lambda (rc)
+       ;; link the cookie object with actual cookie
+       (:cookies-set! rc 'cc "sid" (:cookies-value rc "sid"))
+       (:cookies-setattr! rc 'cc #:expir (string->number (params rc "expires")))
+       "ok"))
+#+end_src
+
+You should link the actual cookie "sid" to the created cookie 'cc, then you can control it. Otherwise it doesn't work.
+
+
+You can use these commands in your console to see the results:
+#+begin_src nil
+curl --head localhost:3000/cookie
+# and
+curl --head localhost:3000/cookie/120
+#+end_src
+* Authentication
+** Init Authentication
+GNU Artanis provides flexible mechanism for authentication.
+
+You can use src_scheme[:exports code]{#:auth mode} to define a URL rule handler.
+#+begin_src scheme
+(get "/certain-rule" #:auth mode
+     (lambda (rc) ...))
+#+end_src
+
+*mode* can be:
++ SQL as [[String Template][string template]]. You can write your own custom SQL string to fetch & check your username and password.
++ src_scheme[:exports code]{('basic (lambda (rc user passwd) ...))} init Basic Authentication mode. /user/ is the username, and /passwd/ is the password.
++ src_scheme[:exports code]{('table table-name username-field passwd-field)} init a common Authentication mode. *The passwd will be encrypted by the default algorithm*.
++ src_scheme[:exports code]{('table table-name username-field passwd-field crypto-proc)} similar to the above item, but encrypt passwd with crypto-proc.
++ src_scheme[:exports code]{(table-name crypto-proc)}, so the passwd field will be "passwd" and username will be "username" by default.You can encrypt the passwd with crypto-proc.
+
+Available crypto-proc helper functions listed here:
+#+BEGIN_SRC scheme
+(string->md5 <string>)
+(string->sha-1 <string>)
+(string->sha-224 <string>)
+(string->sha-256 <string>)
+(string->sha-384 <string>)
+(string->sha-512 <string>)
+#+END_SRC
+
+NOTE: Please make sure that the src_scheme[:exports code]{username-field} and src_scheme[:exports code]{passwd-field} must be the same with
+the field name specifed in the submit form of you web page code.
+
+For example, if there is a form on you page:
+#+BEGIN_SRC html
+<input type="password" name="passwd">
+#+END_SRC
+
+Please notice that name of password input was specified to src_scheme[:exports code]{"passwd"}.
+
+Then you should write authentication like this:
+
+#+BEGIN_SRC scheme
+(post "/auth" #:auth '(table user "user" "passwd") #:session #t
+      (lambda (rc) ...))
+#+END_SRC
+
+Please notice that the src_scheme[:exports code]{"passwd"} here is the same with what you specified in the form.
+** Basic Authentication
+The HTTP Basic authentication (BA) implementation is the simplest technique for enforcing access control
+to web resources, as it doesn't require cookies, session identifiers, or login pages. But rather uses
+static, standard HTTP headers, which means that no extra handshakes are necessary for the connection.
+
+The BA mechanism provides no protection for the transmitted credentials. They are merely
+encoded with Base64, but not encrypted or hashed in any way. For that reason, Basic Authentication
+is typically used over HTTPS.
+
+/*GNU Artanis doesn't support HTTPS at present. There are plans to support it in the future.*/
+
+Let's see a simple example:
+#+begin_src scheme
+(define (my-checker rc user passwd)
+  (and (string=? user "jack") (string=? passwd "123")))
+
+(post "/bauth" #:auth `(basic ,my-checker)
+      (lambda (rc)
+        (if (:auth rc)
+            "auth ok"
+            (throw-auth-needed))))
+#+end_src
+
+Another simple way to provide authentication is to compare the passsword stored in a database table:
+#+BEGIN_SRC scheme
+(post "/bauth" #:auth `(basic Person username passwd)
+      (lambda (rc) ... ))
+#+END_SRC
+
+NOTE: Assuming *username* and *passwd* are columns of the Person table.
+
+
+You have to define your own checker with the anonymous function src_scheme[:exports code]{(lambda (rc u p) ...)}. #t to show success, and #f to fail.
+
+APIs:
+
++ src_scheme[:exports code]{(:auth rc)} will check if Basic Authentication succeeded, #f if not.
++ src_scheme[:exports code]{(throw-auth-needed)} is a useful helper function to ask for auth in client side.
+** Common Authentication
+There are multiple authentication methods that can be used by developers. Most of them are sort of tricky hacks. Here are the most common.
+
+The most common, and relatively safe way to authenticate, is to use the POST method, and check the username and passwd from a table in the DB.
+
+There are several ways to provide authentication.
+
+The simplest case is for [[String Template][String Template]]:
+#+BEGIN_SRC scheme
+#:auth "string-template"
+#+END_SRC
+
+If you save the account data in a database table, then you can use the table mode:
+#+BEGIN_SRC scheme
+#:auth `(table ,table-name [,username-field] [,passwd-field] [,salt-field] [,hmac])
+#+END_SRC
+
+NOTE: The square-braced *[args]* above are optional.
+
+The default values for the optional items are:
++ username-field: username
++ passwd-field: passwd
++ salt-field: salt
+
+TODO: remove the brackets for salt-field, as it says below that it's not optional.
+And specify whether "optional" means that can be skipped or set to #f to use the default value.
+
+*GNU Artanis requires a salted password, it's not optional.*
+
+So please prepare a field in a table for the salt string. It's your responsibility to generate a
+salt string, please see [[Random String Generator][Random String Generator]]. When authenticating, please specify the
+salt field name in the salt-field argument.
+
+For hmac item, please see [[HMAC][HMAC]].
+
+** Login Authentication
+Usually, when doing a login, you will need both src_scheme[:exports code]{#:auth} and src_scheme[:exports code]{#:session} options for a long time session.
+The first step is to authenticate, if it's successful, then spawn a new session for this request.
+
+Here is a simple example:
+
+#+begin_src scheme
+(post "/auth"
+ #:auth '(table user "user" "passwd")
+ #:session #t
+ (lambda (rc)
+   (cond
+    ((:session rc 'check) "auth ok (session)")
+    ((:auth rc)
+     (:session rc 'spawn)
+     "auth ok")
+    (else (redirect-to rc "/login?login_failed=true")))))
+#+end_src
+
+*NOTE: The passwd will be encrypted by the default algorithm.*
+
+** Authenticate checking
+If certain page requires authencation first, then how to check it properly?
+
+In GNU Artanis, the *session-id* is the only token to check if the client has already been authenticated.
+By default, the *session-id* is named as *SID* in cookies.
+You may use src_scheme[:exports code]{#:with-auth} to do all the works automatically for you.
+
+#+BEGIN_SRC scheme
+(get "/dashboard"
+  #:with-auth <options>
+  (lambda (rc)
+    (view-render "dashboard" (the-environment))))
+#+END_SRC
+
+For example, assuming you have a page */dashboard* requires login, then you may set src_scheme[:exports code]{#:with-auth} with
+certain option. We will explain this option later. Each time user visit */dashboard* page, GNU Artanis will check if there's
+valid *session-id* from client's cookies, if yes, then run the handler to generate the response; if no, then jump to the related
+auth failed handler, depends on the option you specified.
+
+Here's available *options*:
++ src_scheme[:exports code]{#t} means the default failure activity: redirect to */login* page.
++ URL in string, specify the login page URL. For example, src_scheme[:exports code]{#:with-auth "/admin/login"}.
++ src_scheme[:exports code]{'status} will return a 401 page with status code 401, which could be checked by cilent.
++ *Thunk* can be used to generate customized response by users. A thunk is a function without parameter.
+  For example, src_scheme[:exports code]{#:with-auth (lambda () (scm->json-string '((status . 401) (reason . "No auth"))))}.
+  This is useful to customize your protocol in JSON for RESTful API.
+
+*NOTE:* Different from other [[Shortcuts][shortcuts]], there's no src_scheme[:exports code]{:with-auth} *apply* for user customized operations
+inside the handler. If you use src_scheme[:exports code]{#:with-auth}, then all related works are handled by GNU Artanis.
+
+** Customized Authentication
+#+BEGIN_SRC scheme
+;; (define (checker username passwd) ...)
+#:auth `(post ,username ,passwd ,checker)
+#+END_SRC
+This mode will parse and return *username* and *password* by the specified field name in query-string.
+What matters here is that you can write your own checker for customization.
+** Websocket Authentication
+See [[Websocket authentication][Websocket authencation]]
+** HMAC
+[[https://en.wikipedia.org/wiki/HMAC][HMAC]] is a hash-based message authentication code.
+It's dangerous to store the passwd in a raw string.
+A safer way is to salt then hash with a strong cryptograpic hash function when storing the passwd.
+
+The default salt is a random string got from the operating system.
+And the default cryptographic hash function is SHA256.
+You can set your own HMAC function, as in this example:
+
+#+begin_src scheme
+(define (my-hmac passwd salt)
+  (string->sha-512 (format #f "~a-~a-~a" passwd salt (current-time))))
+
+(post "/auth" #:auth `(table user "user" "passwd" "salt" ,my-hmac)
+      ...... )
+#+end_src
+
+The default HMAC function is:
+#+BEGIN_SRC scheme
+(define (default-hmac passwd salt)
+  (string->sha-256 (string-append passwd salt)))
+#+END_SRC
+
+For more on hash functions, please refer to [[Cryptographic hash functions][Cryptographic hash functions]].
+* Cache
+** On web caching
+Web caching is very important nowadays. This section discusses proper web
+caching. It is not a full product guide document, but it may help to understand how to
+cache data in GNU Artanis.
+
+(to be continued...)
+** Cache APIs
+You can use src_scheme[:exports code]{#:cache mode} to define a URL rule handler.
+#+begin_src scheme
+(get "/certain-rule" #:cache mode
+     (lambda (rc) ...))
+#+end_src
+
+*/NOTE/*: the default value of "maxage" (3600 seconds) is defined by src_scheme[:exports code]{cache.maxage} in src_scheme[:exports code]{/etc/artanis/artanis.conf}.
+
+*mode* can be:
++ src_scheme[:exports code]{#t} to enable caching the page.
++ src_scheme[:exports code]{#f} to disable caching the page explicitly. It's the default value.
++ src_scheme[:exports code]{('static [maxage <- 3600])} to be used for static files. The URL rule must be a real path to a static file.
++ src_scheme[:exports code]{(filename [maxage <- 3600])} to cache a static file. This is useful when you don't want to reveal the actual path of the static file, but use a fake URL for it.
++ src_scheme[:exports code]{('public filename [maxage <- 3600])} to allow proxies cache the content of specified static file. If HTTP authentication is required, responses are automatically set to "private".
++ src_scheme[:exports code]{('private filename [maxage <- 3600])} to not allow proxies cache the content of specified static file.
+
+Let's set a simple cache setting for dynamic content:
+#+begin_src scheme
+(get "/new" #:cache #t
+     (lambda (rc)
+       (:cache rc "hello world")))
+#+end_src
+
+If you want to cache a static file, and permit proxies cache the content:
+#+begin_src scheme
+(get "/hide" #:cache '(public "/some.html")
+     (lambda (rc)
+       (:cache rc)))
+#+end_src
+
+But, if your current URL rule is used for authentication (once you use src_scheme[:exports code]{#:auth}), the cache will be changed to *private* even if you specify *public*.
+#+begin_src scheme
+(get "/pauth"
+  #:auth `(basic ,(lambda (rc u p) (and (string=? u "nala")
+                                        (string=? p "123"))))
+  #:cache '(public "/some.html") ; will be changed to 'private' forcely.
+  (lambda (rc) (:cache rc)))
+#+end_src
+
+* Shortcuts
+** What is shortcuts?
+/shortcuts/ are a series of special functions. They're used to simplify the complex
+operations, according to the configuration specified by the related keyword, set
+after a URL-rule.
+
+It was named /OHT/ which stands for /Optional Handler Table/, which indicates the basic
+principle to be implemented. But it was too hard to remember. So let's just call it /shortcut/.
+
+Anyway, you may find them in the module [[https://gitlab.com/NalaGinrut/artanis/blob/master/artanis/oht.scm][(artanis oht)]].
+
+It's good practice to use /shortcuts/ as possible and avoid calling low-level APIs.
+
+Each shortcut consists of 2 parts: *config* and *apply*.
+
+*config* is to configure a certain service for the specific URL rule. This configuration
+will only be availble to this URL rule, and independent to other registered URL rules.
+
+*apply* is used to call specific functions related to your configuration in the *config* step.
+The first argument of the *apply* method must be a src_scheme[:exports code]{route-context} ([[Route context][route context]]).
+
+** Database connection
+
+This is a useful feature to use when you connect to a database.
+The shortcut provides a way to interact with the raw connection.
+The connection is fetched from the connection pool, which is created
+at GNU Artanis's start up.
+
+#+BEGIN_SRC scheme
+;; config
+#:conn #t
+
+;; apply
+(:conn <route-context> [sql])
+#+END_SRC
+
++ The second argument is optional, if it's missing, then src_scheme[:exports code]{:conn}
+  will return the raw connection after applying src_scheme[:exports code]{(:conn rc)}.
+  + NOTE: If you haven't set src_scheme[:exports code]{#:conn #t}, and applied
+    src_scheme[:exports code]{(:conn rc)}, then src_scheme[:exports code]{(rc-conn rc)}
+    will return src_scheme[:exports code]{#f}. This is why you shouldn't use low-level
+    src_scheme[:exports code]{(rc-conn rc)}.
++ If you pass a second argument, it should be a valid SQL query string.
+  The returned value is described in [[DB connection pool][DB connection pool]].
+  + You can create the SQL query string with [[SSQL][SSQL]].
+
+** Raw SQL
+
+This shortcut is useful for a simple one-shot query.
+
+#+BEGIN_SRC scheme
+;; config
+#:raw-sql sql
+
+;; apply
+(:raw-sql <route-context> mode)
+#+END_SRC
+
+*Sql* must be a valid SQL query string.
+
+*Mode* is one of:
++ 'all for getting all the results.
++ 'top for getting the first result.
++ A positive integer to indicate how many results should be returned.
+
+** String template
+
+This is a shortcut for [[String Template][string template]]. Sometimes it's useful when you just need a quick way to
+use a string template. It doesn't support multi templates, so if you do need to, please use
+the traditional [[String Template]].
+
+#+BEGIN_SRC scheme
+;; config
+#:str "string template"
+
+;; apply
+(:str <route-context> key-values ...)
+#+END_SRC
+
+Please checkout [[String Template][string template]] to find out how to use the /string-template/ and /key-values/.
+
+** SQL-Mapping shortcut (unfinished)
+
+This is related to [[SQL Mapping (experimental)][SQL-Mapping]], which is still experimental, maybe you should wait for
+the next version if you wish to use it.
+
+#+BEGIN_SRC scheme
+;; config
+#:sql-mapping config-patterns
+
+;; apply
+(:sql-mapping <route-context> command ...)
+#+END_SRC
+
+*config-patterns* can be any of:
++ src_scheme[:exports code]{#t} enable the simple sql-mapping.
++ src_scheme[:exports code]{`(path ,path ,name)}
+  Fetch the sql-mapping with /name/ in the specified /path/.
+  + /name/ must be an object of the symbol type.
+  + /path/ must be an object of the string type, and an existing path in your filesystem.
++ src_scheme[:exports code]{`(add ,name ,sql-template)}
+  Fetch the sql-mapping with /name/ rendered from /sql-template/.
+  + /name/ should be an object of the symbol type.
+  + /sql-template/ is described in more detail in [[SQL Mapping (experimental)][SQL-Mapping]].
+
+** Authentication
+See [[Authentication][Authentication]].
+* Websocket (Experimental)
+** Websocket introduction
+Websockets are becoming more and more important for modern web development.
+GNU Artanis is trying to provide an industrial strength and efficient Websocket implementation.
+Websockets are important for GNU Artanis's design. Please see [[Principles][Principles]] for more details.
+
+** Websocket basic usage
+
+In GNU Artanis, a Websocket handling is triggered by setting it on a specific URL.
+You should use src_scheme[:exports code]{#:websocket} to configure the Websocket.
+Here's the API definition:
+#+BEGIN_SRC scheme
+#:websocket (proto protocol-name ['inexclusive])
+#+END_SRC
+*'inexclusive* is optional. By default, each Websocket connection only servs one client.
+However, sometimes we do need to multicast the messages to several clients. Enable *'inexclusive* is the
+easiest way, but it may cause the similar issue to file-description-leaking. There're two suggestions:
+- Set and check security token to prevent malicious programs establish massive connections.
+- If you want to do muticasting as in pub/sub, then use different token or named-pipe to subscribe. And maintain
+  a subscribers table for multicasting.
+
+Here's a simple example for common cases:
+#+BEGIN_SRC scheme
+(use-modules (artanis artanis))
+
+(get "/echo" #:websocket '(proto echo)
+     (lambda (rc)
+       (:websocket rc 'payload)))
+
+(run #:port 3000)
+#+END_SRC
+
+In this simple test, we choose the simplest *echo* protocol of the Websocket.
+This will return back the string sent from the client.
+Let's also write a simple javascript function for the web frontend:
+
+#+BEGIN_SRC js
+function WebSocketTest()
+{
+    if ("WebSocket" in window)
+    {
+        document.write("<p>WebSocket is supported by your Browser!</p>");
+
+        // Let us open a web socket
+        var ws = new WebSocket("ws://localhost:3000/echo");
+
+        ws.onopen = function()
+        {
+            // Web Socket is connected, send data using send()
+            ws.send("hello world");
+            document.write("<p>Message is sent...</p>");
+        };
+
+        ws.onmessage = function (evt)
+        {
+            var received_msg = evt.data;
+            document.write("<p>hello welcome...</p>");
+        };
+
+        ws.onclose = function()
+        {
+            // websocket is closed.
+            document.write("<p>Connection is closed...</p>");
+        };
+
+        window.onbeforeunload = function(event) {
+            socket.close();
+        };
+    }
+    else
+    {
+        // Your browser doesn't support WebSockets
+        document.write("<p>WebSocket NOT supported by your Browser!</p>");
+    }
+}
+#+END_SRC
+
+** Websocket named-pipe
+Artanis provides the named-pipe based on Websocket, which is very useful to interact between the client and server.
+/NOTE: The Websocket named-pipe is very useful to implement server-push messaging./
+
+Here is the critical API:
+#+BEGIN_SRC scheme
+(named-pipe-subscribe <route-context>)
+#+END_SRC
+
+Let's try a simple example:
+#+BEGIN_SRC scheme
+(get "/robot" #:websocket '(proto echo) named-pipe-subscribe)
+#+END_SRC
+
+Here we register a WebAPI named src_conf[:exports code]{"/robot"}, and configure it a Websocket API by
+src_conf[:exports code]{#:websocket '(proto echo)}. As you may see, we specify its protocol to a simple echo protocal,
+it is to say, it will redirect what it receives. Each time it receives a message, it will redirect the message to the
+specified named-pipe, and the subscriber of that named-pipe will get the message instantly. The name of the pipe is specified
+by the client like this:
+#+BEGIN_SRC js
+var ws = new WebSocket("ws://localhost:3000/robot?artanis_named_pipe=robot-1");
+#+END_SRC
+The query-string src_conf[:exports code]{"artanis_named_pipe"} is a special key in Artanis, you MUST use this key to specify the
+pipe name. Here we specify the pipe name as src_conf[:exports code]{"robot-1"}.
+
+Now we setup the named-pipe, however, we still need to setup another WebAPI to let the client send message:
+#+BEGIN_SRC scheme
+(get "/welcome/:whom/:what" #:websocket 'send-only
+     (lambda (rc)
+       (:websocket rc 'send (params rc "whom") (params rc "what"))
+       "ok"))
+#+END_SRC
+The configure src_conf[:exports code]{"#:websocket 'send-only"} means this API is only for sending, so that it's half-duplex.
+And another critical Websocket API here:
+#+BEGIN_SRC scheme
+(:websocket <route-context> 'send <pipe-name> <data>)
+#+END_SRC
+
+Each time you send data from the WebAPI, for example:
+#+BEGIN_SRC bash
+curl localhost:3000/welcome/robot-1/nala
+#+END_SRC
+In our simple example of [[https://gitlab.com/NalaGinrut/artanis/blob/master/examples/websocket-named-pipe.html][Websocket named-pipe test]], you should run
+The named-pipe will receive the message src_scheme[:exports code]{"nala"},
+and the page on the browser will print src_scheme[:exports code]{"hello welcome...nala"} instantly.
+
+** Websocket APIs
+
+*NOTE: The Websocket is in a very preliminary stage. It only support echo.*
+
+*** Websocket configuration
+#+BEGIN_SRC scheme
+#:websocket `(proto ,protocol_name)
+#+END_SRC
+*protocol_name* can be:
++ *'echo* for a simple echo test.
+  *NOTE:* More protocols will be added in the future.
+
+  #+BEGIN_SRC scheme
+#:websocket simple_pattern
+  #+END_SRC
+  *simple_pattern* can be:
+  + *#t* or *'raw* will enable a WebSocket on this URL without specifying the protocol.
+    So you will get the raw data from the decoded payload.
+
+  #+BEGIN_SRC scheme
+#:websocket `(redirect ,ip/usk)
+  #+END_SRC
+  This is used for redirecting a Websocket stream to another address.
+  ip/usk is an ip or a unix-socket. The string regexp pattern has to match:
+  + src_scheme[:exports code]{^ip://(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(:[0-9]{1,5})?$}
+  + src_scheme[:exports code]{^unix://[a-zA-Z-_0-9]+\\.socket$}
+
+  #+BEGIN_SRC scheme
+#:websocket `(proxy ,protocol)
+  #+END_SRC
+  Setup a proxy with a specific protocol handler.
+  Unlike the regular proxy approach, the proxy in Artanis doesn't
+  need a listening port. Since it's always 80/443 or a custom port.
+  The client has to have websocket support. And be able to access the specified URL
+  to establish a websocket connection. The rest is the same as with a regular proxy.
+
+*** Websocket application
+
+#+BEGIN_SRC scheme
+(:websocket <route-context> command)
+#+END_SRC
+*command* can be:
++ *'payload* to get the decoded data from the client. It's decoded from Websocket frame automatically.
+  So you don't have to parse the frame.
+
+** Websocket frame
+
+GNU Artanis provides a Websocket data frame struct, as defined in [[https://tools.ietf.org/html/rfc6455][RFC6455]].
+
+The frame will not be decoded or parsed into a record-type, but will be kept as the binary
+frame read from the client, and use bitwise operations to fetch fields.
+This kind of `lazy' design saves much time as it doesn't parse unused fields, and makes
+it easier to redirect without any serialization.
+If users want to get a certain field, Artanis provides APIs for fetching them.
+Users can decide how to parse the frames by themselves, which we think is more efficient.
+
+Here are the APIs you can use:
+
+#+BEGIN_SRC scheme
+(websocket-frame? <websocket-frame>)
+#+END_SRC
+
+#+BEGIN_SRC scheme
+;; parser: bytevector -> custom data frame
+(websocket-frame-parser <websocket-frame>)
+#+END_SRC
+
+*websocket-frame-parser* is the registered reader for the protocol specified by the
+src_scheme[:exports code]{#:websocket} configuration. The protocol is customizable based on protobuf.
+/NOTE: Custom protocols support hasn't been implemented yet./
+
+#+BEGIN_SRC scheme
+(websocket-frame-head <websocket-frame>)
+(websocket-frame-final-fragment? <websocket-frame>)
+(websocket-frame-opcode <websocket-frame>)
+(websocket-frame-payload <websocket-frame>)
+(websocket-frame-mask <websocket-frame>)
+#+END_SRC
+To get the Websocket frame information. See [[https://tools.ietf.org/html/rfc6455#page-27][Data framing]] for details.
++ *head* returns the first 2 bytes in the data frame.
++ *final-fragment* returns true if it's the last frame in a session.
++ *opcode* returns the opcode in the frame. Refer to [[Websocket opcode][Websocket opcode]].
++ *payload* returns the actual encoded data.
++ *mask* returns the frame mask.
+
+** Websocket opcode
+
+Opcode defines the interpretation of "Payload data". If an unknown opcode is received,
+the receiving endpoint's WebSocket connection will fail.
+
+#+BEGIN_SRC scheme
+;;  check if it's a continuation frame
+(is-continue-frame? opcode)
+
+;;  check if it's text frame
+(is-text-frame? opcode)
+
+;; check if it's binary frame
+(is-binary-frame? opcode)
+
+;; check if it's control frame
+(is-control-frame? opcode)
+(is-non-control-frame? opcode)
+
+;;  websocket requires closing
+(is-close-frame? opcode)
+
+;;  check if it's a ping frame
+(is-ping-frame? opcode)
+
+;;  check if it's a pong frame
+(is-pong-frame? opcode)
+
+;;  %xB-F are reserved for further control frames
+(is-reserved-frame? opcode)
+
+#+END_SRC
+** Websocket authentication
+The Websocket authentication hasn't been unsupported yet.
+* Ragnarok server core
+** Introduction
+Since version 0.2, GNU Artanis has started to use a strong server core for high concurrency.
+Its name is Ragnarok.
+In the philosophy of the design of GNU Artanis, everything is meant to be flexible and customizable.
+The server core is no exception. In case Ragnarok doesn't suit your needs, you're free to use something else.
+
+Ragnarok doesn't use any popular library for handling events (libev/libuv etc ...).
+It's a brand new server core based on epoll and [[https://en.wikipedia.org/wiki/Delimited_continuation][delimited continuations]].
+
+** Principles
+A basic characteristic of Ragnarok is the use of co-routines. These co-routines are implemented with [[https://en.wikipedia.org/wiki/Delimited_continuation][delimited continuations]].
+There are no OS/kernel controlled threads, like pthread, for scheduling /request-handlers/ in Ragnarok.
+All the tasks are scheduled by a userland scheduler. And the task is nothing but just a special continuation.
+The key difference between this and a regular [[https://en.wikipedia.org/wiki/Call-with-current-continuation#Criticism][full-stack continuation]], is that you can set
+limits with precision, instead of having to capture the whole stack.
+
+For researchers, there is a paper published on [[http://www.schemeworkshop.org/2016/][ICFP Scheme Workshop 2016 conference]] to explain the principle and
+the design of GNU Artanis:
+
+[[https://github.com/NalaGinrut/artanis/raw/gh-pages/research/scheme16/art2016.pdf][Multi-purpose web framework design based on websockets over HTTP Gateway]].
+
+(to be continued ...)
+
+** Features
+In Artanis, the request handling can be scheduled even when the socket buffer is full (depends on src_conf[:exports code]{server.bufsize}).
+And let other handlers deal with the requests. Just like the scheduling of an OS, but in userland.
+
+If you have issues with the buffer when scheduling, there's no way to flush before it breaks,
+since we can't tell if the scheduling is caused by the buffering or the blocking.
+
+Ragnarok takes advantage of src_conf[:exports code]{SO_REUSEPORT} introduced in GNU/Linux 3.9 to provide a feature
+named src_conf[:exports code]{server.multi} which can be enabled in the config. This feature allows users to start several
+Artanis instances listening to the same port, to take advantage of multi core CPUs, and the Linux Kernel managing the events.
+
+(to be continued ...)
+
+** Ragnarok APIs
+You can use these APIs to customize your own server core.
+
+(to be continued ...)
+* Key-Value Database
+** LPC
+LPC stands for Lightweight Persistent Cache. It's the easiest way to use key-value DB in Artanis.
+
+For example:
+#+BEGIN_SRC scheme
+(get "/certain_rule" #:lpc <backend> (lambda (rc) ...))
+#+END_SRC
+
+The backend includes:
+- src_scheme[:exports code]{#t} or src_scheme[:exports code]{'redis}
+- src_scheme[:exports code]{'json}
+
+After configured, it's easy to use it:
+#+BEGIN_SRC scheme
+;; Setter
+(:lpc rc 'set <key> <val>)
+
+;; Getter
+(:lpc rc 'get <key>)
+;; or
+(:lpc rc 'ref <key>)
+#+END_SRC
+
+In default, the key will be prefixed automatically:
+#+BEGIN_SRC scheme
+(string-append "__artanis_lpc_" (get-conf '(db name)) "_" key)
+#+END_SRC
+
+* Utils
+*The functions listed below require the [[https://gitlab.com/NalaGinrut/artanis/blob/master/artanis/utils.scm][(artanis utils)]] module.*
+** String Template
+GNU Artanis provides Python3-like template strings:
+#+begin_src scheme
+(make-string-template tpl . vals)
+#+end_src
+
++ *tpl* stands for template string.
++ *vals* is varg-list specifying default value to certain key.
+
+For example:
+#+begin_src scheme
+(define st (make-string-template "hello ${name}"))
+(st #:name "nala")
+;; ==> "hello nala"
+
+;; or you may specify a default value for ${name}
+(define st (make-string-template "hello ${name}" #:name "unknown"))
+(st)
+;; ==> "hello unknown"
+(st #:name "john")
+;; ==> "hello john"
+#+end_src
+** Random String Generator
+Get random string from =/dev/urandom=.
+#+begin_src scheme
+(get-random-from-dev #:length 8 #:uppercase #f)
+#+end_src
+** Cryptographic hash functions
+#+begin_src scheme
+;; hash a string with MD5
+(string->md5 str)
+;; hash a string with SHA-1
+(string->sha-1 str)
+#+end_src
+
+SHA-2 hash functions are also supported from Artanis-0.2.5.
+#+BEGIN_SRC scheme
+(string->sha-224 str)
+(string->sha-384 str)
+(string->sha-512 str)
+#+END_SRC
+
+** Stack & Queue
+GNU Artanis provides simple interfaces for stack & queue:
+#+begin_src scheme
+;; stack operations
+(new-stack)
+(stack-pop! stk)
+(stack-push! stk elem)
+(stack-top stk)
+(stack-remove! stk key)
+(stack-empty? stk)
+
+;; queue operations
+(new-queue)
+(queue-out! q)
+(queue-in! q elem)
+(queue-head q)
+(queue-tail q)
+(queue-remove! q key)
+(queue-empty? q)
+#+end_src
+** Useful string operation
+If you want to get all the contents from a file into a string,
+then don't use src_conf[:exports code]{get-string-all} imported from rnrs. Because it
+will not detect the correct charset from the locale, and this may cause the length differ
+from the actual value. Although GNU Artanis can handle this length issue properly, you
+should use src_conf[:exports code]{get-string-all-with-detected-charset} when you need
+to do something like this. If you don't care about the contents encoding but just want
+to get the them, it's better to use src_conf[:exports code]{get-bytevector-all} imported
+from rnrs.
+#+begin_src scheme
+(get-string-all-with-detected-charset filename)
+#+end_src
+** Time operation tool
+TODO
+
+* Debug mode
+GNU Artanis provides a debug-mode for a more convenient way to debug. It's very easy to use.
+
+For the simplest way, pass src_scheme[:exports code]{#:debug #t} when calling src_scheme[:exports code]{run} function:
+#+BEGIN_SRC scheme
+(run #:debug #t)
+#+END_SRC
+
+If you are using the MVC system, or created a project directory, just pass --debug or -g to art:
+#+BEGIN_SRC scheme
+# In the project directory
+art work --debug
+# Or
+art work -g
+#+END_SRC
+
+When you enable debug-mode, the Model and Controller modules in the directory  will be reloaded automatically every time they're called.
+
+When */not/* in debug mode, you have to press Ctrl+C to quit GNU Artanis server and start it again to test changed modules. Debug mode saves time when testing.
+
+You can add paths to monitor certain files (for example, a JSON file as config file to be reloaded on the fly).
+If you want to be notified when they're changed. Just put
+the paths here:
+#+BEGIN_SRC conf
+debug.monitor = my/lib/json, my/lib/modules
+#+END_SRC
+
+
+* Appendix A GNU Free Documentation License
+Version 1.3, 3 November 2008
+Copyright © 2000, 2001, 2002, 2007, 2008 Free Software Foundation, Inc.
+http://fsf.org/
+
+Everyone is permitted to copy and distribute verbatim copies
+of this license document, but changing it is not allowed.
+PREAMBLE
+The purpose of this License is to make a manual, textbook, or other functional and useful document free in the sense of freedom: to assure everyone the effective freedom to copy and redistribute it, with or without modifying it, either commercially or noncommercially. Secondarily, this License preserves for the author and publisher a way to get credit for their work, while not being considered responsible for modifications made by others.
+
+This License is a kind of “copyleft”, which means that derivative works of the document must themselves be free in the same sense. It complements the GNU General Public License, which is a copyleft license designed for free software.
+
+We have designed this License in order to use it for manuals for free software, because free software needs free documentation: a free program should come with manuals providing the same freedoms that the software does. But this License is not limited to software manuals; it can be used for any textual work, regardless of subject matter or whether it is published as a printed book. We recommend this License principally for works whose purpose is instruction or reference.
+
+APPLICABILITY AND DEFINITIONS
+This License applies to any manual or other work, in any medium, that contains a notice placed by the copyright holder saying it can be distributed under the terms of this License. Such a notice grants a world-wide, royalty-free license, unlimited in duration, to use that work under the conditions stated herein. The “Document”, below, refers to any such manual or work. Any member of the public is a licensee, and is addressed as “you”. You accept the license if you copy, modify or distribute the work in a way requiring permission under copyright law.
+
+A “Modified Version” of the Document means any work containing the Document or a portion of it, either copied verbatim, or with modifications and/or translated into another language.
+
+A “Secondary Section” is a named appendix or a front-matter section of the Document that deals exclusively with the relationship of the publishers or authors of the Document to the Document’s overall subject (or to related matters) and contains nothing that could fall directly within that overall subject. (Thus, if the Document is in part a textbook of mathematics, a Secondary Section may not explain any mathematics.) The relationship could be a matter of historical connection with the subject or with related matters, or of legal, commercial, philosophical, ethical or political position regarding them.
+
+The “Invariant Sections” are certain Secondary Sections whose titles are designated, as being those of Invariant Sections, in the notice that says that the Document is released under this License. If a section does not fit the above definition of Secondary then it is not allowed to be designated as Invariant. The Document may contain zero Invariant Sections. If the Document does not identify any Invariant Sections then there are none.
+
+The “Cover Texts” are certain short passages of text that are listed, as Front-Cover Texts or Back-Cover Texts, in the notice that says that the Document is released under this License. A Front-Cover Text may be at most 5 words, and a Back-Cover Text may be at most 25 words.
+
+A “Transparent” copy of the Document means a machine-readable copy, represented in a format whose specification is available to the general public, that is suitable for revising the document straightforwardly with generic text editors or (for images composed of pixels) generic paint programs or (for drawings) some widely available drawing editor, and that is suitable for input to text formatters or for automatic translation to a variety of formats suitable for input to text formatters. A copy made in an otherwise Transparent file format whose markup, or absence of markup, has been arranged to thwart or discourage subsequent modification by readers is not Transparent. An image format is not Transparent if used for any substantial amount of text. A copy that is not “Transparent” is called “Opaque”.
+
+Examples of suitable formats for Transparent copies include plain ASCII without markup, Texinfo input format, LaTeX input format, SGML or XML using a publicly available DTD, and standard-conforming simple HTML, PostScript or PDF designed for human modification. Examples of transparent image formats include PNG, XCF and JPG. Opaque formats include proprietary formats that can be read and edited only by proprietary word processors, SGML or XML for which the DTD and/or processing tools are not generally available, and the machine-generated HTML, PostScript or PDF produced by some word processors for output purposes only.
+
+The “Title Page” means, for a printed book, the title page itself, plus such following pages as are needed to hold, legibly, the material this License requires to appear in the title page. For works in formats which do not have any title page as such, “Title Page” means the text near the most prominent appearance of the work’s title, preceding the beginning of the body of the text.
+
+The “publisher” means any person or entity that distributes copies of the Document to the public.
+
+A section “Entitled XYZ” means a named subunit of the Document whose title either is precisely XYZ or contains XYZ in parentheses following text that translates XYZ in another language. (Here XYZ stands for a specific section name mentioned below, such as “Acknowledgements”, “Dedications”, “Endorsements”, or “History”.) To “Preserve the Title” of such a section when you modify the Document means that it remains a section “Entitled XYZ” according to this definition.
+
+The Document may include Warranty Disclaimers next to the notice which states that this License applies to the Document. These Warranty Disclaimers are considered to be included by reference in this License, but only as regards disclaiming warranties: any other implication that these Warranty Disclaimers may have is void and has no effect on the meaning of this License.
+
+VERBATIM COPYING
+You may copy and distribute the Document in any medium, either commercially or noncommercially, provided that this License, the copyright notices, and the license notice saying this License applies to the Document are reproduced in all copies, and that you add no other conditions whatsoever to those of this License. You may not use technical measures to obstruct or control the reading or further copying of the copies you make or distribute. However, you may accept compensation in exchange for copies. If you distribute a large enough number of copies you must also follow the conditions in section 3.
+
+You may also lend copies, under the same conditions stated above, and you may publicly display copies.
+
+COPYING IN QUANTITY
+If you publish printed copies (or copies in media that commonly have printed covers) of the Document, numbering more than 100, and the Document’s license notice requires Cover Texts, you must enclose the copies in covers that carry, clearly and legibly, all these Cover Texts: Front-Cover Texts on the front cover, and Back-Cover Texts on the back cover. Both covers must also clearly and legibly identify you as the publisher of these copies. The front cover must present the full title with all words of the title equally prominent and visible. You may add other material on the covers in addition. Copying with changes limited to the covers, as long as they preserve the title of the Document and satisfy these conditions, can be treated as verbatim copying in other respects.
+
+If the required texts for either cover are too voluminous to fit legibly, you should put the first ones listed (as many as fit reasonably) on the actual cover, and continue the rest onto adjacent pages.
+
+If you publish or distribute Opaque copies of the Document numbering more than 100, you must either include a machine-readable Transparent copy along with each Opaque copy, or state in or with each Opaque copy a computer-network location from which the general network-using public has access to download using public-standard network protocols a complete Transparent copy of the Document, free of added material. If you use the latter option, you must take reasonably prudent steps, when you begin distribution of Opaque copies in quantity, to ensure that this Transparent copy will remain thus accessible at the stated location until at least one year after the last time you distribute an Opaque copy (directly or through your agents or retailers) of that edition to the public.
+
+It is requested, but not required, that you contact the authors of the Document well before redistributing any large number of copies, to give them a chance to provide you with an updated version of the Document.
+
+MODIFICATIONS
+You may copy and distribute a Modified Version of the Document under the conditions of sections 2 and 3 above, provided that you release the Modified Version under precisely this License, with the Modified Version filling the role of the Document, thus licensing distribution and modification of the Modified Version to whoever possesses a copy of it. In addition, you must do these things in the Modified Version:
+
+Use in the Title Page (and on the covers, if any) a title distinct from that of the Document, and from those of previous versions (which should, if there were any, be listed in the History section of the Document). You may use the same title as a previous version if the original publisher of that version gives permission.
+List on the Title Page, as authors, one or more persons or entities responsible for authorship of the modifications in the Modified Version, together with at least five of the principal authors of the Document (all of its principal authors, if it has fewer than five), unless they release you from this requirement.
+State on the Title page the name of the publisher of the Modified Version, as the publisher.
+Preserve all the copyright notices of the Document.
+Add an appropriate copyright notice for your modifications adjacent to the other copyright notices.
+Include, immediately after the copyright notices, a license notice giving the public permission to use the Modified Version under the terms of this License, in the form shown in the Addendum below.
+Preserve in that license notice the full lists of Invariant Sections and required Cover Texts given in the Document’s license notice.
+Include an unaltered copy of this License.
+Preserve the section Entitled “History”, Preserve its Title, and add to it an item stating at least the title, year, new authors, and publisher of the Modified Version as given on the Title Page. If there is no section Entitled “History” in the Document, create one stating the title, year, authors, and publisher of the Document as given on its Title Page, then add an item describing the Modified Version as stated in the previous sentence.
+Preserve the network location, if any, given in the Document for public access to a Transparent copy of the Document, and likewise the network locations given in the Document for previous versions it was based on. These may be placed in the “History” section. You may omit a network location for a work that was published at least four years before the Document itself, or if the original publisher of the version it refers to gives permission.
+For any section Entitled “Acknowledgements” or “Dedications”, Preserve the Title of the section, and preserve in the section all the substance and tone of each of the contributor acknowledgements and/or dedications given therein.
+Preserve all the Invariant Sections of the Document, unaltered in their text and in their titles. Section numbers or the equivalent are not considered part of the section titles.
+Delete any section Entitled “Endorsements”. Such a section may not be included in the Modified Version.
+Do not retitle any existing section to be Entitled “Endorsements” or to conflict in title with any Invariant Section.
+Preserve any Warranty Disclaimers.
+If the Modified Version includes new front-matter sections or appendices that qualify as Secondary Sections and contain no material copied from the Document, you may at your option designate some or all of these sections as invariant. To do this, add their titles to the list of Invariant Sections in the Modified Version’s license notice. These titles must be distinct from any other section titles.
+
+You may add a section Entitled “Endorsements”, provided it contains nothing but endorsements of your Modified Version by various parties—for example, statements of peer review or that the text has been approved by an organization as the authoritative definition of a standard.
+
+You may add a passage of up to five words as a Front-Cover Text, and a passage of up to 25 words as a Back-Cover Text, to the end of the list of Cover Texts in the Modified Version. Only one passage of Front-Cover Text and one of Back-Cover Text may be added by (or through arrangements made by) any one entity. If the Document already includes a cover text for the same cover, previously added by you or by arrangement made by the same entity you are acting on behalf of, you may not add another; but you may replace the old one, on explicit permission from the previous publisher that added the old one.
+
+The author(s) and publisher(s) of the Document do not by this License give permission to use their names for publicity for or to assert or imply endorsement of any Modified Version.
+
+COMBINING DOCUMENTS
+You may combine the Document with other documents released under this License, under the terms defined in section 4 above for modified versions, provided that you include in the combination all of the Invariant Sections of all of the original documents, unmodified, and list them all as Invariant Sections of your combined work in its license notice, and that you preserve all their Warranty Disclaimers.
+
+The combined work need only contain one copy of this License, and multiple identical Invariant Sections may be replaced with a single copy. If there are multiple Invariant Sections with the same name but different contents, make the title of each such section unique by adding at the end of it, in parentheses, the name of the original author or publisher of that section if known, or else a unique number. Make the same adjustment to the section titles in the list of Invariant Sections in the license notice of the combined work.
+
+In the combination, you must combine any sections Entitled “History” in the various original documents, forming one section Entitled “History”; likewise combine any sections Entitled “Acknowledgements”, and any sections Entitled “Dedications”. You must delete all sections Entitled “Endorsements.”
+
+COLLECTIONS OF DOCUMENTS
+You may make a collection consisting of the Document and other documents released under this License, and replace the individual copies of this License in the various documents with a single copy that is included in the collection, provided that you follow the rules of this License for verbatim copying of each of the documents in all other respects.
+
+You may extract a single document from such a collection, and distribute it individually under this License, provided you insert a copy of this License into the extracted document, and follow this License in all other respects regarding verbatim copying of that document.
+
+AGGREGATION WITH INDEPENDENT WORKS
+A compilation of the Document or its derivatives with other separate and independent documents or works, in or on a volume of a storage or distribution medium, is called an “aggregate” if the copyright resulting from the compilation is not used to limit the legal rights of the compilation’s users beyond what the individual works permit. When the Document is included in an aggregate, this License does not apply to the other works in the aggregate which are not themselves derivative works of the Document.
+
+If the Cover Text requirement of section 3 is applicable to these copies of the Document, then if the Document is less than one half of the entire aggregate, the Document’s Cover Texts may be placed on covers that bracket the Document within the aggregate, or the electronic equivalent of covers if the Document is in electronic form. Otherwise they must appear on printed covers that bracket the whole aggregate.
+
+TRANSLATION
+Translation is considered a kind of modification, so you may distribute translations of the Document under the terms of section 4. Replacing Invariant Sections with translations requires special permission from their copyright holders, but you may include translations of some or all Invariant Sections in addition to the original versions of these Invariant Sections. You may include a translation of this License, and all the license notices in the Document, and any Warranty Disclaimers, provided that you also include the original English version of this License and the original versions of those notices and disclaimers. In case of a disagreement between the translation and the original version of this License or a notice or disclaimer, the original version will prevail.
+
+If a section in the Document is Entitled “Acknowledgements”, “Dedications”, or “History”, the requirement (section 4) to Preserve its Title (section 1) will typically require changing the actual title.
+
+TERMINATION
+You may not copy, modify, sublicense, or distribute the Document except as expressly provided under this License. Any attempt otherwise to copy, modify, sublicense, or distribute it is void, and will automatically terminate your rights under this License.
+
+However, if you cease all violation of this License, then your license from a particular copyright holder is reinstated (a) provisionally, unless and until the copyright holder explicitly and finally terminates your license, and (b) permanently, if the copyright holder fails to notify you of the violation by some reasonable means prior to 60 days after the cessation.
+
+Moreover, your license from a particular copyright holder is reinstated permanently if the copyright holder notifies you of the violation by some reasonable means, this is the first time you have received notice of violation of this License (for any work) from that copyright holder, and you cure the violation prior to 30 days after your receipt of the notice.
+
+Termination of your rights under this section does not terminate the licenses of parties who have received copies or rights from you under this License. If your rights have been terminated and not permanently reinstated, receipt of a copy of some or all of the same material does not give you any rights to use it.
+
+FUTURE REVISIONS OF THIS LICENSE
+The Free Software Foundation may publish new, revised versions of the GNU Free Documentation License from time to time. Such new versions will be similar in spirit to the present version, but may differ in detail to address new problems or concerns. See http://www.gnu.org/copyleft/.
+
+Each version of the License is given a distinguishing version number. If the Document specifies that a particular numbered version of this License “or any later version” applies to it, you have the option of following the terms and conditions either of that specified version or of any later version that has been published (not as a draft) by the Free Software Foundation. If the Document does not specify a version number of this License, you may choose any version ever published (not as a draft) by the Free Software Foundation. If the Document specifies that a proxy can decide which future versions of this License can be used, that proxy’s public statement of acceptance of a version permanently authorizes you to choose that version for the Document.
+
+RELICENSING
+“Massive Multiauthor Collaboration Site” (or “MMC Site”) means any World Wide Web server that publishes copyrightable works and also provides prominent facilities for anybody to edit those works. A public wiki that anybody can edit is an example of such a server. A “Massive Multiauthor Collaboration” (or “MMC”) contained in the site means any set of copyrightable works thus published on the MMC site.
+
+“CC-BY-SA” means the Creative Commons Attribution-Share Alike 3.0 license published by Creative Commons Corporation, a not-for-profit corporation with a principal place of business in San Francisco, California, as well as future copyleft versions of that license published by that same organization.
+
+“Incorporate” means to publish or republish a Document, in whole or in part, as part of another Document.
+
+An MMC is “eligible for relicensing” if it is licensed under this License, and if all works that were first published under this License somewhere other than this MMC, and subsequently incorporated in whole or in part into the MMC, (1) had no cover texts or invariant sections, and (2) were thus incorporated prior to November 1, 2008.
+
+The operator of an MMC Site may republish an MMC contained in the site under CC-BY-SA on the same site at any time before August 1, 2009, provided the MMC is eligible for relicensing.
+
+ADDENDUM: How to use this License for your documents
+
+To use this License in a document you have written, include a copy of the License in the document and put the following copyright and license notices just after the title page:
+
+Copyright (C)  year  your name.
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
+Texts.  A copy of the license is included in the section entitled ``GNU
+Free Documentation License''.
+If you have Invariant Sections, Front-Cover Texts and Back-Cover Texts, replace the “with…Texts.” line with this:
+
+with the Invariant Sections being list their titles, with
+the Front-Cover Texts being list, and with the Back-Cover Texts
+being list.
+If you have Invariant Sections without Cover Texts, or some other combination of the three, merge those two alternatives to suit the situation.
+
+If your document contains nontrivial examples of program code, we recommend releasing these examples in parallel under your choice of free software license, such as the GNU General Public License, to permit their use in free software.
