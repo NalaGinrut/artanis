@@ -214,8 +214,17 @@ modules: $(MOD_OBJ)/version.go $(mod-ofile)
 test: modules
 	$(V)for t in $(test-cases); do GUILE_AUTO_COMPILE=0 $(GUILE) -L $(SRC) -L $(TEST_SUITE) -C $(OBJ) $$t; done
 
+# We need ox-pandoc to generate the manual, which is easier to configure than org-mode
 docs: $(TEXI_SRC)
 	$(V)emacs docs/manual.org --batch -f org-html-export-to-html --kill
+	$(V)pandoc --wrap=none -f org -t texinfo docs/manual.org -o docs/artanis.texi
+	$(V)$(BUILD_AUX)/fix-texi.sh
+# append $(SRC)/.texi-head to the beginning of the texi file
+	$(V)cat $(SRC)/.texi-head docs/artanis.texi > docs/artanis.texi.tmp
+# append $(SRC)/.texi-tail to the end of the texi file
+	$(V)cat docs/artanis.texi.tmp $(SRC)/.texi-tail > docs/artanis.texi
+# remove @anchor in the texi file
+#$(V)sed -i 's/@anchor{[^}]*}//g' docs/artanis.texi
 	$(CHK_TEXINFO)
 	GENDOCS_TEMPLATE_DIR=$(BUILD_AUX) $(GENDOCS) --email bug-artanis@gnu.org -s $< -o $(MANUALS) "GNU Artanis Manual" --html --no-headers
 	-rm -f ./*.{cp,ky,tp,aux,fn,log,pg,toc,vr}

@@ -1,0 +1,21 @@
+\input texinfo    @c -*- texinfo -*-
+@c %**start of header
+@setfilename artanis.texi
+@settitle GNU Artanis web-framework Manual
+@documentencoding UTF-8
+@documentlanguage en
+@syncodeindex pg cp
+@c %**end of header
+
+@finalout
+@titlepage
+@title GNU Artanis
+@author Mu Lei known as NalaGinrut
+@end titlepage
+
+@contents
+
+@ifnottex
+@node Top
+@top GNU Artanis web-framework Manual
+@end ifnottex

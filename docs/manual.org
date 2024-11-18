@@ -1206,7 +1206,7 @@ Templating in GNU Artanis looks very similar to Rails.
 
 The Rails code:
 
-#+begin_src python
+#+begin_src ruby
 <% if( @fullscreen == 1 ) %>
 <%= "<div class='full'><p>...</p></div>" %>
 <% end %>
@@ -1901,6 +1901,7 @@ curl --head localhost:3000/cookie
 # and
 curl --head localhost:3000/cookie/120
 #+end_src
+
 * Authentication
 ** Init Authentication
 GNU Artanis provides flexible mechanism for authentication.
@@ -2255,7 +2256,7 @@ the next version if you wish to use it.
   + /name/ should be an object of the symbol type.
   + /sql-template/ is described in more detail in [[SQL Mapping (experimental)][SQL-Mapping]].
 
-** Authentication
+** Authentication shortcut
 See [[Authentication][Authentication]].
 * Websocket (Experimental)
 ** Websocket introduction
@@ -2500,7 +2501,7 @@ the receiving endpoint's WebSocket connection will fail.
 ** Websocket authentication
 The Websocket authentication hasn't been unsupported yet.
 * Ragnarok server core
-** Introduction
+** Ragnarok introduction
 Since version 0.2, GNU Artanis has started to use a strong server core for high concurrency.
 Its name is Ragnarok.
 In the philosophy of the design of GNU Artanis, everything is meant to be flexible and customizable.
