@@ -66,3 +66,7 @@ etc/artanis/artanis.conf
 typescript
 .gitconfig
 *.patch
+*.bz2
+*.bz2.sig
+*.gz
+*.gz.sig
