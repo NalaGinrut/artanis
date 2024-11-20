@@ -190,3 +190,19 @@ Changes in 0.6
 - Add (artanis client)
 - Fix many bugs in DB operations
 - Fix cookie expires
+
+Change in 1.0.0
+* Notable changes
+- Drop integrated guile-json, guile-redis
+- Fix js loading with manifest
+- Add #:unsigned to exception list for PostgreSQL and SQLite3
+- Add DELETE/PUT to (artanis client)
+- Move route cache .route to tmp dir (for Guix)
+- Fix generate-kv-from-post-qstr
+- Solve global access elegantly with parameter
+- Fix to use new string hash API with nss
+- Fix tmp directory auto-regeneration (for Guix)
+- Fix epoll issue on Aarch64
+- Fix fatal bug in session
+- Update manual for Models
+- Update THANKS

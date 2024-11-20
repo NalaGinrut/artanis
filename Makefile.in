@@ -6,7 +6,7 @@ GUILD := @GUILD@
 VERSION := @PACKAGE_VERSION@
 SHELL := /bin/bash
 RELEASE_TYPE := stable
-PREV_VER := 0.5.1
+PREV_VER := 0.6.0
 GPG_KEY := F53B4C5695B5E4D56093432484696772846A0058
 BOOT_TOOLS := autoconf,guile
 URL_DIR := "http://ftp.gnu.org/gnu/artanis/"
@@ -215,7 +215,7 @@ test: modules
 	$(V)for t in $(test-cases); do GUILE_AUTO_COMPILE=0 $(GUILE) -L $(SRC) -L $(TEST_SUITE) -C $(OBJ) $$t; done
 
 # We need ox-pandoc to generate the manual, which is easier to configure than org-mode
-docs: $(TEXI_SRC)
+docs: 
 	$(V)emacs docs/manual.org --batch -f org-html-export-to-html --kill
 	$(V)pandoc --wrap=none -f org -t texinfo docs/manual.org -o docs/artanis.texi
 	$(V)$(BUILD_AUX)/fix-texi.sh
@@ -226,7 +226,7 @@ docs: $(TEXI_SRC)
 # remove @anchor in the texi file
 #$(V)sed -i 's/@anchor{[^}]*}//g' docs/artanis.texi
 	$(CHK_TEXINFO)
-	GENDOCS_TEMPLATE_DIR=$(BUILD_AUX) $(GENDOCS) --email bug-artanis@gnu.org -s $< -o $(MANUALS) "GNU Artanis Manual" --html --no-headers
+	GENDOCS_TEMPLATE_DIR=$(BUILD_AUX) $(GENDOCS) --email bug-artanis@gnu.org -s $(TEXI_SRC) -o $(MANUALS) "GNU Artanis Manual" --html --no-headers
 	-rm -f ./*.{cp,ky,tp,aux,fn,log,pg,toc,vr}
 
 script:

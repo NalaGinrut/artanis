@@ -27,4 +27,8 @@ Thanks these guys who gave me help:
   Fix wording in security warning.
 * Yarl Baudig <yarl-baudig@mailoo.org>
   Fix epoll issue on Aarch64
-
+* Mortimer Cladwell <mbcladwell@gmail.com>
+  Fix manual
+* Yarl Baudig <yarl-baudig@mailoo.org>
+  Fix epoll issue on Aarch64.
+  Thanks for the long time tracing and fixed finally!
