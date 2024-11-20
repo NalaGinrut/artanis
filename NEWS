@@ -191,7 +191,7 @@ Changes in 0.6
 - Fix many bugs in DB operations
 - Fix cookie expires
 
-Change in 1.0.0
+Changes in 1.0.0
 * Notable changes
 - Drop integrated guile-json, guile-redis
 - Fix js loading with manifest
