@@ -41,11 +41,11 @@
              #:use-module (artanis utils))
            (define-syntax #,(datum->syntax x 'api-define)
              (syntax-rules ::: ()
-                           ((_ method rest rest* :::)
-                            (hash-set!
-                             (@ (artanis env) *controllers-table*)
-                             (format #f "/~a/~a" 'version 'method)
-                             (draw-expander rest rest* :::))))))))))
+               ((_ method rest rest* :::)
+                (hash-set!
+                 (@ (artanis env) *controllers-table*)
+                 (format #f "/api/~a/~a" 'version 'method)
+                 (draw-expander rest rest* :::))))))))))
 
 (define-syntax-rule (scan-restful-api)
   (scan-app-components 'api))
@@ -64,11 +64,11 @@
 
 (define (gen-restful-api-header version)
   (call-with-output-string
-    (lambda (port)
-      (format port ";; RESTful API ~a definition of ~a~%" version (current-appname))
-      (display ";; Please add your license header here.\n" port)
-      (display ";; This file is generated automatically by GNU Artanis.\n" port)
-      (format port "(define-restful-api ~a) ; DO NOT REMOVE THIS LINE!!!~%~%" version))))
+   (lambda (port)
+     (format port ";; RESTful API ~a definition of ~a~%" version (current-appname))
+     (display ";; Please add your license header here.\n" port)
+     (display ";; This file is generated automatically by GNU Artanis.\n" port)
+     (format port "(define-restful-api ~a) ; DO NOT REMOVE THIS LINE!!!~%~%" version))))
 
 (define (do-restful-api-create version port)
   (format (artanis-current-output) "create ~10t app/api/~a.scm~%"
