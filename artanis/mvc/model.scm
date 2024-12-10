@@ -92,30 +92,38 @@
       ;; We don't check the type here, deley to let FPRM check it.
       (((i f) . _) (list i f))
       (else '())))
-  (case name
-    ;; Auto index field
-    ((auto) (list 'serial (opts-add '(#:no-edit #:not-null #:primary-key) opts)))
-    ((tiny-integer) `(tinyint ,@(get-diswidth opts)))
-    ((small-integer) `(smallint ,@(get-diswidth opts)))
-    ;; 64 long integer
-    ((big-integer) (list 'integer 64 opts))
-    ;; NOTE: No, we may not going to provide fix-sized binary field, in Django,
-    ;;       BinaryField could be used to store data which is upto 4GB into DB.
-    ;;       It is a bad design to store binary BLOB directly IMO.
-    ;; Raw binary data
-    ;; ((binary) (list 'longblob opts)) ; longblob for mysql
-    ;; NOTE: Unlimited sized plain text field is still acceptable.
-    ;;       It's OK if you convert blob into base64 string to text field.
-    ;;       But remember that you pay what you choose.
-    ((text) (list (db-specific-type 'text) opts))
-    ((boolean) (list (db-specific-type 'boolean) opts))
-    ;; Integer part is the total number of digits.
-    ;; Fractional part is the number of digits following the decimal point.
-    ((float) `(float ,@(get-integer-fractional-part opts)))
-    ((double) `(double ,@(get-integer-fractional-part opts)))
-    ((char-field) `(varchar ,@(get-maxlen opts)))
-    ((date-field) (apply date-field-handler name opts))
-    (else `(,name ,opts))))
+  (let ((dbd (get-conf '(db dbd))))
+    (case name
+      ;; Auto index field
+      ((auto)
+       (match dbd
+         ((or 'mysql 'postgresql)
+          (list 'serial (opts-add '(#:no-edit #:not-null #:primary-key) opts)))
+         ('sqlite3
+          (list 'integer (opts-add '(#:no-edit #:not-null #:primary-key #:auto-increment) opts)))
+         (else (throw 'artanis-err 500 general-field-handler
+                      "Unsupported DBD `~a' for auto field!" dbd))))
+      ((tiny-integer) `(tinyint ,@(get-diswidth opts)))
+      ((small-integer) `(smallint ,@(get-diswidth opts)))
+      ;; 64 long integer
+      ((big-integer) (list 'integer 64 opts))
+      ;; NOTE: No, we may not going to provide fix-sized binary field, in Django,
+      ;;       BinaryField could be used to store data which is upto 4GB into DB.
+      ;;       It is a bad design to store binary BLOB directly IMO.
+      ;; Raw binary data
+      ;; ((binary) (list 'longblob opts)) ; longblob for mysql
+      ;; NOTE: Unlimited sized plain text field is still acceptable.
+      ;;       It's OK if you convert blob into base64 string to text field.
+      ;;       But remember that you pay what you choose.
+      ((text) (list (db-specific-type 'text) opts))
+      ((boolean) (list (db-specific-type 'boolean) opts))
+      ;; Integer part is the total number of digits.
+      ;; Fractional part is the number of digits following the decimal point.
+      ((float) `(float ,@(get-integer-fractional-part opts)))
+      ((double) `(double ,@(get-integer-fractional-part opts)))
+      ((char-field) `(varchar ,@(get-maxlen opts)))
+      ((date-field) (apply date-field-handler name opts))
+      (else `(,name ,opts)))))
 
 (define (date-field-handler now . opts)
   (let ((new-opts
@@ -133,8 +141,8 @@
 (define (fixed-date-field-val cmd meta k)
   (define (gen-local-date-str)
     (call-with-output-string
-      (lambda (port)
-        (write-date (get-local-time) port))))
+     (lambda (port)
+       (write-date (get-local-time) port))))
   (let ((info (hashq-ref meta k)))
     (cond
      ((opts-ref (cddr info) #:auto-now #t)
@@ -319,11 +327,11 @@
 
 (define (gen-model-header name)
   (call-with-output-string
-    (lambda (port)
-      (format port ";; Model ~a definition of ~a~%" name (current-appname))
-      (display ";; Please add your license header here.\n" port)
-      (display ";; This file is generated automatically by GNU Artanis.\n" port)
-      (format port "(create-artanis-model ~a) ; DO NOT REMOVE THIS LINE!!!~%~%" name))))
+   (lambda (port)
+     (format port ";; Model ~a definition of ~a~%" name (current-appname))
+     (display ";; Please add your license header here.\n" port)
+     (display ";; This file is generated automatically by GNU Artanis.\n" port)
+     (format port "(create-artanis-model ~a) ; DO NOT REMOVE THIS LINE!!!~%~%" name))))
 
 ;; NOTE: Whole list of types:
 ;;       integer
