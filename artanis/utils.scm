@@ -99,7 +99,8 @@
             is-guile-compatible-server-core? positive-integer? negative-integer?
             io-exception:peer-is-shutdown? io-exception:out-of-memory?
             out-of-system-resources? allow-long-live-connection?
-            free-JS-announcement gen-cache-file current-route-cache)
+            free-JS-announcement gen-cache-file current-route-cache
+            call-with-new-process)
   #:re-export (the-environment
                utf8->string
                bytevector?
@@ -1610,3 +1611,11 @@
     (if (string-null? p)
         (format #f "~a/cache/index.html" (current-tmp))
         (format #f "~a/cache/~a.html" (current-tmp) (-> path)))))
+
+(define (call-with-new-process thunk)
+  (let ((i (primitive-fork)))
+    (cond
+     ((< i 0)
+      (error call-with-new-process
+             "Fork error!" i))
+     ((= i 0) (thunk)))))
