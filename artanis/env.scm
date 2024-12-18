@@ -165,9 +165,9 @@
 
 (define (current-appname) (and=> (current-toplevel) basename))
 
-(define *session-backend* #f)
-(define (change-session-backend! x) (set! *session-backend* x))
-(define (current-session-backend) *session-backend*)
+(define *session-backend* (make-parameter #f))
+(define (change-session-backend! x) (*session-backend* x))
+(define (current-session-backend) (*session-backend*))
 
 (define *proto-table* (make-hash-table))
 
