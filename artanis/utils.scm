@@ -34,6 +34,7 @@
   #:use-module (ice-9 receive)
   #:use-module (ice-9 q)
   #:use-module (ice-9 control)
+  #:use-module (ice-9 threads)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-19)
   #:use-module (web http)
@@ -99,8 +100,7 @@
             is-guile-compatible-server-core? positive-integer? negative-integer?
             io-exception:peer-is-shutdown? io-exception:out-of-memory?
             out-of-system-resources? allow-long-live-connection?
-            free-JS-announcement gen-cache-file current-route-cache
-            call-with-new-process)
+            free-JS-announcement gen-cache-file current-route-cache)
   #:re-export (the-environment
                utf8->string
                bytevector?
@@ -1083,23 +1083,26 @@
   (if (not (provided? 'posix))
       (lambda (thunk handler-thunk) (thunk))
       (lambda (thunk handler-thunk)
-        (let ((handler #f))
+        (let ((handler (make-parameter #f)))
           (catch 'interrupt
             (lambda ()
               (dynamic-wind
                   (lambda ()
-                    (set! handler
-                          (sigaction SIGINT (lambda (sig)
-                                              (run-when-sigint-hook)
-                                              (throw 'interrupt)))))
+                    (handler (sigaction SIGINT))
+                    (sigaction SIGINT (lambda (sigtmp)
+                                        (run-when-sigint-hook)
+                                        (throw 'interrupt))))
                   thunk
                   (lambda ()
-                    (if handler
+                    (if (handler)
                         ;; restore Scheme handler, SIG_IGN or SIG_DFL.
-                        (sigaction SIGINT (car handler) (cdr handler))
+                        (sigaction SIGINT (car (handler)) (cdr (handler)))
                         ;; restore original C handler.
                         (sigaction SIGINT #f)))))
-            (lambda (k . _) (handler-thunk)))))))
+            (lambda (k . _)
+              (handler-thunk)
+              ((car (handler)) SIGINT)
+              (primitive-exit 0)))))))
 
 (define-syntax-rule (define-box-type name)
   (define-record-type name (fields treasure)))
@@ -1345,21 +1348,22 @@
 ;; ENHANCE: use colored output
 (define* (artanis-log blame-who? status mime #:key (port (current-error-port))
                       (request #f))
-  (case blame-who?
-    ((client)
-     (when (not request)
-       (error "artanis-log: Fatal bug! Request shouldn't be #f here!~%"))
-     (let* ((uri (request-uri request))
-            (path (uri-path uri))
-            (qstr (uri-query uri))
-            (method (request-method request)))
-       (format port "[Remote] ~a @ ~a~%" (remote-info request) (local-time-stamp))
-       (format port "[Request] method: ~a, path: ~a, query: ~a~%" method path qstr)
-       (format port "[Response] status: ~a, MIME: ~a~%~%" status mime)))
-    ((server)
-     (format port "[Server] ~a @ ~a~%" (get-conf '(host addr)) (local-time-stamp))
-     (format port "[Response] status: ~a, MIME: ~a~%~%" status mime))
-    (else (error "artanis-log: Fatal BUG here!"))))
+  (monitor
+   (case blame-who?
+     ((client)
+      (when (not request)
+        (error "artanis-log: Fatal bug! Request shouldn't be #f here!~%"))
+      (let* ((uri (request-uri request))
+             (path (uri-path uri))
+             (qstr (uri-query uri))
+             (method (request-method request)))
+        (format port "[Remote] ~a @ ~a~%" (remote-info request) (local-time-stamp))
+        (format port "[Request] method: ~a, path: ~a, query: ~a~%" method path qstr)
+        (format port "[Response] status: ~a, MIME: ~a~%~%" status mime)))
+     ((server)
+      (format port "[Server] ~a @ ~a~%" (get-conf '(host addr)) (local-time-stamp))
+      (format port "[Response] status: ~a, MIME: ~a~%~%" status mime))
+     (else (error "artanis-log: Fatal BUG here!")))))
 
 (define *guile-compatible-server-core*
   '(guile fibers))
@@ -1611,11 +1615,3 @@
     (if (string-null? p)
         (format #f "~a/cache/index.html" (current-tmp))
         (format #f "~a/cache/~a.html" (current-tmp) (-> path)))))
-
-(define (call-with-new-process thunk)
-  (let ((i (primitive-fork)))
-    (cond
-     ((< i 0)
-      (error call-with-new-process
-             "Fork error!" i))
-     ((= i 0) (thunk)))))

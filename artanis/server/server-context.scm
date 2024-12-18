@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016,2017,2018
+;;  Copyright (C) 2016-2024
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -257,10 +257,14 @@
 (::define (client-sockport-descriptor c)
   (:anno: (ragnarok-client) -> int)
   (let ((port (client-sockport c)))
-    (when (port-closed? port)
-      (throw 'artanis-err 410 client-sockport-descriptor
-             "The client was closed suddenly!"))
-    (port->fdes port)))
+    (cond
+     ((port-closed? port)
+      (cond
+       ((preparing-quit?) #f)
+       (else
+        (throw 'artanis-err 410 client-sockport-descriptor
+               "The client was closed suddenly!"))))
+     (else (port->fdes port)))))
 
 (::define (client-details c)
   (:anno: (ragnarok-client) -> vector)

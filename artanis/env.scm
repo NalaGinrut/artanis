@@ -76,7 +76,9 @@
             get-syspage-handler
             register-cache-handler!
             has-cache-handler?
-            is-init-server-run?))
+            is-init-server-run?
+            workers-pool
+            preparing-quit?))
 
 ;; WARNING:
 ;; For concurrency in green-thread, all these stuffs should be immutable
@@ -165,9 +167,8 @@
 
 (define (current-appname) (and=> (current-toplevel) basename))
 
-(define *session-backend* (make-parameter #f))
-(define (change-session-backend! x) (*session-backend* x))
-(define (current-session-backend) (*session-backend*))
+(define current-session-backend (make-parameter #f))
+(define (change-session-backend! x) (current-session-backend x))
 
 (define *proto-table* (make-hash-table))
 
@@ -267,3 +268,7 @@
 ;; NOTE: We solve global access properly with parameters
 ;; https://lists.gnu.org/archive/html/guile-user/2024-09/msg00043.html
 (define is-init-server-run? (make-parameter #f))
+
+(define workers-pool (make-parameter '()))
+
+(define preparing-quit? (make-parameter #f))

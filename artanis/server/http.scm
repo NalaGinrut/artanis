@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016,2017,2018,2019
+;;  Copyright (C) 2016-2024
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -47,35 +47,42 @@
    (else #f)))
 
 (define (clean-current-conn-fd server client peer-shutdown?)
-  (let ((conn (client-sockport client))
-        (conn-fd (client-sockport-descriptor client))
-        (epfd (ragnarok-server-epfd server)))
-    (DEBUG "Clean connected fd ~a~%" conn-fd)
-    ;; NOTE:
-    ;; In kernel versions before 2.6.9, the EPOLL_CTL_DEL operation required a
-    ;; non-null pointer in event, even though this argument is ignored. Since
-    ;; Linux 2.6.9, event can be specified as NULL when using EPOLL_CTL_DEL.
-    ;; Applications that need to be portable to kernels before 2.6.9 should
-    ;; specify a non-null pointer in event.
-    ;; So, Artanis isn't compatible with Linux 2.6.9 and before.
-    (epoll-ctl epfd EPOLL_CTL_DEL conn-fd #f) ; #f means %null-pointer here
-    ;; Close the connection gracefully
-    ;; NOTE: `shutdown' is preferred here to stop receiving data.
-    ;;       Then try to send all the rest data.
-    ;; NOTE: We can't just close it here, if we do so, then we've lost the information
-    ;;       to get fd from port which is the key to remove task from work-table.
-    (when (not peer-shutdown?)
-      (DEBUG "Peer is not shutdown, let me close it for an end~%")
-      (catch #t
-        (lambda ()
-          (shutdown conn 0) ; Stop receiving data
-          (DEBUG "Shutdown ~a successfully~%" conn)
-          (force-output conn)
-          (clean-mmapped-file conn-fd)
-          (DEBUG "Force-output ~a successfully~%" conn))
-        list))
-    ;; I don't care if the connection is still alive anymore, so ignore errors.
-    (DEBUG "Close connection ~a from ~a.~%" (client-sockport client) (client-ip client))))
+  (let ((conn-fd (if (eq? client 'init-now-client)
+                     #f
+                     (client-sockport-descriptor client))))
+    (cond
+     ((and (not conn-fd) (preparing-quit?))
+      (DEBUG "The socket had closed however we're preparing close!")
+      #f)
+     (else
+      (let ((conn (client-sockport client))
+            (epfd (ragnarok-server-epfd server)))
+        (DEBUG "Clean connected fd ~a~%" conn-fd)
+        ;; NOTE:
+        ;; In kernel versions before 2.6.9, the EPOLL_CTL_DEL operation required a
+        ;; non-null pointer in event, even though this argument is ignored. Since
+        ;; Linux 2.6.9, event can be specified as NULL when using EPOLL_CTL_DEL.
+        ;; Applications that need to be portable to kernels before 2.6.9 should
+        ;; specify a non-null pointer in event.
+        ;; So, Artanis isn't compatible with Linux 2.6.9 and before.
+        (epoll-ctl epfd EPOLL_CTL_DEL conn-fd #f) ; #f means %null-pointer here
+        ;; Close the connection gracefully
+        ;; NOTE: `shutdown' is preferred here to stop receiving data.
+        ;;       Then try to send all the rest data.
+        ;; NOTE: We can't just close it here, if we do so, then we've lost the information
+        ;;       to get fd from port which is the key to remove task from work-table.
+        (when (not peer-shutdown?)
+          (DEBUG "Peer is not shutdown, let me close it for an end~%")
+          (catch #t
+            (lambda ()
+              (shutdown conn 0)       ; Stop receiving data
+              (DEBUG "Shutdown ~a successfully~%" conn)
+              (force-output conn)
+              (clean-mmapped-file conn-fd)
+              (DEBUG "Force-output ~a successfully~%" conn))
+            list))
+        ;; I don't care if the connection is still alive anymore, so ignore errors.
+        (DEBUG "Close connection ~a from ~a.~%" (client-sockport client) (client-ip client)))))))
 
 ;; NOTE: Close operation must follow these steps:
 ;; 1. remove fd from epoll event

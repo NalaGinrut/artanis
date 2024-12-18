@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016,2017,2018,2019
+;;  Copyright (C) 2016-2024
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -119,9 +119,9 @@
 
 (define (run-task task)
   (call-with-prompt
-      'serve-one-request
-    (task-kont task)
-    ragnarok-scheduler))
+   'serve-one-request
+   (task-kont task)
+   ragnarok-scheduler))
 
 (define (resources-collector)
   (define (remove-timemout-connections)
@@ -268,6 +268,7 @@
     ;; NOTE: We don't have to do any work here but just throw 500 exception.
     ;;       When this handler is called, it must hit the pass-keys, which
     ;;       should be silient and throw 500.
+    (display "finally here\n")
     (throw 'artanis-err 500 handle-request "Internal ERROR ~a ~a!" k e))
   (DEBUG "handle request~%")
   (call-with-error-handling
@@ -440,18 +441,20 @@
      (else 'http)))
   (DEBUG "Enter ragnarok-http-gateway-run~%")
   (let ((http (lookup-protocol 'http))
-        (server (ragnarok-open)))
+        (server (ragnarok-open))
+        (now-client (make-parameter 'init-now-client)))
     ;; *** NOTE: There's no current-server and current-client here, they're bound
     ;;           in serve-one-request.
     (DEBUG "Prepare for main-loop~%")
     (when (not http)
       (throw 'artanis-err 500 ragnarok-http-gateway-run
              "BUG: There should be `http' protocol at least!"))
-    (let main-loop((client (get-one-request-from-clients http server)))
-      (catch #t
-        (lambda ()
-          (call-with-sigint
-           ;; handle C-c to break the server loop properly
+    (call-with-sigint
+     ;; handle C-c to break the server loop properly
+     (lambda ()
+       (let main-loop((client (get-one-request-from-clients http server)))
+         (now-client client)
+         (catch #t
            (lambda ()
              (DEBUG "Enter main-loop, protocol is ~a~%" (detect-client-protocol client))
              (DEBUG "Prepare to serve one request ~a~%" (client-sockport client))
@@ -525,27 +528,28 @@
                        (ragnarok-write http server client r b #f)
                        (ragnarok-close http server client #f)))))))
              (DEBUG "Serve one done~%"))
-           (lambda ()
-             ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
-             ;; NOTE: The parameters will be lost when exception raised here, so we can't
-             ;;       use any of current-task/server/client/proto in the exception handler
-             (DEBUG "Prepare to close connection ~a~%" (client-ip client))
-             (ragnarok-close http server client #f))))
-        (lambda e
-          (format (artanis-current-output)
-                  "Error: ~a~%" (or (and=> (system-error-errno e) strerror) e))
-          (cond
-           ((out-of-system-resources? e)
-            (parameterize ((current-server server))
-              (remove-named-pipe-if-the-connection-is-websocket! client)
-              (close-current-task! server client)
-              (close (client-sockport client))
-              (resources-collector)))
-           (else
-            (format (artanis-current-output)
-                    "Ingore it to avoid Ragnarok crash.~%")))))
-      (DEBUG "main-loop again~%")
-      (main-loop (get-one-request-from-clients http server)))))
+           (lambda e
+             (format (artanis-current-output)
+                     "Error: ~a~%" (or (and=> (system-error-errno e) strerror) e))
+             (cond
+              ((out-of-system-resources? e)
+               (parameterize ((current-server server))
+                 (remove-named-pipe-if-the-connection-is-websocket! client)
+                 (close-current-task! server client)
+                 (close (client-sockport client))
+                 (resources-collector)))
+              (else
+               (format (artanis-current-output)
+                       "Ingore it to avoid Ragnarok crash.~%")))))
+         (DEBUG "main-loop again~%")
+         (main-loop (get-one-request-from-clients http server))))
+     (lambda ()
+       ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
+       ;; NOTE: The parameters will be lost when exception raised here, so we can't
+       ;;       use any of current-task/server/client/proto in the exception handler
+       (DEBUG "Prepare to close connection ~a~%" (client-ip (now-client)))
+       (parameterize ((preparing-quit? #t))
+         (ragnarok-close http server (now-client) #f))))))
 
 ;; NOTE: we don't schedule guile-engine, although it provides naive mechanism for scheduling.
 (define (new-guile-engine)

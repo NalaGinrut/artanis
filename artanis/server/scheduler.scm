@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016,2017,2018
+;;  Copyright (C) 2016-2024
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -85,15 +85,17 @@
   (let ((task (current-task)))
     (DEBUG "task-keepalive?: ~a~%" (task-keepalive? task))
     (task-keepalive?-set! task #f)
-    (remove-from-work-table! (current-work-table server) client peer-shutdown?)))
+    (when (not (eq? client 'init-now-client))
+      (remove-from-work-table! (current-work-table server)
+                               client peer-shutdown?))))
 
 (define customized-scheduler #f)
 
 (define-syntax-rule (register-new-scheduler! body ...)
   (set! customized-scheduler
-    (lambda (cmd)
-      (match cmd
-        body ...))))
+        (lambda (cmd)
+          (match cmd
+            body ...))))
 
 ;; NOTE: We don't call prompt in this scheduler again, since we will get
 ;;       new task from outside. That means the scheduler doesn't bump new

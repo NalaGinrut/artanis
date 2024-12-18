@@ -43,7 +43,8 @@
   #:use-module (web server)
   #:use-module (srfi srfi-1)
   #:use-module (ice-9 format)
-  #:re-export (;; env
+  #:use-module (ice-9 threads)
+  #:re-export ( ;; env
                http-status
 
                ;; page module
@@ -224,13 +225,13 @@
   (init-config)
   (init-lpc)
   (check-invalid-config)
+  (define SA_NODEFER #x40000000)
   (sigaction SIGPIPE SIG_IGN) ; surpass SIGPIPE signal since we want to handle EPIPE by self
   (sigaction SIGINT (lambda (i)
                       (run-when-sigint-hook)
                       (nss:pr-cleanup)
                       (format (artanis-current-output)
-                              "~%Fare you well, your server is cold.~%")
-                      (quit)))
+                              "~%Fare you well, your server is cold.~%")))
   (is-init-server-run? #t))
 
 (define* (form-tag #:key (controller #f) (action #f) (method #f)
@@ -350,7 +351,7 @@
         ;; NOTE: Workers higher than 1 implies multi server mode.
         (conf-set! '(server multi) #t)
         ;; NOTE: We use process rather than thread to avoid the lock problems
-        (for-each (lambda (_)
-                    (call-with-new-process
-                     (lambda () (establish-http-gateway handler))))
-                  (iota workers)))))))
+        (n-par-for-each workers
+                        (lambda (_)
+                          (establish-http-gateway handler))
+                        (iota workers)))))))

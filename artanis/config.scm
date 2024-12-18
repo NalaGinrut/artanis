@@ -232,6 +232,12 @@ server.multi = <boolean>")
     ((server workers)
      1
      "To specify the number of workers in the server core. Each worker implies a coroutine queue.
+The default value is 1, which means no threading at all.
+The throughput will be dramatically increased when you set it to a larger number.
+[Experimental] It's not well tested yet, but it does work. Here're known issues:
+1. The main thread may be halted when ctrl+c is pressed, but it still work with other threads.
+2. There could be potential race conditions, we've already use parameters for its functional nature
+   to implement thread local storage. But need more tests.
 NOTE: If the workers is larger than 1, then it implies server.multi = true.
 server.workers = <integer>")
 
