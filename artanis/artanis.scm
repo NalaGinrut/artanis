@@ -343,4 +343,14 @@
                        (format #t "[Request] ~a~%[Body] ~a~%" r (->proper-body-display b))
                        (server-handler r b))
                      server-handler)))
-    (establish-http-gateway handler)))
+    (let ((workers (get-conf '(server workers))))
+      (cond
+       ((= workers 1) (establish-http-gateway handler))
+       (else
+        ;; NOTE: Workers higher than 1 implies multi server mode.
+        (conf-set! '(server multi) #t)
+        ;; NOTE: We use process rather than thread to avoid the lock problems
+        (for-each (lambda (_)
+                    (call-with-new-process
+                     (lambda () (establish-http-gateway handler))))
+                  (iota workers)))))))

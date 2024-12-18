@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013-2023
+;;  Copyright (C) 2013-2024
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -228,6 +228,12 @@ This feature let us start multiple Artanis instances listening to the same socke
 port. When requests come, the Linux kernel will do the necessary lock and allocation
 work for us to dispatch requests to these Artanis instances.
 server.multi = <boolean>")
+
+    ((server workers)
+     1
+     "To specify the number of workers in the server core. Each worker implies a coroutine queue.
+NOTE: If the workers is larger than 1, then it implies server.multi = true.
+server.workers = <integer>")
 
     ((server websocket)
      #t
@@ -464,6 +470,12 @@ debug.monitor = <PATHs>")
                 #f
                 "Invalid db.pool value, we accept: ~{~a~^,~}" *pool-modes*)))))
 
+(define-syntax-rule (->workers x)
+  (let ((w (string->number x)))
+    (cond
+     ((positive? w) w)
+     (else (error "Invalid server.workers number! Must be >= 1" x)))))
+
 (define (parse-namespace-db item)
   (match item
     (('enable usedb) (conf-set! '(db enable) (->bool usedb)))
@@ -495,6 +507,7 @@ debug.monitor = <PATHs>")
     (('bufsize bufsize) (conf-set! '(server bufsize) (->integer bufsize)))
     (('impl impl) (conf-set! '(server impl) (string->symbol impl)))
     (('multi multi) (conf-set! '(server multi) (->bool multi)))
+    (('workers workers) (conf-set! '(server workers) (->workers workers)))
     (('engine engine) (conf-set! '(server engine) (->symbol engine)))
     (('websocket websocket) (conf-set! '(server websocket) (->bool websocket)))
     (('pub pub) (conf-set! '(server pub) (basename pub)))
