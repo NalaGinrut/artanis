@@ -70,7 +70,7 @@
         => (lambda (target)
              (if (string=? "." dir)
                  target
-                 (format #f "~a/~a" dir target))))
+                 (format #f "~a/~a" dir (basename target)))))
        (else filename))))
   (define-syntax-rule (->url args)
     (let ((file (-> args)))
