@@ -66,11 +66,11 @@
            (jsmap (and mfile (file-exists? mfile)
                        (call-with-input-file mfile json->scm))))
       (cond
-       ((or (and jsmap (assoc-ref jsmap file)) filename)
+       ((and jsmap (assoc-ref jsmap file))
         => (lambda (target)
              (if (string=? "." dir)
                  target
-                 (format #f "~a/~a" dir (basename target)))))
+                 (format #f "~a/~a" dir target))))
        (else filename))))
   (define-syntax-rule (->url args)
     (let ((file (-> args)))
