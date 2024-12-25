@@ -179,10 +179,10 @@ aa.scm\r
   #:mime 'json
   (lambda (rc)
     (let ((ret (:from-post rc 'store)))
-      (match (pk "ret" ret)
+      (match ret
         ((file size)
-         (format #t "~a, ~a~%" file size)
-         (pk "mime 4"(:mime rc `(("file" . ,file) ("size" . ,size)))))
+         ;;(format #t "~a, ~a~%" file size)
+         (:mime rc `(("file" . ,file) ("size" . ,size))))
         (else (format #t "BUG: ~a~%" ret) "BUG!!!")))))
 
 (define test4-expect-body "{\"file\":\"aa.scm\",\"size\":40}")

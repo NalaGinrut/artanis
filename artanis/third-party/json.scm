@@ -24,6 +24,7 @@
 ;;; Code:
 
 (define-module (artanis third-party json)
+  #:use-module (artanis utils)
   #:use-module (artanis env)
   #:use-module (json builder)
   #:use-module (json parser)
@@ -73,15 +74,8 @@
                "Invalid JSONP, possibly be an XSS attack!" jsonp)))
    (else ((if securty-check? validate-json identity) (scm->json-string sxml)))))
 
-(define (json-ref json-obj key)
-  (let ((val (hash-ref json-obj key)))
-    (if (string? val)
-        ((current-encoder) val)
-        val)))
+(define (json-ref json-scm pattern)
+  (sxml-query pattern json-scm))
 
-(define (json-set! json-obj key val)
-  (hash-set! json-obj
-             ((current-encoder) key)
-             (if (string? val)
-                 ((current-encoder) val)
-                 val)))
+(define (json-set! json-scm key val)
+  (sxml-replace! json-scm key val))

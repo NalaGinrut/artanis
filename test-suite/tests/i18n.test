@@ -1,0 +1,105 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  === i18n tests ===
+;;  Copyright (C) 2025
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License and GNU
+;;  Lesser General Public License published by the Free Software
+;;  Foundation, either version 3 of the License, or (at your option)
+;;  any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License and GNU Lesser General Public License
+;;  for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  and GNU Lesser General Public License along with this program.
+;;  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (test i18n)
+  #:use-module (artanis utils)
+  #:use-module (artanis artanis)
+  #:use-module (artanis i18n)
+  #:use-module (srfi srfi-19) ; for date manipulation
+  #:use-module (srfi srfi-11) ; for let-values
+  #:use-module (test-suite lib)
+  #:use-module (test-suite helper))
+
+(define *virtual-time* 1735325608) ; mimic general timestamp in seconds
+(define *virtual-date* (time-utc->date
+                        (make-time time-utc 0 *virtual-time*)))
+
+(define expect-result
+  "{\"money\":\"JPY  15,000\",\"smoney\":\"￥15,000\",\"num\":\"15,000.00\",\"local-date\":\"2024年12月28日\",\"global-date\":\"2024年12月27日\",\"weekday\":\"金曜日\",\"month\":\"12月\"}")
+
+(define url-mode-request
+  "GET /index/ja_JP HTTP/1.1\r
+Host: localhost:8080\r
+User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML, like Gecko) Safari/531.2+ Epiphany/2.30.2\r
+\r
+")
+
+(define header-mode-request
+  "GET /test/header HTTP/1.1\r
+Host: localhost:8080\r
+User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML, like Gecko) Safari/531.2+ Epiphany/2.30.2\r
+Accept-Language: ja-JP\r
+\r
+")
+
+(define cookie-mode-request
+  "GET /test/cookie HTTP/1.1\r
+Host: localhost:8080\r
+User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML, like Gecko) Safari/531.2+ Epiphany/2.30.2\r
+Cookie: lang=ja_JP\r
+\r
+")
+
+(define (handler rc)
+  (let* ((_G (:i18n rc))
+         (money (_G `(money 15000)))
+         (smoney (_G `(moneysign 15000)))
+         (num (_G `(number 15000 2)))
+         (local-date (_G `(local-date ,*virtual-time*)))
+         (global-date (_G `(global-date ,*virtual-time*)))
+         (weekday (_G `(weekday ,(date-week-day *virtual-date*))))
+         (month (_G `(month ,(date-month *virtual-date*)))))
+    (:mime rc (pk 'json
+                  `(("money" . ,money)
+                    ("smoney" . ,smoney)
+                    ("num" . ,num)
+                    ("local-date" . ,local-date)
+                    ("global-date" . ,global-date)
+                    ("weekday" . ,weekday)
+                    ("month" . ,month))))))
+
+(get "/index/:lang"
+  #:i18n "lang" #:mime 'json
+  handler)
+
+(get "/test/header"
+  #:i18n 'header #:mime 'json
+  handler)
+
+(get "/test/cookie"
+  #:i18n '(cookie "lang") #:mime 'json
+  handler)
+
+(with-test-prefix "i18n test"
+
+  (pass-if "i18n URL mode test"
+    (let-values (((res body) (test-from-request url-mode-request)))
+      (string=? (utf8->string body) expect-result)))
+
+  (pass-if "i18n HEADER mode test"
+    (let-values (((res body) (test-from-request header-mode-request)))
+      (string=? (utf8->string body) expect-result)))
+
+  (pass-if "i18n Cookie mode test"
+    (let-values (((res body) (test-from-request cookie-mode-request)))
+      (string=? (utf8->string body) expect-result)))
+
+  ;; TODO: fill other tests
+  )

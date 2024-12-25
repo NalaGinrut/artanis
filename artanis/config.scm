@@ -242,7 +242,7 @@ NOTE: If the workers is larger than 1, then it implies server.multi = true.
 server.workers = <integer>")
 
     ((server websocket)
-     #t
+     #f
      "Enable WebSocket.
 server.websocket = <boolean>")
 
@@ -349,54 +349,61 @@ file: stores session information into text files.
 redis: uses Redis for managing sessions.
 session.engine = simple | db | file | redis | redis@addr:port | <third-party-engine>")
 
+    ((session i18n)
+     json
+     "Specify the i18n engine. Here're supported backends:
+1. json: uses json file for i18n.
+2. po: uses PO with gettext for i18n.
+session.i18n = json | po | <third-party-engine>")
+
     ((upload types)
      (jpg png gif)
      "Specify allowed upload file type, say, upload.types = jpg,png,gif.
-upload.types = <item-list>")
+     upload.types = <item-list>")
 
     ((upload path)
      "upload"
      "The path to put the uploaded files.
-upload.path = <PATH>")
+     upload.path = <PATH>")
 
     ((upload size)
      5242880  ; 5MB
      "The size limitation of uploaded file in bytes.
-upload.size = <interger>")
+     upload.size = <interger>")
 
     ;; for mail namespace
     ((mail sender) "/usr/bin/msmtp"
      "The command called by Sendmail module. It's strongly recommended to use `msmtp' to replace `sendmail'.
-mail.sender = <string>")
+     mail.sender = <string>")
 
     ((cache maxage)
      3600
      "The maximum age of a cached page in seconds.
-This is the global maxage of any cache.
-If you want to specify maxage for certain page, please read the manual about the Cache.
-cache.maxage = <integer>")
+     This is the global maxage of any cache.
+     If you want to specify maxage for certain page, please read the manual about the Cache.
+     cache.maxage = <integer>")
 
     ((debug enable)
      #f
      "Wheather to enable debug mode.
-If you enable debug mode, Artanis will print debug information verbosely.
-The module you modified will be reloaded instantly, and the page view will be rendered as well.
-NOTE: This option will affect the performance, please use it for debug purposes only./
-debug.enable = <boolean>")
+     If you enable debug mode, Artanis will print debug information verbosely.
+     The module you modified will be reloaded instantly, and the page view will be rendered as well.
+     NOTE: This option will affect the performance, please use it for debug purposes only./
+     debug.enable = <boolean>")
 
     ((debug monitor)
      ()
      "The paths that needs to be monitored in debug-mode.
-This will take advantage of `inotify' in GNU/Linux kernel.
-NOTE: We may support GNU/Hurd as well, with its file monitor mechanism, in the future.
-debug.monitor = <PATHs>")
+     This will take advantage of `inotify' in GNU/Linux kernel.
+     NOTE: We may support GNU/Hurd as well, with its file monitor mechanism, in the future.
+     debug.monitor = <PATHs>")
     ((cookie expires)
      3600
      "Cookie expiration time in seconds.
-       1 hour is 3600
-       6 hours 21600
-       1 month 2592000
- cookie.expires = <integer>")))
+     1 hour is 3600
+     6 hours 21600
+     1 month 2592000
+     cookie.expires = <integer>")))
 
 ;; Init all fields with default values
 (for-each (lambda (x) (conf-set! (car x) (cadr x))) (default-conf-values))
@@ -559,6 +566,7 @@ debug.monitor = <PATHs>")
     (('path path) (conf-set! '(session path) path))
     (('hijackcheck check) (conf-set! '(session hijackcheck) (->bool check)))
     (('backend backend) (conf-set! '(session backend) (parse-namespace-backend backend)))
+    (('i18n i18n) (conf-set! '(session i18n) (->symbol i18n)))
     (else (error parse-namespace-session "Config: Invalid item" item))))
 
 (define (parse-namespace-upload item)

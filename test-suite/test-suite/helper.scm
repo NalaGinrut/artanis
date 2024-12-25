@@ -54,7 +54,7 @@
 (define* (test-from-request rq-str #:optional (debug #f))
   (let* ((rq (read-request (open-input-string rq-str)))
          (body (read-request-body rq))
-         (null (open-output-file "/dev/null"))
+         (null (open-file "/dev/null" "w"))
          (out (if debug (current-output-port) null))
          (err (if debug (current-error-port) null)))
     (parameterize ((current-output-port out)
