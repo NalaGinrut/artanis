@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2017,2021,2022
+;;  Copyright (C) 2015-2024
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -39,9 +39,10 @@
   * Upgade webapp to current Artanis and keep existing configs.\n")
   (display announce-foot))
 
-(define conf-header
-  "##  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-##  Copyright (C) 2021
+(define (conf-header)
+  (format #f
+          "##  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+##  Copyright (C) ~a
 ##      \"Mu Lei\" known as \"NalaGinrut\" <NalaGinrut@gmail.com>
 ##  Artanis is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU General Public License as published by
@@ -64,7 +65,8 @@
 ## Please read the manual or /etc/artanis/default.conf if you have problem
 ## to understand these items.
 
-")
+"
+          (strftime "%Y" (localtime (current-time)))))
 
 (define conf-footer "\n\n## End Of Artanis conf.\n")
 
@@ -115,28 +117,28 @@
     (define (->cstr ctb)
       (define (->comments str)
         (call-with-input-string
-            str
-          (lambda (port)
-            (let lp ((rst-string "")
-                     (line (read-line port)))
-              (if (eof-object? line)
-                  rst-string
-                  (lp (string-append rst-string "## " line "\n") (read-line port)))))))
+         str
+         (lambda (port)
+           (let lp ((rst-string "")
+                    (line (read-line port)))
+             (if (eof-object? line)
+                 rst-string
+                 (lp (string-append rst-string "## " line "\n") (read-line port)))))))
       (call-with-output-string
-        (lambda (port)
-          (for-each (lambda (c)
-                      (match c
-                        (('(server info) _ comments)
-                         (format port "~%~aserver.info = ~a~%"
-                                 (->comments comments) artanis-version))
-                        ((ns val comments)
-                         (format port "~%~a~{~a~^.~} = ~a~%" (->comments comments) ns (->proper (read-config-val ns val))))
-                        (else (error create-local-config "BUG: Invalid conf value!" c))))
-                    ctb))))
+       (lambda (port)
+         (for-each (lambda (c)
+                     (match c
+                       (('(server info) _ comments)
+                        (format port "~%~aserver.info = ~a~%"
+                                (->comments comments) artanis-version))
+                       ((ns val comments)
+                        (format port "~%~a~{~a~^.~} = ~a~%" (->comments comments) ns (->proper (read-config-val ns val))))
+                       (else (error create-local-config "BUG: Invalid conf value!" c))))
+                   ctb))))
     (let* ((ctb (default-conf-values))
            (cstr (->cstr ctb))
            (fp (open-file (-> "artanis.conf") "w")))
-      (display conf-header fp)
+      (display (conf-header) fp)
       (display cstr fp)
       (display conf-footer fp)
       (close fp)
@@ -159,7 +161,7 @@
 (define *dir-arch*
   '((app (models controllers views protocols)) ; MVC stuff
     (conf) ; config files
-    (sys (pages i18n)) ; system stuff
+    (sys (pages (i18n (json po)))) ; system stuff
     (db (migration sm)) ; DB (include SQL Mappings)
     (log) ; log files
     (lib) ; libs
@@ -192,11 +194,13 @@
   (define (generate-elements x l)
     (let* ((p (reverse (cons x l)))
            (pstr (->path p)))
-      (mkdir pstr) ; generate path
-      (touch (format #f "~a/.gitkeep" pstr))
-      (print-create-info pstr)
-      (and=> (assoc-ref *files-handler* p)
-             (lambda (h) (h pstr)))))
+      (when (not (file-exists? pstr))
+        (mkdir pstr) ; generate path
+
+        (touch (format #f "~a/.gitkeep" pstr))
+        (print-create-info pstr)
+        (and=> (assoc-ref *files-handler* p)
+               (lambda (h) (h pstr))))))
   (dfs *dir-arch* generate-elements '()))
 
 (define *entry-string*
@@ -256,11 +260,15 @@
     (create-framework)
     (format #t "OK~%"))))
 
+(define (upgrade-project)
+  (upgrade-config)
+  (create-framework))
+
 (define (create . args)
   (define (validname? x)
     (irregex-search "^-.*" x))
   (match args
-    (("create" "--upgrade") (upgrade-config))
+    (("create" "--upgrade") (upgrade-project))
     (("create" "--options-list") (display "--upgrade --help\n"))
     (("create" (or () (? validname?) "help" "--help" "-help" "-h")) (show-help))
     (("create" name) (create-project name))
