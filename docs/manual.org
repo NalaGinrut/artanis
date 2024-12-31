@@ -914,7 +914,7 @@ In this example, we craete a table like this:
 
 For Model definition syntax in GNU Artanis, we have:
 
-#+begin_src
+#+begin_src scheme
 (create-artanis-model
  user  ; model name
  (:deps) ; deps list
@@ -935,7 +935,7 @@ Since the tables will be auto-created when booting the server core, however, the
 
 For example, you have another Model named **article** which is designed for your blog system. Obviously, it's related to **user** table since every article requires at least one user as an author.
 
-#+begin_src
+#+begin_src scheme
 (create-artanis-model
  article  ; model name
  (:deps user) ; deps list
@@ -1021,7 +1021,7 @@ PostgreSQL migration hasn't been supported yet...patches are welcome.
 
 If you defined a model, for example, an article table:
 
-#+begin_src
+#+begin_src scheme
 (create-artanis-model
  article  ; model name
  (:deps user) ; deps list
@@ -1036,12 +1036,12 @@ There will be a closure named **$article** in this module, and could be exported
 
 *** Table get
 
-#+begin_src
+#+begin_src scheme
 ($article 'get #:columns (columns ...)
                #:functions '() ; put SQL functions here, e.g, '((count Article.name))
                #:ret 'all ; values: top | all | postive-number
-               #:group-by column-name
-               #:order-by "column-name ASC | DESC"
+               #:group-by '(column-name ...)
+               #:order-by '(column-name ... asc) ;; or '(column-name ... desc)
                #:condition "" ; (where #:name "nala")
                #:foreach '() ; #:foreach '(city ("sz" "bj" "sh"))
                #:dump #f ; set #t if you want to check the SQL string
@@ -1052,7 +1052,7 @@ There will be a closure named **$article** in this module, and could be exported
 
 You can update value to field in a natural way.
 
-#+begin_src
+#+begin_src scheme
 ($article 'set #:key value ...)
 
 ;; for example
@@ -1064,30 +1064,30 @@ You can update value to field in a natural way.
 
 Check table existance:
 
-#+begin_src
+#+begin_src scheme
 ($article 'table-exists?)
 #+end_src
 
 Check fields existance:
 
-#+begin_src
+#+begin_src scheme
 ($article 'exists? fields ...)
 #+end_src
 
 For the case-insensitively.
-#+begin_src
+#+begin_src scheme
 ($article 'ci-exists? fields ...)
 #+end_src
 
 *** Table schema get
 
-#+begin_src
+#+begin_src scheme
 ($article 'schema)
 #+end_src
 
 *** Table create
 
-#+begin_src
+#+begin_src scheme
 ($article 'create fields-definitions ...)
 #+end_src
 
@@ -1095,7 +1095,7 @@ For the case-insensitively.
 
 *** Table remove
 
-#+begin_src
+#+begin_src scheme
 ($article 'remove)
 #+end_src
 
@@ -1103,7 +1103,7 @@ For the case-insensitively.
 
 *** Table modify
 
-#+begin_src
+#+begin_src scheme
 ($article 'mod definitions ...)
 #+end_src
 

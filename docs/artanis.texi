@@ -1495,8 +1495,8 @@ There will be a closure named @strong{@strong{$article}} in this module, and cou
 ($article 'get #:columns (columns ...)
                #:functions '() ; put SQL functions here, e.g, '((count Article.name))
                #:ret 'all ; values: top | all | postive-number
-               #:group-by column-name
-               #:order-by "column-name ASC | DESC"
+               #:group-by '(column-name ...)
+               #:order-by '(column-name ... asc) ;; or '(column-name ... desc)
                #:condition "" ; (where #:name "nala")
                #:foreach '() ; #:foreach '(city ("sz" "bj" "sh"))
                #:dump #f ; set #t if you want to check the SQL string

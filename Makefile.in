@@ -215,14 +215,14 @@ test: modules
 	$(V)for t in $(test-cases); do GUILE_AUTO_COMPILE=0 $(GUILE) -L $(SRC) -L $(TEST_SUITE) -C $(OBJ) $$t; done
 
 # We need ox-pandoc to generate the manual, which is easier to configure than org-mode
-docs: 
-	$(V)emacs docs/manual.org --batch -f org-html-export-to-html --kill
-	$(V)pandoc --wrap=none -f org -t texinfo docs/manual.org -o docs/artanis.texi
-	$(V)$(BUILD_AUX)/fix-texi.sh
+docs:
+	$(V)emacs $(SRC)/docs/manual.org --batch -l ../.fontlock.el -f org-html-export-to-html --kill
+	$(V)pandoc --wrap=none -f org -t texinfo $(SRC)/docs/manual.org -o $(SRC)/docs/artanis.texi
+	$(V)$(BUILD_AUX)/fix-texi.sh $(SRC)
 # append $(SRC)/.texi-head to the beginning of the texi file
-	$(V)cat $(SRC)/.texi-head docs/artanis.texi > docs/artanis.texi.tmp
+	$(V)cat $(SRC)/.texi-head $(SRC)/docs/artanis.texi > $(SRC)/docs/artanis.texi.tmp
 # append $(SRC)/.texi-tail to the end of the texi file
-	$(V)cat docs/artanis.texi.tmp $(SRC)/.texi-tail > docs/artanis.texi
+	$(V)cat $(SRC)/docs/artanis.texi.tmp $(SRC)/.texi-tail > $(SRC)/docs/artanis.texi
 # remove @anchor in the texi file
 #$(V)sed -i 's/@anchor{[^}]*}//g' docs/artanis.texi
 	$(CHK_TEXINFO)
