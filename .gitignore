@@ -70,3 +70,4 @@ typescript
 *.bz2.sig
 *.gz
 *.gz.sig
+*.tmp
