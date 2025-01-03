@@ -1,6 +1,6 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
 ;;  Copyright (C) 2025
-;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
 ;;  Lesser General Public License published by the Free Software
@@ -32,6 +32,8 @@
 
 (define (i18n-po-ref lang key)
   #f)
+
+;; (format #t "~d gnu~:[s are~; is~] here" n (= 1 n))
 
 ;; TODO:
 ;; 1. Detect PO with the locale manually;
