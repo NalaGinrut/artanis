@@ -45,6 +45,7 @@
           ((string-null? lang) key)
           ((i18n-getter)
            => (lambda (getter)
+                (pk 'hit getter)
                 (or (getter lang key)
                     key)))
           (else key)))

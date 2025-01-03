@@ -18,13 +18,16 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis i18n json)
+  #:use-module (artanis env)
   #:use-module (artanis utils)
   #:use-module (artanis third-party json)
   #:use-module (artanis irregex)
   #:use-module (ice-9 ftw)
-  #:export (i18n-json-init))
+  #:export (i18n-json-init
+            i18n-json-dir))
 
-(define (i18n-json-dir) (format #f "~a/sys/i18n/json/" (current-toplevel)))
+(define i18n-json-dir
+  (make-parameter (format #f "~a/sys/i18n/json" (current-toplevel))))
 
 (define *i18n-json-table* (make-hash-table))
 (::define (i18n-json-ref lang key)
@@ -36,19 +39,22 @@
 
 (define (i18n-json-init)
   (define (load-json-file file)
-    (let ((locale (irregex-match *i18n-json-file-re* file)))
+    (let ((path (string-append (i18n-json-dir) "/" file))
+          (locale (irregex-match *i18n-json-file-re* file)))
       (cond
        ((not locale) (error "i18n: Invalid json file name: ~a" file))
-       (hash-set! *i18n-json-table*
-                  (irregex-match-substring locale 1)
-                  (call-with-input-file file json->scm)))))
-  (let ((i18n-json-dir (i18n-json-dir)))
-    (when (not (file-exists? i18n-json-dir))
-      (mkdir i18n-json-dir))
-    (scandir i18n-json-dir
-             (lambda (file)
-               (cond
-                ((or (string=? ".") (string=? "..")) #f)
-                (else (load-json-file file)))))
+       (else
+        (hash-set! *i18n-json-table*
+                   (irregex-match-substring locale 1)
+                   (call-with-input-file path json->scm))))))
+  (let ((dir (i18n-json-dir)))
+    (when (not (file-exists? dir))
+      (mkdir dir))
+    (for-each load-json-file
+              (scandir dir
+                       (lambda (f)
+                         (and
+                          (not (or (string=? f ".") (string=? f "..")))
+                          (irregex-match *i18n-json-file-re* f)))))
     ;; return the i18n-json-ref function for registering
     i18n-json-ref))

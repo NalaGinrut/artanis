@@ -22,6 +22,7 @@
   #:use-module (artanis utils)
   #:use-module (artanis artanis)
   #:use-module (artanis i18n)
+  #:use-module (artanis i18n json)
   #:use-module (srfi srfi-19) ; for date manipulation
   #:use-module (srfi srfi-11) ; for let-values
   #:use-module (test-suite lib)
@@ -57,6 +58,13 @@ Cookie: lang=ja_JP\r
 \r
 ")
 
+(define jp-test-request
+  "GET /str-test/ja_JP HTTP/1.1\r
+Host: localhost:8080\r
+User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML, like Gecko) Safari/531.2+ Epiphany/2.30.2\r
+\r
+")
+
 (define (handler rc)
   (let* ((_G (:i18n rc))
          (money (_G `(money 15000)))
@@ -87,6 +95,31 @@ Cookie: lang=ja_JP\r
   #:i18n '(cookie "lang") #:mime 'json
   handler)
 
+(define *test-dir* "/tmp/i18n-test")
+(define test-jp-translation
+  (scm->json-string
+   '(("Merry Christmas" . "メリークリスマス")
+     ("Mr. Lawrence" . "ローレンスさん"))))
+
+(define js-expect-result
+  "メリークリスマス, ローレンスさん!")
+
+(define (prepare-jp-test)
+  (when (not (file-exists? *test-dir*))
+    (mkdir *test-dir*))
+  (let ((port (open-file (format #f "~a/~a" *test-dir* "ja_JP.json") "w")))
+    (display test-jp-translation port)
+    (close port))
+  (i18n-init))
+
+(get "/str-test/:lang"
+  #:i18n "lang"
+  (lambda (rc)
+    (let ((_G (:i18n rc)))
+      (format #f "~a, ~a!"
+              (pk 'me (_G "Merry Christmas"))
+              (_G "Mr. Lawrence")))))
+
 (with-test-prefix "i18n test"
 
   (pass-if "i18n URL mode test"
@@ -100,6 +133,12 @@ Cookie: lang=ja_JP\r
   (pass-if "i18n Cookie mode test"
     (let-values (((res body) (test-from-request cookie-mode-request)))
       (string=? (utf8->string body) expect-result)))
+
+  (pass-if "i18n string translation test"
+    (parameterize ((i18n-json-dir *test-dir*))
+      (prepare-jp-test)
+      (let-values (((res body) (test-from-request jp-test-request)))
+        (string=? (utf8->string body) js-expect-result))))
 
   ;; TODO: fill other tests
   )
