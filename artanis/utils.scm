@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013-2020,2024
+;;  Copyright (C) 2013-2025
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -102,7 +102,8 @@
             io-exception:peer-is-shutdown? io-exception:out-of-memory?
             out-of-system-resources? allow-long-live-connection?
             free-JS-announcement gen-cache-file current-route-cache
-            gnu-locale->http-lang-tag http-lang-tag->gnu-locale)
+            gnu-locale->http-lang-tag http-lang-tag->gnu-locale
+            sxml-query sxml-replace!)
   #:re-export (the-environment
                utf8->string
                bytevector?
