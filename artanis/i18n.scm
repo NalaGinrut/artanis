@@ -24,7 +24,7 @@
   #:use-module (ice-9 i18n)
   #:use-module (ice-9 match)
   #:export (make-i18n-handler
-            i18n-init
+            init-i18n
             current-lang
             i18n-handler))
 
@@ -82,7 +82,7 @@
         (else (throw 'artanis-error 500 make-i18n-handler
                      "Unknown i18n pattern" pattern))))))
 
-(define (i18n-init)
+(define (init-i18n)
   (let ((i18n-mode (get-conf '(session i18n))))
     (case i18n-mode
       ((json) (i18n-getter (i18n-json-init)))

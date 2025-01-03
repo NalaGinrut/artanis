@@ -225,6 +225,7 @@
   (init-hook)
   (init-config)
   (init-lpc)
+  (init-i18n)
   (check-invalid-config)
   (define SA_NODEFER #x40000000)
   (sigaction SIGPIPE SIG_IGN) ; surpass SIGPIPE signal since we want to handle EPIPE by self

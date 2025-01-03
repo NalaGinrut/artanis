@@ -110,7 +110,7 @@ User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML,
   (let ((port (open-file (format #f "~a/~a" *test-dir* "ja_JP.json") "w")))
     (display test-jp-translation port)
     (close port))
-  (i18n-init))
+  (init-i18n))
 
 (get "/str-test/:lang"
   #:i18n "lang"
