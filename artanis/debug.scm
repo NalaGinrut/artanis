@@ -67,7 +67,7 @@
         ('inotify-event-itorator-end
          (format (current-error-port) "[DEBUG] ~a monitor traverse end!~%" p)
          ret)
-        (($ watch-event _ wd mask cookie len name)
+        (($ watch-event wd mask cookie len name)
          (cond
           ((and (is-valid-module-file? name) ; ignore non-module file
                 (logand mask IN_CREATE IN_MODIFY IN_DELETE))
