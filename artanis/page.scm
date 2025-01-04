@@ -267,9 +267,8 @@
     (call-with-output-string (lambda (port) (sxml->xml sxml/file port escape?))))
    (else #f))) ; wrong param causes 404
 
-;; 301 is good for SEO and avoid some client problem
 ;; Use `URL scheme' in case users need to redirect to HTTPS or others.
-(define* (redirect-to rc path #:key (status 301) (type '(text/html))
+(define* (redirect-to rc path #:key (status 302) (type '(text/html))
                       (headers '()))
   (define-syntax-rule (->real-path p)
     (format #f "~a/~a" (current-myhost) (string-trim path #\/)))
