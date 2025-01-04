@@ -20,15 +20,17 @@
 (define-module (artanis i18n)
   #:use-module (artanis config)
   #:use-module (artanis i18n json)
-  #:use-module (artanis i18n po)
+  #:use-module (artanis i18n locale)
   #:use-module (ice-9 i18n)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 receive)
   #:export (make-i18n-handler
             init-i18n
             current-lang
             i18n-handler))
 
 (define i18n-getter (make-parameter #f))
+(define i18n-ngetter (make-parameter #f))
 
 (define current-lang (make-parameter "BUG: the current-lang is not set!"))
 
@@ -38,18 +40,27 @@
       (string-concatenate (list lang "." encoding))))
   (let* ((lang (current-lang))
          (locale (make-locale (list LC_ALL) (->fix lang))))
-    (lambda (pattern)
+    (lambda pattern
       (match pattern
-        ((? string? key)
+        (((? string? key))
          (cond
           ((string-null? lang) key)
           ((i18n-getter)
            => (lambda (getter)
-                (pk 'hit getter)
-                (or (getter lang key)
+                (or (getter (->fix lang) key)
                     key)))
-          (else key)))
-        (('money money)
+          (else
+           (throw 'artanis-error 500 make-i18n-handler
+                  "Unexpected: i18n getter is not initialized!"))))
+        (((? string? key-single) (? string? key-plural) (? number? num))
+         (cond
+          ((i18n-ngetter)
+           => (lambda (getter)
+                (getter (->fix lang) key-single key-plural num)))
+          (else
+           (throw 'artanis-error 500 make-i18n-handler
+                  "Unexpected: i18n plural getter is not initialized!"))))
+        ((('money money))
          ;; NOTE: We recommend the name of currency rather than the symbol.
          ;;       Say, JPY rather than ¥. Because some of the symbols are
          ;;       impossible to distinguish from each other. For example,
@@ -58,26 +69,26 @@
          ;;       But they are the same string detected from GNU libc.
          (let ((num (if (number? money) money (string->number money))))
            (monetary-amount->locale-string num #t locale)))
-        (('moneysign money)
+        ((('moneysign money))
          (let ((num (if (number? money) money (string->number money))))
            ;; NOTE: The GNU lib on Linux will add "-" automatically for
            ;;       historical reasons. Say, "-$", so we have to drop it.
            (string-trim
             (monetary-amount->locale-string num #f locale)
             #\-)))
-        (('number number fraction)
+        ((('number number fraction))
          (number->locale-string number fraction locale))
-        (('local-date seconds)
+        ((('local-date seconds))
          (strftime (locale-date-format locale) (localtime seconds)))
-        (('global-date seconds)
+        ((('global-date seconds))
          (strftime (locale-date-format locale) (gmtime seconds)))
-        (('local-time seconds)
+        ((('local-time seconds))
          (strftime (locale-time-format locale) (localtime seconds)))
-        (('global-time seconds)
+        ((('global-time seconds))
          (strftime (locale-time-format locale) (gmtime seconds)))
-        (('weekday weekday)
+        ((('weekday weekday))
          (locale-day weekday locale))
-        (('month month)
+        ((('month month))
          (locale-month month locale))
         (else (throw 'artanis-error 500 make-i18n-handler
                      "Unknown i18n pattern" pattern))))))
@@ -85,6 +96,10 @@
 (define (init-i18n)
   (let ((i18n-mode (get-conf '(session i18n))))
     (case i18n-mode
-      ((json) (i18n-getter (i18n-json-init)))
-      ((po) (i18n-getter (i18n-po-init)))
+      ((json) (receive (single plural) (i18n-json-init)
+                (i18n-getter single)
+                (i18n-ngetter plural)))
+      ((locale) (receive (single plural) (i18n-locale-init)
+                  (i18n-getter single)
+                  (i18n-ngetter plural)))
       (else (error "Unknown i18n mode" i18n-mode)))))

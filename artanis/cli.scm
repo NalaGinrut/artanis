@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2024
+;;  Copyright (C) 2025
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License published by
@@ -52,8 +52,14 @@
            (status (status:exit-val (close-pipe port))))
       (make-<cli> cmd status result))))
 
+(define (cli-check-result cli)
+  (if (zero? (<cli>-status cli))
+      (<cli>-result cli)
+      (throw 'artanis-err 500 'cli-check-result
+             "CLI command failed: ~a" cli)))
+
 (define-syntax-rule (cli-run* cmd ...)
-  (cli-run (format #f "~{~a ~}" (list `cmd ...))))
+  (cli-check-result (cli-run (format #f "~{~a ~}" `(cmd ...)))))
 
 (define-syntax-rule (run-with-cli* cmd ... proc)
-  (run-with-cli (format #f "~{~a ~}" `(cmd ...)) proc))
+  (cli-check-result (run-with-cli (format #f "~{~a ~}" `(cmd ...)) proc)))

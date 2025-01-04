@@ -21,12 +21,17 @@
 (define-module (test i18n)
   #:use-module (artanis utils)
   #:use-module (artanis artanis)
+  #:use-module (artanis config)
+  #:use-module (artanis cli)
   #:use-module (artanis i18n)
   #:use-module (artanis i18n json)
+  #:use-module (artanis i18n locale)
   #:use-module (srfi srfi-19) ; for date manipulation
   #:use-module (srfi srfi-11) ; for let-values
   #:use-module (test-suite lib)
   #:use-module (test-suite helper))
+
+(setlocale LC_ALL "ja_JP.UTF-8")
 
 (define *virtual-time* 1735325608) ; mimic general timestamp in seconds
 (define *virtual-date* (time-utc->date
@@ -37,31 +42,28 @@
 
 (define url-mode-request
   "GET /index/ja_JP HTTP/1.1\r
-Host: localhost:8080\r
-User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML, like Gecko) Safari/531.2+ Epiphany/2.30.2\r
 \r
 ")
 
 (define header-mode-request
   "GET /test/header HTTP/1.1\r
-Host: localhost:8080\r
-User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML, like Gecko) Safari/531.2+ Epiphany/2.30.2\r
 Accept-Language: ja-JP\r
 \r
 ")
 
 (define cookie-mode-request
   "GET /test/cookie HTTP/1.1\r
-Host: localhost:8080\r
-User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML, like Gecko) Safari/531.2+ Epiphany/2.30.2\r
 Cookie: lang=ja_JP\r
 \r
 ")
 
 (define jp-test-request
   "GET /str-test/ja_JP HTTP/1.1\r
-Host: localhost:8080\r
-User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML, like Gecko) Safari/531.2+ Epiphany/2.30.2\r
+\r
+")
+
+(define locale-test-request
+  "GET /local-test/pl_PL HTTP/1.1\r
 \r
 ")
 
@@ -74,14 +76,13 @@ User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML,
          (global-date (_G `(global-date ,*virtual-time*)))
          (weekday (_G `(weekday ,(date-week-day *virtual-date*))))
          (month (_G `(month ,(date-month *virtual-date*)))))
-    (:mime rc (pk 'json
-                  `(("money" . ,money)
-                    ("smoney" . ,smoney)
-                    ("num" . ,num)
-                    ("local-date" . ,local-date)
-                    ("global-date" . ,global-date)
-                    ("weekday" . ,weekday)
-                    ("month" . ,month))))))
+    (:mime rc `(("money" . ,money)
+                ("smoney" . ,smoney)
+                ("num" . ,num)
+                ("local-date" . ,local-date)
+                ("global-date" . ,global-date)
+                ("weekday" . ,weekday)
+                ("month" . ,month)))))
 
 (get "/index/:lang"
   #:i18n "lang" #:mime 'json
@@ -101,24 +102,66 @@ User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML,
    '(("Merry Christmas" . "メリークリスマス")
      ("Mr. Lawrence" . "ローレンスさん"))))
 
+(define test-pl-translation
+  "# Example PO file with Polish plural forms
+msgid \"\"
+msgstr \"\"
+\"Project-Id-Version: Test 1.0\\n\"
+\"Language: pl\\n\"
+\"Content-Type: text/plain; charset=UTF-8\\n\"
+\"Content-Transfer-Encoding: 8bit\\n\"
+\"Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\\n\"
+
+msgid \"You have %d apple.\"
+msgid_plural \"You have %d apples.\"
+msgstr[0] \"Masz %d jabko.\"
+msgstr[1] \"Masz %d jabka.\"
+msgstr[2] \"Masz %d jabek.\"
+")
+
 (define js-expect-result
   "メリークリスマス, ローレンスさん!")
 
-(define (prepare-jp-test)
+(define (prepare-jp-json-test)
   (when (not (file-exists? *test-dir*))
     (mkdir *test-dir*))
   (let ((port (open-file (format #f "~a/~a" *test-dir* "ja_JP.json") "w")))
     (display test-jp-translation port)
     (close port))
+  (conf-set! '(session i18n) 'json)
   (init-i18n))
+
+(define (prepare-pl-locale-test)
+  (when (not (file-exists? *test-dir*))
+    (mkdir *test-dir*))
+  (cli-run* mkdir -p ,(format #f "~a/locale/pl_PL/LC_MESSAGES" *test-dir*))
+  (let ((port (open-file (format #f "~a/pl.po" *test-dir*) "w")))
+    (display test-pl-translation port)
+    (close port)
+    (cli-run* msgfmt ,(format #f "~a/pl.po" *test-dir*)
+              -o ,(format #f "~a/locale/pl_PL/LC_MESSAGES/~a.mo"
+                          *test-dir* (i18n-locale-domain)))
+    (conf-set! '(session i18n) 'locale)
+    (init-i18n)))
 
 (get "/str-test/:lang"
   #:i18n "lang"
   (lambda (rc)
     (let ((_G (:i18n rc)))
       (format #f "~a, ~a!"
-              (pk 'me (_G "Merry Christmas"))
+              (_G "Merry Christmas")
               (_G "Mr. Lawrence")))))
+
+(define expect-locale-pl-result
+  "{\"0\":\"Masz 0 jabek.\",\"1\":\"Masz 1 jabko.\",\"2\":\"Masz 2 jabka.\"}")
+
+(get "/local-test/:lang"
+  #:i18n "lang" #:mime 'json
+  (lambda (rc)
+    (let ((_G (:i18n rc)))
+      (:mime rc `(("0" . ,(format #f (_G "You have %d apple." "You have %d apples." 0) 0))
+                  ("1" . ,(format #f (_G "You have %d apple." "You have %d apples." 1) 1))
+                  ("2" . ,(format #f (_G "You have %d apple." "You have %d apples." 2) 2)))))))
 
 (with-test-prefix "i18n test"
 
@@ -134,11 +177,18 @@ User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-us) AppleWebKit/531.2+ (KHTML,
     (let-values (((res body) (test-from-request cookie-mode-request)))
       (string=? (utf8->string body) expect-result)))
 
-  (pass-if "i18n string translation test"
+  (pass-if "i18n json translation test"
     (parameterize ((i18n-json-dir *test-dir*))
-      (prepare-jp-test)
+      (prepare-jp-json-test)
       (let-values (((res body) (test-from-request jp-test-request)))
         (string=? (utf8->string body) js-expect-result))))
+
+  (pass-if "i18n locale translation test"
+    (let ((mo-dir (format #f "~a/locale" *test-dir*)))
+      (parameterize ((i18n-locale-mo-dir mo-dir))
+        (prepare-pl-locale-test)
+        (let-values (((res body) (test-from-request locale-test-request)))
+          (string=? (utf8->string body) expect-locale-pl-result)))))
 
   ;; TODO: fill other tests
   )

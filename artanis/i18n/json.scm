@@ -22,6 +22,7 @@
   #:use-module (artanis utils)
   #:use-module (artanis third-party json)
   #:use-module (artanis irregex)
+  #:use-module (artanis config)
   #:use-module (ice-9 ftw)
   #:export (i18n-json-init
             i18n-json-dir))
@@ -30,10 +31,15 @@
   (make-parameter (format #f "~a/sys/i18n/json" (current-toplevel))))
 
 (define *i18n-json-table* (make-hash-table))
-(::define (i18n-json-ref lang key)
+(::define (i18n-json-single-ref lang key)
   (:anno: (string string) -> ((or string #f)))
   (let ((trans (hash-ref *i18n-json-table* lang)))
     (and trans (json-ref trans key))))
+
+(::define (i18n-json-plural-ref lang key)
+  (:anno: (string string +int) -> string)
+  (throw 'artanis-error 500 i18n-json-plural-ref
+         "Function is not implemented yet."))
 
 (define *i18n-json-file-re* (string->irregex "(.*)\\.json$"))
 
@@ -45,7 +51,8 @@
        ((not locale) (error "i18n: Invalid json file name: ~a" file))
        (else
         (hash-set! *i18n-json-table*
-                   (irregex-match-substring locale 1)
+                   (string-append (irregex-match-substring locale 1)
+                                  "." (get-conf '(server charset)))
                    (call-with-input-file path json->scm))))))
   (let ((dir (i18n-json-dir)))
     (when (not (file-exists? dir))
@@ -57,4 +64,5 @@
                           (not (or (string=? f ".") (string=? f "..")))
                           (irregex-match *i18n-json-file-re* f)))))
     ;; return the i18n-json-ref function for registering
-    i18n-json-ref))
+    (values i18n-json-single-ref
+            i18n-json-plural-ref)))

@@ -17,28 +17,60 @@
 ;;  and GNU Lesser General Public License along with this program.
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
-(define-module (artanis i18n po)
-  #:export (i18n-po-init))
+(define-module (artanis i18n locale)
+  #:use-module (artanis env)
+  #:use-module (artanis utils)
+  #:use-module (artanis irregex)
+  #:use-module (artanis cli)
+  #:use-module (ice-9 threads) ; for monitor
+  #:export (i18n-locale-init
+            i18n-locale-mo-dir
+            i18n-locale-domain))
+
+(define i18n-locale-mo-dir
+  (make-parameter (format #f "~a/sys/i18n/locale" (current-toplevel))))
+
+(define i18n-locale-domain (make-parameter "translate"))
+
+(define *num-re* (string->irregex "%d"))
+
+(define (fix-num str)
+  (irregex-replace/all *num-re* str "~a"))
 
 ;; NOTE:
-;; Gettext is not thread safe, even worse, it is not reentrant due to
-;; relying on global locale configuration, so it's NEITHER coroutine safe.
-;; If we still want to take advantage of PO, we have to implement our own
-;; PO parser and translator.
-;;
-;; NOTE:
-;; It's meaningless to use MO since you still have to convert it to
-;; Scheme hashtable.
+;; gettext is not thread safe, so we need monitor to protect it.
+(::define (i18n-locale-single-ref lang key)
+  (:anno: (string string) -> string)
+  (monitor
+   (let ((old-locale ""))
+     (dynamic-wind
+         (lambda ()
+           (let ((cur-locale (setlocale LC_MESSAGES "")))
+             (set! old-locale cur-locale)
+             (setlocale LC_MESSAGES lang)))
+         (lambda ()
+           (fix-num (gettext key (current-domain) LC_MESSAGES)))
+         (lambda ()
+           (setlocale LC_MESSAGES old-locale))))))
 
-(define (i18n-po-ref lang key)
-  #f)
+(::define (i18n-locale-plural-ref lang single plural num)
+  (:anno: (string string +int) -> string)
+  (monitor
+   (let ((old-locale ""))
+     (dynamic-wind
+         (lambda ()
+           (let ((cur-locale (setlocale LC_MESSAGES "")))
+             (set! old-locale cur-locale)
+             (setlocale LC_MESSAGES lang)))
+         (lambda ()
+           (fix-num (ngettext single plural num (i18n-locale-domain) LC_MESSAGES)))
+         (lambda ()
+           (setlocale LC_MESSAGES old-locale))))))
 
-;; (format #t "~d gnu~:[s are~; is~] here" n (= 1 n))
-
-;; TODO:
-;; 1. Detect PO with the locale manually;
-;; 2. Parse PO file and convert it to Scheme hashtable;
-(define (i18n-po-init)
-  ;; not implemented yet
-  (error "i18n PO mode is not implemented yet")
-  i18n-po-ref)
+(define (i18n-locale-init)
+  (let ((dir (i18n-locale-mo-dir))
+        (domain (i18n-locale-domain)))
+    (cli-run* mkdir -p ,dir)
+    (bindtextdomain domain dir)
+    (textdomain domain)
+    (values i18n-locale-single-ref i18n-locale-plural-ref)))
