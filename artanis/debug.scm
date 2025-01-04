@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015,2016,2018
+;;  Copyright (C) 2015-2025
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -45,9 +45,9 @@
 ;; FIXME: do we need to monitor deleted files? how?
 (define (init-debug-monitor)
   (set! debug-file-watcher-loops
-    (map (lambda (p)
-           (cons p (make-inotify-watching-loop p)))
-         (append *monitored-files* (get-conf '(debug monitor))))))
+        (map (lambda (p)
+               (cons p (make-inotify-watching-loop p)))
+             (append *monitored-files* (get-conf '(debug monitor))))))
 
 ;; TODO: Here we should get rid of various temp files, include Emacs'.
 ;;       Feel free to add more if any necessary.
