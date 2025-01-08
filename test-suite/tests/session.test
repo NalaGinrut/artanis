@@ -1,6 +1,6 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
 ;;  === Session tests ===
-;;  Copyright (C) 2013,2014,2015,2018,2021
+;;  Copyright (C) 2013-2025
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 (define-module (test cookie)
   #:use-module (artanis utils)
+  #:use-module (ice-9 match)
   #:use-module (test-suite lib))
 
 ;; export all things, since we need to test inner cookie
@@ -25,15 +26,27 @@
   (export-all-from-module! '(artanis config))
   (export-all-from-module! '(artanis lpc)))
 
+;; This is a workaround for GitLab CI with Redis
+;; https://docs.gitlab.com/ee/ci/services/redis.html
+(define (get-redis-ip)
+  (catch #t
+    (lambda ()
+      (match (gethostbyname "redis")
+        (#(_ _ _ _ (ip)) (inet-ntop AF_INET ip))
+        (else (error "BUG: get-redis-ip: gethostbyname failed"))))
+    (lambda _ "127.0.0.1")))
+
+(define redis-ip (get-redis-ip))
+
 (with-test-prefix "redis test"
 
   (pass-if "config-set"
-    (let ((conf "redis@redis:6379"))
+    (let ((conf (format #f "redis@~a:6379" redis-ip)))
       (conf-set! '(session backend) conf)
       (equal? conf (get-conf '(session backend)))))
 
   (pass-if "session-store-restore"
-    (let* ((conf "redis@redis:6379")
+    (let* ((conf (list 'redis redis-ip 6379))
            (maker (create-new-session conf))
            (sb (maker))
            (k "client")
@@ -45,7 +58,7 @@
       (equal? s (session->alist (backend:session-restore/redis sb sid)))))
 
   (pass-if "session-set-ref"
-    (let* ((conf "redis@redis:6379")
+    (let* ((conf (list 'redis redis-ip 6379))
            (maker (create-new-session conf))
            (sb (maker))
            (sid (get-new-sid))
@@ -60,7 +73,7 @@
       (equal? dkv (backend:session-ref/redis sb sid dkk))))
 
   (pass-if "session-set-destory"
-    (let* ((conf "redis@redis:6379")
+    (let* ((conf (list 'redis redis-ip 6379))
            (maker (create-new-session conf))
            (sb (maker))
            (redis (session-backend-meta sb))
