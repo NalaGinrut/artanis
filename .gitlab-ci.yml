@@ -47,6 +47,9 @@ before_script:
   - make V=
   - make install
 
+services:
+  - redis:latest
+
 test:
   variables:
     REDIS_PORT: 6379
