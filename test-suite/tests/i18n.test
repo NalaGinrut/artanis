@@ -177,12 +177,6 @@ msgstr[2] \"Masz %d jabek.\"
                   ("1" . ,(format #f (_G "You have %d apple." "You have %d apples." 1) 1))
                   ("2" . ,(format #f (_G "You have %d apple." "You have %d apples." 2) 2)))))))
 
-(let ((mo-dir (format #f "~a/locale" *test-dir*)))
-  (parameterize ((i18n-locale-mo-dir mo-dir))
-    (prepare-pl-locale-test)
-    (let-values (((res body) (test-from-request locale-test-request #t)))
-      (string=? (pk 'body (utf8->string body)) (pk 'ret expect-locale-pl-result)))))
-
 (with-test-prefix "i18n test"
 
   (cli-run* rm -rf ,*test-dir*)
@@ -215,7 +209,7 @@ msgstr[2] \"Masz %d jabek.\"
     (let ((mo-dir (format #f "~a/locale" *test-dir*)))
       (parameterize ((i18n-locale-mo-dir mo-dir))
         (prepare-pl-locale-test)
-        (let-values (((res body) (test-from-request locale-test-request #t)))
+        (let-values (((res body) (test-from-request locale-test-request)))
           (string=? (utf8->string body) expect-locale-pl-result)))))
 
   ;; TODO: fill other tests
