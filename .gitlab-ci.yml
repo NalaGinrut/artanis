@@ -48,7 +48,10 @@ before_script:
   - make install
 
 test:
-  stage: test
+  variables:
+    REDIS_PORT: 6379
+    REDIS_HOST: redis
+    REDIS_URL: redis://redis:6379  stage: test
   script:
    - make test && guile -c '(display (@ (artanis artanis) artanis-version))'
   only:
