@@ -1,4 +1,4 @@
-image: ubuntu:latest
+image: ubuntu:noble
 
 before_script:
   - apt-get -qq update
