@@ -28,12 +28,12 @@
 (with-test-prefix "redis test"
 
   (pass-if "config-set"
-    (let ((conf (list 'redis "redis" 6379)))
+    (let ((conf "redis@redis:6379"))
       (conf-set! '(session backend) conf)
       (equal? conf (get-conf '(session backend)))))
 
   (pass-if "session-store-restore"
-    (let* ((conf (list 'redis "redis" 6379))
+    (let* ((conf "redis@redis:6379")
            (maker (create-new-session conf))
            (sb (maker))
            (k "client")
@@ -45,7 +45,7 @@
       (equal? s (session->alist (backend:session-restore/redis sb sid)))))
 
   (pass-if "session-set-ref"
-    (let* ((conf (list 'redis "redis" 6379))
+    (let* ((conf "redis@redis:6379")
            (maker (create-new-session conf))
            (sb (maker))
            (sid (get-new-sid))
@@ -60,7 +60,7 @@
       (equal? dkv (backend:session-ref/redis sb sid dkk))))
 
   (pass-if "session-set-destory"
-    (let* ((conf (list 'redis "redis" 6379))
+    (let* ((conf "redis@redis:6379")
            (maker (create-new-session conf))
            (sb (maker))
            (redis (session-backend-meta sb))
