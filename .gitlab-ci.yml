@@ -4,7 +4,6 @@ before_script:
   - apt-get -qq update
   - apt-get -qq -y install texinfo guile-3.0 guile-3.0-dev build-essential automake git autoconf libtool libmariadb-dev-compat libmariadb-dev libnss3 libnss3-dev
   - apt-get -qq -y install gettext redis redis-server libcurl4-openssl-dev locales-all
-  - apt-get -qq -y upgrade
   - git clone https://github.com/opencog/guile-dbi.git
   - cd guile-dbi
   - git checkout guile-dbi-2.1.8
