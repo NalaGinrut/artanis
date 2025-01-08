@@ -25,6 +25,7 @@
   #:use-module (artanis cli)
   #:use-module (artanis i18n)
   #:use-module (artanis i18n json)
+  #:use-module (artanis i18n sxml)
   #:use-module (artanis i18n locale)
   #:use-module (srfi srfi-19) ; for date manipulation
   #:use-module (srfi srfi-11) ; for let-values
@@ -63,7 +64,7 @@ Cookie: lang=ja_JP\r
 ")
 
 (define locale-test-request
-  "GET /local-test/pl_PL HTTP/1.1\r
+  "GET /locale-test/pl_PL HTTP/1.1\r
 \r
 ")
 
@@ -97,10 +98,14 @@ Cookie: lang=ja_JP\r
   handler)
 
 (define *test-dir* "/tmp/i18n-test")
-(define test-jp-translation
+(define test-jp-translation/json
   (scm->json-string
    '(("Merry Christmas" . "メリークリスマス")
      ("Mr. Lawrence" . "ローレンスさん"))))
+
+(define test-jp-translation/sxml
+  '(("Merry Christmas" . "メリークリスマス")
+    ("Mr. Lawrence" . "ローレンスさん")))
 
 (define test-pl-translation
   "# Example PO file with Polish plural forms
@@ -126,9 +131,18 @@ msgstr[2] \"Masz %d jabek.\"
   (when (not (file-exists? *test-dir*))
     (mkdir *test-dir*))
   (let ((port (open-file (format #f "~a/~a" *test-dir* "ja_JP.json") "w")))
-    (display test-jp-translation port)
+    (display test-jp-translation/json port)
     (close port))
   (conf-set! '(session i18n) 'json)
+  (init-i18n))
+
+(define (prepare-jp-sxml-test)
+  (when (not (file-exists? *test-dir*))
+    (mkdir *test-dir*))
+  (let ((port (open-file (format #f "~a/~a" *test-dir* "ja_JP.scm") "w")))
+    (write test-jp-translation/sxml port)
+    (close port))
+  (conf-set! '(session i18n) 'sxml)
   (init-i18n))
 
 (define (prepare-pl-locale-test)
@@ -155,7 +169,7 @@ msgstr[2] \"Masz %d jabek.\"
 (define expect-locale-pl-result
   "{\"0\":\"Masz 0 jabek.\",\"1\":\"Masz 1 jabko.\",\"2\":\"Masz 2 jabka.\"}")
 
-(get "/local-test/:lang"
+(get "/locale-test/:lang"
   #:i18n "lang" #:mime 'json
   (lambda (rc)
     (let ((_G (:i18n rc)))
@@ -163,7 +177,15 @@ msgstr[2] \"Masz %d jabek.\"
                   ("1" . ,(format #f (_G "You have %d apple." "You have %d apples." 1) 1))
                   ("2" . ,(format #f (_G "You have %d apple." "You have %d apples." 2) 2)))))))
 
+(let ((mo-dir (format #f "~a/locale" *test-dir*)))
+  (parameterize ((i18n-locale-mo-dir mo-dir))
+    (prepare-pl-locale-test)
+    (let-values (((res body) (test-from-request locale-test-request #t)))
+      (string=? (pk 'body (utf8->string body)) (pk 'ret expect-locale-pl-result)))))
+
 (with-test-prefix "i18n test"
+
+  (cli-run* rm -rf ,*test-dir*)
 
   (pass-if "i18n URL mode test"
     (let-values (((res body) (test-from-request url-mode-request)))
@@ -183,11 +205,17 @@ msgstr[2] \"Masz %d jabek.\"
       (let-values (((res body) (test-from-request jp-test-request)))
         (string=? (utf8->string body) js-expect-result))))
 
+  (pass-if "i18n sxml translation test"
+    (parameterize ((i18n-sxml-dir *test-dir*))
+      (prepare-jp-sxml-test)
+      (let-values (((res body) (test-from-request jp-test-request)))
+        (string=? (utf8->string body) js-expect-result))))
+
   (pass-if "i18n locale translation test"
     (let ((mo-dir (format #f "~a/locale" *test-dir*)))
       (parameterize ((i18n-locale-mo-dir mo-dir))
         (prepare-pl-locale-test)
-        (let-values (((res body) (test-from-request locale-test-request)))
+        (let-values (((res body) (test-from-request locale-test-request #t)))
           (string=? (utf8->string body) expect-locale-pl-result)))))
 
   ;; TODO: fill other tests

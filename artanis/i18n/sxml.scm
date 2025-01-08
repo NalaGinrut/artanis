@@ -17,53 +17,52 @@
 ;;  and GNU Lesser General Public License along with this program.
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
-(define-module (artanis i18n json)
+(define-module (artanis i18n sxml)
   #:use-module (artanis env)
   #:use-module (artanis utils)
-  #:use-module (artanis third-party json)
   #:use-module (artanis irregex)
   #:use-module (artanis config)
   #:use-module (ice-9 ftw)
-  #:export (i18n-json-init
-            i18n-json-dir))
+  #:export (i18n-sxml-init
+            i18n-sxml-dir))
 
-(define i18n-json-dir
-  (make-parameter (format #f "~a/sys/i18n/json" (current-toplevel))))
+(define i18n-sxml-dir
+  (make-parameter (format #f "~a/sys/i18n/sxml" (current-toplevel))))
 
-(define *i18n-json-table* (make-hash-table))
+(define *i18n-sxml-table* (make-hash-table))
 
-(::define (i18n-json-single-ref lang key)
+(::define (i18n-sxml-single-ref lang key)
   (:anno: (string string) -> ((or string #f)))
-  (let ((trans (hash-ref *i18n-json-table* lang)))
-    (and trans (json-ref trans key))))
+  (let ((trans (hash-ref *i18n-sxml-table* lang)))
+    (and trans (assoc-ref trans key))))
 
-(::define (i18n-json-plural-ref lang key)
+(::define (i18n-sxml-plural-ref lang key)
   (:anno: (string string +int) -> string)
-  (throw 'artanis-error 500 i18n-json-plural-ref
+  (throw 'artanis-error 500 i18n-sxml-plural-ref
          "Function is not implemented yet."))
 
-(define *i18n-json-file-re* (string->irregex "(.*)\\.json$"))
+(define *i18n-sxml-file-re* (string->irregex "(.*)\\.scm$"))
 
-(define (i18n-json-init)
-  (define (load-json-file file)
-    (let ((path (string-append (i18n-json-dir) "/" file))
-          (locale (irregex-match *i18n-json-file-re* file)))
+(define (i18n-sxml-init)
+  (define (load-sxml-file file)
+    (let ((path (string-append (i18n-sxml-dir) "/" file))
+          (locale (irregex-match *i18n-sxml-file-re* file)))
       (cond
-       ((not locale) (error "i18n: Invalid json file name: ~a" file))
+       ((not locale) (error "i18n: Invalid sxml file name: ~a" file))
        (else
-        (hash-set! *i18n-json-table*
+        (hash-set! *i18n-sxml-table*
                    (string-append (irregex-match-substring locale 1)
                                   "." (get-conf '(server charset)))
-                   (call-with-input-file path json->scm))))))
-  (let ((dir (i18n-json-dir)))
+                   (call-with-input-file path read))))))
+  (let ((dir (i18n-sxml-dir)))
     (when (not (file-exists? dir))
       (mkdir dir))
-    (for-each load-json-file
+    (for-each load-sxml-file
               (scandir dir
                        (lambda (f)
                          (and
                           (not (or (string=? f ".") (string=? f "..")))
-                          (irregex-match *i18n-json-file-re* f)))))
-    ;; return the i18n-json-ref function for registering
-    (values i18n-json-single-ref
-            i18n-json-plural-ref)))
+                          (irregex-match *i18n-sxml-file-re* f)))))
+    ;; return the i18n-sxml-ref function for registering
+    (values i18n-sxml-single-ref
+            i18n-sxml-plural-ref)))

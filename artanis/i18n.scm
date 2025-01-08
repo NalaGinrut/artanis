@@ -20,6 +20,7 @@
 (define-module (artanis i18n)
   #:use-module (artanis config)
   #:use-module (artanis i18n json)
+  #:use-module (artanis i18n sxml)
   #:use-module (artanis i18n locale)
   #:use-module (ice-9 i18n)
   #:use-module (ice-9 match)
@@ -96,6 +97,9 @@
 (define (init-i18n)
   (let ((i18n-mode (get-conf '(session i18n))))
     (case i18n-mode
+      ((sxml) (receive (single plural) (i18n-sxml-init)
+                (i18n-getter single)
+                (i18n-ngetter plural)))
       ((json) (receive (single plural) (i18n-json-init)
                 (i18n-getter single)
                 (i18n-ngetter plural)))
