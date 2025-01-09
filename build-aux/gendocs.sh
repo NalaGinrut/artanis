@@ -2,9 +2,9 @@
 # gendocs.sh -- generate a GNU manual in many formats.  This script is
 #   mentioned in maintain.texi.  See the help message below for usage details.
 
-scriptversion=2023-01-01.00
+scriptversion=2025-01-01.00
 
-# Copyright 2003-2023 Free Software Foundation, Inc.
+# Copyright 2003-2025 Free Software Foundation, Inc.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@ unset use_texi2html
 MANUAL_TITLE=
 PACKAGE=
 EMAIL=webmasters@gnu.org  # please override with --email
-commonarg= # passed to all makeinfo/texi2html invcations.
+commonarg= # passed to all makeinfo/texi2html invocations.
 dirargs=   # passed to all tools (-I dir).
 dirs=      # -I directories.
 htmlarg="--css-ref=https://www.gnu.org/software/gnulib/manual.css -c TOP_NODE_UP_URL=/manual"
@@ -66,14 +66,14 @@ generate_html=true
 generate_info=true
 generate_tex=true
 outdir=manual
-source_extra=
+unset source_extra
 split=node
 srcfile=
 texarg="-t @finalout"
 
 version="gendocs.sh $scriptversion
 
-Copyright 2023 Free Software Foundation, Inc.
+Copyright 2025-2025 Free Software Foundation, Inc.
 There is NO warranty.  You may redistribute this software
 under the terms of the GNU General Public License.
 For more information about these matters, see the files named COPYING."
@@ -167,7 +167,7 @@ while test $# -gt 0; do
     --html)      shift; default_htmlarg=false; htmlarg=$1;;
     --info)      shift; infoarg=$1;;
     --no-ascii)  generate_ascii=false;;
-    --no-html)   generate_ascii=false;;
+    --no-html)   generate_html=false;;
     --no-info)   generate_info=false;;
     --no-tex)    generate_tex=false;;
     --source)    shift; source_extra=$1;;
@@ -256,8 +256,8 @@ BEGIN {
 /<img src="(.*?)"/g && ++$need{$1};
 
 END {
-  #print "$me: @{[keys %need]}\n";  # for debugging, show images found.
-  FILE: for my $f (keys %need) {
+  #print "$me: @{[sort keys %need]}\n";  # for debugging, show images found.
+  FILE: for my $f (sort keys %need) {
     for my $d (@dirs) {
       if (-f "$d/$f") {
         use File::Basename;
@@ -416,11 +416,49 @@ fi # end html
 printf "\nMaking .tar.gz for sources...\n"
 d=`dirname $srcfile`
 (
-  cd "$d"
-  srcfiles=`ls -d *.texinfo *.texi *.txi *.eps $source_extra 2>/dev/null` || true
-  tar czfh "$abs_outdir/$PACKAGE.texi.tar.gz" $srcfiles
-  ls -l "$abs_outdir/$PACKAGE.texi.tar.gz"
-)
+  cd "$d" || exit
+
+  # Set PATS to a list of globbing patterns that expand to
+  # file names to be put into the .tar.gz for sources.
+  # Omit patterns that do not expand to file names.
+  pats=
+
+  if case `$MAKEINFO --version | sed -e 's/^[^0-9]*//' -e 1q` in \
+       [1-6]* | 7.[01]*) false;; \
+       *) true;; \
+     esac \
+  ; then
+
+    for pat in '*.eps'; do
+      for file in $pat; do
+        test "$file" = "$pat" && test ! -e "$file" || pats="$pats $pat"
+        break
+      done
+    done
+
+    # if $MAKEINFO is recent enough, use --trace-includes on the
+    # $srcfile to get the included files of the targeted manual only
+    base=`basename "$srcfile"`
+
+    cmd="$SETLANG $MAKEINFO $commonarg --trace-includes \"$base\""
+    eval "$cmd" \
+    | tar -czhf "$abs_outdir/$PACKAGE.texi.tar.gz" \
+        --verbatim-files-from -T- -- "$base" $pats \
+        ${source_extra+"$source_extra"} \
+    && ls -l "$abs_outdir/$PACKAGE.texi.tar.gz"
+  else
+    for pat in '*.texinfo' '*.texi' '*.txi' '*.eps'; do
+     for file in $pat; do
+       test "$file" = "$pat" && test ! -e "$file" || pats="$pats $pat"
+       break
+      done
+    done
+
+    tar -czhf "$abs_outdir/$PACKAGE.texi.tar.gz" \
+       -- $pats ${source_extra+"$source_extra"} \
+    && ls -l "$abs_outdir/$PACKAGE.texi.tar.gz"
+  fi
+) || exit
 texi_tgz_size=`calcsize "$outdir/$PACKAGE.texi.tar.gz"`
 
 # 
@@ -466,49 +504,16 @@ fi
 # 
 printf "\nMaking index.html for %s...\n" "$PACKAGE"
 if test -z "$use_texi2html"; then
-  CONDS="/%%IF  *HTML_SECTION%%/,/%%ENDIF  *HTML_SECTION%%/d;\
-         /%%IF  *HTML_CHAPTER%%/,/%%ENDIF  *HTML_CHAPTER%%/d"
-else
-  # should take account of --split here.
-  CONDS="/%%ENDIF.*%%/d;/%%IF  *HTML_SECTION%%/d;/%%IF  *HTML_CHAPTER%%/d"
-fi
-
-curdate=`$SETLANG date '+%B %d, %Y'`
-sed \
-   -e "s!%%TITLE%%!$MANUAL_TITLE!g" \
-   -e "s!%%EMAIL%%!$EMAIL!g" \
-   -e "s!%%PACKAGE%%!$PACKAGE!g" \
-   -e "s!%%DATE%%!$curdate!g" \
-   -e "s!%%HTML_MONO_SIZE%%!$html_mono_size!g" \
-   -e "s!%%HTML_MONO_GZ_SIZE%%!$html_mono_gz_size!g" \
-   -e "s!%%HTML_NODE_TGZ_SIZE%%!$html_node_tgz_size!g" \
-   -e "s!%%HTML_SECTION_TGZ_SIZE%%!$html_section_tgz_size!g" \
-   -e "s!%%HTML_CHAPTER_TGZ_SIZE%%!$html_chapter_tgz_size!g" \
-   -e "s!%%INFO_TGZ_SIZE%%!$info_tgz_size!g" \
-   -e "s!%%DVI_GZ_SIZE%%!$dvi_gz_size!g" \
-   -e "s!%%PDF_SIZE%%!$pdf_size!g" \
-   -e "s!%%ASCII_SIZE%%!$ascii_size!g" \
-   -e "s!%%ASCII_GZ_SIZE%%!$ascii_gz_size!g" \
-   -e "s!%%TEXI_TGZ_SIZE%%!$texi_tgz_size!g" \
-   -e "s!%%DOCBOOK_HTML_NODE_TGZ_SIZE%%!$html_node_db_tgz_size!g" \
-   -e "s!%%DOCBOOK_ASCII_SIZE%%!$docbook_ascii_size!g" \
-   -e "s!%%DOCBOOK_PDF_SIZE%%!$docbook_pdf_size!g" \
-   -e "s!%%DOCBOOK_XML_SIZE%%!$docbook_xml_size!g" \
-   -e "s!%%DOCBOOK_XML_GZ_SIZE%%!$docbook_xml_gz_size!g" \
-   -e "s,%%SCRIPTURL%%,$scripturl,g" \
-   -e "s!%%SCRIPTNAME%%!$prog!g" \
-   -e "$CONDS" \
-$GENDOCS_TEMPLATE_DIR/gendocs_template >"$outdir/index.html"
-
-echo "Done, see $outdir/ subdirectory for new files."
-
-# Local variables:
-# eval: (add-hook 'before-save-hook 'time-stamp)
-# time-stamp-start: "scriptversion="
-# time-stamp-format: "%:y-%02m-%02d.%02H"
-# time-stamp-end: "$"
-# End:
-DIF  *HTML_SECTION%%/d;\
+  if test x$split = xnode; then
+    CONDS="/%%IF  *HTML_NODE%%/d;/%%ENDIF  *HTML_NODE%%/d;\
+           /%%IF  *HTML_CHAPTER%%/,/%%ENDIF  *HTML_CHAPTER%%/d;\
+           /%%IF  *HTML_SECTION%%/,/%%ENDIF  *HTML_SECTION%%/d;"
+  elif test x$split = xchapter; then
+    CONDS="/%%IF  *HTML_CHAPTER%%/d;/%%ENDIF  *HTML_CHAPTER%%/d;\
+           /%%IF  *HTML_SECTION%%/,/%%ENDIF  *HTML_SECTION%%/d;\
+           /%%IF  *HTML_NODE%%/,/%%ENDIF  *HTML_NODE%%/d;"
+  elif test x$split = xsection; then
+    CONDS="/%%IF  *HTML_SECTION%%/d;/%%ENDIF  *HTML_SECTION%%/d;\
            /%%IF  *HTML_CHAPTER%%/,/%%ENDIF  *HTML_CHAPTER%%/d;\
            /%%IF  *HTML_NODE%%/,/%%ENDIF  *HTML_NODE%%/d;"
   else
