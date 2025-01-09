@@ -227,13 +227,16 @@
   (init-lpc)
   (init-i18n)
   (check-invalid-config)
-  (define SA_NODEFER #x40000000)
   (sigaction SIGPIPE SIG_IGN) ; surpass SIGPIPE signal since we want to handle EPIPE by self
   (sigaction SIGINT (lambda (i)
                       (run-when-sigint-hook)
                       (nss:pr-cleanup)
                       (format (artanis-current-output)
                               "~%Fare you well, your server is cold.~%")))
+
+  ;; define default system error status
+  (http-status 408 (lambda () ""))
+
   (is-init-server-run? #t))
 
 (define* (form-tag #:key (controller #f) (action #f) (method #f)
