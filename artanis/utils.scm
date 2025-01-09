@@ -298,7 +298,10 @@
   ;; TODO: support AF_INET6 in the future
   (if (port-filename (request-port req))
       ;; Valid socket port
-      (inet-ntop AF_INET (sockaddr:addr (getpeername (request-port req))))
+      (catch #t
+        (lambda ()
+          (inet-ntop AF_INET (sockaddr:addr (getpeername (request-port req)))))
+        (lambda _ "Unknown IP"))
       "localtest")) ; fake hostname for testing
 
 (define-syntax-rule (remote-info req)
