@@ -2577,11 +2577,27 @@ And let other handlers deal with the requests. Just like the scheduling of an OS
 If you have issues with the buffer when scheduling, there's no way to flush before it breaks,
 since we can't tell if the scheduling is caused by the buffering or the blocking.
 
+*** Multi-server support
+
+#+begin_src conf
+server.multi = true
+#+end_src
+
 Ragnarok takes advantage of src_conf[:exports code]{SO_REUSEPORT} introduced in GNU/Linux 3.9 to provide a feature
 named src_conf[:exports code]{server.multi} which can be enabled in the config. This feature allows users to start several
 Artanis instances listening to the same port, to take advantage of multi core CPUs, and the Linux Kernel managing the events.
 
-(to be continued ...)
+*** Multi-workers support
+
+#+begin_src conf
+server.workers = positive_number
+#+end_src
+
+The multi.server can let you start multiple GNU Artanis instances to handle the requests concurrently. This feature is essential for high-performance web applications. /However, one may have to manage each instance by manually, it's a bit tricky since it's designed for distributed situation./
+
+- If you set src_conf[:exports code]{server.workers} to a number larger than 1, then src_conf[:exports code]{server.multi} will be enabled automatically.
+
+NOTE: Since v1.1.0.
 
 ** Ragnarok APIs
 You can use these APIs to customize your own server core.

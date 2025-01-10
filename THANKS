@@ -32,3 +32,7 @@ Thanks these guys who gave me help:
 * Yarl Baudig <yarl-baudig@mailoo.org>
   Fix epoll issue on Aarch64.
   Thanks for the long time tracing and fixed finally!
+* Jaft <jaft.r@outlook.com>, Benson Muite <benson_muite@emailplus.org>
+  Contributed neo GNU Artanis logo design.
+* Sai Karthik <kskarthik@disroot.org>
+  Contributed new GNU Artanis site based on org-mode.

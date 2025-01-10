@@ -206,3 +206,15 @@ Changes in 1.0.0
 - Fix fatal bug in session
 - Update manual for Models
 - Update THANKS
+
+Changes in 1.1.0
+* Notable changes
+- Add i18n
+- Add server.workers
+- Move out tmp dir (for Guix)
+- Fix autoload in debug mode
+- Fix request-ip thrown issue
+- Add default 408 handler
+- Update manual
+- Update THANKS
+
