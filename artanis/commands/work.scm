@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015-2020,2024
+;;  Copyright (C) 2015-2025
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -114,7 +114,7 @@
 (define (clean-stuffs)
   (define toplevel (current-toplevel))
   (define route-cache (format #f "~a/cache/route.cache" (current-tmp)))
-  (define route (format #f "~a/.route" toplevel))
+  (define route (format #f "~a/.route" (current-tmp)))
   (define-syntax-rule (clean-it f)
     (when (file-exists? f) (delete-file f)))
   (clean-it route-cache)
