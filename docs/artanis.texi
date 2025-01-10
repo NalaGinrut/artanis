@@ -47,6 +47,7 @@
 * Websocket Experimental::
 * Ragnarok server core::
 * Key-Value Database::
+* I18n::
 * Utils::
 * Debug mode::
 * Appendix A GNU Free Documentation License::
@@ -592,6 +593,7 @@ Hold your horses. ;-)
 @anchor{#gnu-artanis-basics}
 
 @menu
+* Web application structure::
 * How to run a site with GNU Artanis::
 * Initialization::
 * Registering handlers for HTTP methods::
@@ -599,6 +601,66 @@ Hold your horses. ;-)
 * Running the server::
 * Working with Nginx::
 @end menu
+
+@node Web application structure
+@section Web application structure
+@anchor{#web-application-structure}
+
+@verbatim
+├── app
+│   ├── controllers
+│   ├── models
+│   ├── protocols
+│   └── views
+├── conf
+│   ├── artanis.conf
+│   └── README
+├── db
+│   ├── migration
+│   └── sm
+├── ENTRY
+├── lib
+├── log
+├── prv
+├── pub
+│   ├── css
+│   ├── img
+│   │   └── upload
+│   └── js
+├── README
+├── sys
+│   ├── i18n
+│   │   ├── json
+│   │   ├── po
+│   │   └── sxml
+│   └── pages
+└── test
+    ├── benchmark
+    │   └── README
+    ├── functional
+    └── unit
+@end verbatim
+
+@itemize
+@item
+@strong{@strong{lib}} is where you put your own modules for the app, and the third-part modules could be put into it. The load path will be added automatically when the server core start.
+
+@item
+@strong{@strong{log}} is expected to put logs, however, it's not actually used yet.
+
+@item
+@strong{@strong{prv}} is a place to put your private stuffs, like API token or password in text. This should never be added to git.
+
+@end itemize
+
+@menu
+* Temporary files::
+@end menu
+
+@node Temporary files
+@subsection Temporary files
+@anchor{#temporary-files}
+Since GNU Artanis 1.1.0, the @strong{@strong{tmp}} directory was moved to @strong{@strong{/tmp/your_app_name-xxxxx}}. Each time you run @strong{@strong{art work}}, the related temporary directory will be regenerated. The purpose is to make application folder functional and clean. We support GNU Guix to make the application folder read-only.
 
 @node How to run a site with GNU Artanis
 @section How to run a site with GNU Artanis
@@ -3543,6 +3605,124 @@ In default, the key will be prefixed automatically:
 @verbatim
 (string-append "__artanis_lpc_" (get-conf '(db name)) "_" key)
 @end verbatim
+
+@node I18n
+@chapter I18n
+@anchor{#i18n}
+i18n stands for internationalization, which is a process of designing a software application so that it can be adapted to various languages and regions without engineering changes.
+
+@menu
+* Basic API to get language set from client::
+* Translation mode::
+* I18n best practice::
+@end menu
+
+@node Basic API to get language set from client
+@section Basic API to get language set from client
+@anchor{#basic-api-to-get-language-set-from-client}
+There're three basic APIs for i18n in GNU Artanis:
+
+@menu
+* I18n from URL::
+* I18n from cookie::
+* I18n from HTTP header::
+@end menu
+
+@node I18n from URL
+@subsection I18n from URL
+@anchor{#i18n-from-url}
+
+@verbatim
+(get "/index/:lang"
+  #:i18n "lang"
+  (lamba (rc) ...))
+@end verbatim
+
+@itemize
+@item
+If the key in the URL is @code{":my_lang"}, then you should configure it as @code{"#:i18n my_lang"}.
+@end itemize
+
+@node I18n from cookie
+@subsection I18n from cookie
+@anchor{#i18n-from-cookie}
+
+@verbatim
+(get "/index"
+  #:i18n '(cookie "lang")
+  (lambda (rc) ...))
+@end verbatim
+
+@itemize
+@item
+If the key in the cookie is @code{"my_lang"}, then you should configure it as @code{#:i18n '(cookie "my_lang")}.
+@end itemize
+
+@node I18n from HTTP header
+@subsection I18n from HTTP header
+@anchor{#i18n-from-http-header}
+
+@verbatim
+(get "/index"
+  #:i18n 'header
+  (lambda (rc) ...))
+@end verbatim
+
+@itemize
+@item
+The language set in the HTTP header is @code{"Accept-Language"}.
+@item
+If there's multiple languages, GNU Artanis will choose the first one.
+@item
+Note that the language is in the format of RFC 4646 (e.g. ja-JP) GNU Artanis will convert it to the format of GNU Gettext (e.g. ja_JP).
+@end itemize
+
+@node Translation mode
+@section Translation mode
+@anchor{#translation-mode}
+
+@menu
+* With GNU Gettext::
+* With JSON::
+* With SXML::
+@end menu
+
+@node With GNU Gettext
+@subsection With GNU Gettext
+@anchor{#with-gnu-gettext}
+
+@verbatim
+session.i18n = locale
+@end verbatim
+
+You must put related translation into @strong{@strong{sys/i18n/locale}} directory. The directory structure should be like this: src_scheme[:exports code](lang_COUNTRY/LC_MESSAGES/domain.mo).
+
+About PO and MO files, please read @uref{https://www.gnu.org/software/gettext/manual/html_node/index.html#SEC_Contents,GNU Gettext's manual}.
+
+@node With JSON
+@subsection With JSON
+@anchor{#with-json}
+
+@verbatim
+session.i18n = json
+@end verbatim
+
+You must put related translation into @strong{@strong{sys/i18n/json}} directory. The directory structure should be like this: src_scheme[:exports code](lang_COUNTRY.json).
+
+@node With SXML
+@subsection With SXML
+@anchor{#with-sxml}
+
+@verbatim
+session.i18n = sxml
+@end verbatim
+
+You must put related translation into @strong{@strong{sys/i18n/sxml}} directory. The directory structure should be like this: src_scheme[:exports code](lang_COUNTRY.scm).
+
+@node I18n best practice
+@section I18n best practice
+@anchor{#i18n-best-practice}
+Please read GNU Artanis blog post about @uref{https://artanis.dev/blog/how-to-make-i18n-properly.html,how to make i18n properly}.
 
 @node Utils
 @chapter Utils

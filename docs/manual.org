@@ -412,6 +412,52 @@ But once you're done reading them *carefully*, you may want to write a new GNU A
 
 Hold your horses. ;-)
 * GNU Artanis Basics
+** Web application structure
+#+begin_src bash
+├── app
+│   ├── controllers
+│   ├── models
+│   ├── protocols
+│   └── views
+├── conf
+│   ├── artanis.conf
+│   └── README
+├── db
+│   ├── migration
+│   └── sm
+├── ENTRY
+├── lib
+├── log
+├── prv
+├── pub
+│   ├── css
+│   ├── img
+│   │   └── upload
+│   └── js
+├── README
+├── sys
+│   ├── i18n
+│   │   ├── json
+│   │   ├── po
+│   │   └── sxml
+│   └── pages
+└── test
+    ├── benchmark
+    │   └── README
+    ├── functional
+    └── unit
+#+end_src
+
+- **lib** is where you put your own modules for the app, and the third-part modules could be put into it. The load path will be added automatically when the server core start.
+
+- **log** is expected to put logs, however, it's not actually used yet.
+
+- **prv** is a place to put your private stuffs, like API token or password in text. This should never be added to git.
+
+*** Temporary files
+
+Since GNU Artanis 1.1.0, the **tmp** directory was moved to **/tmp/your_app_name-xxxxx**. Each time you run **art work**, the related temporary directory will be regenerated. The purpose is to make application folder functional and clean. We support GNU Guix to make the application folder read-only.
+
 ** How to run a site with GNU Artanis
 This is the simplest way to run a site:
 #+begin_src scheme
@@ -2569,6 +2615,71 @@ In default, the key will be prefixed automatically:
 #+BEGIN_SRC scheme
 (string-append "__artanis_lpc_" (get-conf '(db name)) "_" key)
 #+END_SRC
+
+* I18n
+i18n stands for internationalization, which is a process of designing a software application so that it can be adapted to various languages and regions without engineering changes.
+
+** Basic API to get language set from client
+There're three basic APIs for i18n in GNU Artanis:
+
+*** I18n from URL
+#+BEGIN_SRC scheme
+(get "/index/:lang"
+  #:i18n "lang"
+  (lamba (rc) ...))
+#+END_SRC
+
+- If the key in the URL is src_scheme[:exports code]{":my_lang"}, then you should configure it as src_scheme[:exports code]{"#:i18n my_lang"}.
+
+*** I18n from cookie
+#+BEGIN_SRC scheme
+(get "/index"
+  #:i18n '(cookie "lang")
+  (lambda (rc) ...))
+#+END_SRC
+
+- If the key in the cookie is src_scheme[:exports code]{"my_lang"}, then you should configure it as src_scheme[:exports code]{#:i18n '(cookie "my_lang")}.
+
+*** I18n from HTTP header
+#+BEGIN_SRC scheme
+(get "/index"
+  #:i18n 'header
+  (lambda (rc) ...))
+#+END_SRC
+
+- The language set in the HTTP header is src_scheme[:exports code]{"Accept-Language"}.
+- If there's multiple languages, GNU Artanis will choose the first one.
+- Note that the language is in the format of RFC 4646 (e.g. ja-JP) GNU Artanis will convert it to the format of GNU Gettext (e.g. ja_JP).
+
+** Translation mode
+
+*** With GNU Gettext
+#+BEGIN_SRC conf
+session.i18n = locale
+#+END_SRC
+
+You must put related translation into **sys/i18n/locale** directory. The directory structure should be like this: src_scheme[:exports code](lang_COUNTRY/LC_MESSAGES/domain.mo).
+
+About PO and MO files, please read [[https://www.gnu.org/software/gettext/manual/html_node/index.html#SEC_Contents][GNU Gettext's manual]].
+
+*** With JSON
+#+BEGIN_SRC conf
+session.i18n = json
+#+END_SRC
+
+You must put related translation into **sys/i18n/json** directory. The directory structure should be like this: src_scheme[:exports code](lang_COUNTRY.json).
+
+*** With SXML
+
+#+BEGIN_SRC conf
+session.i18n = sxml
+#+END_SRC
+
+You must put related translation into **sys/i18n/sxml** directory. The directory structure should be like this: src_scheme[:exports code](lang_COUNTRY.scm).
+
+** I18n best practice
+
+Please read GNU Artanis blog post about [[https://artanis.dev/blog/how-to-make-i18n-properly.html][how to make i18n properly]].
 
 * Utils
 *The functions listed below require the [[https://gitlab.com/NalaGinrut/artanis/blob/master/artanis/utils.scm][(artanis utils)]] module.*
