@@ -141,11 +141,7 @@
 (define-syntax-rule (proper-toplevel)
   (or (current-toplevel) "./"))
 
-(define (current-tmp)
-  (let ((tmp (format #f "~a/tmp" (proper-toplevel))))
-    (when (not (file-exists? tmp))
-      (mkdir tmp))
-    tmp))
+(define current-tmp (make-parameter "Fatal: current-tmp was not initialized!"))
 
 ;; parameters for command
 (define cmd:is-dry-run? (make-parameter #f))

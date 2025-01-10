@@ -39,6 +39,8 @@
   #:use-module (artanis websocket)
   #:use-module (artanis lpc)
   #:use-module (artanis security nss)
+  #:use-module (artanis i18n)
+  #:use-module (artanis cli)
   #:use-module (artanis version)
   #:use-module (web server)
   #:use-module (srfi srfi-1)
@@ -218,6 +220,14 @@
   (when (and (not (linux-version>=? "3.9")) (get-conf '(server multi)))
     (error "It's required to have Linux-3.9+ to enable server.multi feature!")))
 
+(define (init-tmp)
+  (let ((tmp (format #f "/tmp/~a-~a" (current-appname)
+                     (get-random-from-dev #:length 4))))
+    (when (file-exists? tmp)
+      (cli-run* rm -fr ,tmp))
+    (mkdir tmp)
+    (current-tmp tmp)))
+
 ;; make sure to call init-server at the beginning
 (define* (init-server #:key (statics '(png jpg jpeg ico html js css))
                       (cache-statics? #f) (exclude '()))
@@ -226,6 +236,7 @@
   (init-config)
   (init-lpc)
   (init-i18n)
+  (init-tmp)
   (check-invalid-config)
   (sigaction SIGPIPE SIG_IGN) ; surpass SIGPIPE signal since we want to handle EPIPE by self
   (sigaction SIGINT (lambda (i)

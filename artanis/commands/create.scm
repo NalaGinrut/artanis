@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015-2024
+;;  Copyright (C) 2015-2025
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -78,17 +78,6 @@
 (define (print-create-info pstr)
   (format #t "create~10t~a~%" pstr))
 
-(define (tmp-cache-handler p)
-  (define (-> f) (string-append p "/" f))
-  (let ((readme (-> "README"))
-        (route-cache (-> "route.cache")))
-    (print-create-info readme)
-    (touch readme)
-    (call-with-output-file route-cache
-      (lambda (port)
-        (format port ";; Do not touch anything!!!~%")
-        (format port ";; All things here should be automatically handled properly!!!~%")))))
-
 (define (create-default-readme readme)
   (print-create-info readme)
   (touch readme))
@@ -155,19 +144,17 @@
 (define *files-handler*
   `(((sm) . ,sm-handler)
     ((conf) . ,conf-handler)
-    ((tmp cache) . ,tmp-cache-handler)
     ((test benchmark) . ,benchmark-handler)))
 
 (define *dir-arch*
   '((app (models controllers views protocols)) ; MVC stuff
     (conf) ; config files
-    (sys (pages (i18n (json po)))) ; system stuff
+    (sys (pages (i18n (json po sxml)))) ; system stuff
     (db (migration sm)) ; DB (include SQL Mappings)
     (log) ; log files
     (lib) ; libs
     (pub ((img (upload)) css js)) ; public assets
     (prv) ; private stuff, say, private config or tokens
-    (tmp ((cache (migration)))) ; temporary files
     (test (unit functional benchmark)))) ; tests stuffs
 
 ;; Simple recursive depth-first order traverser for generic tree (in list).
