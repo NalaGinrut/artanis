@@ -70,6 +70,16 @@
 
 (define conf-footer "\n\n## End Of Artanis conf.\n")
 
+(define *plugin-conf*
+  ";; This is a plugin configuration file, don't remove it!
+
+;; Uncomment following lines to enable plugins.
+;; Make sure you import the plugin modules here.
+(define-module (artanis plugins)
+  #:use-module (artanis oht))
+
+;; (plugin-enable! name handler)
+")
 
 (define (touch f)
   (close (open-file f "w")))
@@ -87,6 +97,14 @@
   (create-default-readme (-> "README"))
   ;; TODO: generate template
   )
+
+(define (plugins-handler p)
+  (define (-> f) (string-append p "/" f))
+  (when (not (file-exists? (-> "plugins.scm")))
+    (let ((fp (open-file (-> "plugins.scm") "w")))
+      (display *plugin-conf* fp)
+      (close fp)
+      (print-create-info (-> "plugins.scm")))))
 
 (define (conf-handler p)
   (define (-> f) (string-append p "/" f))
@@ -132,8 +150,10 @@
       (display conf-footer fp)
       (close fp)
       (print-create-info (-> "artanis.conf"))))
-  (create-default-readme (-> "README"))
-  (create-local-config))
+  (when (not (file-exists? p))
+    (create-default-readme (-> "README")))
+  (create-local-config)
+  (plugins-handler p))
 
 (define (sm-handler p)
   (define (-> f) (string-append p "/" f))

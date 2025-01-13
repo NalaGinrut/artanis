@@ -60,6 +60,7 @@
              page-options
              page-delete
 
+             plugin-enable!
              :sql-mapping
              :str
              :conn
@@ -819,6 +820,23 @@
   `(define-syntax-rule (,(symbol-append ': what) ?rc args ...)
      (=> ,(symbol->keyword what) ?rc args ...)))
 
+(define-syntax-rule (plugin-enable! name handler)
+  (begin
+    (oh-set! (symbol->keyword 'name) handler)
+    (module-define! (resolve-module '(conf plugins))
+                    (symbol-append ': 'name)
+                    (lambda (rc . args)
+                      (let* ((opt (symbol->keyword 'name))
+                             (oht (rc-oht rc))
+                             (h (and oht (hash-ref oht opt))))
+                        (cond
+                         (h (apply h rc args))
+                         (else
+                          (throw 'artanis-err 500 'plugin-enable!
+                                 "BUG: ~a wasn't initialized!" opt))))))
+    (module-export! (resolve-module '(conf plugins))
+                    (list (symbol-append ': 'name)))))
+
 ;; register all the meta handler
 (meta-handler-register sql-mapping)
 (meta-handler-register str)
@@ -885,8 +903,8 @@
                ((or (eq? k #:session) (eq? k #:i18n))
                 ;; #:session requires #:cookies
                 (when (not (hash-ref oht #:cookies))
-                  (init-oht! oht #:cookies #t rule keys))))
-              (hash-set! oht k (h v rule keys)))
+                  (init-oht! oht #:cookies #t rule keys)))
+               (else (hash-set! oht k (h v rule keys)))))
              (else #f))))
         opts)
        oht))))

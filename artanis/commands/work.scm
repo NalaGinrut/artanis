@@ -120,10 +120,14 @@
   (clean-it route-cache)
   (clean-it route))
 
+(define (load-plugins)
+  (load (format #f "~a/conf/plugins.scm" (current-toplevel))))
+
 (define (init-work)
   (clean-stuffs)
   (add-to-load-path (current-toplevel))
   (add-to-load-path (string-append (current-toplevel) "/lib"))
+  (load-plugins)
   (try-load-app)
   (register-rules)
   (load-rules))
