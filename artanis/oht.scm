@@ -903,8 +903,9 @@
                ((or (eq? k #:session) (eq? k #:i18n))
                 ;; #:session requires #:cookies
                 (when (not (hash-ref oht #:cookies))
-                  (init-oht! oht #:cookies #t rule keys)))
-               (else (hash-set! oht k (h v rule keys)))))
+                  (init-oht! oht #:cookies #t rule keys))))
+              ;; init the handler
+              (hash-set! oht k (h v rule keys)))
              (else #f))))
         opts)
        oht))))
