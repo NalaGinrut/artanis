@@ -49,7 +49,7 @@
              (set! old-locale cur-locale)
              (setlocale LC_MESSAGES lang)))
          (lambda ()
-           (fix-num (gettext key (current-locale-domain) LC_MESSAGES)))
+           (fix-num (gettext key (i18n-locale-domain) LC_MESSAGES)))
          (lambda ()
            (setlocale LC_MESSAGES old-locale))))))
 
