@@ -45,7 +45,7 @@
       (match pattern
         (((? string? key))
          (cond
-          ((string-null? lang) key)
+          ((or (not lang) (string-null? lang)) key)
           ((i18n-getter)
            => (lambda (getter)
                 (or (getter (->fix lang) key)
