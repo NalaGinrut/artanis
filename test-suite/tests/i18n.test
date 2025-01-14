@@ -63,6 +63,16 @@ Cookie: lang=ja_JP\r
 \r
 ")
 
+(define non-lang-reqest/cookie
+  "GET /non-lang-test/cookie HTTP/1.1\r
+\r
+")
+
+(define non-lang-request/header
+  "GET /non-lang-test/header HTTP/1.1\r
+\r
+")
+
 (define locale-test-request
   "GET /locale-test/pl_PL HTTP/1.1\r
 \r
@@ -96,6 +106,16 @@ Cookie: lang=ja_JP\r
 (get "/test/cookie"
   #:i18n '(cookie "lang") #:mime 'json
   handler)
+
+(get "/non-lang-test/cookie"
+  #:i18n '(cookie "lang")
+  (lambda (rc)
+    ((:i18n rc) "hello")))
+
+(get "/non-lang-test/header"
+  #:i18n 'header
+  (lambda (rc)
+    ((:i18n rc) "hello")))
 
 (define *test-dir* "/tmp/i18n-test")
 (define test-jp-translation/json
@@ -211,6 +231,14 @@ msgstr[2] \"Masz %d jabek.\"
         (prepare-pl-locale-test)
         (let-values (((res body) (test-from-request locale-test-request)))
           (string=? (utf8->string body) expect-locale-pl-result)))))
+
+  (pass-if "i18n non-lang test with cookie"
+    (let-values (((res body) (test-from-request non-lang-reqest/cookie)))
+      (string=? (utf8->string body) "hello")))
+
+  (pass-if "i18n non-lang test with header"
+    (let-values (((res body) (test-from-request non-lang-request/header)))
+      (string=? (utf8->string body) "hello")))
 
   ;; TODO: fill other tests
   )

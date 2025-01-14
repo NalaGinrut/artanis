@@ -37,10 +37,14 @@
 
 (define* (make-i18n-handler)
   (define (->fix lang)
-    (let ((encoding (get-conf '(server charset))))
-      (string-concatenate (list lang "." encoding))))
+    (cond
+     ((or (not lang) (string-null? lang)) "")
+     (else
+      (let ((encoding (get-conf '(server charset))))
+        (string-concatenate (list lang "." encoding))))))
   (let* ((lang (current-lang))
-         (locale (make-locale (list LC_ALL) (->fix lang))))
+         (fixed-lang (->fix lang))
+         (locale (make-locale (list LC_ALL) fixed-lang)))
     (lambda pattern
       (match pattern
         (((? string? key))
@@ -48,7 +52,7 @@
           ((or (not lang) (string-null? lang)) key)
           ((i18n-getter)
            => (lambda (getter)
-                (or (getter (->fix lang) key)
+                (or (getter fixed-lang key)
                     key)))
           (else
            (throw 'artanis-error 500 make-i18n-handler
@@ -57,7 +61,7 @@
          (cond
           ((i18n-ngetter)
            => (lambda (getter)
-                (getter (->fix lang) key-single key-plural num)))
+                (getter fixed-lang key-single key-plural num)))
           (else
            (throw 'artanis-error 500 make-i18n-handler
                   "Unexpected: i18n plural getter is not initialized!"))))

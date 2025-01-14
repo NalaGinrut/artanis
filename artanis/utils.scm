@@ -1651,11 +1651,14 @@
 
 (define *http-lang-tag-re* (string->irregex "([a-z]+)-([A-Z])+"))
 (define (http-lang-tag->gnu-locale lang)
-  ;; replace - with _
-  (if (irregex-match *http-lang-tag-re* lang)
-      (irregex-replace/all "-" lang "_")
-      (throw 'artanis-err 500 http-lang-tag->gnu-locale
-             "Invalid HTTP lang tag format: ~a" lang)))
+  (cond
+   ((or (not lang) (string-null? lang)) "")
+   (else
+    ;; replace - with _
+    (if (irregex-match *http-lang-tag-re* lang)
+        (irregex-replace/all "-" lang "_")
+        (throw 'artanis-err 500 http-lang-tag->gnu-locale
+               "Invalid HTTP lang tag format: ~a" lang)))))
 
 (define *gnu-locale-re* (string->irregex "([a-z]+)_([A-Z])+"))
 (define (gnu-locale->http-lang-tag lang)
