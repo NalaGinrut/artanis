@@ -850,8 +850,6 @@
 (meta-handler-register from-post)
 (meta-handler-register websocket)
 (meta-handler-register lpc)
-
-;; No rc
 (meta-handler-register i18n)
 
 (define-syntax-rule (:cookies-set! rc ck k v)
