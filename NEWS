@@ -1,5 +1,5 @@
 Artanis NEWS --- history of user-visible changes.
-Copyright (C) 2015-2024
+Copyright (C) 2015-2025
 "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 See the end for copying conditions.
 
@@ -218,3 +218,10 @@ Changes in 1.1.0
 - Update manual
 - Update THANKS
 
+Changes in 1.2.2
+* Notable changes
+- Fix bugs in i18n
+- Support SXML in i18n
+- Fix to init oht correctly
+- Add plugins mechanism
+- Fix to detect locale domain correctly
