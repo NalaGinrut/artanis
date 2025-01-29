@@ -19,6 +19,7 @@
 
 (define-module (artanis client)
   #:use-module (web response)
+  #:use-module (web http)
   #:use-module (web uri)
   #:use-module (srfi srfi-11)
   #:use-module (curl)
@@ -31,6 +32,14 @@
 
 ;; It's recommend to use (artanis client) rather than (web client)
 
+(define (gen-headers-list headers)
+  (map (lambda (e)
+         (string-trim-both
+          (call-with-output-string
+           (lambda (port)
+             (write-header (car e) (cdr e) port)))))
+       headers))
+
 (define (request-it url handle headers cert bv?)
   (curl-easy-setopt handle 'url url)
   (curl-easy-setopt handle 'http-version 2)
@@ -38,11 +47,7 @@
     (curl-easy-setopt handle 'ssl-verifypeer #f)
     (curl-easy-setopt handle 'ssl-verifyhost #f))
   (curl-easy-setopt handle 'httpheader
-                    (map (lambda (e)
-                           (format #f "~a: ~a"
-                                   (string-capitalize (symbol->string (car e)))
-                                   (cdr e)))
-                         headers))
+                    (gen-headers-list headers))
   (let* ((ret (curl-easy-perform handle bv? #t))
          (code (curl-error-code))
          (errstr (curl-error-string)))
