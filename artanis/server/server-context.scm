@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016-2024
+;;  Copyright (C) 2016-2025
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -86,6 +86,7 @@
 
             new-ragnarok-client
             ragnarok-client?
+            oneshot-mention/fd!
             oneshot-mention!
             client-sockport
             client-sockport-descriptor
@@ -237,13 +238,17 @@
   (DEBUG "make ragnarok client ~a~%" v)
   (make-box-type ragnarok-client v))
 
+(::define (oneshot-mention/fd! fd)
+  (:anno: (int) -> ANY)
+  (let* ((epfd (ragnarok-server-epfd (current-server)))
+         (event (make-epoll-event fd (gen-oneshot-event))))
+    (epoll-ctl epfd EPOLL_CTL_MOD fd event)))
+
 (::define (oneshot-mention! c)
   (:anno: (ragnarok-client) -> ANY)
   (when (not (port-closed? (client-sockport c)))
-    (let* ((fd (client-sockport-descriptor c))
-           (epfd (ragnarok-server-epfd (current-server)))
-           (event (make-epoll-event fd (gen-oneshot-event))))
-      (epoll-ctl epfd EPOLL_CTL_MOD fd event))))
+    (let ((fd (client-sockport-descriptor c)))
+      (oneshot-mention/fd! fd))))
 
 ;; for emacs:
 ;; (put '::define 'scheme-indent-function 1)
