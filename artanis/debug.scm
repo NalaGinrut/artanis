@@ -42,12 +42,17 @@
 
 (define debug-file-watcher-loops "[ERR] You're not in debug mode!")
 
+(define (get-monitored-files)
+  (map
+   (lambda (f)(format #f "~a/~a" (current-toplevel) f))
+   (get-conf '(debug monitor))))
+
 ;; FIXME: do we need to monitor deleted files? how?
 (define (init-debug-monitor)
   (set! debug-file-watcher-loops
-        (map (lambda (p)
-               (cons p (make-inotify-watching-loop p)))
-             (append *monitored-files* (get-conf '(debug monitor))))))
+    (map (lambda (p)
+           (cons p (make-inotify-watching-loop p)))
+         (append *monitored-files* (get-monitored-files)))))
 
 ;; TODO: Here we should get rid of various temp files, include Emacs'.
 ;;       Feel free to add more if any necessary.
@@ -102,4 +107,4 @@
      (get-all-changed-files path))
     (reload-rules))
   (for-each reload-module-with-path
-            (append *monitored-files* (get-conf '(debug monitor)))))
+            (append *monitored-files* (get-monitored-files))))
