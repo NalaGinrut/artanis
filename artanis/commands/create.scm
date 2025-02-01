@@ -75,7 +75,7 @@
 
 ;; Uncomment following lines to enable plugins.
 ;; Make sure you import the plugin modules here.
-(define-module (artanis plugins)
+(define-module (conf plugins)
   #:use-module (artanis oht))
 
 ;; (plugin-enable! name handler)
