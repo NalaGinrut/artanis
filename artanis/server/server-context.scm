@@ -238,11 +238,15 @@
   (DEBUG "make ragnarok client ~a~%" v)
   (make-box-type ragnarok-client v))
 
+(define (fd-closed? fd)
+  (null? (fdes->ports fd)))
+
 (::define (oneshot-mention/fd! fd)
   (:anno: (int) -> ANY)
-  (let* ((epfd (ragnarok-server-epfd (current-server)))
-         (event (make-epoll-event fd (gen-oneshot-event))))
-    (epoll-ctl epfd EPOLL_CTL_MOD fd event)))
+  (when (not (fd-closed? fd))
+    (let* ((epfd (ragnarok-server-epfd (current-server)))
+           (event (make-epoll-event fd (gen-oneshot-event))))
+      (epoll-ctl epfd EPOLL_CTL_MOD fd event))))
 
 (::define (oneshot-mention! c)
   (:anno: (ragnarok-client) -> ANY)

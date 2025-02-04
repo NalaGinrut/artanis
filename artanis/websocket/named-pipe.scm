@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2018,2019
+;;  Copyright (C) 2018-2025
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -131,15 +131,17 @@
              (queue-in! task-queue
                         (lambda ()
                           (parameterize ((current-client client))
+                            (display "received!\n")
                             (write-websocket-frame/client (client-sockport client) frame)))))
            clients))))
      (else
       (throw 'artanis-err 400 send-to-websocket-named-pipe
              "Pipe name `~a' hasn't been registered, or it's closed by client!" name)))))
 
-(define (named-pipe-subscribe rc)
+(define* (named-pipe-subscribe rc #:key (init-thunk #f))
   (let* ((name (detect-pipe-name (rc-req rc)))
          (task-queue (get-pipe-task-queue name)))
+    (and init-thunk (init-thunk))
     (let lp ()
       (cond
        ((not task-queue)

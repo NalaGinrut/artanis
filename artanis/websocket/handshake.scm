@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2017-2019,2024
+;;  Copyright (C) 2017-2025
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -28,9 +28,10 @@
   #:use-module (artanis websocket protocols)
   #:use-module (artanis security nss)
   #:use-module (ice-9 iconv)
+  #:use-module (ice-9 format)
   #:use-module (rnrs bytevectors)
   #:use-module ((rnrs) #:select (define-record-type))
-  #:use-module ((srfi srfi-1) #:select (any))
+  #:use-module ((srfi srfi-1) #:select (any fold lset-intersection))
   #:export (do-websocket-handshake
             closing-websocket-handshake
             gen-accept-key
@@ -68,11 +69,14 @@
         (cons (cons (string->irregex rule) protocol) *rules-with-inexclusive-websocket*)))
 
 (define (get-websocket-protocol rule)
-  (define (check pp)
-    (and (irregex-search (car pp) rule) (cdr pp)))
-  (DEBUG "get-websocket-protocol: ~a~%" rule)
-  (or (any check *rules-with-websocket*)
-      (any check *rules-with-inexclusive-websocket*)))
+  (define (check pp ret)
+    (if (and (irregex-search (car pp) rule)
+             (not (any (lambda (p) (eq? p (cdr pp))) ret)))
+        (cons (cdr pp) ret)
+        ret))
+  (DEBUG "get-websocket-protocol: from rule ~a~%" rule)
+  (or (fold check '() *rules-with-websocket*)
+      (fold check '() *rules-with-inexclusive-websocket*)))
 
 (define (gen-accept-key key)
   (let* ((realkey (string-append key *ws-magic*))
@@ -111,9 +115,10 @@
      (else #t))))
 
 (define (confirm-available-protocols client path request-protocols)
-  (let ((protocol (get-websocket-protocol path)))
+  (let ((available-protocols (get-websocket-protocol path)))
     (cond
-     ((memq protocol request-protocols) protocol)
+     ((lset-intersection eq? available-protocols request-protocols)
+      => identity)
      (else
       (throw 'artanis-err 1002 validate-websocket-request
              "Websocket subprotocol `~a' is unacceptable from client ~a"
@@ -133,13 +138,13 @@
   (let* ((headers (request-headers req))
          (path (request-path req))
          (request-protocols (->protocols (assoc-ref headers 'sec-websocket-protocol)))
-         (proto (confirm-available-protocols client path request-protocols))
+         (proto (car (confirm-available-protocols client path request-protocols)))
          (port (request-port req))
          (key (assoc-ref headers 'sec-websocket-key))
          (accept-key (gen-accept-key key))
          (origin (or (assoc-ref headers 'origin) "unknown client"))
          (res (build-response #:code 101 #:headers `((Sec-WebSocket-Accept . ,accept-key)
-                                                     ;;(Sec-WebSocket-Protocol . ,proto)
+                                                     (Sec-WebSocket-Protocol . ,(symbol->string proto))
                                                      ;;(Sec-WebSocket-Extensions . "permessage-deflate")
                                                      (Sec-Websocket-Version . "13")
                                                      (Upgrade . "websocket")

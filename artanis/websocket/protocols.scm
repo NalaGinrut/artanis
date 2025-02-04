@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2017
+;;  Copyright (C) 2017-2025
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -24,7 +24,8 @@
   #:use-module (artanis config)
   #:use-module (ice-9 match)
   #:use-module (ice-9 iconv)
-  #:export (register-websocket-protocol!))
+  #:export (register-websocket-redirector!
+            register-websocket-protocol!))
 
 (::define (websocket-echo-read frame)
   (:anno: (websocket-frame) -> string)
@@ -52,8 +53,14 @@
   `((echo ,websocket-echo-read ,websocket-echo-write)
     (named-pipe ,websocket-pipe-read ,websocket-pipe-write)))
 
+(::define (register-websocket-redirector! proto-name reader writer)
+  (:anno: (symbol proc proc) -> ANY)
+  (set! *websocket-redirector-constructors*
+        (cons `(,proto-name ,reader ,writer)
+              *websocket-redirector-constructors*)))
+
 (::define (register-websocket-protocol! server client proto-name remote-port)
-  (:anno: (ragnarok-server ragnarok-client symbol) -> redirector)
+  (:anno: (ragnarok-server ragnarok-client symbol port) -> redirector)
   (let* ((info (assq-ref *websocket-redirector-constructors* proto-name))
          (reader (car info))
          (writer (cadr info)))
