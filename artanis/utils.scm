@@ -80,6 +80,7 @@
             sxml->xml-string run-after-request! run-before-response! run-when-DB-init! run-when-sigint-hook
             run-when-sigint! run-when-refresh! make-pipeline HTML-entities-replace eliminate-evil-HTML-entities
             generate-kv-from-post-qstr handle-proper-owner run-after-websocket-handshake!
+            run-after-websocket-close!
             generate-data-url verify-ENTRY exclude-dbd
             draw-expander remove-ext scan-app-components cache-this-route!
             dump-route-from-cache generate-modify-time delete-directory
@@ -709,6 +710,9 @@
 (define (run-after-websocket-handshake! proc)
   (add-hook! *after-websocket-handshake-hook* proc))
 
+(define (run-after-websocket-close! proc)
+  (add-hook! *after-websocket-close-hook* proc))
+
 (define (run-when-sigint! proc)
   (add-hook! *when-sigint-hook* proc))
 
@@ -1139,7 +1143,7 @@
    ((guile-specific-record? o) (guile-specific-record-name o))
    ((symbol? o) 'symbol)
    ((string? o) 'string)
-   ((integer? o) (if (positive? o) '+int '-int))
+   ((integer? o) (if (zero? o) 'zero (if (positive? o) '+int '-int)))
    ((number? o) 'num)
    ((thunk? o) 'thunk)
    ((procedure? o) 'proc)
@@ -1156,7 +1160,7 @@
     (case expect-type
       ((+int) (eq? actual-type '+int))
       ((-int) (eq? actual-type '-int))
-      ((int) (memq actual-type '(-int +int)))
+      ((int) (memq actual-type '(-int zero +int)))
       (else (eq? expect-type actual-type))))
   (match (procedure-property op 'type-anno)
     (((targs ...) '-> (func-types ...))

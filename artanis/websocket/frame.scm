@@ -296,7 +296,7 @@
 ;; NOTE: If the length is larger than 16bit, then just speicify it to 127 then deal with
 ;;       the actual length in later extended length field.
 (::define (generate-head2 len)
-  (:anno: (+int) -> +int)
+  (:anno: (int) -> int)
   (cond
    ((< len 126) len) ; payload length less than 126 bytes
    ((< len 16bit-size) 126) ; extended 16bit payload length

@@ -223,6 +223,9 @@
         (throw 'artanis-err 500 http-write
                "Expected a bytevector for body" body)))))))
 
+(define (run-after-websocket-close-hooks)
+  (run-hook *after-websocket-close-hook*))
+
 ;; Check if the client in the redirectors table:
 ;; 1. In the table, emit websocket closing handshake.
 ;; 2. Not in the table, just close the connection.
@@ -252,6 +255,7 @@
              (DEBUG "Half-read websocket ~a from ~a~%"
                     (client-sockport client) (client-ip client)))
             (else
+             (run-after-websocket-close-hooks)
              ;; full-closed
              (DEBUG "Full-closed websocket ~a from ~a~%"
                     (client-sockport client) (client-ip client)))))))

@@ -34,6 +34,7 @@
             *after-request-hook*
             *before-run-hook*
             *after-websocket-handshake-hook*
+            *after-websocket-close-hook*
             *DB-conn-init-hook*
             *when-sigint-hook*
             *refresh-hook*
@@ -108,6 +109,7 @@
 (define *before-run-hook* (make-hook))
 (define *DB-conn-init-hook* (make-hook 1))
 (define *after-websocket-handshake-hook* (make-hook 2))
+(define *after-websocket-close-hook* (make-hook))
 (define *when-sigint-hook* (make-hook))
 (define *refresh-hook* (make-hook))
 
