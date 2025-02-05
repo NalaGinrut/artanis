@@ -131,7 +131,6 @@
              (queue-in! task-queue
                         (lambda ()
                           (parameterize ((current-client client))
-                            (display "received!\n")
                             (write-websocket-frame/client (client-sockport client) frame)))))
            clients))))
      (else

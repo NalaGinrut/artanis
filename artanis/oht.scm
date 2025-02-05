@@ -820,8 +820,11 @@
   `(define-syntax-rule (,(symbol-append ': what) ?rc args ...)
      (=> ,(symbol->keyword what) ?rc args ...)))
 
-(define-syntax-rule (plugin-enable! name handler)
+(define-syntax-rule (plugin-enable! name handler init ...)
   (begin
+    (define-syntax-rule (call-plugin-init p)
+      (when (not (null? p)) ((car p))))
+    (call-plugin-init (list init ...))
     (oh-set! (symbol->keyword 'name) handler)
     (module-define! (resolve-module '(conf plugins))
                     (symbol-append ': 'name)
