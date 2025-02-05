@@ -31,7 +31,7 @@
   #:use-module (ice-9 format)
   #:use-module (rnrs bytevectors)
   #:use-module ((rnrs) #:select (define-record-type))
-  #:use-module ((srfi srfi-1) #:select (any fold lset-intersection))
+  #:use-module ((srfi srfi-1) #:select (any))
   #:export (do-websocket-handshake
             closing-websocket-handshake
             gen-accept-key
@@ -69,14 +69,11 @@
         (cons (cons (string->irregex rule) protocol) *rules-with-inexclusive-websocket*)))
 
 (define (get-websocket-protocol rule)
-  (define (check pp ret)
-    (if (and (irregex-search (car pp) rule)
-             (not (any (lambda (p) (eq? p (cdr pp))) ret)))
-        (cons (cdr pp) ret)
-        ret))
-  (DEBUG "get-websocket-protocol: from rule ~a~%" rule)
-  (or (fold check '() *rules-with-websocket*)
-      (fold check '() *rules-with-inexclusive-websocket*)))
+  (define (check pp)
+    (and (irregex-search (car pp) rule) (cdr pp)))
+  (DEBUG "get-websocket-protocol: ~a~%" rule)
+  (or (any check *rules-with-websocket*)
+      (any check *rules-with-inexclusive-websocket*)))
 
 (define (gen-accept-key key)
   (let* ((realkey (string-append key *ws-magic*))
@@ -115,10 +112,9 @@
      (else #t))))
 
 (define (confirm-available-protocols client path request-protocols)
-  (let ((available-protocols (get-websocket-protocol path)))
+  (let ((protocol (get-websocket-protocol path)))
     (cond
-     ((lset-intersection eq? available-protocols request-protocols)
-      => identity)
+     ((memq protocol request-protocols) protocol)
      (else
       (throw 'artanis-err 1002 validate-websocket-request
              "Websocket subprotocol `~a' is unacceptable from client ~a"
@@ -138,7 +134,7 @@
   (let* ((headers (request-headers req))
          (path (request-path req))
          (request-protocols (->protocols (assoc-ref headers 'sec-websocket-protocol)))
-         (proto (car (confirm-available-protocols client path request-protocols)))
+         (proto (confirm-available-protocols client path request-protocols))
          (port (request-port req))
          (key (assoc-ref headers 'sec-websocket-key))
          (accept-key (gen-accept-key key))
