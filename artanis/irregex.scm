@@ -1,6 +1,6 @@
 ;;;; irregex.scm -- IrRegular Expressions
 ;;
-;; Copyright (c) 2005-2016 Alex Shinn.  All rights reserved.
+;; Copyright (c) 2005-2024 Alex Shinn.  All rights reserved.
 ;; BSD-style license: http://synthcode.com/license.txt
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -18,7 +18,7 @@
 ;;;; Notes
 ;;
 ;; This code should not require any porting - it should work out of
-;; the box in any R[45]RS Scheme implementation.  Slight modifications
+;; the box in any R[457]RS Scheme implementation.  Slight modifications
 ;; are needed for R6RS (a separate R6RS-compatible version is included
 ;; in the distribution as irregex-r6rs.scm).
 ;;
@@ -30,8 +30,17 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; History
+;; 0.9.11: 2024/02/23 - Guile test and packaging support from Tomas Volf.
+;; 0.9.10: 2021/07/06 - fixes for submatches under kleene star, empty seqs
+;;                     in alternations, and bol in folds for backtracking
+;;                     matcher (thanks John Clements and snan for reporting
+;;                     and Peter Bex for fixing)
+;; 0.9.9: 2021/05/14 - more comprehensive fix for repeated empty matches
+;; 0.9.8: 2020/07/13 - fix irregex-replace/all with look-behind patterns
+;; 0.9.7: 2019/12/31 - more intuitive handling of empty matches in -fold,
+;;                     -replace and -split
 ;; 0.9.6: 2016/12/05 - fixed exponential memory use of + in compilation
-;;                     of backtracking matcher.
+;;                     of backtracking matcher (CVE-2016-9954).
 ;; 0.9.5: 2016/09/10 - fixed a bug in irregex-fold handling of bow
 ;; 0.9.4: 2015/12/14 - performance improvement for {n,m} matches
 ;; 0.9.3: 2014/07/01 - R7RS library
@@ -74,24 +83,24 @@
 ;;   0.2: 2005/09/27 - adding irregex-opt (like elisp's regexp-opt) utility
 ;;   0.1: 2005/08/18 - simple NFA interpreter over abstract chunked strings
 
-(define-module (artanis irregex)
-  #:export (irregex string->irregex sre->irregex string->sre
-            maybe-string->sre irregex?  irregex-match-data?
-	    irregex-new-matches irregex-reset-matches!  irregex-search
-	    irregex-search/matches irregex-match
-	    irregex-search/chunked irregex-match/chunked
-	    make-irregex-chunker irregex-match-substring
-	    irregex-match-subchunk irregex-match-start-source
-	    irregex-match-start-index irregex-match-end-source
-	    irregex-match-end-index irregex-match-num-submatches
-            irregex-match-names irregex-match-valid-index?
-	    irregex-fold irregex-replace irregex-replace/all
-	    irregex-dfa irregex-dfa/search
-	    irregex-nfa irregex-flags irregex-lengths irregex-names
-            irregex-num-submatches irregex-extract irregex-split))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Data Structures
+
+(define-module (artanis irregex)
+  #:export (irregex string->irregex sre->irregex string->sre
+                    maybe-string->sre irregex?  irregex-match-data?
+                    irregex-new-matches irregex-reset-matches!  irregex-search
+                    irregex-search/matches irregex-match
+                    irregex-search/chunked irregex-match/chunked
+                    make-irregex-chunker irregex-match-substring
+                    irregex-match-subchunk irregex-match-start-source
+                    irregex-match-start-index irregex-match-end-source
+                    irregex-match-end-index irregex-match-num-submatches
+                    irregex-match-names irregex-match-valid-index?
+                    irregex-fold irregex-replace irregex-replace/all
+                    irregex-dfa irregex-dfa/search
+                    irregex-nfa irregex-flags irregex-lengths irregex-names
+                    irregex-num-submatches irregex-extract irregex-split))
 
 (define irregex-tag '*irregex-tag*)
 
@@ -346,7 +355,16 @@
    (lambda (x) (and (not (eq? x src)) ((chunker-get-next cnk) x)))
    (chunker-get-str cnk)
    (chunker-get-start cnk)
-   (lambda (x) (if (eq? x src) i ((chunker-get-end cnk) x)))
+   (lambda (x)
+     ;; TODO: this is a hack workaround for the fact that we don't
+     ;; have either a notion of chunk equivalence or chunk truncation,
+     ;; until which time (neg-)look-behind in a fold won't work on
+     ;; non-basic chunks.
+     (if (or (eq? x src)
+             (and (not ((chunker-get-next cnk) x))
+                  (not ((chunker-get-next cnk) src))))
+         i
+         ((chunker-get-end cnk) x)))
    (chunker-get-substring cnk)
    (chunker-get-subchunk cnk)))
 
@@ -362,7 +380,12 @@
 ;; (define *all-chars* `(/ ,(integer->char (- (char->integer #\space) 32)) ,(integer->char (+ (char->integer #\space) 223))))
 
 ;; set to #f to ignore even an explicit request for utf8 handling
-(define *allow-utf8-mode?* #t)
+;; The utf8-mode is undesired on any implementation with native unicode support.
+;; It is a workaround for those that treat strings as a raw byte sequences, and
+;; does not work well otherwise.  So disable it on implementations known to
+;; handle unicode natively.
+(define *allow-utf8-mode?* (cond-expand ((and chicken (not full-unicode)) #t)
+                                        (else #f)))
 
 ;; (define *named-char-properties* '())
 
@@ -595,9 +618,9 @@
                (skip (+ i 1)))))
         ((#\' #\`)
          (read (+ i 1)
-           (lambda (sexp j)
-             (let ((q (if (eqv? #\' (string-ref str i)) 'quote 'quasiquote)))
-               (k (list q sexp) j)))))
+               (lambda (sexp j)
+                 (let ((q (if (eqv? #\' (string-ref str i)) 'quote 'quasiquote)))
+                   (k (list q sexp) j)))))
         ((#\,)
          (let* ((at? (and (< (+ i 1) end) (eqv? #\@ (string-ref str (+ i 1)))))
                 (u (if at? 'uquote-splicing 'unquote))
@@ -608,7 +631,7 @@
            (define (collect)
              (if (= from i) res (cons (substring str from i) res)))
            (if (>= i end)
-               (error "unterminated string in embeded SRE" str)
+               (error "unterminated string in embedded SRE" str)
                (case (string-ref str i)
                  ((#\") (k (string-cat-reverse (collect)) (+ i 1)))
                  ((#\\) (scan (+ i 1) (+ i 2) (collect)))
@@ -619,15 +642,15 @@
             (read (+ i 2) (lambda (sexp j) (read j k))))
            ((#\\)
             (read (+ i 2)
-              (lambda (sexp j)
-                (k (case sexp
-                     ((space) #\space)
-                     ((newline) #\newline)
-                     (else (let ((s (if (number? sexp)
-                                        (number->string sexp)
-                                        (symbol->string sexp))))
-                             (string-ref s 0))))
-                   j))))
+                  (lambda (sexp j)
+                    (k (case sexp
+                         ((space) #\space)
+                         ((newline) #\newline)
+                         (else (let ((s (if (number? sexp)
+                                            (number->string sexp)
+                                            (symbol->string sexp))))
+                                 (string-ref s 0))))
+                       j))))
            ((#\t #\f)
             (k (eqv? #\t (string-ref str (+ i 1))) (+ i 2)))
            (else
@@ -829,10 +852,10 @@
                 ((eqv? (string-ref str (+ i 1)) #\*)
                  (if (eqv? #\' (string-ref str (+ i 2)))
                      (with-read-from-string str (+ i 3)
-                       (lambda (sre j)
-                         (if (or (>= j end) (not (eqv? #\) (string-ref str j))))
-                             (error "unterminated (*'...) SRE escape" str)
-                             (lp (+ j 1) (+ j 1) flags (cons sre (collect)) st))))
+                                            (lambda (sre j)
+                                              (if (or (>= j end) (not (eqv? #\) (string-ref str j))))
+                                                  (error "unterminated (*'...) SRE escape" str)
+                                                  (lp (+ j 1) (+ j 1) flags (cons sre (collect)) st))))
                      (error "bad regexp syntax: (*FOO) not supported" str)))
                 (else                   ;; (?...) case
                  (case (string-ref str (+ i 2))
@@ -1063,8 +1086,8 @@
                             (lp2 (+ j 1)))))))
                      ((#\')
                       (with-read-from-string str (+ i 2)
-                       (lambda (sre j)
-                         (lp j j flags (cons sre (collect)) st))))
+                                             (lambda (sre j)
+                                               (lp j j flags (cons sre (collect)) st))))
                      ;;((#\p)  ; XXXX unicode properties
                      ;; )
                      ;;((#\P)
@@ -1268,23 +1291,23 @@
 
 (define utf8-start-char->length
   (let ((table '#(
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 0x
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 1x
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 2x
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 3x
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 4x
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 5x
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 6x
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 7x
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 8x
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 9x
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; ax
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; bx
-2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 ; cx
-2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 ; dx
-3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 ; ex
-4 4 4 4 4 4 4 4 5 5 5 5 6 6 0 0 ; fx
-)))
+                  1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 0x
+                    1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 1x
+                    1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 2x
+                    1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 3x
+                    1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 4x
+                    1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 5x
+                    1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 6x
+                    1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 7x
+                    1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 8x
+                    1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; 9x
+                    1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; ax
+                    1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ; bx
+                    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 ; cx
+                    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 ; dx
+                    3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 ; ex
+                    4 4 4 4 4 4 4 4 5 5 5 5 6 6 0 0 ; fx
+                    )))
     (lambda (c) (vector-ref table (char->integer c)))))
 
 (define (utf8-string-ref str i len)
@@ -1355,12 +1378,11 @@
                              (unicode-range-up-to hi-ls)))
         (let lp ((lo-ls lo-ls) (hi-ls hi-ls))
           (cond
-           ((null? lo-ls)
-            '())
            ((= (car lo-ls) (car hi-ls))
             (sre-sequence
-             (list (integer->char (car lo-ls))
-                   (lp (cdr lo-ls) (cdr hi-ls)))))
+             (cons (integer->char (car lo-ls))
+                   (if (null? (cdr lo-ls)) '()
+                       (cons (lp (cdr lo-ls) (cdr hi-ls)) '())))))
            ((= (+ (car lo-ls) 1) (car hi-ls))
             (sre-alternate (list (unicode-range-up-from lo-ls)
                                  (unicode-range-up-to hi-ls))))
@@ -1504,8 +1526,8 @@
          (cons (car sre) (map rec (cdr sre))))))
      (else
       (case sre
-        ((any) 'utf8-any)
-        ((nonl) 'utf8-nonl)
+        ((any) (if utf8? 'utf8-any 'any))
+        ((nonl) (if utf8? 'utf8-nonl 'nonl))
         (else
          (if (and utf8? (char? sre) (high-char? sre))
              (sre-sequence (map integer->char (char->utf8-list sre)))
@@ -1590,25 +1612,36 @@
                 (null? (cddr sre))
                 (sre-repeater? (cadr sre))))))
 
-(define (sre-searcher? sre)
+(define (sre-bos? sre)
   (if (pair? sre)
       (case (car sre)
-        ((* +) (sre-any? (sre-sequence (cdr sre))))
         ((seq : $ submatch => submatch-named)
-         (and (pair? (cdr sre)) (sre-searcher? (cadr sre))))
-        ((or) (every sre-searcher? (cdr sre)))
+         (and (pair? (cdr sre)) (sre-bos? (cadr sre))))
+        ((or) (every sre-bos? (cdr sre)))
         (else #f))
       (eq? 'bos sre)))
 
+;; a searcher doesn't need explicit iteration to find the first match
+(define (sre-searcher? sre)
+  (or (sre-bos? sre)
+      (and (pair? sre)
+           (case (car sre)
+             ((* +) (sre-any? (sre-sequence (cdr sre))))
+             ((seq : $ submatch => submatch-named)
+              (and (pair? (cdr sre)) (sre-searcher? (cadr sre))))
+             ((or) (every sre-searcher? (cdr sre)))
+             (else #f)))))
+
+;; a consumer doesn't need to match more than once
 (define (sre-consumer? sre)
-  (if (pair? sre)
-      (case (car sre)
-        ((* +) (sre-any? (sre-sequence (cdr sre))))
-        ((seq : $ submatch => submatch-named)
-         (and (pair? (cdr sre)) (sre-consumer? (last sre))))
-        ((or) (every sre-consumer? (cdr sre)))
-        (else #f))
-      (eq? 'eos sre)))
+  (or (sre-bos? sre)
+      (and (pair? sre)
+           (case (car sre)
+             ((* +) (sre-any? (sre-sequence (cdr sre))))
+             ((seq : $ submatch => submatch-named)
+              (and (pair? (cdr sre)) (sre-consumer? (last sre))))
+             ((or) (every sre-consumer? (cdr sre)))
+             (else #f)))))
 
 (define (sre-has-submatches? sre)
   (and (pair? sre)
@@ -1823,7 +1856,7 @@
         ((dsm)
          (sre-names (sre-sequence (cdddr sre)) (+ n (cadr sre)) names))
         ((seq : or * + ? *? ?? w/case w/nocase atomic
-          look-ahead look-behind neg-look-ahead neg-look-behind)
+              look-ahead look-behind neg-look-ahead neg-look-behind)
          (sre-sequence-names (cdr sre) n names))
         ((= >=)
          (sre-sequence-names (cddr sre) n names))
@@ -2146,12 +2179,18 @@
                                         (chunk&position (cons src (+ i 1))))
                                     (vector-set! slot (car s) chunk&position)))
                                 (cdr cmds))
-                      (for-each (lambda (c)
-                                  (let* ((tag (vector-ref c 0))
-                                         (ss (vector-ref memory (vector-ref c 1)))
-                                         (ds (vector-ref memory (vector-ref c 2))))
-                                    (vector-set! ds tag (vector-ref ss tag))))
-                                (car cmds)))))
+                      ;; Reassigning commands may be in an order which
+                      ;; causes memory cells to be clobbered before
+                      ;; they're read out.  Make 2 passes to maintain
+                      ;; old values by copying them into a closure.
+                      (for-each (lambda (execute!) (execute!))
+                                (map (lambda (c)
+                                       (let* ((tag (vector-ref c 0))
+                                              (ss (vector-ref memory (vector-ref c 1)))
+                                              (ds (vector-ref memory (vector-ref c 2)))
+                                              (value-from (vector-ref ss tag)))
+                                         (lambda () (vector-set! ds tag value-from))))
+                                     (car cmds))))))
                   (if new-finalizer
                       (lp2 (+ i 1) next src (+ i 1) new-finalizer)
                       (lp2 (+ i 1) next res-src res-index #f))))
@@ -2193,10 +2232,11 @@
      . (or alphanumeric punctuation #\$ #\+ #\< #\= #\> #\^ #\` #\| #\~))
     (graph . graphic)
     (blank . (or #\space ,(integer->char (- (char->integer #\space) 23))))
-    (whitespace . (or blank #\newline))
+    ;; 0B - vertical tab, 0C - form feed
+    (whitespace . (or blank #\newline #\x0C #\return #\x0B))
     (space . whitespace)
     (white . whitespace)
-    (printing or graphic whitespace)
+    (printing . (or graphic whitespace))
     (print . printing)
 
     ;; XXXX we assume a (possibly shifted) ASCII-based ordering
@@ -2260,8 +2300,8 @@
     (domain . (seq domain-atom (+ #\. domain-atom)))
     ;; XXXX now anything can be a top-level domain, but this is still handy
     (top-level-domain . (w/nocase (or "arpa" "com" "gov" "mil" "net" "org"
-                                      "aero" "biz" "coop" "info" "museum"
-                                      "name" "pro" (= 2 alpha))))
+                                      "edu" "aero" "biz" "coop" "info"
+                                      "museum" "name" "pro" (= 2 alpha))))
     (domain/common . (seq (+ domain-atom #\.) top-level-domain))
     ;;(email-local-part . (seq (+ (or (~ #\") string))))
     (email-local-part . (+ (or alphanumeric #\_ #\- #\. #\+)))
@@ -2272,7 +2312,7 @@
                           (seq "%" hex-digit hex-digit)))
     (http-url . (w/nocase
                  "http" (? "s") "://"
-                 (or domain/common ipv4-address) ;; (seq "[" ipv6-address "]")
+                 (or domain ipv4-address) ;; (seq "[" ipv6-address "]")
                  (? ":" (+ numeric)) ;; port
                  ;; path
                  (? "/" (* (or url-char "/"))
@@ -2427,7 +2467,7 @@
               (let ((set (if (flag-set? flags ~case-insensitive?)
                              (cset-case-insensitive (string->cset (caar ls)))
                              (string->cset (caar ls)))))
-               (extend-state! (lp (cdr ls) n flags next) set)))
+                (extend-state! (lp (cdr ls) n flags next) set)))
              (else
               (case (caar ls)
                 ((seq :)
@@ -2468,7 +2508,7 @@
                                            flags
                                            next))))
                           (and a
-                               (let ((c (add-state! (new-state-number a)
+                               (let ((c (add-state! (new-state-number (max a b))
                                                     '())))
                                  (nfa-add-epsilon! buf c a #f)
                                  (nfa-add-epsilon! buf c b #f)
@@ -2835,13 +2875,13 @@
         ((null? states) dfa)
       (let ((maybe-finalizer (cadar states))
             (transitions (caddar states)))
-       (vector-set!
-        dfa i
-        (cons maybe-finalizer
-              (map (lambda (tr)
-                     `(,(and (cadr tr) (maybe-cset->char (cadr tr)))
-                       ,(cdr (assoc (car tr) indexes)) . ,(cddr tr)))
-                   transitions)))))))
+        (vector-set!
+         dfa i
+         (cons maybe-finalizer
+               (map (lambda (tr)
+                      `(,(and (cadr tr) (maybe-cset->char (cadr tr)))
+                        ,(cdr (assoc (car tr) indexes)) . ,(cddr tr)))
+                    transitions)))))))
 
 ;; Extract all distinct ranges and the potential states they can transition
 ;; to from a given set of states.  Any ranges that would overlap with
@@ -2902,9 +2942,9 @@
 (define (nfa-epsilon-closure-internal nfa annotated-states)
   ;; The stack _MUST_ be in this order for some reason I don't fully understand
   (let lp ((stack (mst-fold annotated-states
-                                        (lambda (st m res)
-                                          (cons (cons st m) res))
-                                        '()))
+                            (lambda (st m res)
+                              (cons (cons st m) res))
+                            '()))
            (priorities (make-vector (nfa-num-states nfa) 0))
            (closure (mst-copy annotated-states)))
     (if (null? stack)
@@ -2924,12 +2964,12 @@
                     (cond
                      ((cdar trans) =>   ; tagged transition?
                       (lambda (tag)
-                       (let* ((index (next-index-for-tag! nfa tag closure))
-                              (new-mappings
-                               (mst-add-tagged!
-                                nfa closure state mappings tag index)))
-                         (lp2 (cdr trans)
-                              (cons (cons state new-mappings) stack)))))
+                        (let* ((index (next-index-for-tag! nfa tag closure))
+                               (new-mappings
+                                (mst-add-tagged!
+                                 nfa closure state mappings tag index)))
+                          (lp2 (cdr trans)
+                               (cons (cons state new-mappings) stack)))))
                      (else
                       (mst-add/fast! nfa closure state mappings)
                       (lp2 (cdr trans) (cons (cons state mappings) stack)))))
@@ -2982,8 +3022,7 @@
 ;; says "insert reordering algorithm here"), so this code was constructed
 ;; after some experimentation.  In other words, bugs be here.
 (define (find-reorder-commands-internal nfa closure dfa-states)
-  (let ((num-states (nfa-num-states nfa))
-        (num-tags (nfa-num-tags nfa))
+  (let ((num-tags (nfa-num-tags nfa))
         (closure-summary (mst-mappings-summary closure)))
     (let lp ((dfa-states dfa-states))
       (if (null? dfa-states)
@@ -3414,9 +3453,10 @@
                (fail))))
         ((bol)
          (lambda (cnk init src str i end matches fail)
-           (if (or (and (eq? src (car init)) (eqv? i (cdr init)))
-                   (and (> i ((chunker-get-start cnk) src))
-                        (eqv? #\newline (string-ref str (- i 1)))))
+           (if (let ((ch (if (> i ((chunker-get-start cnk) src))
+                             (string-ref str (- i 1))
+                             (chunker-prev-char cnk init src))))
+                 (or (not ch) (eqv? #\newline ch)))
                (next cnk init src str i end matches fail)
                (fail))))
         ((bow)
@@ -3525,15 +3565,15 @@
           ))
      ((string? sre)
       (rec (sre-sequence (string->list sre)))
-;; XXXX reintroduce faster string matching on chunks
-;;       (if (flag-set? flags ~case-insensitive?)
-;;           (rec (sre-sequence (string->list sre)))
-;;           (let ((len (string-length sre)))
-;;             (lambda (cnk init src str i end matches fail)
-;;               (if (and (<= (+ i len) end)
-;;                        (%substring=? sre str 0 i len))
-;;                   (next str (+ i len) matches fail)
-;;                   (fail)))))
+      ;; XXXX reintroduce faster string matching on chunks
+      ;;       (if (flag-set? flags ~case-insensitive?)
+      ;;           (rec (sre-sequence (string->list sre)))
+      ;;           (let ((len (string-length sre)))
+      ;;             (lambda (cnk init src str i end matches fail)
+      ;;               (if (and (<= (+ i len) end)
+      ;;                        (%substring=? sre str 0 i len))
+      ;;                   (next str (+ i len) matches fail)
+      ;;                   (fail)))))
       )
      (else
       (error "unknown regexp" sre)))))
@@ -3576,12 +3616,12 @@
 
 (define (cset-size cs)
   (let ((len (vector-length cs)))
-   (let lp ((i 0) (size 0))
-     (if (= i len)
-         size
-         (lp (+ i 1) (+ size 1
-                        (- (char->integer (cdr (vector-ref cs i)))
-                           (char->integer (car (vector-ref cs i))))))))))
+    (let lp ((i 0) (size 0))
+      (if (= i len)
+          size
+          (lp (+ i 1) (+ size 1
+                         (- (char->integer (cdr (vector-ref cs i)))
+                            (char->integer (car (vector-ref cs i))))))))))
 
 (define (cset->plist cs)
   (let lp ((i (- (vector-length cs) 1))
@@ -3798,9 +3838,9 @@
     (if (not (and (integer? end) (exact? end)))
         (error "irregex-fold: not an exact integer" end))
     (irregex-match-chunker-set! matches irregex-basic-string-chunker)
-    (let lp ((src init-src) (i start) (acc knil))
+    (let lp ((src init-src) (from start) (i start) (acc knil))
       (if (>= i end)
-          (finish i acc)
+          (finish from acc)
           (let ((m (irregex-search/matches
                     irx
                     irregex-basic-string-chunker
@@ -3809,19 +3849,19 @@
                     i
                     matches)))
             (if (not m)
-                (finish i acc)
-                (let ((j (%irregex-match-end-index m 0)))
-                  (if (= j i)
-                      ;; skip one char forward if we match the empty string
-                      (lp (list str (+ j 1) end) (+ j 1) acc)
-                      (let ((acc (kons i m acc)))
-                        (irregex-reset-matches! matches)
-                        ;; no need to continue looping if this is a
-                        ;; searcher - it's already consumed the only
-                        ;; available match
-                        (if (flag-set? (irregex-flags irx) ~searcher?)
-                            (finish j acc)
-                            (lp (list str j end) j acc)))))))))))
+                (finish from acc)
+                (let ((j-start (%irregex-match-start-index m 0))
+                      (j (%irregex-match-end-index m 0))
+                      (acc (kons from m acc)))
+                  (irregex-reset-matches! matches)
+                  (cond
+                   ((flag-set? (irregex-flags irx) ~consumer?)
+                    (finish j acc))
+                   ((= j j-start)
+                    ;; skip one char forward if we match the empty string
+                    (lp (list str j end) j (+ j 1) acc))
+                   (else
+                    (lp (list str j end) j j acc))))))))))
 
 (define (irregex-fold irx kons . args)
   (if (not (procedure? kons)) (error "irregex-fold: not a procedure" kons))
@@ -3853,10 +3893,7 @@
                           (lp end-src (+ end-index 1) acc))
                       (let ((acc (kons start i m acc)))
                         (irregex-reset-matches! matches)
-                        ;; no need to continue looping if this is a
-                        ;; searcher - it's already consumed the only
-                        ;; available match
-                        (if (flag-set? (irregex-flags irx) ~searcher?)
+                        (if (flag-set? (irregex-flags irx) ~consumer?)
                             (finish end-src end-index acc)
                             (lp end-src end-index acc)))))))))))
 
@@ -3882,9 +3919,9 @@
    irx
    (lambda (i m acc)
      (let ((m-start (%irregex-match-start-index m 0)))
-       (append (irregex-apply-match m o)
-               (if (>= i m-start)
-                   acc
+       (if (>= i m-start)
+           (append (irregex-apply-match m o) acc)
+           (append (irregex-apply-match m o)
                    (cons (substring str i m-start) acc)))))
    '()
    str
@@ -3945,12 +3982,26 @@
     (irregex-fold/fast
      irx
      (lambda (i m a)
-       (if (= i (%irregex-match-start-index m 0))
-           a
-           (cons (substring str i (%irregex-match-start-index m 0)) a)))
+       (cond
+        ((= i (%irregex-match-start-index m 0))
+         a)
+        (else
+         (cons (substring str i (%irregex-match-start-index m 0)) a))))
      '()
      str
      (lambda (i a)
-       (reverse (if (= i end) a (cons (substring str i end) a))))
+       (let lp ((ls (if (= i end) a (cons (substring str i end) a)))
+                (res '())
+                (was-char? #f))
+         (cond
+          ((null? ls) res)
+          ((char? (car ls))
+           (lp (cdr ls)
+               (if (or was-char? (null? res))
+                   (cons (string (car ls)) res)
+                   (cons (string-append (string (car ls)) (car res))
+                         (cdr res)))
+               #t))
+          (else (lp (cdr ls) (cons (car ls) res) #f)))))
      start
      end)))
