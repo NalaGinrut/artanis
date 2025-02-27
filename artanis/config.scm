@@ -353,8 +353,9 @@ session.engine = simple | db | file | redis | redis@addr:port | <third-party-eng
      json
      "Specify the i18n engine. Here're supported backends:
 1. json: uses json file for i18n.
-2. po: uses PO with gettext for i18n.
-session.i18n = json | po | <third-party-engine>")
+2. sxml: uses SXML for i18n.
+3. locale: uses PO with gettext for i18n.
+session.i18n = json | sxml | locale | <third-party-engine>")
 
     ((upload types)
      (jpg png gif)
