@@ -38,10 +38,8 @@
             try-to-recycle-resources))
 
 (define schedule-task
-  (lambda ()
-    (error
-     'schedule-task
-     "If you saw this line, it means server-core hasn't been initialized!")))
+  (make-parameter
+   "If you saw this line, it means server-core hasn't been initialized!"))
 
 ;; NOTE: There're only 2 places to recycle resources automatically:
 ;;       1. When there's no available port to allocate.
@@ -51,12 +49,10 @@
 ;;       connections. If you do this frequently, you'll lose the benefit of
 ;;       epoll.
 (define try-to-recycle-resources
-  (lambda ()
-    (error
-     'try-to-recycle-resources
-     "If you saw this line, it means server-core hasn't been initialized!")))
+  (make-parameter
+   "If you saw this line, it means server-core hasn't been initialized!"))
 
 (define (init-server-core)
-  (set! schedule-task (get-task-breaker))
-  (set! try-to-recycle-resources (get-resources-collector))
+  (schedule-task (get-task-breaker))
+  (try-to-recycle-resources (get-resources-collector))
   (protocol-add! 'http (new-http-protocol)))
