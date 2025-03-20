@@ -2697,6 +2697,55 @@ You must put related translation into **sys/i18n/sxml** directory. The directory
 
 Please read GNU Artanis blog post about [[https://artanis.dev/blog/how-to-make-i18n-properly.html][how to make i18n properly]].
 
+* Asynchronous Runner
+
+Sometimes you may want to execute a long-running blocking task, such as an I/O-bound task like copying large files or a CPU/GPU-bound task like AI computations. If you run your task directly, the Artanis server core will be completely blocked, resulting in no response to any requests. To prevent this, you will need to use an asynchronous runner in GNU Artanis.
+
+** Asynchronous Runner API
+
+Here's the API:
+#+begin_src scheme
+(call-with-runner thunk)
+#+end_src
+
+- **thunk** means nullary function, say, src_scheme[:exports code]{(lambda () ...)}
+- It returns the result of thunk directly.
+
+** Asynchronous Runner principle
+
+The thunk will be executed in a new thread, ensuring that the server core remains unblocked. This means that no matter how many tasks you run, they will not affect the performance of the server core. However, it's important to note that running too many tasks can degrade the overall performance of the operating system.
+
+** Asynchronous Runner Example
+
+Here's a simple example in Bash:
+#+begin_src bash
+#!/bin/bash
+
+# well, treat me like a slow task
+sleep 5
+echo "now I'm done."
+#+end_src
+
+Say, you have a controller in your webapp:
+
+#+begin_src scheme
+(import (artanis runner)
+        (artanis cli))
+
+(get "/run"
+  (lambda (rc)
+    (call-with-runner
+     (lambda ()
+       (cli-run* bash /dev/shm/run.sh)))))
+#+end_src
+
+You may visit the controller:
+#+begin_src bash
+curl localhost:3000/run
+# wait for 6 seconds then get:
+now I'm done.
+#+end_src
+
 * Utils
 *The functions listed below require the [[https://gitlab.com/NalaGinrut/artanis/blob/master/artanis/utils.scm][(artanis utils)]] module.*
 ** String Template

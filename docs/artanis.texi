@@ -48,6 +48,7 @@
 * Ragnarok server core::
 * Key-Value Database::
 * I18n::
+* Asynchronous Runner::
 * Utils::
 * Debug mode::
 * Appendix A GNU Free Documentation License::
@@ -3751,6 +3752,72 @@ You must put related translation into @strong{@strong{sys/i18n/sxml}} directory.
 @section I18n best practice
 @anchor{#i18n-best-practice}
 Please read GNU Artanis blog post about @uref{https://artanis.dev/blog/how-to-make-i18n-properly.html,how to make i18n properly}.
+
+@node Asynchronous Runner
+@chapter Asynchronous Runner
+@anchor{#asynchronous-runner}
+Sometimes you may want to execute a long-running blocking task, such as an I/O-bound task like copying large files or a CPU/GPU-bound task like AI computations. If you run your task directly, the Artanis server core will be completely blocked, resulting in no response to any requests. To prevent this, you will need to use an asynchronous runner in GNU Artanis.
+
+@menu
+* Asynchronous Runner API::
+* Asynchronous Runner principle::
+* Asynchronous Runner Example::
+@end menu
+
+@node Asynchronous Runner API
+@section Asynchronous Runner API
+@anchor{#asynchronous-runner-api}
+Here's the API:
+
+@verbatim
+(call-with-runner thunk)
+@end verbatim
+
+@itemize
+@item
+@strong{@strong{thunk}} means nullary function, say, @code{(lambda () ...)}
+@item
+It returns the result of thunk directly.
+@end itemize
+
+@node Asynchronous Runner principle
+@section Asynchronous Runner principle
+@anchor{#asynchronous-runner-principle}
+The thunk will be executed in a new thread, ensuring that the server core remains unblocked. This means that no matter how many tasks you run, they will not affect the performance of the server core. However, it's important to note that running too many tasks can degrade the overall performance of the operating system.
+
+@node Asynchronous Runner Example
+@section Asynchronous Runner Example
+@anchor{#asynchronous-runner-example}
+Here's a simple example in Bash:
+
+@verbatim
+#!/bin/bash
+
+# well, treat me like a slow task
+sleep 5
+echo "now I'm done."
+@end verbatim
+
+Say, you have a controller in your webapp:
+
+@verbatim
+(import (artanis runner)
+        (artanis cli))
+
+(get "/run"
+  (lambda (rc)
+    (call-with-runner
+     (lambda ()
+       (cli-run* bash /dev/shm/run.sh)))))
+@end verbatim
+
+You may visit the controller:
+
+@verbatim
+curl localhost:3000/run
+# wait for 6 seconds then get:
+now I'm done.
+@end verbatim
 
 @node Utils
 @chapter Utils
