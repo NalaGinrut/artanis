@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013,2014,2015,2017,2018,2019
+;;  Copyright (C) 2013-2025
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -43,6 +43,7 @@
             make-mfd-dumper
             content-type-is-mfd?
             mfd
+            mfd->utf8
             call-with-mfd-data
             find-mfd
             make-mfd
@@ -50,7 +51,7 @@
             is-mfds?
             mfd-dispos
             mfd-name
-            mfd-filename
+            mfd-filename mfd-filename-set!
             mfd-begin
             mfd-end
             mfd-type
@@ -72,7 +73,7 @@
   (fields
    dispos ; content disposition
    name ; mfd name
-   filename ; mfd filename, #f for not-a-file
+   (mutable filename) ; mfd filename, #f for not-a-file
    begin ; beginning of data
    end ; end of data
    type)) ; MIME type
