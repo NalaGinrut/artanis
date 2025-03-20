@@ -30,7 +30,7 @@
             artanis:http-delete
             artanis:http-put))
 
-;; It's recommend to use (artanis client) rather than (web client)
+;; It's recommended to use (artanis client) rather than (web client)
 
 (define (gen-headers-list headers)
   (map (lambda (e)
@@ -43,9 +43,12 @@
 (define (request-it url handle headers cert bv?)
   (curl-easy-setopt handle 'url url)
   (curl-easy-setopt handle 'http-version 2)
-  (when (not cert)
+  (cond
+   ((not cert)
     (curl-easy-setopt handle 'ssl-verifypeer #f)
     (curl-easy-setopt handle 'ssl-verifyhost #f))
+   (else
+    (curl-easy-setopt handle 'sslcert cert)))
   (curl-easy-setopt handle 'httpheader
                     (gen-headers-list headers))
   (let* ((ret (curl-easy-perform handle bv? #t))
