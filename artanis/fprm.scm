@@ -480,6 +480,8 @@
       ('top " limit 1 ")
       ('all "")
       (_ #f)))
+  (define (->offset offset)
+    (and offset (format #f " offset ~a " offset)))
   (define (->group-by group-by)
     (match group-by
       ((? list columns)
@@ -490,7 +492,7 @@
       ((columns ... (? (cut memq <> '(asc desc)) m))
        (format #f " order by ~{~a~^,~} ~a " columns m))
       (_ #f)))
-  (define (->opts ret group-by order-by cnd foreach)
+  (define (->opts ret offset group-by order-by cnd foreach)
     (define-syntax-rule (-> x tox)
       (or (and=> x tox) ""))
     (define-syntax-rule (cond-combine c lst)
@@ -514,7 +516,7 @@
      (list (cond-combine cnd foreach)
            (-> group-by ->group-by)
            (-> order-by ->order-by)
-           (-> ret ->ret))))
+           (-> ret ->ret) (-> offset ->offset))))
   (define (->mix columns functions)
     `(,@columns ,@(map (lambda (f) (format #f "~a(~{~a~^,~})" (car f) (cdr f))) functions)))
   (lambda* (tname #:key (columns '(*)) ; get all (*) in default
@@ -525,6 +527,8 @@
                   (ret 'all)
                   ;; three modes for return results:
                   ;; 1. top; 2. all; 3. integer larger than 0
+                  (offset #f)
+                  ;; #:offset indicates the number of records to skip
                   (group-by #f)
                   ;; The GROUP BY statement is used in conjunction with the aggregate
                   ;; functions to group the result-set by one or more columns.
@@ -557,7 +561,9 @@
                   ;; 2. 'getter: return a getter as a function
                   )
     (let ((sql (format #f "select ~{~a~^,~} from ~a ~a;"
-                       (->mix columns functions) tname (->opts ret group-by order-by condition foreach)))
+                       (->mix columns functions) tname
+                       (->opts ret offset group-by order-by
+                               condition foreach)))
           (conn (cond
                  ((route-context? rc/conn) (DB-open rc/conn))
                  ((<connection>? rc/conn) rc/conn)
