@@ -49,7 +49,7 @@
       (match pattern
         (((? string? key))
          (cond
-          ((or (not lang) (string-null? lang)) key)
+          ((or (not fixed-lang) (string-null? fixed-lang)) key)
           ((i18n-getter)
            => (lambda (getter)
                 (or (getter fixed-lang key)
