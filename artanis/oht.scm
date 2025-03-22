@@ -619,6 +619,8 @@
         (make-i18n-handler))))
   (lambda (rc)
     (match val
+      (('set lang) (parameterize ((current-lang lang))
+                     (make-i18n-handler)))
       ((? string? field) (from-url rc field))
       (`(cookie ,name) (from-cookie rc name))
       ('header (from-header rc))
