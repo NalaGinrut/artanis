@@ -374,4 +374,5 @@
                    (if dir
                        (format #f "~a/~a" dir (rc-path rc))
                        (static-filename (rc-path rc))))))
-    (emit-response-with-file filename (request-port (rc-req rc)))))
+    (emit-response-with-file (uri-decode filename)
+                             (request-port (rc-req rc)))))
