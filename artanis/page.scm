@@ -294,7 +294,7 @@
                ,@headers)))
 
 (define (reject-method method)
-  (throw 'artanis-err 405 "Method is not allowed" method))
+  (throw 'artanis-err 405 reject-method "Method is not allowed" method))
 
 ;; proc must return the content-in-bytevector
 (define (generate-response-with-file filename file-sender)
