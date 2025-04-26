@@ -41,6 +41,7 @@
   #:use-module (artanis security nss)
   #:use-module (artanis i18n)
   #:use-module (artanis cli)
+  #:use-module (artanis runner)
   #:use-module (artanis version)
   #:use-module (web server)
   #:use-module (srfi srfi-1)
@@ -189,6 +190,15 @@
 
                ;; server
                schedule-task
+
+               ;; runner
+               call-with-runner
+
+               ;; cli
+               cli-run
+               cli-run*
+               run-with-cli
+               run-with-cli*
 
                ;; version
                artanis-version)
