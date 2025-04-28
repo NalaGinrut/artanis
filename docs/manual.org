@@ -260,11 +260,11 @@ Let me explain the code:
 + /line 1:/ Load GNU Artanis module, (artanis artanis) is the name.
 
 
-+ /line 2:/ The first argument /get/ is GNU Artanis' API correspondence to the GET method of the HTTP protocol.
++ /line 3:/ The first argument /get/ is GNU Artanis' API correspondence to the GET method of the HTTP protocol.
   The second argument "/hello" is the URL rule to register showing in the address line of e.g. firefox.
   The third argument is the handler which will be triggered if the registered URL rule is hit.
 
-+ /line 3:/ Run the GNU Artanis web server, and listen on socket port 8080.
++ /line 4:/ Run the GNU Artanis web server, and listen on socket port 8080.
 
 You may type Ctrl+C to quit and stop the server, see also the message printed on the screen accordingly.
 ** More complex URL remapping
