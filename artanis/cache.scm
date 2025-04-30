@@ -153,7 +153,7 @@
          `(private ,(cons 'max-age m))))
       (else (throw 'artanis-err try-to-cache-dynamic-content
                    "Invalid opts `~a'!" o))))
-  (cache-to-tlb! rc etag) ; cache the hash the TLB
+  (cache-to-tlb! rc etag) ; cache the hash to the TLB
   (response-emit body #:headers `(,@headers
                                   (ETag . ,etag)
                                   (cache-control . ,(->cc cache-opts)))))
