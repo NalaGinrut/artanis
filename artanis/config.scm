@@ -598,6 +598,11 @@ session.i18n = json | sxml | locale | <third-party-engine>")
     (('expires expires) (conf-set! '(cookie expires) (->integer expires)))
     (else (error parse-namespace-cookie "Config: Invalid item" item))))
 
+(define (parse-custom-conf item)
+  (match item
+    ((key value) (conf-set! `(custom ,key) value))
+    (else (error parse-custom-conf "Config: Invalid item" item))))
+
 (define (parse-config-item item)
   (match item
     (('db rest ...) (parse-namespace-db rest))
@@ -610,7 +615,8 @@ session.i18n = json | sxml | locale | <third-party-engine>")
     (('cache rest ...) (parse-namespace-cache rest))
     (('debug rest ...) (parse-namespace-debug rest))
     (('cookie rest ...) (parse-namespace-cookie rest))
-    (((? string-null?)) #t) ; skip
+    (('custom rest ...) (parse-custom-conf rest))
+    (((? string-null?)) #t)             ; skip
     (else (error parse-config-item "Unsupported config namespace!" item))))
 
 (define (parse-line line)
