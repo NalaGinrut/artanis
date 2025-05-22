@@ -73,7 +73,7 @@ than mails.
 
 GNU Artanis is aiming for production quality, since it's going to be used in a
 real product. So we need high quality contributions.  Small and/or obvious fixes
-are likely to be easily applied. Larger contributions should be discussed firstaduring the planning phase as they will require strict review.
+are likely to be easily applied. Larger contributions should be discussed first during the planning phase as they will require strict review.
 
 Artwork and document are also important contributions and greatly appreciated bythe GNU Artanis community. Advocating on GNU Artanis on your blogs, wikis, and
 webcast tutorials are good ways to help grow the GNU Artanis community.
