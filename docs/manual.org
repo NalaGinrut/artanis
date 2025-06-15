@@ -821,6 +821,12 @@ Usually it's passed to the page handler as a unique argument. It's supposed to p
 + Set response cookie from server side. If you want to return cookies to
   the client, please use it.
 
+  #+begin_src scheme
+  (get-header rc 'Authorization)
+  (get-header rc 'X-My-Custom-Header)
+  #+end_src
+  + Get the value of a request header in the current route context.
+
 There're other APIs in /route-context/, but they're largely used for
 internals of Artanis, rarely useful for users. So we don't list them here.
 * Page status handling
@@ -1236,6 +1242,8 @@ BTW, you may get the parsed query-string as an assoc-list as well:
 (let ((qstr (:from-post rc 'get)))
   (assoc-ref qstr "key-1"))
 #+END_SRC
+
+
 * Layouts and Rendering in GNU Artanis
 ** Templating
 Templating provides a way to mix programmatic code into HTML.
@@ -1528,13 +1536,16 @@ Here are some known ways to solve ORM related problems:
 
 Basically, GNU Artanis has no ORM yet, and maybe never will. GNU Artanis is trying to experiment new ways to solve the problems of ORM.
 
-GNU Artanis provides three ways to complete this mission. All of them, are *experimental* at present.
+GNU Artanis provides several ways to complete this mission. All of them, are *experimental* at present.
 
 + SSQL (1,3,5)
 
 + FPRM (4,7)
 
 + SQL Mapping (1,3,6)
+
++ Plain SQL queries
+
 ** SSQL
 The concept of SSQL is to write SQL in [[https://en.wikipedia.org/wiki/S-expression][s-expression]].
 
@@ -1703,6 +1714,20 @@ For example:
 /NOTE: all the returned names of the schema will be in lowercase./
 ** SQL Mapping (experimental)
 To be continued ...
+** Plain SQL queries
+Using GNU Artanis, you can also drop to a lower level of database interaction and write raw SQL queries. This can be useful for complex operations involving multiple tables, ~JOIN~ statements, ~GROUP~ statements and the likes.
+
+We will assume your route context (in the controller) is named ~rc~, you can open a DB connection with ~(DB-open rc)~. If you write single statement queries, you don't need to terminate them with a semicolon ~;~ but if you write multiple expressions in one go then you will need one.
+
+See some example queries:
+
+#+begin_src scheme
+;; this will fetch a list of rows (a row is an alist of string column name to value)
+(DB-get-all-rows (DB-query (DB-open rc) "SELECT * FROM products ORDER BY created_at DESC LIMIT 42"))
+
+;; this will update some row
+(DB-query (DB-open rc) "UPDATE products SET name = 'High-end Lisp Machine', updated_at = 1749805637 WHERE id = '50f11747-8714-4159-92e5-ff876f96a65a'")
+#+end_src
 * RESTful API
 GNU Artanis provides a command src_bash[:exports code]{art api} to generate RESTful API skeleton, and the API version can be managed.
 
@@ -2824,6 +2849,37 @@ from rnrs.
 #+end_src
 ** Time operation tool
 TODO
+** Reading URL encoded request body (x-www-form-urlencoded)
+Here a simple implementation of reading a form encoded body (bytevector) into an alist:
+
+#+begin_src scheme
+(define-module (my module)
+  #:use-module (ice-9 textual-ports)
+  #:use-module (ice-9 time)
+  #:use-module (ice-9 format)
+  #:use-module (ice-9 string-fun)
+  #:use-module (ice-9 iconv)
+  #:export (read-url-encoded-body))
+
+(define (at-eq x)
+  (string-split x #\=))
+(define (unsafe-mk-alist x)
+  (cons (car x)
+        (cdr x)))
+(define (read-url-encoded-body body)
+  (let* ((str (bytevector->string body "utf-8"))
+         (raw-kv-pairs (string-split str #\&))
+         (xss (map unsafe-mk-alist
+                   (map at-eq raw-kv-pairs))))
+    xss))
+#+end_src
+
+Then in your controller you can use it as:
+#+begin_src scheme
+(let* ((body (rc-body rc))
+       (kv (read-url-encoded-body body)))
+  (display (format #f "parsed body alist: ~s" kv))
+#+end_src
 
 * Debug mode
 GNU Artanis provides a debug-mode for a more convenient way to debug. It's very easy to use.
@@ -2852,6 +2908,73 @@ the paths here:
 debug.monitor = my/lib/json, my/lib/modules
 #+END_SRC
 
+
+* Using Artanis in combination with Guix
+
+GNU Artanis is packaged and available via the Guix package manager. Read more about Guix here: https://guix.gnu.org/
+
+GNU Guix is a package manager for GNU/Linux systems. It is designed to give users more control over their general-purpose and specialized computing environments, and make these easier to reproduce over time and deploy to one or many devices.
+
+This combines elegantly with Artanis, and ensures a stable and reproducible build process for your projects and deployments.
+
+A simple ~manifest.scm~ file can look like this, and allows you to customize and isolate (per project) what versions of Artanis (and other software) you use.
+
+#+begin_src scheme
+(use-modules (guix packages)
+             (gnu)
+             ;; ............
+             (gnu packages guile)
+             (gnu packages guile-xyz)
+             ;; ........
+             )
+
+
+(packages->manifest (list artanis
+                          (specification->package "gettext")
+                          guile-next
+                          ;; guile-ares-rs is a nice developer REPL
+                          sqlite
+                          guile-dbi
+                          guile-dbd-sqlite3))
+#+end_src
+
+This allows you to customize what version of Artanis you may want to run or do other optimizations or changes.
+
+See more about Guix packages here: https://guix.gnu.org/manual/en/html_node/Defining-Packages.html
+
+The upstream package definition for Artanis can be found here: https://codeberg.org/guix/guix/src/branch/master/gnu/packages/guile-xyz.scm
+
+With this you can then reproducibly run your project with ~art~ and more as well:
+#+begin_src shell
+# Running `art` from inside the reproducible guix shell
+guix shell -m manifest.scm -- art work -c conf/production.conf
+
+guix shell -m manifest.scm -- sqlite3 my.db 'PRAGMA journal_mode=WAL;'
+#+end_src
+
+* A development REPL
+
+If you use Guix, you can get a great Guile Scheme REPL and auto-complete via Emacs and Guile Arei and Ares (by Andrew Tropin). Add ~guile-ares-rs~ package to your ~manifest.scm~ and you can then run the REPL process with:
+
+#+begin_src shell
+guix shell -m manifest.scm -- guile  \
+        -L lib -L . \
+        -c '((@ (ares server) run-nrepl-server))'
+#+end_src
+
+In Emacs you can install it with:
+
+#+begin_src emacs-lisp
+(use-package arei
+  :ensure (:host github :repo "abcdw/emacs-arei" :branch "master")
+  :demand t)
+
+(use-package sesman
+  :ensure (:host github :repo "vspinu/sesman" :branch "master")
+  :demand t)
+#+end_src
+
+And then run ~arei~.
 
 * Appendix A GNU Free Documentation License
 Version 1.3, 3 November 2008
