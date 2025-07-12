@@ -26,9 +26,10 @@
   (let ((client (current-client)))
     (make-future
      (lambda ()
-       (let ((ret (thunk)))
-         (oneshot-mention! client)
-         ret)))))
+       (call-with-values thunk
+         (lambda results
+           (oneshot-mention! client)
+           (apply values results)))))))
 
 (define (call-with-runner thunk)
   (let ((runner (create-runner thunk)))
