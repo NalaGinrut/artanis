@@ -90,12 +90,12 @@
 
 (define *component-meta-table*
   `((controller . ,*controllers-table*)))
-(define (load-compent-rules component)
+(define (load-component-rules component)
   (define rf (current-route-cache))
   (define (-> k)
     (module-ref (resolve-module '(artanis artanis)) k))
   (when (not (file-exists? rf))
-    (error load-rules (format #f "BUG: ~a wasn't generated successfully!" rf)))
+    (error load-component-rules (format #f "BUG: ~a wasn't generated successfully!" rf)))
   (call-with-input-file rf
     (lambda (port)
       (let lp((r (read port)))
@@ -109,7 +109,7 @@
             (lp (read port)))))))))
 
 (define (load-rules)
-  (load-compent-rules 'controller))
+  (load-component-rules 'controller))
 
 (define (clean-stuffs)
   (define toplevel (current-toplevel))
