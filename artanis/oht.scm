@@ -467,6 +467,11 @@
             (throw 'artanis-err 500 with-auth-maker
                    "PATH: ~a, ~a is not a thunk!" (rc-path rc) thunk))
         (failed-handler failed-url)))
+  (define (get-authn-token headers name)
+    ;; get from http header, Authentication: name token
+    (match (assoc-ref headers 'authorization)
+      (((? is-field?) key) key)
+      (else #f)))
   (lambda (rc failed-handler thunk)
     (match mode
       (#t
@@ -477,6 +482,14 @@
        (auth-action rc thunk failed-handler 'status))
       ((? procedure? generator)
        (auth-action rc thunk failed-handler generator))
+      (`(token ,name ,checker)
+       (let ((headers (rc-headers rc))
+             (token (get-authn-token headers name)))
+         (if (and token
+                  (or (not checker)
+                      (checker token)))
+             (thunk)
+             (failed-handler "/login"))))
       (else (throw 'artanis-err 500 with-auth-maker
                    "Invalid mode `~a'~" mode)))))
 
