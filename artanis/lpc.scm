@@ -152,7 +152,9 @@
   (lambda args
     (let ((ctor (case backend
                   ((redis) new-lpc-backend/redis)
-                  ((json) new-lpc-backend/json))))
+                  ((json) new-lpc-backend/json)
+                  (else (throw 'artanis-err 500 new-lpc
+                               "Unknown LPC backend: ~a" backend)))))
       (make-lpc (apply ctor args) read-only?))))
 
 (::define (lpc-destroy! lpc)
@@ -193,27 +195,24 @@
 
 (::define (get-lpc-instance!)
   (:anno: () -> lpc)
-  (when (not *lpc-instance-pool*)
-    (error "LPC is not enabled. Please check out your config!"))
-  (and (not (queue-empty? *lpc-instance-pool*))
-       (queue-out! *lpc-instance-pool*)))
+  (and (not (queue-empty? (lpc-instance-pool)))
+       (queue-out! (lpc-instance-pool))))
 
 (::define (intern-lpc-instance! lpc)
   (:anno: (lpc) -> lpc)
-  (when (not *lpc-instance-pool*)
-    (error "LPC is not enabled. Please check out your config!"))
   (DEBUG "Intern a new lpc instance!~%")
-  (queue-in! *lpc-instance-pool* lpc)
+  (queue-in! (lpc-instance-pool) lpc)
   lpc)
 
 ;; NOTE: We only keep one instance in the queue as possible,
 (define (lpc-instance-recycle lpc)
   (cond
-   ((queue-empty? *lpc-instance-pool*)
+   ((queue-empty? (lpc-instance-pool))
     (intern-lpc-instance! lpc))
    (else
     (lpc-flush! lpc)
     (lpc-destroy! lpc))))
 
 (define (init-lpc)
-  (set! *lpc-instance-pool* (new-queue)))
+  (when (get-conf '(db lpc))
+    (lpc-instance-pool (new-queue))))

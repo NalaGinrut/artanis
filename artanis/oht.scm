@@ -440,6 +440,9 @@
         (((or 'ref 'get) key) (lpc-ref lpc key))
         ('(impl) (lpc-impl lpc))
         (else (throw 'artanis-err 500 gen-lpc-handler "Invalid cmd `~a'!" cmd)))))
+  (when (not (get-conf '(db lpc)))
+    (throw 'artanis-err 500 lpc-maker
+           "LPC is not enabled! Please set `(db lpc)' in your config file."))
   (match mode
     (#t
      (lambda (rc . cmd)
@@ -447,7 +450,7 @@
          (let ((lpc (or (get-lpc-instance!) ((new-lpc)))))
            (rc-lpc! rc lpc)))
        (gen-lpc-handler rc cmd)))
-    ((backend . args)
+    (('backend backend . args)
      (lambda (rc . cmd)
        (when (not (rc-lpc rc))
          (let ((lpc (or (get-lpc-instance!)

@@ -65,7 +65,7 @@
             kernel-version>=?
             linux-version>=?
             current-encoder
-            *lpc-instance-pool*
+            lpc-instance-pool
             out-of-task-prompt?
             resources-collecting?
             oh-define!
@@ -231,7 +231,7 @@
 
 (define current-encoder (make-parameter identity))
 
-(define *lpc-instance-pool* #f)
+(define lpc-instance-pool (make-parameter #f))
 
 (define out-of-task-prompt? (make-parameter #f))
 

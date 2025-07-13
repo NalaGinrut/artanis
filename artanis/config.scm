@@ -504,7 +504,7 @@ session.i18n = json | sxml | locale | <third-party-engine>")
     (('poolsize poolsize) (conf-set! '(db poolsize) (->integer poolsize)))
     (('pool pool) (conf-set! '(db pool) (->pool-mode pool)))
     (('encodeparams encodeparams) (conf-set! '(db encodeparams) (->bool encodeparams)))
-    (('lpc lpc) (conf-set! '(db lpc) lpc) (->bool lpc))
+    (('lpc lpc) (conf-set! '(db lpc) (->bool lpc)))
     (else (error parse-namespace-db "Config: Invalid item" item))))
 
 (define (parse-namespace-server item)
