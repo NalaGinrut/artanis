@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2018-2024
+;;  Copyright (C) 2018-2025
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -58,7 +58,7 @@
             init-lpc))
 
 (define (lpc-prefix key)
-  (string-append "__artanis_lpc_" (get-conf '(db name)) "_" key))
+  (string-append "__artanis_lpc_" key))
 
 (define-record-type lpc-backend-impl
   (fields
