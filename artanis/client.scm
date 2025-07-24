@@ -18,6 +18,8 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis client)
+  #:use-module (artanis server server-context)
+  #:use-module (artanis runner)
   #:use-module (web response)
   #:use-module (web http)
   #:use-module (web uri)
@@ -31,6 +33,13 @@
             artanis:http-put))
 
 ;; It's recommended to use (artanis client) rather than (web client)
+
+(define (get-socket-from-handle handle)
+  (let ((sock (curl-easy-getinfo handle 'activesocket)))
+    (if (number? sock)
+        (new-ragnarok-client sock)
+        (throw 'artanis-error 500 get-socket-from-handle
+               (format #f "curl-easy-getinfo returned a non-number: ~a" sock)))))
 
 (define (gen-headers-list headers)
   (map (lambda (e)
@@ -51,34 +60,37 @@
     (curl-easy-setopt handle 'sslcert cert)))
   (curl-easy-setopt handle 'httpheader
                     (gen-headers-list headers))
-  (let* ((ret (curl-easy-perform handle bv? #t))
+  (let* ((ret (call-with-runner
+               (lambda () (curl-easy-perform handle bv? #t))))
          (code (curl-error-code))
-         (errstr (curl-error-string)))
-    (values ret code errstr)))
+         (errstr (curl-error-string))
+         (sock (get-socket-from-handle handle)))
+    (values ret code errstr sock)))
 
 (define (get-result url method handle headers cert bv?)
-  (let-values (((ret code errstr) (request-it url handle headers cert bv?)))
+  (let-values (((ret code errstr sock) (request-it url handle headers cert bv?)))
     (when (not ret)
       (curl-easy-cleanup handle)
       (throw 'artanis-error 500 get-result
              (format #f "client error: method `~a', code `~a', errstr `~a'!"
                      method code errstr)))
-    (let* ((res (call-with-input-string (car ret) read-response))
-           (body (cadr ret))
-           (status (response-code res)))
-      (cond
-       ((or (= status 301) (= status 302))
-        (let ((new-url (uri->string (assoc-ref (response-headers res)
-                                               'location))))
-          (get-result new-url method handle headers cert bv?)))
-       ((not (zero? code))
-        (curl-easy-cleanup handle)
-        (throw 'artanis-error 500 get-result
-               (format #f "client error: method `~a', code `~a', errstr `~a'!"
-                       method code errstr)))
-       (else
-        (curl-easy-cleanup handle)
-        (values res body))))))
+    (parameterize ((current-client (new-ragnarok-client sock)))
+      (let* ((res (call-with-input-string (car ret) read-response))
+             (body (cadr ret))
+             (status (response-code res)))
+        (cond
+         ((or (= status 301) (= status 302))
+          (let ((new-url (uri->string (assoc-ref (response-headers res)
+                                                 'location))))
+            (get-result new-url method handle headers cert bv?)))
+         ((not (zero? code))
+          (curl-easy-cleanup handle)
+          (throw 'artanis-error 500 get-result
+                 (format #f "client error: method `~a', code `~a', errstr `~a'!"
+                         method code errstr)))
+         (else
+          (curl-easy-cleanup handle)
+          (values res body)))))))
 
 (define* (artanis:http-head url #:key (headers '()) (cert #f))
   (let ((handle (curl-easy-init)))
