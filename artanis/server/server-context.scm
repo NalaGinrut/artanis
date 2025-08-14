@@ -243,16 +243,16 @@
 
 (::define (oneshot-mention/fd! fd)
   (:anno: (int) -> ANY)
-  (when (not (fd-closed? fd))
-    (let* ((epfd (ragnarok-server-epfd (current-server)))
-           (event (make-epoll-event fd (gen-oneshot-event))))
-      (epoll-ctl epfd EPOLL_CTL_MOD fd event))))
+  (DEBUG "oneshot-mention/fd! ~a~%" fd)
+  (let* ((epfd (ragnarok-server-epfd (current-server)))
+         (event (make-epoll-event fd (gen-oneshot-event))))
+    (epoll-ctl epfd EPOLL_CTL_MOD fd event)))
 
 (::define (oneshot-mention! c)
   (:anno: (ragnarok-client) -> ANY)
-  (when (not (port-closed? (client-sockport c)))
-    (let ((fd (client-sockport-descriptor c)))
-      (oneshot-mention/fd! fd))))
+  (DEBUG "oneshot-mention! ~a~%" c)
+  (let ((fd (client-sockport-descriptor c)))
+    (oneshot-mention/fd! fd)))
 
 ;; for emacs:
 ;; (put '::define 'scheme-indent-function 1)
@@ -260,20 +260,20 @@
 ;; NOTE: The remote connection wrapped in Guile socket port.
 (::define (client-sockport c)
   (:anno: (ragnarok-client) -> socket-port)
-  ;;(DEBUG "client-sockport: ~a~%" (unbox-type c))
-  (car (unbox-type c)))
-
-(::define (client-sockport-descriptor c)
-  (:anno: (ragnarok-client) -> int)
-  (let ((port (client-sockport c)))
+  (DEBUG "client-sockport: ~a~%" (unbox-type c))
+  (let ((port (car (unbox-type c))))
     (cond
      ((port-closed? port)
       (cond
        ((preparing-quit?) #f)
        (else
-        (throw 'artanis-err 410 client-sockport-descriptor
+        (throw 'artanis-err 410 client-sockport
                "The client was closed suddenly!"))))
-     (else (port->fdes port)))))
+     (else port))))
+
+(::define (client-sockport-descriptor c)
+  (:anno: (ragnarok-client) -> int)
+  (port->fdes (client-sockport c)))
 
 (::define (client-details c)
   (:anno: (ragnarok-client) -> vector)

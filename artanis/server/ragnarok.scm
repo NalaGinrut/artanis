@@ -179,30 +179,31 @@
   (:anno: (ragnarok-protocol ragnarok-server) -> ready-queue)
   (define (accept-them-all listen-socket)
     (let lp ((ret '()))
-      (let ((fd (catch #t
-                  (lambda ()
-                    (accept listen-socket))
-                  (lambda e
-                    (cond
-                     ((no-available-port-to-allocate? e)
-                      (format (artanis-current-output)
-                              "Ragnarok can't accept request. ~a~%"
-                              (strerror (system-error-errno e)))
-                      (format (artanis-current-output)
-                              "Start resource collecting......")
-                      (parameterize ((current-proto proto)
-                                     (current-server server))
-                        ;; When there's no available port for new requests,
-                        ;; we call resources-collector to recycle timeout
-                        ;; requests.
-                        (resources-collector))
-                      (format (artanis-current-output) "done~%")
-                      #f)
-                     (else
-                      (DEBUG "Get ~a new connections.~%" (length ret))
-                      #f))))))
-        (if fd
-            (lp (cons (new-ragnarok-client fd) ret))
+      (let ((sock-port
+             (catch #t
+               (lambda ()
+                 (accept listen-socket))
+               (lambda e
+                 (cond
+                  ((no-available-port-to-allocate? e)
+                   (format (artanis-current-output)
+                           "Ragnarok can't accept request. ~a~%"
+                           (strerror (system-error-errno e)))
+                   (format (artanis-current-output)
+                           "Start resource collecting......")
+                   (parameterize ((current-proto proto)
+                                  (current-server server))
+                     ;; When there's no available port for new requests,
+                     ;; we call resources-collector to recycle timeout
+                     ;; requests.
+                     (resources-collector))
+                   (format (artanis-current-output) "done~%")
+                   #f)
+                  (else
+                   (DEBUG "Get ~a new connections.~%" (length ret))
+                   #f))))))
+        (if sock-port
+            (lp (cons (new-ragnarok-client sock-port) ret))
             ret))))
   (define (is-listenning-fd? e)
     (DEBUG "listenning-port? ~a~%" e)

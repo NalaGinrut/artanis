@@ -16,6 +16,7 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (artanis runner)
+  #:use-module (artanis utils)
   #:use-module (artanis cli)
   #:use-module (artanis server)
   #:use-module (artanis server server-context)
@@ -28,11 +29,15 @@
      (lambda ()
        (call-with-values thunk
          (lambda results
+           (DEBUG "Runner thunk done, client: ~a~%" client)
            (oneshot-mention! client)
            (apply values results)))))))
 
 (define (call-with-runner thunk)
   (let ((runner (create-runner thunk)))
     (while (not (eq? 'done ((@@ (ice-9 futures) future-state) runner)))
+           (DEBUG "Runner is still running, waiting for it to finish...~a~%"
+                  runner)
            (break-task))
+    (DEBUG "Wait for returning from runner, client: ~a~%" (current-client))
     (touch runner)))
