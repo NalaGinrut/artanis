@@ -76,6 +76,8 @@
     (let* ((res (call-with-input-string
                  (car ret)
                  (lambda (port)
+                   ;; This loop make sure to get final result if there's
+                   ;; follow location like 301 or 302
                    (let lp ((ret (read-response port)))
                      (cond
                       ((eof-object? (peek-char port)) ret)
@@ -83,10 +85,6 @@
            (body (cadr ret))
            (status (response-code res)))
       (cond
-       ((or (= status 301) (= status 302))
-        (let ((new-url (uri->string (assoc-ref (response-headers res)
-                                               'location))))
-          (get-result new-url method handle headers cert bv?)))
        ((not (zero? code))
         (curl-easy-cleanup handle)
         (throw 'artanis-error 500 get-result
