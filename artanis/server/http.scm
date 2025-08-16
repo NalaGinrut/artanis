@@ -233,6 +233,7 @@
   (:anno: (ragnarok-server ragnarok-client boolean) -> ANY)
   (DEBUG "http close ~a~%" (client-sockport client))
   (cond
+   ((preparing-quit?) #t)
    ((get-the-redirector-of-websocket server client)
     => (lambda (redirector)
          (let ((type (redirector-type redirector))
