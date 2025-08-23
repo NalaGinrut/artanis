@@ -28,6 +28,8 @@
 ;; CPU platform. We'll remove this patching when the patch is merged into Guile.
 ;; https://lists.gnu.org/archive/html/guile-devel/2025-08/msg00008.html
 
+(import (ice-9 threads))
+
 (define %worker-count
   (if (provided? 'threads)
       (max 1 (1- (current-processor-count)))
