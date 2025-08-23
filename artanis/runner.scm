@@ -23,6 +23,21 @@
   #:use-module (ice-9 futures)
   #:export (call-with-runner))
 
+;; ========== Monkey patching ==========
+;; We add this monkey patching as a workaround for Guile's futures bug in single
+;; CPU platform. We'll remove this patching when the patch is merged into Guile.
+;; https://lists.gnu.org/archive/html/guile-devel/2025-08/msg00008.html
+
+(define %worker-count
+  (if (provided? 'threads)
+      (max 1 (1- (current-processor-count)))
+      0))
+
+(module-set! (resolve-module '(ice-9 futures)) '%worker-count %worker-count)
+
+;; =========== end Monkey patching ===========
+
+
 (define (create-runner thunk)
   (let ((client (current-client)))
     (make-future
