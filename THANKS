@@ -1,40 +1,44 @@
 Thanks these guys who gave me help:
-* Moritz Heidkamp 
-  help for cookie handle.
+* Moritz Heidkamp
+help for cookie handle.
 * Mario Domenech Goulart <mario.goulart@gmail.com>
-  help for README typo.
+help for README typo.
 * Mark H Weaver <mhw@netris.org>
-  Contribute an efficiency make-string-template
+Contribute an efficiency make-string-template
 * Stefan Husmann <stefan-husmann@t-online.de>
-  Helped to add DESTDIR to Makefile and packaging for Arch.
+Helped to add DESTDIR to Makefile and packaging for Arch.
 * vince-refiti <https://github.com/vince-refiti>
-  Fixed many typos and grammar errors in the manual.
+Fixed many typos and grammar errors in the manual.
 * Kashish Sharma <music.kashish@gmail.com>
-  Fixed misc grammar issues.
+Fixed misc grammar issues.
 * Mohammed Sadik <sadiq@sadiqpk.org>
-  Fixed many typos and grammar errors in the manual.
+Fixed many typos and grammar errors in the manual.
 * Jan Wedekind <jan@wedesoft.de>
-  Optimized autogen and configure to make the configuring faster.
+Optimized autogen and configure to make the configuring faster.
 * Nikita <yagel.x@gmail.com>
-  Reported and helped to fixed many bugs in Ragnarok.
+Reported and helped to fixed many bugs in Ragnarok.
 * jian dong <jian.dong@dorabot.com>
-  Polished upload module.
+Polished upload module.
 * Christopher Baines <mail@cbaines.net>
-  Fix socketfile data connection.
+Fix socketfile data connection.
 * Mortimer Cladwell <mbcladwell@gmail.com>
-  Fix cookies. Reported many issues.
+Fix cookies. Reported many issues.
 * Zelphir Kaltstahl <zelphirkaltstahl@posteo.de>
-  Fix wording in security warning.
+Fix wording in security warning.
 * Yarl Baudig <yarl-baudig@mailoo.org>
-  Fix epoll issue on Aarch64
+Fix epoll issue on Aarch64
 * Mortimer Cladwell <mbcladwell@gmail.com>
-  Fix manual
+Fix manual
 * Yarl Baudig <yarl-baudig@mailoo.org>
-  Fix epoll issue on Aarch64.
-  Thanks for the long time tracing and fixed finally!
+Fix epoll issue on Aarch64.
+Thanks for the long time tracing and fixed finally!
 * Jaft <jaft.r@outlook.com>, Benson Muite <benson_muite@emailplus.org>
-  Contributed neo GNU Artanis logo design.
+Contributed neo GNU Artanis logo design.
 * Sai Karthik <kskarthik@disroot.org>
-  Contributed new GNU Artanis site based on org-mode.
+Contributed new GNU Artanis site based on org-mode.
 * Ricardo Bocchi <ricardo@mobilemind.com.br>
-  Fix degug monitor issue.
+Fix degug monitor issue.
+* Zhaoming Luo <zhmingluo@163.com>
+Fix docs issue.
+* Josep Bigorra <jjbigorra@gmail.com>
+Mics fixes and document update.
