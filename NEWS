@@ -225,3 +225,23 @@ Changes in 1.2.2
 - Fix to init oht correctly
 - Add plugins mechanism
 - Fix to detect locale domain correctly
+
+Changes in 1.3.0
+* Notable changes
+- Fix client blocking issue.
+- Fix socket closing issue.
+- Fix LPC to work correctly with Redis.
+- Fix runner to return multi returned values.
+- Fix exception throw in reject-method.
+- Fix fetching unicode filename of static files.
+- Fix i18n lang detect and config.
+- Fix header parsing in (artanis client).
+- Support locationfollow and sslcert in (artanis client).
+- Support plugin init.
+- Add WebSocket close hook, and optimize WebSocket handshake.
+- Add async runner.
+- Add token key authn.
+- Add customized config.
+- Export (artanis cli).
+- Improve manual.
+- Upgrade irregex to 0.9.11.
