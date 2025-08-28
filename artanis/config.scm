@@ -249,7 +249,7 @@ server.websocket = <boolean>")
     ((server pub)
      "pub"
      "The path to public directory, this is useful for public static resources,
-for exaample, css/img/js, etc.
+for example, css/img/js, etc.
 server.pub = <string>")
 
     ((server sendfile)
