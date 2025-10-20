@@ -389,10 +389,16 @@
             (cons o p)))
         '() opts)
        " ")))
+  (define (->constrains cexps)
+    (string-join
+     (map (lambda (cexp) (format #f "~a(~{~a~^,~})" (car cexp) (cdr cexp)))
+          cexps)
+     ", "))
   (define (->type/opts x)
     (match x
       ((types ... (opts ...)) (values types (if (null? opts) "" (->opts opts))))
       ((types ...) (values types ""))
+      ((':constrains cexps ...) (->constrains cexps))
       (else (throw 'artanis-err 500 ->type/opts
                    "Invalid definition of the table `~a'!" x))))
   (define (->types x)
