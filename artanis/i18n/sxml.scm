@@ -26,8 +26,9 @@
   #:export (i18n-sxml-init
             i18n-sxml-dir))
 
-(define i18n-sxml-dir
-  (make-parameter (format #f "~a/sys/i18n/sxml" (current-toplevel))))
+(define (i18n-sxml-dir)
+  (format #f "~a/sys/i18n/sxml"
+          (or (default-i18n-path) (current-toplevel))))
 
 (define *i18n-sxml-table* (make-hash-table))
 

@@ -27,8 +27,9 @@
   #:export (i18n-json-init
             i18n-json-dir))
 
-(define i18n-json-dir
-  (make-parameter (format #f "~a/sys/i18n/json" (current-toplevel))))
+(define (i18n-json-dir)
+  (format #f "~a/sys/i18n/json"
+          (or (default-i18n-path) (current-toplevel))))
 
 (define *i18n-json-table* (make-hash-table))
 

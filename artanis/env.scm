@@ -79,7 +79,9 @@
             has-cache-handler?
             is-init-server-run?
             workers-pool
-            preparing-quit?))
+            preparing-quit?
+            default-conf-file
+            default-i18n-path))
 
 ;; WARNING:
 ;; For concurrency in green-thread, all these stuffs should be immutable
@@ -270,3 +272,7 @@
 (define workers-pool (make-parameter '()))
 
 (define preparing-quit? (make-parameter #f))
+
+(define default-conf-file (make-parameter "/etc/artanis/artanis.conf"))
+
+(define default-i18n-path (make-parameter #f))

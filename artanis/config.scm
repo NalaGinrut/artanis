@@ -30,11 +30,9 @@
             current-conf-file
             init-database-config
             current-myhost
-            default-conf-values
-            default-conf-file))
+            default-conf-values))
 
 (define server-info artanis-version)
-(define default-conf-file (make-parameter "/etc/artanis/artanis.conf"))
 
 (define (conf-set! k v)
   (hash-set! *conf-hash-table* k v))

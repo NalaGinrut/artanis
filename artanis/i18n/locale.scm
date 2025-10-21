@@ -27,8 +27,9 @@
             i18n-locale-mo-dir
             i18n-locale-domain))
 
-(define i18n-locale-mo-dir
-  (make-parameter (format #f "~a/sys/i18n/locale" (current-toplevel))))
+(define (i18n-locale-mo-dir)
+  (format #f "~a/sys/i18n/locale"
+          (or (default-i18n-path) (current-toplevel))))
 
 (define i18n-locale-domain (make-parameter "translate"))
 
