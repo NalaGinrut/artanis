@@ -240,7 +240,8 @@
 
 ;; make sure to call init-server at the beginning
 (define* (init-server #:key (statics '(png jpg jpeg ico html js css))
-                      (cache-statics? #f) (exclude '()))
+                      (cache-statics? #f) (exclude '()) (conf #f))
+  (when conf (default-conf-file conf))
   (default-route-init statics cache-statics? exclude)
   (init-hook)
   (init-config)

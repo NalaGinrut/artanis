@@ -30,10 +30,11 @@
             current-conf-file
             init-database-config
             current-myhost
-            default-conf-values))
+            default-conf-values
+            default-conf-file))
 
 (define server-info artanis-version)
-(define *default-conf-file* "/etc/artanis/artanis.conf")
+(define default-conf-file (make-parameter "/etc/artanis/artanis.conf"))
 
 (define (conf-set! k v)
   (hash-set! *conf-hash-table* k v))
@@ -728,9 +729,9 @@ session.i18n = json | sxml | locale | <third-party-engine>")
                ((and conf-file (file-exists? conf-file))
                 (format (artanis-current-output) "Loading ~a..." conf-file)
                 conf-file)
-               ((file-exists? *default-conf-file*)
-                (format (artanis-current-output) "Loading ~a..." *default-conf-file*)
-                *default-conf-file*)
+               ((file-exists? (default-conf-file))
+                (format (artanis-current-output) "Loading ~a..." (default-conf-file))
+                (default-conf-file))
                (else
                 (error init-config
                        "Fatal error! Do you have /etc/artanis/artanis.conf?")))))
