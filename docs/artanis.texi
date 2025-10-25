@@ -345,6 +345,41 @@ The expected output should be similar to this:
 $1 = "GNU Artanis-x.x.x"
 @end verbatim
 
+@menu
+* Work with Guix::
+@end menu
+
+@node Work with Guix
+@subsection Work with Guix
+@anchor{#work-with-guix}
+Before you try GNU Artanis without application folder created by @strong{art create}, which is so-called simple mode here, Make sure your environment is set up correctly.
+
+Specifically, if you're using Guix, you need to specify the config path and i18n path like this:
+
+@verbatim
+;; say, we have put artanis.conf and sys/i18n in /path/to/your/
+(init-server #:config-path "/path/to/your"
+             #:i18n-path "/path/to/your/")
+@end verbatim
+
+It's because Guix prevent to install files to the protected system directories which was mounted as read-only. So Guix users have to prepare the necessary files in a writable path, and tell GNU Artanis where to find them. The easiest way to generate these files is to use @strong{art create} to create an application folder first, then copy the generated conf and sys/i18n to a writable path.
+
+@itemize
+@item
+@code{your_app_folder/conf/artanis/conf}
+@item
+@code{your_app_folder/sys/i18n/*}
+@end itemize
+
+So here's your code:
+
+@verbatim
+;; cp app_folder/conf/artanis.conf /dev/shm
+;; cp -r app_folder/sys/i18n /dev/shm
+(init-server #:config-path "/dev/shm"
+             #:i18n-path "/dev/shm")
+@end verbatim
+
 @node Simple HTTP server
 @section Simple HTTP server
 @anchor{#simple-http-server}
@@ -1390,7 +1425,7 @@ For Model definition syntax in GNU Artanis, we have:
  )
 @end verbatim
 
-@strong{@strong{NOTE:}} If you have definition, and you've imported in any controller, when booting GNU Artanis with src_scheme[:exports code](art work), then the defined table will be created automatically in the specified database. Don't worry, it will be created only once.
+@strong{@strong{NOTE:}} If you have definition, and you've imported in any controller, when booting GNU Artanis with @code{art work}, then the defined table will be created automatically in the specified database. Don't worry, it will be created only once.
 
 @strong{@strong{NOTE:}} The Model name @strong{@strong{must}} be the same with Model file's name.
 
@@ -1412,20 +1447,20 @@ For example, you have another Model named @strong{@strong{article}} which is des
  )
 @end verbatim
 
-You may realized we've added src_scheme[:exports code]((:deps user)) to hint the MVC system that @strong{@strong{article}} table should be created after @strong{@strong{user}} table. So when it meets @strong{@strong{article}} Model during booting, it'll make sure to create @strong{@strong{user}} then @strong{@strong{article}}.
+You may realized we've added @code{(:deps user)} to hint the MVC system that @strong{@strong{article}} table should be created after @strong{@strong{user}} table. So when it meets @strong{@strong{article}} Model during booting, it'll make sure to create @strong{@strong{user}} then @strong{@strong{article}}.
 
-@strong{@strong{NOTE:}}: src_scheme[:exports code]((:deps models_list @dots{})) @strong{@strong{NOTE:}} This feature is useful when you do DB migration.
+@strong{@strong{NOTE:}}: @code{(:deps models_list ...)} @strong{@strong{NOTE:}} This feature is useful when you do DB migration.
 
 @node Model API
 @subsection Model API
 @anchor{#model-api}
 The model definition API:
 
-src_scheme[:exports code]((create-artanis-model model_name (:deps deps_list @dots{}) fields_def @dots{}))
+@code{(create-artanis-model model_name (:deps deps_list ...) fields_def ...)}
 
 The @strong{@strong{fields_def}} syntax is:
 
-src_scheme[:exports code]((field_name type (options @dots{})))
+@code{(field_name type (options ...))}
 
 @enumerate 
 @item
@@ -1454,18 +1489,18 @@ double
 char-field: varchar
 @itemize
 @item
-you need to specify src_scheme[:exports code](#:maxlen positive_integer) in the options.
+you need to specify @code{#:maxlen positive_integer} in the options.
 @end itemize
 
 @item
 date-field
 @itemize
 @item
-These options imply src_scheme[:exports code](#:no-edit)
+These options imply @code{#:no-edit)}
 @item
-src_scheme[:exports code](#:auto-now)
+@code{#:auto-now}
 @item
-src_scheme[:exports code](#:auto-now-once)
+@code{#:auto-now-once}
 @end itemize
 
 @end itemize
@@ -1481,33 +1516,33 @@ The specific options are:
 
 @itemize
 @item
-src_scheme[:exports code](#:not-null)
+@code{#:not-null}
 @item
-src_scheme[:exports code](#:null)
+@code{#:null}
 @item
-src_scheme[:exports code](#:default) to speficy default value.
+@code{#:default} to speficy default value.
 @item
-src_scheme[:exports code](#:unique)
+@code{#:unique}
 @item
-src_scheme[:exports code](#:unique-key)
+@code{#:unique-key}
 @item
-src_scheme[:exports code](#:primary-key)
+@code{#:primary-key}
 @item
-src_scheme[:exports code](#:key) to specify keys.
+@code{#:key} to specify keys.
 @item
-src_scheme[:exports code](#:auto-incremental)
+@code{#:auto-incremental}
 @item
-src_scheme[:exports code](#:comment) for commenting.
+@code{#:comment} for commenting.
 @item
-src_scheme[:exports code](#:column-format)
+@code{#:column-format}
 @item
-src_scheme[:exports code](#:storage mode) DISK or MEMORY mode.
+@code{#:storage mode} DISK or MEMORY mode.
 @item
-src_scheme[:exports code](#:signed)
+@code{#:signed}
 @item
-src_scheme[:exports code](#:unsigned)
+@code{#:unsigned}
 @item
-src_scheme[:exports code](#:zerofill)
+@code{#:zerofill}
 @end itemize
 
 @item
@@ -1520,23 +1555,23 @@ SQLite3 options
 
 @itemize
 @item
-src_scheme[:exports code](#:not-null)
+@code{#:not-null}
 @item
-src_scheme[:exports code](#:null)
+@code{#:null}
 @item
-src_scheme[:exports code](#:default value)
+@code{#:default value}
 @item
-src_scheme[:exports code](#:unique)
+@code{#:unique}
 @item
-src_scheme[:exports code](#:unique-key)
+@code{#:unique-key}
 @item
-src_scheme[:exports code](#:primary-key)
+@code{#:primary-key}
 @item
-src_scheme[:exports code](#:key)
+@code{#:key}
 @item
-src_scheme[:exports code](#:auto-increment)
+@code{#:auto-increment}
 @item
-src_scheme[:exports code](#:auto-now-once) for timestamp.
+@code{#:auto-now-once} for timestamp.
 @end itemize
 
 @end enumerate
@@ -3765,7 +3800,7 @@ Note that the language is in the format of RFC 4646 (e.g. ja-JP) GNU Artanis wil
 session.i18n = locale
 @end verbatim
 
-You must put related translation into @strong{@strong{sys/i18n/locale}} directory. The directory structure should be like this: src_scheme[:exports code](lang_COUNTRY/LC_MESSAGES/domain.mo).
+You must put related translation into @strong{@strong{sys/i18n/locale}} directory. The directory structure should be like this: @code{"lang_COUNTRY/LC_MESSAGES/domain.mo"}.
 
 About PO and MO files, please read @uref{https://www.gnu.org/software/gettext/manual/html_node/index.html#SEC_Contents,GNU Gettext's manual}.
 
@@ -3777,7 +3812,7 @@ About PO and MO files, please read @uref{https://www.gnu.org/software/gettext/ma
 session.i18n = json
 @end verbatim
 
-You must put related translation into @strong{@strong{sys/i18n/json}} directory. The directory structure should be like this: src_scheme[:exports code](lang_COUNTRY.json).
+You must put related translation into @strong{@strong{sys/i18n/json}} directory. The directory structure should be like this: @code{"lang_COUNTRY.json"}.
 
 @node With SXML
 @subsection With SXML
@@ -3787,7 +3822,7 @@ You must put related translation into @strong{@strong{sys/i18n/json}} directory.
 session.i18n = sxml
 @end verbatim
 
-You must put related translation into @strong{@strong{sys/i18n/sxml}} directory. The directory structure should be like this: src_scheme[:exports code](lang_COUNTRY.scm).
+You must put related translation into @strong{@strong{sys/i18n/sxml}} directory. The directory structure should be like this: @code{"lang_COUNTRY.scm"}.
 
 @node I18n best practice
 @section I18n best practice

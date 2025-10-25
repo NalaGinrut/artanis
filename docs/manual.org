@@ -202,6 +202,7 @@ To get the current hostname in GNU Artanis environment.
 (current-myhost)
 #+END_SRC
 * Hello World
+
 ** Use Guile REPL and verify GNU Artanis installation
 If you are already familiar with Guile, you may skip this section.
 
@@ -231,6 +232,29 @@ The expected output should be similar to this:
 #+begin_src scheme
 $1 = "GNU Artanis-x.x.x"
 #+end_src
+
+*** Work with Guix
+Before you try GNU Artanis without application folder created by *art create*, which is so-called simple mode here, Make sure your environment is set up correctly.
+
+Specifically, if you're using Guix, you need to specify the config path and i18n path like this:
+#+begin_src scheme
+;; say, we have put artanis.conf and sys/i18n in /path/to/your/
+(init-server #:config-path "/path/to/your"
+             #:i18n-path "/path/to/your/")
+#+end_src
+
+It's because Guix prevent to install files to the protected system directories which was mounted as read-only. So Guix users have to prepare the necessary files in a writable path, and tell GNU Artanis where to find them. The easiest way to generate these files is to use *art create* to create an application folder first, then copy the generated conf and sys/i18n to a writable path.
+- src_conf[:exports code]{your_app_folder/conf/artanis/conf}
+- src_conf[:exports code]{your_app_folder/sys/i18n/*}
+
+So here's your code:
+#+begin_src scheme
+;; cp app_folder/conf/artanis.conf /dev/shm
+;; cp -r app_folder/sys/i18n /dev/shm
+(init-server #:config-path "/dev/shm"
+             #:i18n-path "/dev/shm")
+#+end_src
+
 ** Simple HTTP server
 Run this code in your console:
 #+begin_src bash
@@ -980,7 +1004,7 @@ For Model definition syntax in GNU Artanis, we have:
  )
 #+end_src
 
-**NOTE:** If you have definition, and you've imported in any controller, when booting GNU Artanis with src_scheme[:exports code](art work),
+**NOTE:** If you have definition, and you've imported in any controller, when booting GNU Artanis with src_scheme[:exports code]{art work},
 then the defined table will be created automatically in the specified database. Don't worry, it will be created only once.
 
 **NOTE:** The Model name **must** be the same with Model file's name.
@@ -1002,20 +1026,20 @@ For example, you have another Model named **article** which is designed for your
  )
 #+end_src
 
-You may realized we've added src_scheme[:exports code]((:deps user)) to hint the MVC system that **article** table should be created after **user** table. So when it meets **article** Model during booting, it'll make sure to create **user** then **article**.
+You may realized we've added src_scheme[:exports code]{(:deps user)} to hint the MVC system that **article** table should be created after **user** table. So when it meets **article** Model during booting, it'll make sure to create **user** then **article**.
 
-**NOTE:**: src_scheme[:exports code]((:deps models_list ...))
+**NOTE:**: src_scheme[:exports code]{(:deps models_list ...)}
 **NOTE:** This feature is useful when you do DB migration.
 
 *** Model API
 
 The model definition API:
 
-src_scheme[:exports code]((create-artanis-model model_name (:deps deps_list ...) fields_def ...))
+src_scheme[:exports code]{(create-artanis-model model_name (:deps deps_list ...) fields_def ...)}
 
 The **fields_def** syntax is:
 
-src_scheme[:exports code]((field_name type (options ...)))
+src_scheme[:exports code]{(field_name type (options ...))}
 
 **** Field Type
 
@@ -1030,11 +1054,11 @@ To unify API amoung all the DB backend supported by GNU Artanis, we provide abst
 - float
 - double
 - char-field: varchar
-  - you need to specify src_scheme[:exports code](#:maxlen positive_integer) in the options.
+  - you need to specify src_scheme[:exports code]{#:maxlen positive_integer} in the options.
 - date-field
-  - These options imply src_scheme[:exports code](#:no-edit)
-  - src_scheme[:exports code](#:auto-now)
-  - src_scheme[:exports code](#:auto-now-once)
+  - These options imply src_scheme[:exports code]{#:no-edit)}
+  - src_scheme[:exports code]{#:auto-now}
+  - src_scheme[:exports code]{#:auto-now-once}
 
 **NOTE:** if these types can't meet your requirements, just write the known type for your configured DB backend supported types, it will be passed directly to the backend, however, without the framework specific feature like type checking.
 
@@ -1043,35 +1067,35 @@ The **options** has specific syntax for different DB backend.
 **** MySQL/MariaDB options
 
 The specific options are:
-- src_scheme[:exports code](#:not-null)
-- src_scheme[:exports code](#:null)
-- src_scheme[:exports code](#:default) to speficy default value.
-- src_scheme[:exports code](#:unique)
-- src_scheme[:exports code](#:unique-key)
-- src_scheme[:exports code](#:primary-key)
-- src_scheme[:exports code](#:key) to specify keys.
-- src_scheme[:exports code](#:auto-incremental)
-- src_scheme[:exports code](#:comment) for commenting.
-- src_scheme[:exports code](#:column-format)
-- src_scheme[:exports code](#:storage mode) DISK or MEMORY mode.
-- src_scheme[:exports code](#:signed)
-- src_scheme[:exports code](#:unsigned)
-- src_scheme[:exports code](#:zerofill)
+- src_scheme[:exports code]{#:not-null}
+- src_scheme[:exports code]{#:null}
+- src_scheme[:exports code]{#:default} to speficy default value.
+- src_scheme[:exports code]{#:unique}
+- src_scheme[:exports code]{#:unique-key}
+- src_scheme[:exports code]{#:primary-key}
+- src_scheme[:exports code]{#:key} to specify keys.
+- src_scheme[:exports code]{#:auto-incremental}
+- src_scheme[:exports code]{#:comment} for commenting.
+- src_scheme[:exports code]{#:column-format}
+- src_scheme[:exports code]{#:storage mode} DISK or MEMORY mode.
+- src_scheme[:exports code]{#:signed}
+- src_scheme[:exports code]{#:unsigned}
+- src_scheme[:exports code]{#:zerofill}
 
 ****  PostgreSQL options
 PostgreSQL migration hasn't been supported yet...patches are welcome.
 
 **** SQLite3 options
 
-- src_scheme[:exports code](#:not-null)
-- src_scheme[:exports code](#:null)
-- src_scheme[:exports code](#:default value)
-- src_scheme[:exports code](#:unique)
-- src_scheme[:exports code](#:unique-key)
-- src_scheme[:exports code](#:primary-key)
-- src_scheme[:exports code](#:key)
-- src_scheme[:exports code](#:auto-increment)
-- src_scheme[:exports code](#:auto-now-once) for timestamp.
+- src_scheme[:exports code]{#:not-null}
+- src_scheme[:exports code]{#:null}
+- src_scheme[:exports code]{#:default value}
+- src_scheme[:exports code]{#:unique}
+- src_scheme[:exports code]{#:unique-key}
+- src_scheme[:exports code]{#:primary-key}
+- src_scheme[:exports code]{#:key}
+- src_scheme[:exports code]{#:auto-increment}
+- src_scheme[:exports code]{#:auto-now-once} for timestamp.
 
 ** Model mapping
 
@@ -2703,7 +2727,7 @@ There're three basic APIs for i18n in GNU Artanis:
 session.i18n = locale
 #+END_SRC
 
-You must put related translation into **sys/i18n/locale** directory. The directory structure should be like this: src_scheme[:exports code](lang_COUNTRY/LC_MESSAGES/domain.mo).
+You must put related translation into **sys/i18n/locale** directory. The directory structure should be like this: src_scheme[:exports code]{"lang_COUNTRY/LC_MESSAGES/domain.mo"}.
 
 About PO and MO files, please read [[https://www.gnu.org/software/gettext/manual/html_node/index.html#SEC_Contents][GNU Gettext's manual]].
 
@@ -2712,7 +2736,7 @@ About PO and MO files, please read [[https://www.gnu.org/software/gettext/manual
 session.i18n = json
 #+END_SRC
 
-You must put related translation into **sys/i18n/json** directory. The directory structure should be like this: src_scheme[:exports code](lang_COUNTRY.json).
+You must put related translation into **sys/i18n/json** directory. The directory structure should be like this: src_scheme[:exports code]{"lang_COUNTRY.json"}.
 
 *** With SXML
 
@@ -2720,7 +2744,7 @@ You must put related translation into **sys/i18n/json** directory. The directory
 session.i18n = sxml
 #+END_SRC
 
-You must put related translation into **sys/i18n/sxml** directory. The directory structure should be like this: src_scheme[:exports code](lang_COUNTRY.scm).
+You must put related translation into **sys/i18n/sxml** directory. The directory structure should be like this: src_scheme[:exports code]{"lang_COUNTRY.scm"}.
 
 ** I18n best practice
 
