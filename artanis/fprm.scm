@@ -67,6 +67,8 @@
         (and (positive-integer? i)
              (positive-integer? f)))))
 
+(define sql-to-stdout? (make-parameter #f))
+
 (define (->mysql-type name . args)
   (case name
     ;; Text types:
@@ -149,7 +151,7 @@
     ;; YEAR() A year in two-digit or four-digit format.
     ;; NOTE: Values allowed in four-digit format: 1901 to 2155.
     ;;       Values allowed in two-digit format: 70 to 69, representing years from 1970 to 2069
-    ((boolean) (->0 name args)) ; BOOLEAN Stores TRUE or FALSE values
+    ((boolean) (->0 name args))  ; BOOLEAN Stores TRUE or FALSE values
     ((year) (->0 name args))
     (else (throw 'artanis-err 500 ->mysql-type "Invalid type name `~a'" name))))
 
@@ -477,7 +479,9 @@
                    ((<connection>? rc/conn) rc/conn)
                    (else (throw 'artanis-err 500 make-table-setter
                                 "Invalid rc or conn `~a'!" rc/conn)))))
-        (DB-query conn sql)))))
+        (if (sql-to-stdout?)
+            sql
+            (DB-query conn sql))))))
 
 (define (make-table-getter rc/conn)
   (define (->ret ret)
@@ -576,7 +580,7 @@
                  (else (throw 'artanis-err 500 make-table-getter
                               "Invalid rc or conn `~a'!" rc/conn)))))
       (cond
-       ((not dump)
+       ((and (not dump) (not (sql-to-string?)))
         (DB-query conn sql)
         (let ((ret (DB-get-all-rows conn)))
           (case mode
@@ -662,8 +666,11 @@
                  ((<connection>? rc/conn) rc/conn)
                  (else (throw 'artanis-err 500 make-table-counter
                               "Invalid rc or conn `~a'!" rc/conn)))))
-      (DB-query conn sql)
-      (DB-get-all-rows conn))))
+      (cond
+       ((not (sql-to-string?))
+        (DB-query conn sql)
+        (DB-get-all-rows conn))
+       (else sql)))))
 
 ;; NOTE: the name of columns is charactar-caseless, at least in MySQL/MariaDB.
 (define (map-table-from-DB rc/conn)
@@ -707,8 +714,7 @@
       ((postgresql) (DB-query rc/conn (format #f "select from information_schema.tables where table_schema='public' and table_name='~a';" tname)))
       ((sqlite3) (DB-query rc/conn (format #f "select * from sqlite_master where type='table' and name='~a'" tname)))
       (else (throw 'artanis-err 500 table-exists?
-                   "Unsupported DBD `~a'!" (get-conf '(db dbd))))
-      )
+                   "Unsupported DBD `~a'!" (get-conf '(db dbd)))))
     ;; If there's no result, dbi will return #f as the result.
     (DB-get-top-row rc/conn))
   (lambda (cmd tname . args)
@@ -747,3 +753,17 @@
     (lambda (cmd . args)
       (and=> (assoc-ref *table-mapper-handlers* cmd)
              (lambda (h) (apply h mt tname args))))))
+
+(define-syntax-rules (fprm->string rc body ...)
+  (parameterize ((sql-to-string? #t))
+    body ...))
+
+;; NOTE: Users have to get result by themselves.
+(define-syntax-rules (with-transaction rc body ...)
+  (let ((sql (fprm->string rc body ...)))
+    (DB-query conn
+              (call-with-output-string
+               (lambda (port)
+                 (display "start transaction;\n" port)
+                 (display sql port)
+                 (display "commit;\n" port))))))
