@@ -28,6 +28,7 @@
   #:autoload (dbi dbi) (dbi-open dbi-query dbi-get_status dbi-close dbi-get_row)
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
+  #:use-module (ice-9 threads)
   #:use-module ((rnrs) #:select (define-record-type))
   #:use-module (srfi srfi-43)
   #:export (DB-open
@@ -167,21 +168,23 @@
     conn))
 
 (define (get-conn-from-pool!)
-  (if (*conn-pool*)
-      (if (queue-empty? (*conn-pool*))
-          (case (get-conf '(db pool))
-            ((increase) (create-new-DB-conn))
-            ((fixed)
-             (DEBUG "There's no DB connection from pool, wait for a moment!~%")
-             (try-to-recycle-resources) ; must be in front of scheduling
-             (schedule-task)
-             (get-conn-from-pool!))
-            (else
-             (throw 'artanis-err 500 get-conn-from-pool!
-                    "BUG: Invalid DB pool mode `~a'" (get-conf '(db pool)))))
-          (queue-out! (*conn-pool*)))
-      (error get-conn-from-pool! "Seems the *conn-pool* wasn't well initialized!"
-             (*conn-pool*))))
+  (with-mutex
+   *conn-pool-mutex*
+   (if (*conn-pool*)
+       (if (queue-empty? (*conn-pool*))
+           (case (get-conf '(db pool))
+             ((increase) (create-new-DB-conn))
+             ((fixed)
+              (DEBUG "There's no DB connection from pool, wait for a moment!~%")
+              (try-to-recycle-resources) ; must be in front of scheduling
+              (schedule-task)
+              (get-conn-from-pool!))
+             (else
+              (throw 'artanis-err 500 get-conn-from-pool!
+                     "BUG: Invalid DB pool mode `~a'" (get-conf '(db pool)))))
+           (queue-out! (*conn-pool*)))
+       (error get-conn-from-pool! "Seems the *conn-pool* wasn't well initialized!"
+              (*conn-pool*)))))
 
 (define (%db-conn-stat conn ret)
   (ret (dbi-get_status (<connection>-conn conn))))

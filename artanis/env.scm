@@ -25,11 +25,13 @@
 (define-module (artanis env)
   #:use-module (artanis version)
   #:use-module (ice-9 regex)
+  #:use-module (ice-9 threads)
   #:re-export (artanis-version)
   #:export (*handlers-table*
             *conf-hash-table*
             *http-options-table*
             *conn-pool*
+            *conn-pool-mutex*
             *before-response-hook*
             *after-request-hook*
             *before-run-hook*
@@ -105,6 +107,9 @@
 ;;       If all the available DB conn were blocked, a new DB conn will be
 ;;       created, and never closed but just recycled by *conn-pool*.
 (define *conn-pool* (make-parameter #f))
+
+;; For multi workers safe access to the *conn-pool*
+(define *conn-pool-mutex* (make-mutex))
 
 (define *before-response-hook* (make-hook 2))
 (define *after-request-hook* (make-hook 2))
