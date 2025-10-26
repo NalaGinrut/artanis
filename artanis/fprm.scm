@@ -754,12 +754,12 @@
       (and=> (assoc-ref *table-mapper-handlers* cmd)
              (lambda (h) (apply h mt tname args))))))
 
-(define-syntax-rules (fprm->string rc body ...)
+(define-syntax-rule (fprm->string rc body ...)
   (parameterize ((sql-to-string? #t))
     body ...))
 
 ;; NOTE: Users have to get result by themselves.
-(define-syntax-rules (with-transaction rc body ...)
+(define-syntax-rule (with-transaction rc body ...)
   (let ((sql (fprm->string rc body ...)))
     (DB-query conn
               (call-with-output-string
