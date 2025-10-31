@@ -274,6 +274,8 @@
        (lp rest main `(,v ,k ,@options)))
       (((':constrains cexps ...) rest ...)
        (lp rest (cons (car next) main) options))
+      (((':indexes iexps ...) rest ...)
+       (lp rest (cons (car next) main) options))
       ((((? symbol? name) (? symbol? type) . (or (? null? opts) ((opts ...)))) rest ...)
        (lp rest (cons `(,name ,@(->type type opts)) main) options))
       (else (throw 'artanis-err 500 parse-raw-fields

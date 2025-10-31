@@ -35,7 +35,8 @@
             make-table-setter
             make-table-builder
             make-table-dropper
-            make-table-modifier)
+            make-table-modifier
+            make-table-indexer)
   ;; NOTE:
   ;; We re-export these symbols so that users may use FPRM to handle DB
   ;; independently, without using the web-framework.
@@ -396,11 +397,18 @@
      (map (lambda (cexp) (format #f "~a(~{~a~^,~})" (car cexp) (cdr cexp)))
           cexps)
      ", "))
+  (define (->indexes index-exps)
+    (string-join
+     (map (lambda (iexp)
+            (format #f "INDEX ~a (~{~a~^,~})" (car iexp) (cdr iexp)))
+          index-exps)
+     ", "))
   (define (->type/opts x)
     (match x
       ((types ... (opts ...)) (values types (if (null? opts) "" (->opts opts))))
       ((types ...) (values types ""))
       ((':constrains cexps ...) (->constrains cexps))
+      ((':indexes iexps ...) (->indexes iexps))
       (else (throw 'artanis-err 500 ->type/opts
                    "Invalid definition of the table `~a'!" x))))
   (define (->types x)
@@ -444,6 +452,13 @@
             (_ (throw 'artanis-err 500 make-table-builder "Invalid cmd `~a'!" cmd)))))
        (else sql)))))
 
+(define (get-conn-from-rc/conn rc/conn fname)
+  (cond
+   ((route-context? rc/conn) (DB-open rc/conn))
+   ((<connection>? rc/conn) rc/conn)
+   (else (throw 'artanis-err 500 fname
+                "Invalid rc or conn `~a'!" rc/conn))))
+
 ;; make-table-setter could be mapped to UPDATE or INSERT, depends on condition.
 ;; Grammar:
 ;; UPDATE table_name
@@ -474,11 +489,7 @@
                      ;;       use UPDATE because it'll effect all the records!!! In such case,
                      ;;       you should use INSERT.
                      (->sql update tname set kvp wcond)))
-            (conn (cond
-                   ((route-context? rc/conn) (DB-open rc/conn))
-                   ((<connection>? rc/conn) rc/conn)
-                   (else (throw 'artanis-err 500 make-table-setter
-                                "Invalid rc or conn `~a'!" rc/conn)))))
+            (conn (get-conn-from-rc/conn rc/conn make-table-setter)))
         (if (sql-to-stdout?)
             sql
             (DB-query conn sql))))))
@@ -574,11 +585,7 @@
                        (->mix columns functions) tname
                        (->opts ret offset group-by order-by
                                condition foreach)))
-          (conn (cond
-                 ((route-context? rc/conn) (DB-open rc/conn))
-                 ((<connection>? rc/conn) rc/conn)
-                 (else (throw 'artanis-err 500 make-table-getter
-                              "Invalid rc or conn `~a'!" rc/conn)))))
+          (conn (get-conn-from-rc/conn rc/conn make-table-getter)))
       (cond
        ((and (not dump) (not (sql-to-string?)))
         (DB-query conn sql)
@@ -646,12 +653,8 @@
       (else (throw 'artanis-err 500 make-table-modifier
                    "Invalid op `~a'!" op))))
   (lambda (tname op . args)
-    (let ((sql (gen-sql tname op args))
-          (conn (cond
-                 ((route-context? rc/conn) (DB-open rc/conn))
-                 ((<connection>? rc/conn) rc/conn)
-                 (else (throw 'artanis-err 500 make-table-modifier
-                              "Invalid rc or conn `~a'!" rc/conn)))))
+    (let* ((sql (gen-sql tname op args))
+           (conn (get-conn-from-rc/conn rc/conn make-table-modifier)))
       (DB-query conn sql))))
 
 (define (make-table-counter rc/conn)
@@ -661,15 +664,21 @@
                        key column tname
                        condition
                        (if group-by (string-append " group by " group-by) "")))
-          (conn (cond
-                 ((route-context? rc/conn) (DB-open rc/conn))
-                 ((<connection>? rc/conn) rc/conn)
-                 (else (throw 'artanis-err 500 make-table-counter
-                              "Invalid rc or conn `~a'!" rc/conn)))))
+          (conn (get-conn-from-rc/conn rc make-table-counter)))
       (cond
        ((not (sql-to-string?))
         (DB-query conn sql)
         (DB-get-all-rows conn))
+       (else sql)))))
+
+(define (make-table-indexer rc/conn)
+  (lambda* (tname index-name columns #:key (unique? #f))
+    (let ((sql (format #f "create ~a index ~a on ~a (~{~a~^,~});"
+                       (if unique? "unique " "")
+                       index-name tname columns)))
+      (cond
+       ((not (sql-to-stdout?))
+        (DB-query conn sql))
        (else sql)))))
 
 ;; NOTE: the name of columns is charactar-caseless, at least in MySQL/MariaDB.
@@ -686,6 +695,7 @@
   (define dropper (make-table-dropper conn))
   (define modifier (make-table-modifier conn))
   (define counter (make-table-counter conn))
+  (define indexer (make-table-indexer conn))
   ;; NOTE:
   ;; It maybe inefficient to fetch table-schema without any cache, because the request session may generate
   ;; table-schema each time. Although we may build a cache or delayed mechanism here, there's one reason
@@ -739,6 +749,7 @@
       ((schema) (get-table-schema tname))
       ((mod) (->call modifier))
       ((count) (->call counter))
+      ((index) (->call indexer))
       (else (throw 'artanis-err 500 map-table-from-DB
                    "Invalid cmd: `~a'" cmd)))))
 
@@ -759,11 +770,10 @@
     body ...))
 
 ;; NOTE: Users have to get result by themselves.
+;; NOTE: Due to the forbidden multi statements in some DBD (e.g., MySQL),
+;;       we have to run each statement one by one.
 (define-syntax-rule (with-transaction rc body ...)
-  (let ((sql (fprm->string rc body ...)))
-    (DB-query conn
-              (call-with-output-string
-               (lambda (port)
-                 (display "start transaction;\n" port)
-                 (display sql port)
-                 (display "commit;\n" port))))))
+  (let ((conn (rc-conn rc)))
+    (DB-query conn "start transaction;")
+    body ...
+    (DB-query conn "commit;")))
