@@ -286,11 +286,7 @@
               ,name-and-args)))
 
 (define (make-table-dropper rc/conn)
-  (define conn
-    (cond
-     ((route-context? rc/conn) (DB-open rc/conn))
-     ((<connection>? rc/conn) rc/conn)
-     (else (throw 'artanis-err 500 make-table-dropper "Invalid rc or conn!" rc/conn))))
+  (define conn (get-conn-from-rc/conn rc/conn make-table-dropper))
   (lambda* (name #:key (dump #f))
     (let ((sql (->sql drop table if exists name)))
       (cond
@@ -375,12 +371,7 @@
 ;; 3. SOLUTION: use a access-hook for specified table mapping, but there'd be a fine way to avoid
 ;;              write sql directly each time.
 (define* (make-table-builder rc/conn)
-  (define conn
-    (cond
-     ((route-context? rc/conn) (DB-open rc/conn))
-     ((<connection>? rc/conn) rc/conn)
-     (else (throw 'artanis-err 500 make-table-builder
-                  "Invalid rc or conn `~a'!" rc/conn))))
+  (define conn (get-conn-from-rc/conn rc/conn make-table-builder))
   (define (table-drop! tname)
     (DB-query conn (->sql drop table if exists tname)))
   (define (->opts opts)
@@ -638,6 +629,11 @@
                         "SQLite3 doesn't support table column modification!"))
       (else (throw 'artanis-err 500 index-rename
                    "Unsupported DBD `~a'!" (get-conf '(db dbd))))))
+  (define* (index-create index-name tname columns
+                         #:key (unique? #f) (engine #f))
+    (if unique?
+        (->sql create unique index index-name on tname (columns) engine)
+        (->sql create index index-name on tname (columns) engine)))
   (define (row-delete tname t)
     (->sql delete from tname t))
   (define (gen-sql tname op args)
@@ -648,6 +644,7 @@
       ((alter) (apply table-alter tname args))
       ((rename) (apply table-rename tname args))
       ((column-rename) (apply column-rename tname args))
+      ((index-create) (apply index-create args))
       ((index-rename) (apply index-rename args))
       ((row-delete) (apply row-delete tname args))
       (else (throw 'artanis-err 500 make-table-modifier
@@ -683,12 +680,7 @@
 
 ;; NOTE: the name of columns is charactar-caseless, at least in MySQL/MariaDB.
 (define (map-table-from-DB rc/conn)
-  (define conn
-    (cond
-     ((route-context? rc/conn) (DB-open rc/conn))
-     ((<connection>? rc/conn) rc/conn)
-     (else (throw 'artanis-err 500 map-table-from-DB
-                  "Invalid rc/conn `~a'" rc/conn))))
+  (define conn (get-conn-from-rc/conn rc/conn map-table-from-DB))
   (define getter (make-table-getter conn))
   (define setter (make-table-setter conn))
   (define builder (make-table-builder conn))
