@@ -391,8 +391,20 @@
   (define (->indexes index-exps)
     (string-join
      (map (lambda (iexp)
-            (format #f "INDEX ~a (~{~a~^,~})" (car iexp) (cdr iexp)))
+            (match iexp
+              ((#:unique name columns ...)
+               (format #f "UNIQUE INDEX ~a (~{~a~^,~})" name columns))
+              ((name columns ...)
+               (format #f "INDEX ~a (~{~a~^,~})" name colunms))
+              (else (throw 'artanis-err 500 ->indexes
+                           "Invalid index definition `~a'!" iexp))))
           index-exps)
+     ", "))
+  (define (->primary-keys kexps)
+    (string-join
+     (map (lambda (kexp)
+            (format #f "PRIMARY KEY (~{~a~^,~})" kexp))
+          kexps)
      ", "))
   (define (->type/opts x)
     (match x
@@ -400,6 +412,7 @@
       ((types ...) (values types ""))
       ((':constrains cexps ...) (->constrains cexps))
       ((':indexes iexps ...) (->indexes iexps))
+      ((':primary-keys kexps ...) (->primary-keys kexps))
       (else (throw 'artanis-err 500 ->type/opts
                    "Invalid definition of the table `~a'!" x))))
   (define (->types x)
