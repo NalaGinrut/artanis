@@ -28,7 +28,9 @@
             having
             /in
             /or
-            /and))
+            /and
+            /exists
+            /literal))
 
 (define (->string obj) (if (string? obj) obj (object->string obj)))
 
@@ -42,10 +44,13 @@
 ;; expect: (select * from 'table order by '(column asc))
 ;; above all accept only strings at present, it's not so elegant.
 
+(define drop-tail-semicolon? (make-parameter #f))
 (define-syntax ->
   (syntax-rules (end)
     ((_ end fmt args ...)
-     (format #f "~@?;" fmt args ...))
+     (if (not (drop-tail-semicolon?))
+         (format #f "~@?;" fmt args ...)
+         (format #f fmt args ...)))
     ((_ fmt args ...)
      (format #f fmt args ...))))
 
@@ -120,8 +125,10 @@
   (syntax-rules (* where from distinct order by group having as)
     ((_ * from table)
      (-> "* from ~a" table))
-    ((_ fields from table)
-     (-> "~{~a~^,~} from ~a" fields table))
+    ((_ field from table)
+     (if (list? field)
+         (-> "~{~a~^,~} from ~a" field table)
+         (-> "~a from ~a" field table)))
     ((_ fields name from table)
      (-> "~{~a~^,~} ~a from ~a" fields 'name table))
     ((_ fields as name from table)
@@ -405,3 +412,10 @@
     ((column (? list? vals))
      (format #f " ~a in (~{'~a'~^,~}) " column vals))
     (else (throw 'artanis-err 500 /in "Invalid args" lst))))
+
+(define-syntax-rule (/exists subquery)
+  (parameterize ((drop-tail-semicolon? #t))
+    (format #f "exists (~a)" subquery)))
+
+(define (/literal str)
+  (format #f "'~a'" str))

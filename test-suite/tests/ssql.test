@@ -49,4 +49,37 @@
   (pass-if "WHERE group test1"
     (string=? (where #:age<> '(1 2))
               " where age<>1 and age<>2"))
+
+  ;; The literal string must use (/literal str) to avoid quotes dropping.
+  (pass-if "SELECT literals test"
+    (string=? (->sql select (list (/literal "John") 25 (/literal "New York"))
+                     from 'Persons)
+              "select 'John',25,'New York' from Persons;"))
+
+  ;; Test literals and function calling
+  (pass-if "SELECT literals & functions test"
+    (string=? (->sql select (list (/literal "John")
+                                  "lcase(city)"
+                                  25)
+                     from 'Persons)
+              "select 'John',lcase(city),25 from Persons;"))
+
+  (pass-if "SELECT single literal test1"
+    (string=? (->sql select (/literal "Hello, World!")
+                     from 'Dual)
+              "select 'Hello, World!' from Dual;"))
+
+  (pass-if "Test single literal: SELECT 1 from Table"
+    (string=? (->sql select 1 from 'Table)
+              "select 1 from Table;"))
+
+  (pass-if "Test single literal: SELECT * from Table"
+    (string=? (->sql select * from 'Table)
+              "select * from Table;"))
+
+  (pass-if "WHERE EXISTS test1"
+    (string=? (->sql select * from 'Employees
+                     (where (/exists (->sql select 1 from 'Managers
+                                            (where #:id 123)))))
+              "select * from Employees where exists (select 1 from Managers where id=123);"))
   )
