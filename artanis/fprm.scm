@@ -36,7 +36,9 @@
             make-table-builder
             make-table-dropper
             make-table-modifier
-            make-table-indexer)
+            make-table-indexer
+            fprm->string
+            with-transaction)
   ;; NOTE:
   ;; We re-export these symbols so that users may use FPRM to handle DB
   ;; independently, without using the web-framework.
@@ -68,7 +70,7 @@
         (and (positive-integer? i)
              (positive-integer? f)))))
 
-(define sql-to-stdout? (make-parameter #f))
+(define sql-to-string? (make-parameter #f))
 
 (define (->mysql-type name . args)
   (case name
@@ -458,6 +460,7 @@
 
 (define (get-conn-from-rc/conn rc/conn fname)
   (cond
+   ((current-dbconn) => identity)
    ((route-context? rc/conn) (DB-open rc/conn))
    ((<connection>? rc/conn) rc/conn)
    (else (throw 'artanis-err 500 fname
@@ -494,7 +497,7 @@
                      ;;       you should use INSERT.
                      (->sql update tname set kvp wcond)))
             (conn (get-conn-from-rc/conn rc/conn make-table-setter)))
-        (if (sql-to-stdout?)
+        (if (sql-to-string?)
             sql
             (DB-query conn sql))))))
 
@@ -687,7 +690,7 @@
                        (if unique? "unique " "")
                        index-name tname columns)))
       (cond
-       ((not (sql-to-stdout?))
+       ((not (sql-to-string?))
         (DB-query conn sql))
        (else sql)))))
 
@@ -779,6 +782,7 @@
 ;;       we have to run each statement one by one.
 (define-syntax-rule (with-transaction rc body ...)
   (let ((conn (rc-conn rc)))
-    (DB-query conn "start transaction;")
-    body ...
-    (DB-query conn "commit;")))
+    (parameterize ((current-dbconn conn))
+      (DB-query conn "start transaction;")
+      body ...
+      (DB-query conn "commit;"))))
