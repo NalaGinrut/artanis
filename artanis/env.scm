@@ -83,7 +83,8 @@
             workers-pool
             preparing-quit?
             default-conf-file
-            default-i18n-path))
+            default-i18n-path
+            current-rc))
 
 ;; WARNING:
 ;; For concurrency in green-thread, all these stuffs should be immutable
@@ -281,3 +282,5 @@
 (define default-conf-file (make-parameter "/etc/artanis/artanis.conf"))
 
 (define default-i18n-path (make-parameter #f))
+
+(define current-rc (make-parameter #f))

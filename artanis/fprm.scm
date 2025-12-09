@@ -785,4 +785,8 @@
     (parameterize ((current-dbconn conn))
       (DB-query conn "start transaction;")
       body ...
-      (DB-query conn "commit;"))))
+      (DB-query conn "commit;")
+      (unless (db-conn-success? conn)
+        (DB-query conn "rollback;")
+        (throw 'artanis-err 500 with-transaction
+               (db-conn-failed-reason conn))))))

@@ -321,8 +321,9 @@
                       (list `deps* ...)))))
 
              (define-public #,(datum->syntax #'name (symbol-append '$ (syntax->datum #'name)))
-               (let ((raw (parse-raw-fields (list `rest `rest* ...)))
-                     (mt (map-table-from-DB (get-conn-from-pool!))))
+               (let* ((raw (parse-raw-fields (list `rest `rest* ...)))
+                      (conn (or (current-dbconn) (get-conn-from-pool!)))
+                      (mt (map-table-from-DB conn)))
                  (format (artanis-current-output)
                          "Creating table `~a' defined in model~%......~%"
                          'name)

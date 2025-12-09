@@ -39,6 +39,7 @@
             DB-get-top-row
             DB-get-n-rows
             db-conn-success?
+            db-conn-failed-reason
             db-conn-is-closed?
             get-conn-from-pool!
             init-DB

@@ -468,26 +468,27 @@
         (thunk)
         (failed-handler failed-url)))
   (lambda (rc failed-handler thunk)
-    (match mode
-      (#t
-       (auth-action rc thunk failed-handler "/login"))
-      ((? string? failed-url)
-       (auth-action rc thunk failed-handler failed-url))
-      ('status
-       (auth-action rc thunk failed-handler 'status))
-      ((? procedure? generator)
-       (auth-action rc thunk failed-handler generator))
-      (`(token ,name ,checker)
-       (let ((token (get-header rc name)))
+    (parameterize ((current-rc rc))
+      (match mode
+        (#t
+         (auth-action rc thunk failed-handler "/login"))
+        ((? string? failed-url)
+         (auth-action rc thunk failed-handler failed-url))
+        ('status
+         (auth-action rc thunk failed-handler 'status))
+        ((? procedure? generator)
+         (auth-action rc thunk failed-handler generator))
+        (`(token ,name ,checker)
+         (let ((token (get-header rc name)))
+           (if (checker token)
+               (thunk)
+               (failed-handler 'status))))
+        (('custom checker custom-failed-handler custom-failed-method)
          (if (checker token)
              (thunk)
-             (failed-handler 'status))))
-      (('custom checker custom-failed-handler custom-failed-method)
-       (if (checker token)
-           (thunk)
-           (custom-failed-handler custom-failed-method)))
-      (else (throw 'artanis-err 500 with-auth-maker
-                   "Invalid mode `~a'~" mode)))))
+             (custom-failed-handler custom-failed-method)))
+        (else (throw 'artanis-err 500 with-auth-maker
+                     "Invalid mode `~a'~" mode))))))
 
 (define (auth-maker val rule keys)
   (define-syntax-rule (->passwd rc passwd-field salt-field sql)
