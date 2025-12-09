@@ -28,6 +28,7 @@
 
 (define-record-type sendmail
   (fields
+   account
    sender
    from
    to
@@ -39,16 +40,17 @@
 (::define (print-sendmail-record sm)
   (:anno: (sendmail) -> ANY)
   (call-with-output-string
-    (lambda (port)
-      (display "\n#<sendmail\n" port)
-      (format port "   sender: ~a~%" (sendmail-sender sm))
-      (format port "   from: ~a~%" (sendmail-from sm))
-      (format port "   to: ~a~%" (sendmail-to sm))
-      (format port "   subject: ~a~%" (sendmail-subject sm))
-      (format port "   message: <the message>...~%")
-      (format port "   headers: ~a~%" (sendmail-headers sm))
-      (format port "   attachements: <the data>...~%")
-      (display " >\n" port))))
+   (lambda (port)
+     (display "\n#<sendmail\n" port)
+     (format port "   sender: ~a~%" (sendmail-sender sm))
+     (format port "   account: ~a~%" (sendmail-account sm))
+     (format port "   from: ~a~%" (sendmail-from sm))
+     (format port "   to: ~a~%" (sendmail-to sm))
+     (format port "   subject: ~a~%" (sendmail-subject sm))
+     (format port "   message: <the message>...~%")
+     (format port "   headers: ~a~%" (sendmail-headers sm))
+     (format port "   attachements: <the data>...~%")
+     (display " >\n" port))))
 
 (define-syntax-rule (add-header! sm new-header)
   (let ((header (sendmail-header sm)))
@@ -112,15 +114,19 @@
 
 (define (dump-as-normal-mail sm)
   (call-with-output-string
-    (lambda (port)
-      (format port
-              "From: ~a~%To: ~a~%Subject: ~a~%~%~a~%"
-              (sendmail-from sm) (sendmail-to sm) (sendmail-subject sm)
-              (sendmail-message sm)))))
+   (lambda (port)
+     (format port
+             "From: ~a~%To: ~a~%Subject: ~a~%~%~a~%"
+             (sendmail-from sm) (sendmail-to sm) (sendmail-subject sm)
+             (sendmail-message sm)))))
 
 (define (%send-the-mail sm t)
   (let* ((sender (sendmail-sender sm))
-         (port (open-pipe* OPEN_WRITE sender "-i" "-t")))
+         (account (sendmail-account sm))
+         (a-arg (if account
+                    (format #f "-a ~a" account)
+                    ""))
+         (port (open-pipe* OPEN_WRITE sender a-arg "-i" "-t")))
     (display t port)
     (unless (zero? (status:exit-val (close-pipe port)))
       (throw 'artanis-err 500 %send-the-mail
@@ -139,7 +145,9 @@
     (%send-the-mail sm t)))
 
 ;; TODO: maybe delay to send calling sender
-(define* (make-simple-mail-sender from to #:key (sender (get-conf '(mail sender))))
+(define* (make-simple-mail-sender from to
+                                  #:key (sender (get-conf '(mail sender)))
+                                  (account #f))
   (let ((sm (make-sendmail sender from to "no subject" #f '() '())))
     (lambda* (message #:key (attachements #f) (header #f) (subject #f))
       (if (string? message)
