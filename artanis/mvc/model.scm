@@ -310,6 +310,7 @@
            (define-module (app models name)
              #:use-module (artanis artanis)
              #:use-module (artanis utils)
+             #:use-module (artanis env)
              #:use-module (artanis db)
              #:use-module (artanis fprm))
 
