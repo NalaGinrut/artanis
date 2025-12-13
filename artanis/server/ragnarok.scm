@@ -548,9 +548,10 @@
        ;; NOTE: The remote connection will be handled gracefully in ragnarok-close
        ;; NOTE: The parameters will be lost when exception raised here, so we can't
        ;;       use any of current-task/server/client/proto in the exception handler
-       (DEBUG "Prepare to close connection ~a~%" (client-ip (now-client)))
-       (parameterize ((preparing-quit? #t))
-         (ragnarok-close http server (now-client) #f))))))
+       (when (ragnarok-client? (now-client))
+         (DEBUG "Prepare to close connection ~a~%" (client-ip (now-client)))
+         (parameterize ((preparing-quit? #t))
+           (ragnarok-close http server (now-client) #f)))))))
 
 ;; NOTE: we don't schedule guile-engine, although it provides naive mechanism for scheduling.
 (define (new-guile-engine)
