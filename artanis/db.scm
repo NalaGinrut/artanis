@@ -337,10 +337,17 @@
     (throw 'artanis-err 500 DB-get-all-rows
            "Can't query from a closed connection ~a!" conn))
    (else
-    (let lp((next (dbi-get_row (<connection>-conn conn))) (result '()))
-      (if next
-          (lp (dbi-get_row (<connection>-conn conn)) (cons next result))
-          (reverse! result))))))
+    (let ((conn (<connection>-conn conn)))
+      (let lp((next (dbi-get_row conn)) (result '()))
+        (cond
+         ((not (db-conn-success? conn))
+          (throw 'artanis-err 500 DB-get-all-rows
+                 "Failed to get all rows: ~a"
+                 (db-conn-failed-reason conn)))
+         (next
+          (lp (dbi-get_row (<connection>-conn conn)) (cons next result)))
+         (else
+          (reverse! result))))))))
 
 (define (DB-get-top-row conn)
   (cond
