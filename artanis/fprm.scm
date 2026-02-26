@@ -596,6 +596,12 @@
       (cond
        ((and (not dump) (not (sql-to-string?)))
         (DB-query conn sql)
+        (when (not (db-conn-success? conn))
+          (DEBUG "Failed to execute SQL: `~a'~%~a!"
+                 sql (db-conn-failed-reason conn))
+          (throw 'artanis-err 500 make-table-getter
+                 "Failed to execute SQL: `~a'~%~a!"
+                 sql (db-conn-failed-reason conn)))
         (let ((ret (DB-get-all-rows conn)))
           (case mode
             ((raw) ret)
