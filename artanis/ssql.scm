@@ -23,6 +23,7 @@
   #:use-module (ice-9 match)
   #:use-module (ice-9 receive)
   #:use-module (ice-9 format)
+  #:use-module ((rnrs) #:select (define-record-type))
   #:export (->sql
             where
             having
@@ -30,7 +31,9 @@
             /or
             /and
             /exists
-            /literal))
+            /literal
+            /id
+            letq))
 
 (define (->string obj) (if (string? obj) obj (object->string obj)))
 
@@ -123,6 +126,10 @@
 ;;    => "select * from user where a=\"1\" ;"
 (define-syntax sql-select
   (syntax-rules (* where from distinct order by group having as)
+    ((_ fields where cond)
+     (if (list? fields)
+         (->where (-> "~{~a~^,~}" fields) cond)
+         (->where (-> "~a" fields) cond)))
     ((_ * from table)
      (-> "* from ~a" table))
     ((_ field from table)
@@ -151,7 +158,11 @@
     ((_ rest ... order by orders)
      (-> "~a order by ~a" (sql-select rest ...) orders))
     ((_ rest ... having what)
-     (-> "~a having ~a" (sql-select rest ...) what))))
+     (-> "~a having ~a" (sql-select rest ...) what))
+    ((_ fields cond)
+     (if (list? fields)
+         (-> "~{~a~^,~}~a" fields cond)
+         (-> "~a~a" fields cond)))))
 
 (define-syntax sql-insert
   (syntax-rules (into values select)
@@ -314,6 +325,8 @@
       'sqlite3
       (-> ".open ~a" db)))))
 
+(define-record-type sql-id (fields name))
+
 ;; 'where' is used to generate condition string of SQL
 ;; There're several modes in it, and can be composited.
 ;; FIXME: Have to checkout sql-injection in the field value, especially '--'
@@ -343,9 +356,10 @@
                    (format #f "[SQL]~a: invalid range" (get-prefix))
                    lst))))
   (define (->quote v)
-    (if (number? v)
-        v
-        (format #f "'~a'" v)))
+    (match v
+      ((? sql-id? id) (sql-id-name id))
+      ((? number? id) v)
+      (else (format #f "'~a'" v))))
   (define (get-the-conds-str key val)
     (let ((v (if (list? val) (->range val) val)))
       (match key
@@ -419,3 +433,29 @@
 
 (define (/literal str)
   (format #f "'~a'" str))
+
+(define-syntax-rule (/id name)
+  (make-sql-id 'name))
+
+;; TODO: We need stronger syntax sugar for Language-INtegrated-Query,
+;;       which is what LINQ does.
+;; NOTE: This will not be a small work.
+
+;; (letq ((w people) (c people))
+;;   (->sql select 'w.name (where #:w.name "nala")))
+;; ==>
+;; "from people as w from people as c select w.name where w.name='nala';"
+(define-syntax letq
+  (lambda (stx)
+    (define (expand-bindings bs)
+      (syntax-case bs ()
+        (() #'"")
+        (((alias table) . rest)
+         #`(string-append
+            (format #f "from ~a as ~a " 'table 'alias)
+            #,(expand-bindings #'rest)))))
+    (syntax-case stx ()
+      ((_ bindings sql)
+       #`(string-append
+          #,(expand-bindings #'bindings)
+          sql)))))
