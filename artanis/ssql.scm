@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013-2025
+;;  Copyright (C) 2013-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -19,7 +19,9 @@
 
 (define-module (artanis ssql)
   #:use-module (artanis utils)
+  #:use-module (artanis config)
   #:use-module (artanis irregex)
+  #:use-module (artanis logger)
   #:use-module (ice-9 match)
   #:use-module (ice-9 receive)
   #:use-module (ice-9 format)
@@ -33,9 +35,97 @@
             /exists
             /literal
             /id
-            letq))
+            letq
+            use-params?
+            sql-int sql-text sql-bool sql-numeric sql-double sql-real
+            sql-bigint sql-smallint sql-varchar sql-char sql-timestamp
+            sql-date sql-time sql-bytea sql-json sql-jsonb sql-uuid
+            sql-inet sql-cidr sql-macaddr sql-point sql-array))
 
 (define (->string obj) (if (string? obj) obj (object->string obj)))
+
+(define-record-type sql-id (fields name))
+
+;; Get current database type
+(define (current-dbd)
+  (get-conf '(db dbd)))
+
+(define (fix-value v)
+  (match v
+    ((? sql-id? id) (sql-id-name id))
+    ((? number? num) num)
+    ((? sql-type? t) (sql-type-value t))
+    (else (format #f "'~a'" v))))
+
+(define-syntax-rule (fix-values lst)
+  (map fix-value lst))
+
+;; SQL type record for explicit type annotations
+(define-record-type sql-type
+  (fields value type))
+
+(define-record-type sql-array (parent sql-type))
+
+;; Constructors for common SQL types
+(define (sql-int val) (make-sql-type val "::INT"))
+(define (sql-text val) (make-sql-type val "::TEXT"))
+(define (sql-bool val) (make-sql-type val "::BOOLEAN"))
+(define (sql-numeric val) (make-sql-type val "::NUMERIC"))
+(define (sql-double val) (make-sql-type val "::DOUBLE PRECISION"))
+(define (sql-real val) (make-sql-type val "::REAL"))
+(define (sql-bigint val) (make-sql-type val "::BIGINT"))
+(define (sql-smallint val) (make-sql-type val "::SMALLINT"))
+(define (sql-varchar val len)
+  (make-sql-type val (format #f "::VARCHAR(~a)" len)))
+(define (sql-char val len)
+  (make-sql-type val (format #f "::CHAR(~a)" len)))
+(define (sql-timestamp val) (make-sql-type val "::TIMESTAMP"))
+(define (sql-date val) (make-sql-type val "::DATE"))
+(define (sql-time val) (make-sql-type val "::TIME"))
+(define (sql-bytea val) (make-sql-type val "::BYTEA"))
+(define (sql-json val) (make-sql-type val "::JSON"))
+(define (sql-jsonb val) (make-sql-type val "::JSONB"))
+(define (sql-uuid val) (make-sql-type val "::UUID"))
+(define (sql-inet val) (make-sql-type val "::INET"))
+(define (sql-cidr val) (make-sql-type val "::CIDR"))
+(define (sql-macaddr val) (make-sql-type val "::MACADDR"))
+(define (sql-point val) (make-sql-type val "::POINT"))
+(define (sql-array vals elem-type) (make-sql-array vals elem-type))
+
+;; Generate placeholder based on database type and parameter index
+(define (type-detect value)
+  (cond
+   ((and (eq? 'postgresql (current-dbd))
+         (sql-type? value))
+    (let ((type (sql-type-type value)))
+      (if (sql-array? value)
+          ""
+          type)))
+   (else "")))
+
+(define (make-placeholder index value)
+  (case (current-dbd)
+    ((postgresql)
+     (cond
+      ((sql-array? value)
+       (let lp ((vals (sql-type-value value)) (ret '()))
+         (cond
+          ((null? vals)
+           (format #f "ARRAY[~{~a~^,~}]" (reverse ret)))
+          (else
+           (let* ((index (current-param-index))
+                  (elem (format #f "$~a::~a" index (sql-type-type value))))
+             (current-param-index (1+ index))
+             (lp (cdr vals) (cons elem ret)))))))
+      (else (format #f "$~a~a" index (type-detect value)))))
+    ((mysql sqlite3)
+     (when (sql-type? value)
+       (artanis-warn
+        "SQL type anno is only for postgresql, not ~a~%" (current-dbd)))
+     "?")
+    (else
+     (throw 'artanis-err 500 make-placeholder
+            "Unknown DBD `~a'" (current-dbd)))))
 
 ;; ENHANCE:
 ;; 1. conds should be expanded from s-expr
@@ -48,14 +138,31 @@
 ;; above all accept only strings at present, it's not so elegant.
 
 (define drop-tail-semicolon? (make-parameter #f))
+(define use-params? (make-parameter #t)) ; Always use params by default
+(define current-param-index (make-parameter 1))
+(define current-param-list (make-parameter (new-queue)))
+
+;; Add a parameter value and return appropriate placeholder
+(define (add-param! value)
+  (define-syntax-rule (fix x)
+    (if (sql-type? x) (sql-type-value x) x))
+  (let* ((actual-value (if (sql-type? value) (sql-type-value value) value))
+         (placeholder (make-placeholder (current-param-index) value))
+         (index (current-param-index))
+         (params (current-param-list)))
+    (queue-in! params actual-value)
+    (current-param-index (+ index 1))
+    (fix placeholder)))
+
 (define-syntax ->
   (syntax-rules (end)
     ((_ end fmt args ...)
-     (if (not (drop-tail-semicolon?))
-         (format #f "~@?;" fmt args ...)
-         (format #f fmt args ...)))
+     (let ((str (string-trim-both (format #f fmt args ...))))
+       (if (not (drop-tail-semicolon?))
+           (string-concatenate (list str ";"))
+           str)))
     ((_ fmt args ...)
-     (format #f fmt args ...))))
+     (string-trim-both (format #f fmt args ...)))))
 
 ;; NOTE: According to SQL standard, we should always use single-quote.
 (define *double-quote-re* (string->irregex "\""))
@@ -74,28 +181,46 @@
     ((_ sentence rest ...)
      (-> "~a where ~a" sentence (sql-where rest ...)))))
 
-(define-syntax-rule (->lst pairs)
-  (map (lambda (l) (-> "~{~a~^='~a'~}" l)) pairs))
+(define (kv->bind-str kv-pairs)
+  (define (kv->list lst)
+    (let lp ((next lst) (ret '()))
+      (match next
+        (() (reverse ret))
+        ((k v rest ...)
+         (lp rest
+             (cons (format #f "~a=~a"
+                           (keyword->symbol k)
+                           (if (use-params?)
+                               (add-param! v)
+                               (fix-value v)))
+                   ret))))))
+  (format #f "~{~a~^,~}" (kv->list kv-pairs)))
 
 (define (->cond lst)
   (define (->logical and/or ll)
     (string-join (map ->cond ll) (format #f " ~a " and/or)))
-  (define (->op2 op a1 a2) (-> "~a~a~s" a1 op a2))
-  (define (->opn opn . ll) (-> "~a ~{'~a'~^ ~}" opn ll))
+  (define (->op2 op a1 a2)
+    (if (use-params?)
+        (format #f "~a~a~a" a1 op (add-param! a2))
+        (-> "~a~a~s" a1 op a2)))
+  (define (->opn opn . ll)
+    (if (use-params?)
+        (-> "~a ~{~a~^ ~}" opn (map add-param! ll))
+        (-> "~a ~{'~a'~^ ~}" opn ll)))
   (match lst
     (() "")
+    ((? string? str) (string-trim-both str))
     (('and ll ...) (->logical 'and ll))
     (('or ll ...) (->logical 'or ll))
-    ((op2 a1 a2) (->op2 op2 a1 (->string a2)))
-    ((opn ll ...) (->opn opn ll))
+    ((op2 a1 a2) (->op2 op2 a1 a2))
+    ((opn ll ...) (apply ->opn opn ll))
     (((l1 ...) ll ...) (map ->cond (cons l1 ll)))
     (else (throw 'artanis-err 500 ->cond "invalid sql syntax!" lst))))
 
 (define-syntax-rule (->combine col col* ...)
-  (filter (lambda (x) (not (string-null? x)))
-          (if (list? col)
-              (append col (list col* ...))
-              (list col col* ...))))
+  (if (list? col)
+      (append col (list col* ...))
+      (list col col* ...)))
 
 (define-syntax sql-where
   (syntax-rules (select in like between and is null limit)
@@ -126,18 +251,12 @@
 ;;    => "select * from user where a=\"1\" ;"
 (define-syntax sql-select
   (syntax-rules (* where from distinct order by group having as)
-    ((_ fields where cond)
-     (if (list? fields)
-         (->where (-> "~{~a~^,~}" fields) cond)
-         (->where (-> "~a" fields) cond)))
     ((_ * from table)
      (-> "* from ~a" table))
     ((_ field from table)
      (if (list? field)
          (-> "~{~a~^,~} from ~a" field table)
          (-> "~a from ~a" field table)))
-    ((_ fields name from table)
-     (-> "~{~a~^,~} ~a from ~a" fields 'name table))
     ((_ fields as name from table)
      (-> "~{~a~^,~} as ~a from ~a" fields 'name table))
     ((_ fields from table where rest ...)
@@ -147,9 +266,13 @@
     ((_ * from table cond-str)
      (string-concatenate (list (sql-select * from table) cond-str)))
     ((_ * from (select subselect ...) as alias-name)
-     (-> "* from (select ~a) as ~a" 'field (sql-select subselect ...) alias-name))
-    ((_ fields from (select subselect ...) as alias-name)
-     (-> "~{~a~^,~} from (select ~a) as ~a" fields (sql-select subselect ...) alias-name))
+     (-> "* from (select ~a) as ~a" (sql-select subselect ...) alias-name))
+    ((_ field from (select subselect ...) as alias-name)
+     (if (list? field)
+         (-> "~{~a~^,~} from (select ~a) as ~a" field
+             (sql-select subselect ...) alias-name)
+         (-> "~a from (select ~a) as ~a" field
+             (sql-select subselect ...) alias-name)))
     ((_ distinct rest ...)
      (-> "distinct ~a" (sql-select rest ...)))
     ((_ rest ... group by groups)
@@ -158,11 +281,7 @@
     ((_ rest ... order by orders)
      (-> "~a order by ~a" (sql-select rest ...) orders))
     ((_ rest ... having what)
-     (-> "~a having ~a" (sql-select rest ...) what))
-    ((_ fields cond)
-     (if (list? fields)
-         (-> "~{~a~^,~}~a" fields cond)
-         (-> "~a~a" fields cond)))))
+     (-> "~a having ~a" (sql-select rest ...) what))))
 
 (define-syntax sql-insert
   (syntax-rules (into values select)
@@ -171,35 +290,50 @@
     ((_ into table select rest ...)
      (-> "into ~a select ~a" table (sql-select rest ...)))
     ((_ into table values lst)
-     (-> "into ~a values (~{'~a'~^,~})" table lst))
+     (if (use-params?)
+         (-> "into ~a values (~{~a~^,~})" table (map add-param! lst))
+         (-> "into ~a values (~{~a~^,~})" table (fix-values lst))))
     ((_ into table values lst select rest ...)
-     (-> "into ~a values (~{'~a'~^,~}) select ~a"
-         table lst (sql-select rest ...)))
+     (if (use-params?)
+         (-> "into ~a values (~{~a~^,~}) select ~a"
+             table (map add-param! lst)
+             (sql-select rest ...))
+         (-> "into ~a values (~{~a~^,~}) select ~a"
+             table (fix-values lst) (sql-select rest ...))))
     ((_ into table fields values lst)
-     (-> "into ~a (~{~a~^,~}) values (~{'~a'~^,~})" table fields lst))
+     (if (use-params?)
+         (-> "into ~a (~{~a~^,~}) values (~{~a~^,~})"
+             table fields (map add-param! lst))
+         (-> "into ~a (~{~a~^,~}) values (~{~a~^,~})"
+             table fields (fix-values lst))))
     ((_ into table fields values lst select rest ...)
-     (-> "into ~a (~{~a~^,~}) values (~{'~a'~^,~}) select ~a"
-         table fields lst (sql-select rest ...)))))
+     (if (use-params?)
+         (-> "into ~a (~{~a~^,~}) values (~{~a~^,~}) select ~a"
+             table fields
+             (map add-param! lst)
+             (sql-select rest ...))
+         (-> "into ~a (~{~a~^,~}) values (~{~a~^,~}) select ~a"
+             table fields (fix-values lst) (sql-select rest ...))))))
 
 (define-syntax sql-update
   (syntax-rules (set where)
-    ((_ table set pairs)
-     (-> "~a set ~{~a~^,~}" table (->lst pairs)))
-    ((_ table set pairs cond-str)
-     (string-concatenate (list (sql-update table set pairs) cond-str)))
-    ((_ table set pairs where rest ...)
-     (->where end (sql-update table set pairs) rest ...))))
+    ((_ table set (kv-pairs ...))
+     (-> "~a set ~a" table (kv->bind-str (list kv-pairs ...))))
+    ((_ table set (kv-pairs ...) cond-str)
+     (-> "~a set ~a ~a"
+         table (kv->bind-str (list kv-pairs ...))
+         (string-trim-both cond-str)))))
 
 (define-syntax sql-delete
   (syntax-rules (* from where)
     ((_ * from table)
      (-> "* from ~a" table))
     ((_ * from table cond-str)
-     (-> "* from ~a ~a" table cond-str))
+     (-> "* from ~a ~a" table (string-trim-both cond-str)))
     ((_ from table)
      (-> "from ~a" table))
     ((_ from table cond-str)
-     (-> "from ~a ~a" table cond-str))
+     (-> "from ~a ~a" table (string-trim-both cond-str)))
     ((_ from table where rest ...)
      (->where end (sql-delete from table) rest ...))))
 
@@ -209,18 +343,18 @@
     ;; (->sql create table 'mmr ("name varchar(10)" "age int(5)"))
     ((_ table name (columns columns* ...) engine ...)
      (-> end "create table ~a (~{~a~^,~}) ~a"
-         name (->combine columns columns* ...) (->engine engine ...)))
+         name (->combine 'columns 'columns* ...) (->engine engine ...)))
     ((_ table if exists name (columns columns* ...) engine ...)
      (-> end "create table if exists ~a (~{~a~^,~}) ~a"
-         name (->combine columns columns* ...) (->engine engine ...)))
+         name (->combine 'columns 'columns* ...) (->engine engine ...)))
     ((_ table if not exists name (columns columns* ...) engine ...)
      (-> end "create table if not exists ~a (~{~a~^,~}) ~a"
-         name (->combine columns columns* ...) (->engine engine ...)))
+         name (->combine 'columns 'columns* ...) (->engine engine ...)))
     ;; (->sql create view 'mmr as select '(a b) from 'tmp where '(and (= a 1) (= b 2)))
     ;; or equivalent to
     ;; (->sql create view 'mmr as select '(a b) from 'tmp (where #:a "1" #:b "2"))
     ((_ view name as select rest ...)
-     (-> end "create view ~a as select ~a" (sql-select rest ...)))
+     (-> end "create view ~a as select ~a" name (sql-select rest ...)))
     ;; (->sql create index 'PersonID on 'Persons '(PersonID))
     ((_ database db)
      (-> end "create database ~a" db))
@@ -230,10 +364,12 @@
       (-> end "create database if not exists ~a" db)))
     ((_ index iname on tname (columns columns* ...) engine ...)
      (-> end "create index ~a on ~a(~{~a~^,~}) ~a"
-         iname tname (->combine columns columns* ...) (->engine engine ...)))
+         iname tname (->combine 'columns 'columns* ...)
+         (->engine engine ...)))
     ((_ unique index iname on tname (columns columns* ...) engine ...)
      (-> end "create unique index ~a on ~a(~{~a~^,~}) ~a"
-         iname tname (->combine columns columns* ...) (->engine engine ...)))))
+         iname tname (->combine 'columns 'columns* ...)
+         (->engine engine ...)))))
 
 (define-syntax sql-alter
   (syntax-rules (table rename to add modify drop column as select
@@ -241,7 +377,7 @@
     ((_ table old-name rename to new-name)
      (-> "table ~a rename to ~a" old-name new-name))
     ((_ table name add cname ctype)
-     ;; e.g: (->sql alter table 'mmr add 'cname 'varchar(50))
+     ;; e.g: (->sql alter table 'mmr add 'cname "varchar(50)")
      (-> "table ~a add ~a ~a" name cname ctype))
     ((_ table name modify column cname ctype)
      (with-dbd
@@ -298,35 +434,6 @@
     ((_ table if not exists name)
      (-> "table if not exists ~a" name))))
 
-(define-syntax ->sql
-  (syntax-rules (select insert alter create update delete use drop)
-    ((_ select rest ...)
-     (->end 'select (sql-select rest ...)))
-    ((_ insert rest ...)
-     (->end 'insert (sql-insert rest ...)))
-    ((_ create rest ...)
-     (sql-create rest ...))
-    ((_ alter rest ...)
-     (->end 'alter (sql-alter rest ...)))
-    ((_ update rest ...)
-     (->end 'update (sql-update rest ...)))
-    ((_ delete rest ...)
-     (->end 'delete (sql-delete rest ...)))
-    ((_ truncate table name)
-     (->end "truncate table ~a" name))
-    ((_ drop rest ...)
-     (->end 'drop (sql-drop rest ...)))
-    ((_ use db)
-     (->end "use ~a" db))
-    ((_ open db)
-     ;; NOTE: This is only for SQLite3 for it's lacking of `use'
-     ;;       statement. And MUSTN'T be end with `;'.
-     (with-dbd
-      'sqlite3
-      (-> ".open ~a" db)))))
-
-(define-record-type sql-id (fields name))
-
 ;; 'where' is used to generate condition string of SQL
 ;; There're several modes in it, and can be composited.
 ;; FIXME: Have to checkout sql-injection in the field value, especially '--'
@@ -356,10 +463,9 @@
                    (format #f "[SQL]~a: invalid range" (get-prefix))
                    lst))))
   (define (->quote v)
-    (match v
-      ((? sql-id? id) (sql-id-name id))
-      ((? number? id) v)
-      (else (format #f "'~a'" v))))
+    (cond
+     ((use-params?) (add-param! v))
+     (else (fix-value v))))
   (define (get-the-conds-str key val)
     (let ((v (if (list? val) (->range val) val)))
       (match key
@@ -423,8 +529,12 @@
 (define (/in . lst)
   (match lst
     (() "")
-    ((column (? list? vals))
-     (format #f " ~a in (~{'~a'~^,~}) " column vals))
+    (((? keyword? column) (? list? vals))
+     (if (use-params?)
+         (format #f "~a in (~{~a~^,~})"
+                 (keyword->symbol column) (map add-param! vals))
+         (format #f "~a in (~{~a~^,~})"
+                 (keyword->symbol column) (fix-values vals))))
     (else (throw 'artanis-err 500 /in "Invalid args" lst))))
 
 (define-syntax-rule (/exists subquery)
@@ -436,6 +546,34 @@
 
 (define-syntax-rule (/id name)
   (make-sql-id 'name))
+
+;; Internal ->sql that generates SQL without parameter handling
+(define-syntax ->sql-internal
+  (syntax-rules (select insert alter create update delete use drop truncate open)
+    ((_ select rest ...)
+     (->end 'select (sql-select rest ...)))
+    ((_ insert rest ...)
+     (->end 'insert (sql-insert rest ...)))
+    ((_ create rest ...)
+     (sql-create rest ...))
+    ((_ alter rest ...)
+     (->end 'alter (sql-alter rest ...)))
+    ((_ update rest ...)
+     (->end 'update (sql-update rest ...)))
+    ((_ delete rest ...)
+     (->end 'delete (sql-delete rest ...)))
+    ((_ truncate table name)
+     (->end 'truncate (-> "table ~a" name)))
+    ((_ drop rest ...)
+     (->end 'drop (sql-drop rest ...)))
+    ((_ use db)
+     (->end 'use db))
+    ((_ open db)
+     ;; NOTE: This is only for SQLite3 for it's lacking of `use'
+     ;;       statement. And MUSTN'T be end with `;'.
+     (with-dbd
+      'sqlite3
+      (-> ".open ~a" db)))))
 
 ;; TODO: We need stronger syntax sugar for Language-INtegrated-Query,
 ;;       which is what LINQ does.
@@ -459,3 +597,30 @@
        #`(string-append
           #,(expand-bindings #'bindings)
           sql)))))
+
+(define (value-detect v)
+  (cond
+   ((sql-type? v) (sql-type-value v))
+   ((sql-id? v) (sql-id-name v))
+   (else v)))
+
+;; NOTE: We return sql-string and parameters with Multi-Variables,
+;;       this brings two advantages:
+;; 1. The old GNU Artanis downstream code may still work with ->sql, and for
+;;    Guile, the procedures that NOT using call-with-values will accept the
+;;    first return value by default. This is Guile specific, for RnRs, it's
+;;    an unspecified activity.
+;;    We urge you to modify your code to use our FPRM or call-with-values to
+;;    work with dbi-params-query.
+;; 2. Old users may use (parameterize ((use-params? #f)) ...) to disable it.
+(define-syntax ->sql
+  (syntax-rules (select insert alter create update delete use drop truncate open)
+    ((_ type rest ...)
+     (parameterize ((current-param-index 1)
+                    (current-param-list (new-queue)))
+       ;; NOTE: current-param-list is parameterizing protected global var,
+       ;;       though it's thread safe, we still need make sure it's
+       ;;       sequential, so we must use let* here.
+       (let* ((sql (->sql-internal type rest ...))
+              (params (map value-detect (queue-slots (current-param-list)))))
+         (values sql params))))))
