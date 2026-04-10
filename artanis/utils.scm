@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013-2025
+;;  Copyright (C) 2013-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -96,7 +96,6 @@
             procedure-name->string gen-content-length
             make-file-sender file-sender? file-sender-size file-sender-thunk
             get-string-all-with-detected-charset make-unstop-exception-handler
-            artanis-log exception-from-client exception-from-server render-sys-page
             bv-copy/share bv-backward artanis-list-matches get-syspage
             artanis-sys-response char-predicate handle-upload is-valid-table-name?
             is-guile-compatible-server-core? positive-integer? negative-integer?
@@ -1267,15 +1266,18 @@
       (string-append "\x01" (generate-color color) "\x02" str "\x01" (generate-color control) "\x02")
       (string-append (generate-color color) str (generate-color control))))
 
-(define* (colorize-string str color)
+(define* (colorize-string type str color)
   "Example: (colorize-string \"hello\" '(BLUE BOLD))"
-  (colorize-string-helper color str '(RESET) (using-readline?)))
+  (colorize-string-helper color
+                          (format #f "[~a] ~a" type str)
+                          '(RESET) (using-readline?)))
 
-(define-syntax-rule (WARN-TEXT str) (colorize-string str '(YELLOW)))
-(define-syntax-rule (ERROR-TEXT str) (colorize-string str '(RED)))
-(define-syntax-rule (REASON-TEXT str) (colorize-string str '(CYAN)))
-(define-syntax-rule (NOTIFY-TEXT str) (colorize-string str '(WHITE)))
-(define-syntax-rule (STATUS-TEXT num) (colorize-string (object->string num)'(WHITE)))
+(define-syntax-rule (WARN-TEXT str) (colorize-string 'WARN str '(YELLOW)))
+(define-syntax-rule (ERROR-TEXT str) (colorize-string 'ERROR str '(RED)))
+(define-syntax-rule (REASON-TEXT str) (colorize-string 'REASON str '(CYAN)))
+(define-syntax-rule (NOTIFY-TEXT str) (colorize-string 'NOTIFY str '(WHITE)))
+(define-syntax-rule (STATUS-TEXT num)
+  (colorize-string 'STATUS (object->string num)'(WHITE)))
 
 (define (get-trigger)
   (case (get-conf '(server trigger))
@@ -1355,6 +1357,7 @@
           (and (file-exists? sys-syspage)
                sys-syspage)))))
 
+;; ENHANCE: use a cache.
 (define (syspage-show status)
   (let* ((file (format #f "~a.html" status))
          (syspage (get-syspage file)))
@@ -1362,75 +1365,11 @@
         (bv-cat syspage #f)
         #vu8())))
 
-;; ENHANCE: use colored output
-(define* (artanis-log blame-who? status mime #:key (port (current-error-port))
-                      (request #f))
-  (monitor
-   (case blame-who?
-     ((client)
-      (when (not request)
-        (error "artanis-log: Fatal bug! Request shouldn't be #f here!~%"))
-      (let* ((uri (request-uri request))
-             (path (uri-path uri))
-             (qstr (uri-query uri))
-             (method (request-method request)))
-        (format port "[Remote] ~a @ ~a~%" (remote-info request) (local-time-stamp))
-        (format port "[Request] method: ~a, path: ~a, query: ~a~%" method path qstr)
-        (format port "[Response] status: ~a, MIME: ~a~%~%" status mime)))
-     ((server)
-      (format port "[Server] ~a @ ~a~%" (get-conf '(host addr)) (local-time-stamp))
-      (format port "[Response] status: ~a, MIME: ~a~%~%" status mime))
-     (else (error "artanis-log: Fatal BUG here!")))))
-
 (define *guile-compatible-server-core*
   '(guile fibers))
 
 (define (is-guile-compatible-server-core? name)
   (memq name *guile-compatible-server-core*))
-
-(define (render-sys-page blame-who? status request)
-  (artanis-log blame-who? status 'text/html #:request request)
-  (let* ((charset (get-conf '(server charset)))
-         (mtime (generate-modify-time (current-time)))
-         (guile-compt-serv? (is-guile-compatible-server-core? (get-conf '(server engine))))
-         (response
-          (build-response #:code status
-                          #:headers `((server . ,(get-conf '(server info)))
-                                      (last-modified . ,mtime)
-                                      (content-type . (text/html (charset . ,charset))))))
-         (body (cond
-                ((resources-collecting?)
-                 #vu8(0)) ; Don't open any file since we don't have resources now
-                ((get-syspage-handler status)
-                 => (lambda (thunk)
-                      (let ((body (thunk)))
-                        (cond
-                         ((string? body)
-                          (string->bytevector body (get-conf '(server charset))))
-                         ((bytevector? body) body)
-                         (else (syspage-show status))))))
-                (else (syspage-show status)))))
-    (if guile-compt-serv?
-        (values response body)
-        (values response body 'exception))))
-
-(define (format-status-page/client status request)
-  (format (current-error-port) (ERROR-TEXT "[EXCEPTION] ~a is abnormal request, status: ~a, ")
-          (uri-path (request-uri request)) status)
-  (display "rendering a sys page for it...\n" (current-error-port))
-  (render-sys-page 'client status request))
-
-(define (format-status-page/server status)
-  (format (current-error-port) "[SERVER ERROR] Internal error from server-side, ")
-  (format (current-error-port) "rendering a ~a page for client ...~%" status)
-  (render-sys-page 'server status #f))
-
-(define (exception-from-client request)
-  (lambda (status)
-    (format-status-page/client status request)))
-
-(define (exception-from-server status)
-  (format-status-page/server status))
 
 (define *rf-re* (string->irregex ".*/artanis/artanis/(.*)$"))
 (define (->reasonable-file filename)
