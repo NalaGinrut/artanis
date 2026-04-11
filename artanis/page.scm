@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014-2025
+;;  Copyright (C) 2014-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -19,6 +19,8 @@
 
 (define-module (artanis page)
   #:use-module (artanis utils)
+  #:use-module (artanis exception)
+  #:use-module (artanis logger)
   #:use-module (artanis env)
   #:use-module (artanis config)
   #:use-module (artanis cookie)
@@ -306,33 +308,34 @@
 
 ;; emit static file with no cache(ETag)
 (define* (emit-response-with-file filename out #:optional (headers '()))
-  (when (not (file-exists? filename))
-    (throw 'artanis-err 404 emit-response-with-file
-           "Static file `~a' doesn't exist!" filename))
-  (call-with-values
-      (lambda ()
-        (cond
-         ((or (not (get-conf '(server sendfile)))
-              (is-guile-compatible-server-core? (get-conf '(server engine))))
-          (generate-response-with-file
-           filename
-           ;; FIXME: For now, guile compatable server-core doesn't provide good method to
-           ;;        support sendfile, so we read then send it. This is OK for small files,
-           ;;        but bad for larger files.
-           (cond
-            ((get-conf '(server mmapped))
-             (let ((bv (file->bytevector filename)))
-               (register-mmapped-file! (port->fdes out) bv)
-               (DEBUG "Register mmaped file for ~a~%" (port->fdes out))
-               bv))
-            (else
-             (bv-cat filename #f)))))
-         (else
-          (let* ((in (open-input-file filename))
-                 (size (stat:size (stat filename))))
+  (define (send-with-artanis)
+    (when (not (file-exists? filename))
+      (throw 'artanis-err 404 emit-response-with-file
+             "Static file `~a' doesn't exist!" filename))
+    (call-with-values
+        (lambda ()
+          (cond
+           ((or (not (get-conf '(server sendfile)))
+                (is-guile-compatible-server-core? (get-conf '(server engine))))
             (generate-response-with-file
              filename
-             (make-file-sender
+             ;; FIXME: For now, guile compatable server-core doesn't provide good method to
+             ;;        support sendfile, so we read then send it. This is OK for small files,
+             ;;        but bad for larger files.
+             (cond
+              ((get-conf '(server mmapped))
+               (let ((bv (file->bytevector filename)))
+                 (register-mmapped-file! (port->fdes out) bv)
+                 (DEBUG "Register mmaped file for ~a~%" (port->fdes out))
+                 bv))
+              (else
+               (bv-cat filename #f)))))
+           (else
+            (let* ((in (open-input-file filename))
+                   (size (stat:size (stat filename))))
+              (generate-response-with-file
+               filename
+               (make-file-sender
               size
               (lambda ()
                 (catch #t
@@ -350,15 +353,34 @@
                   (lambda e
                     (close in)
                     (apply throw e))))))))))
-    (lambda (mtime status body mime)
-      (cond
-       ((= status 200)
-        (response-emit body #:status status
-                       #:headers `((content-type . ,(list mime))
-                                   ,@headers)
-                       #:mtime mtime
-                       #:request-status 'downloading))
-       (else (response-emit body #:status status))))))
+      (lambda (mtime status body mime)
+        (cond
+         ((= status 200)
+          (response-emit body #:status status
+                         #:headers `((content-type . ,(list mime))
+                                     ,@headers)
+                         #:mtime mtime
+                         #:request-status 'downloading))
+         (else (response-emit body #:status status))))))
+
+  (define (send-with-nginx)
+    ;; NOTE: We let nginx to check the file existence.
+    (response-emit
+     ""
+     #:status 200
+     #:headers `((x-accel-redirect . ,(format #f "/~a/~a"
+                                              (or (getenv "NGINX_INTERNAL_DIR")
+                                                  "internal")
+                                              (basename filename)))
+                 (content-deposition . ,(format #f
+                                                "attachment; filename=~s"
+                                                (basename filename)))
+                 ,@headers)))
+
+  ;; Start from here
+  (if (get-conf '(server nginx))
+      (send-with-nginx)
+      (send-with-artanis)))
 
 ;; When you don't want to use cache, use static-page-emitter.
 (define* (static-page-emitter rc #:key (dir #f))

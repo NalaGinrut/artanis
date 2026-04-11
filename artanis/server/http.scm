@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016-2025
+;;  Copyright (C) 2016-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -21,6 +21,7 @@
   #:use-module (artanis utils)
   #:use-module (artanis env)
   #:use-module (artanis config)
+  #:use-module (artanis runner)
   #:use-module (artanis websocket)
   #:use-module (artanis websocket named-pipe)
   #:use-module (artanis server server-context)
@@ -208,17 +209,7 @@
         (write-response-body res body)
         (force-output port))
        ((file-sender? body)
-        (let ((fut (make-future (file-sender-thunk body))))
-          (let lp ()
-            (cond
-             ((eq? 'done ((@@ (ice-9 futures) future-state) fut))
-              (touch fut)
-              (%%raw-close-connection server client #f)
-              (simply-quit))
-             (else
-              (oneshot-mention! client)
-              (break-task)
-              (lp))))))
+        (call-with-runner (file-sender-thunk body)))
        (else
         (throw 'artanis-err 500 http-write
                "Expected a bytevector for body" body)))))))
