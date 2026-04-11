@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013-2025
+;;  Copyright (C) 2013-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -26,8 +26,9 @@
   #:use-module (artanis db)
   #:use-module ((srfi srfi-1) #:renamer (symbol-prefix-proc 'srfi-1:))
   #:use-module (srfi srfi-9)
-  #:use-module (srfi srfi-11)
+  #:use-module (srfi srfi-11) ; for let-values
   #:use-module (srfi srfi-26)
+  #:use-module (srfi srfi-45) ; for lazy
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
   #:export (map-table-from-DB
@@ -290,10 +291,10 @@
 (define (make-table-dropper rc/conn)
   (define conn (get-conn-from-rc/conn rc/conn make-table-dropper))
   (lambda* (name #:key (dump #f))
-    (let ((sql (->sql drop table if exists name)))
+    (let-values (((sql params) (->sql drop table if exists name)))
       (cond
-       ((not dump) (DB-query conn sql))
-       (else sql)))))
+       ((not dump) (DB-query conn sql #:params params))
+       (else (values sql params))))))
 
 (define *exception-opts*
   '(#:no-edit #:default #:comment #:storage #:unsigned))
@@ -375,7 +376,11 @@
 (define* (make-table-builder rc/conn)
   (define conn (get-conn-from-rc/conn rc/conn make-table-builder))
   (define (table-drop! tname)
-    (DB-query conn (->sql drop table if exists tname)))
+    (call-with-values
+        (lambda ()
+          (->sql drop table if exists tname))
+      (lambda (sql params)
+        (DB-query conn sql #:params params))))
   (define (->opts opts)
     (let ((h (get-table-builder-opts-handler)))
       (string-join
@@ -435,28 +440,37 @@
            (pks (gen-primary-keys primary-keys))
            (engine (if (eq? 'mysql (get-conf '(db dbd)))
                        engine
-                       ""))
-           (sql (case if-exists?
-                  ((overwrite drop)
-                   (table-drop! tname)
-                   (->sql create table tname (types pks) engine))
-                  ((ignore)
-                   (->sql create table if not exists tname (types pks) engine))
-                  (else (->sql create table tname (types pks) engine)))))
-      (cond
-       ((not dump)
-        (DB-query conn sql)
-        (lambda cmd
-          (match cmd
-            ('(valid?) (db-conn-success? conn))
-            ('(primary-keys) primary-keys)
-            (`(add-primary-keys ,keys)
-             (DB-query conn (->sql alter table tname add primary key keys)))
-            ('(drop-primary-keys)
-             (DB-query conn (->sql alter table tname drop primary key)))
-            ;; TODO
-            (_ (throw 'artanis-err 500 make-table-builder "Invalid cmd `~a'!" cmd)))))
-       (else sql)))))
+                       "")))
+      (let-values (((sql params)
+                    (case if-exists?
+                      ((overwrite drop)
+                       (table-drop! tname)
+                       (->sql create table tname (types pks) engine))
+                      ((ignore)
+                       (->sql create table if not exists tname (types pks) engine))
+                      (else (->sql create table tname (types pks) engine)))))
+        (cond
+         ((not dump)
+          (DB-query conn sql #:params params)
+          (lambda cmd
+            (match cmd
+              ('(valid?) (db-conn-success? conn))
+              ('(primary-keys) primary-keys)
+              (`(add-primary-keys ,keys)
+               (call-with-values
+                   (lambda ()
+                     (->sql alter table tname add primary key keys)))
+               (lambda (sql params)
+                 (DB-query conn sql #:params params)))
+              ('(drop-primary-keys)
+               (call-with-values
+                   (lambda ()
+                     (->sql alter table tname drop primary key))
+                 (lambda (sql params)
+                   (DB-query conn sql #:params params))))
+              ;; TODO
+              (_ (throw 'artanis-err 500 make-table-builder "Invalid cmd `~a'!" cmd)))))
+         (else sql))))))
 
 (define (get-conn-from-rc/conn rc/conn fname)
   (cond
@@ -489,66 +503,123 @@
   (define (->kv kvp) (srfi-1:unzip2 kvp))
   (lambda (tname . kargs)
     (let-values (((kvp wcond) (->kvp kargs)))
-      (let ((sql (if (string-null? wcond)
-                     (let-values (((k v) (->kv kvp)))
-                       (->sql insert into tname k values v))
-                     ;; NOTE: If there's no cond string (say, `where' clauses), you MUSTN'T
-                     ;;       use UPDATE because it'll effect all the records!!! In such case,
-                     ;;       you should use INSERT.
-                     (->sql update tname set kvp wcond)))
-            (conn (get-conn-from-rc/conn rc/conn make-table-setter)))
-        (if (sql-to-string?)
-            sql
-            (DB-query conn sql))))))
+      (let-values (((sql params)
+                    (if (string-null? wcond)
+                        (let-values (((k v) (->kv kvp)))
+                          (->sql insert into tname k values v))
+                        ;; NOTE: If there's no cond string (say, `where' clauses), you MUSTN'T
+                        ;;       use UPDATE because it'll effect all the records!!! In such case,
+                        ;;       you should use INSERT.
+                        (->sql update tname set (kvp) wcond))))
+        (let ((conn (get-conn-from-rc/conn rc/conn make-table-setter)))
+          (if (sql-to-string?)
+              (values sql params)
+              (DB-query conn sql #:params params)))))))
+
+(define max-foreach-limit (make-parameter 100))
+(define max-columns-limit (make-parameter 64))
+
+;; The hard limit of params:
+;; * MySQL is 4096
+;; * PostgreSQL is 65535
+;; * SQLite3 is 999
+;; But we set it to 200 for better performance and security.
+;; If you really need more params, we suggest you to split your query into
+;; several ones for batch processing.
+(define max-params-limit (make-parameter 200))
+
+;; It's better to batch your query with both #:ret and #:offset, instead of
+;; using #:ret with a large number, which may cause performance issue.
+(define max-ret-limit (make-parameter 10000))
+(define max-offset-limit (make-parameter 1000000))
+
+(define-syntax-rule (->string x)
+  (cond
+   ((string? x) x)
+   ((symbol? x) (symbol->string x))
+   (else (throw 'artanis-err 500 make-table-getter "Invalid identifier `~a'!" x))))
+
+(define (verify-identifier proc who name)
+  (unless (irregex-match '(+ (or alphanumeric #\_ #\. #\*)) (->string name))
+    (throw 'artanis-err 500 make-table-getter
+           "In ~a, ~a: unsafe SQL identifier rejected: `~a'" proc who name)))
+
+(define (non-negative-integer? x)
+  (or (integer? x) (zero? x)))
+
+(define (positive-integer? x)
+  (and (integer? x) (> x 0)))
 
 (define (make-table-getter rc/conn)
   (define (->ret ret)
     (match ret
-      ((? integer? n) (format #f " limit ~a " n))
-      ('top " limit 1 ")
-      ('all "")
-      (_ #f)))
+      ((? positive-integer? n)
+       (when (> n (max-ret-limit))
+         (throw 'artanis-err 500 make-table-getter
+                "Invalid #:ret `~a', max is ~a" n (max-ret-limit)))
+       n)
+      ('top 1)
+      ('all #f)
+      (_ (throw 'artanis-err 500
+                make-table-getter "Invalid #:ret `~a'" ret))))
   (define (->offset offset)
-    (and offset (format #f " offset ~a " offset)))
+    (cond
+     ((non-negative-integer? offset)
+      (when (> offset (max-offset-limit))
+        (throw 'artanis-err 500 make-table-getter
+               "Invalid #:offset `~a', max is ~a" offset (max-offset-limit)))
+      offset)
+     (else
+      (throw 'artanis-err 500
+             make-table-getter "Invalid #:offset `~a'" offset))))
   (define (->group-by group-by)
     (match group-by
-      ((? list columns)
+      ((? list? columns)
+       (for-each (cut verify-identifier make-table-getter #:group-by <>)
+                 columns)
        (format #f " group by ~{~a~^,~} " columns))
-      (_ #f)))
+      (#f "")
+      (_ (throw 'artanis-err 500
+                make-table-getter "Invalid #:group-by `~a'" group-by))))
   (define (->order-by order-by)
     (match order-by
       ((columns ... (? (cut memq <> '(asc desc)) m))
+       (for-each (cut verify-identifier make-table-getter #:order-by <>)
+                 columns)
        (format #f " order by ~{~a~^,~} ~a " columns m))
-      (_ #f)))
-  (define (->opts ret offset group-by order-by cnd foreach)
-    (define-syntax-rule (-> x tox)
-      (or (and=> x tox) ""))
-    (define-syntax-rule (cond-combine c lst)
-      (cond
-       ((not (string? c))
-        (throw 'artanis-err 500 make-table-getter "Invalid #:condition `~a'" c))
-       ((not (list? lst))
-        (throw 'artanis-err 500 make-table-getter "Invalid #:foreach `~a'" lst))
-       (else
-        (match lst
-          (() c)
-          ((column (? list? vals))
-           (format #f " ~a ~a in (~{'~a'~^,~}) "
-                   (if (string-null? c) " where " (string-append c " and "))
-                   column vals))
-          (_
-           (throw 'artanis-err 500 make-table-getter
-                  "Invalid #:foreach `~a', should be (column (val1 val2 val3 ...))"
-                  lst))))))
-    (string-concatenate
-     (list (cond-combine cnd foreach)
-           (-> group-by ->group-by)
-           (-> order-by ->order-by)
-           (-> ret ->ret) (-> offset ->offset))))
+      (#f "")
+      (_ (throw 'artanis-err 500 make-table-getter "Invalid #:order-by `~a'" order-by))))
   (define (->mix columns functions)
+    (when (> (length columns) (max-columns-limit))
+      (throw 'artanis-err 500 make-table-getter
+             "#:columns too large (~a), max is ~a"
+             (length columns) (max-columns-limit)))
+    (for-each (cut verify-identifier make-table-getter 'columns <>) columns)
+    (for-each (lambda (f)
+                (for-each
+                 (cut verify-identifier make-table-getter 'functions <>)
+                 (cdr f)))
+              functions)
     `(,@columns ,@(map (lambda (f) (format #f "~a(~{~a~^,~})" (car f) (cdr f))) functions)))
-  (lambda* (tname #:key (columns '(*)) ; get all (*) in default
-                  (functions '()) ; put SQL functions here
+  (define (->foreach-clause cnd foreach)
+    (match foreach
+      (() cnd)
+      ((column (? list? vals))
+       (when (> (length vals) (max-foreach-limit))
+         (throw 'artanis-err 500 make-table-getter
+                "#:foreach list too large (~a), max is ~a; use array query instead"
+                (length vals) (max-foreach-limit)))
+       (verify-identifier make-table-getter #:foreach column)
+       (let* ((prefix (if (string-null? cnd)
+                          " where "
+                          (string-append cnd " and ")))
+              (placeholders (map add-param! vals)))
+         (format #f "~a ~a in (~{~a~^,~}) " prefix column placeholders)))
+      (_ (throw 'artanis-err 500 make-table-getter
+                "Invalid #:foreach `~a'" foreach))))
+  (lambda* (tname #:key
+                  (columns '(*))        ; get all (*) in default
+                  (functions '())       ; put SQL functions here
                   ;; USAGE: #:functions ((funcname1 columns ...) (funcname2 columns ...) ...)
                   ;; e.g:  #:functions '((count Persons.Lastname))
                   ;; ==> count(Persons.Lastname)
@@ -573,8 +644,11 @@
                   ;; SELECT column_name(s)
                   ;;        FROM table_name
                   ;;        ORDER BY column_name [ASC|DESC]
+                  ;; NOTE: #:condition now accepts either a string (legacy, unsafe for user input)
+                  ;;       or a promise (preferred: evaluated inside the parameterize context so
+                  ;;       add-param! calls from (where ...) land in the correct param list).
+                  ;; e.g:  #:condition (delay (where #:name "nala"))
                   (condition "")
-                  ;; Conditions, e.g, #:condition (where #:name "nala")
                   (foreach '())
                   ;; #:foreach accepts an associative list according to this form:
                   ;; (column-name (val1 val2 val3 ...))
@@ -588,30 +662,54 @@
                   ;; 1. 'raw: returns all rows
                   ;; 2. 'getter: return a getter as a function
                   )
-    (let ((sql (format #f "select ~{~a~^,~} from ~a ~a;"
-                       (->mix columns functions) tname
-                       (->opts ret offset group-by order-by
-                               condition foreach)))
-          (conn (get-conn-from-rc/conn rc/conn make-table-getter)))
-      (cond
-       ((and (not dump) (not (sql-to-string?)))
-        (DB-query conn sql)
-        (when (not (db-conn-success? conn))
-          (DEBUG "Failed to execute SQL: `~a'~%~a!"
-                 sql (db-conn-failed-reason conn))
-          (throw 'artanis-err 500 make-table-getter
-                 "Failed to execute SQL: `~a'~%~a!"
-                 sql (db-conn-failed-reason conn)))
-        (let ((ret (DB-get-all-rows conn)))
-          (case mode
-            ((raw) ret)
-            ((getter)
-             (lambda (k)
-               (and (not (null? ret))
-                    (assoc-ref (car ret) k))))
-            (else (throw 'artanis-err 500 make-table-getter
-                         "Invalid mode `~a'" mode)))))
-       (else sql)))))
+    ;; We have to check condition in case the use misuses it.
+    (when (and (not (string-null? condition)) (not (promise? condition)))
+      (throw 'artanis-err 500 make-table-getter
+             "Invalid condition `~a', should be either a string or a promise! ~a"
+             condition
+             "Say, (delay (where #:name \"nala\")), you need srfi-45."))
+    (verify-identifier make-table-getter 'tname tname)
+    (call-with-values
+        (lambda ()
+          (parameterize ((current-param-index 1)
+                         (current-param-list (new-queue)))
+            (let* ((cnd (if (promise? condition) (force condition) condition))
+                   (cnd+foreach (->foreach-clause cnd foreach))
+                   (group-str (->group-by group-by))
+                   (order-str (->order-by order-by))
+                   (ret-val (->ret ret))
+                   (offset-val (->offset offset))
+                   (ret-str (if ret-val
+                                (format #f " limit ~a " (add-param! ret-val))
+                                ""))
+                   (offset-str (if offset-val
+                                   (format #f " offset ~a " (add-param! offset-val))
+                                   ""))
+                   (opts (string-concatenate
+                          (list cnd+foreach group-str order-str ret-str offset-str)))
+                   (col-str (format #f "~{~a~^,~}" (->mix columns functions)))
+                   (sql (format #f "select ~a from ~a ~a;" col-str tname opts))
+                   (params (map value-detect (queue-slots (current-param-list)))))
+              (values sql params))))
+      (lambda (sql params)
+        (cond
+         ((or dump (sql-to-string?)) (values sql params))
+         (else
+          (let ((conn (get-conn-from-rc/conn rc/conn make-table-getter)))
+            (DB-query conn sql #:params params)
+            (when (not (db-conn-success? conn))
+              (DEBUG "Failed to execute SQL: `~a'~%~a!" sql (db-conn-failed-reason conn))
+              (throw 'artanis-err 500 make-table-getter
+                     "Failed to execute SQL: `~a'~%~a!" sql (db-conn-failed-reason conn)))
+            (let ((result (DB-get-all-rows conn)))
+              (case mode
+                ((raw) result)
+                ((getter)
+                 (lambda (k)
+                   (and (not (null? result))
+                        (assoc-ref (car result) k))))
+                (else (throw 'artanis-err 500 make-table-getter
+                             "Invalid mode `~a'" mode)))))))))))
 
 (define (make-table-modifier rc/conn)
   (define (table-add tname col t)
@@ -672,33 +770,71 @@
       (else (throw 'artanis-err 500 make-table-modifier
                    "Invalid op `~a'!" op))))
   (lambda (tname op . args)
-    (let* ((sql (gen-sql tname op args))
-           (conn (get-conn-from-rc/conn rc/conn make-table-modifier)))
-      (DB-query conn sql))))
+    (let-values (((sql params) (gen-sql tname op args)))
+      (let ((conn (get-conn-from-rc/conn rc/conn make-table-modifier)))
+        (DB-query conn sql #:params params)))))
 
 (define (make-table-counter rc/conn)
-  (lambda* (tname #:key (key "*") (column "count") (group-by #f) (condition ""))
-    (let ((sql (format #f "select ~acount(~a) as ~a from ~a~a~a;"
-                       (if group-by (string-append group-by ",") "")
-                       key column tname
-                       condition
-                       (if group-by (string-append " group by " group-by) "")))
-          (conn (get-conn-from-rc/conn rc make-table-counter)))
-      (cond
-       ((not (sql-to-string?))
-        (DB-query conn sql)
-        (DB-get-all-rows conn))
-       (else sql)))))
+  (lambda* (tname #:key
+                  (key "*")
+                  (column "count")
+                  (group-by #f)
+                  ;; Lazy preferred: (delay (where #:status "active"))
+                  (condition ""))
+    ;; We have to check condition in case the use misuses it.
+    (when (and (not (string-null? condition)) (not (promise? condition)))
+      (throw 'artanis-err 500 make-table-getter
+             "Invalid condition `~a', should be either a string or a promise! ~a"
+             condition
+             "Say, (delay (where #:name \"nala\")), you need srfi-45."))
+    (verify-identifier make-table-counter 'tname tname)
+    (verify-identifier make-table-counter #:key key)
+    (verify-identifier #:column column)
+    (when group-by (very-identifier make-table-counter #:group-by group-by))
+    (call-with-values
+        (lambda ()
+          (parameterize ((current-param-index 1)
+                         (current-param-list (new-queue)))
+            (let* ((cnd (if (promise? condition) (force condition) condition))
+                   (group-str (if group-by
+                                  (format #f " group by ~a " group-by)
+                                  ""))
+                   (select-prefix (if group-by
+                                      (format #f "~a, " group-by)
+                                      ""))
+                   (sql (format #f "select ~acount(~a) as ~a from ~a~a~a;"
+                                select-prefix key column tname cnd group-str))
+                   (params (map value-detect (queue-slots (current-param-list)))))
+              (values sql params))))
+      (lambda (sql params)
+        (cond
+         ((sql-to-string?) (values sql params))
+         (else
+          (let ((conn (get-conn-from-rc/conn rc/conn make-table-counter)))
+            (DB-query conn sql #:params params)
+            (when (not (db-conn-success? conn))
+              (DEBUG "Failed to execute SQL: `~a'~%~a!" sql (db-conn-failed-reason conn))
+              (throw 'artanis-err 500 make-table-counter
+                     "Failed to execute SQL: `~a'~%~a!" sql (db-conn-failed-reason conn)))
+            (DB-get-all-rows conn))))))))
 
 (define (make-table-indexer rc/conn)
   (lambda* (tname index-name columns #:key (unique? #f))
-    (let ((sql (format #f "create ~a index ~a on ~a (~{~a~^,~});"
-                       (if unique? "unique " "")
-                       index-name tname columns)))
+    (verify-identifier make-table-indexer 'tname tname)
+    (verify-identifier make-table-indexer 'index-name index-name)
+    (for-each (cut verify-identifier make-table-indexer 'columns <>) columns)
+    (let* ((sql (format #f "create ~aindex ~a on ~a (~{~a~^,~});"
+                        (if unique? "unique " "")
+                        index-name tname columns))
+           (conn (get-conn-from-rc/conn rc/conn make-table-indexer)))
       (cond
-       ((not (sql-to-string?))
-        (DB-query conn sql))
-       (else sql)))))
+       ((sql-to-string?) sql)
+       (else
+        (DB-query conn sql #:params '())
+        (when (not (db-conn-success? conn))
+          (DEBUG "Failed to execute SQL: `~a'~%~a!" sql (db-conn-failed-reason conn))
+          (throw 'artanis-err 500 make-table-indexer
+                 "Failed to execute SQL: `~a'~%~a!" sql (db-conn-failed-reason conn))))))))
 
 ;; NOTE: the name of columns is charactar-caseless, at least in MySQL/MariaDB.
 (define (map-table-from-DB rc/conn)
@@ -721,13 +857,15 @@
   ;; PS: I'm not boasting that the whole Artanis would be stateless, but FPRM should do it as possible.
   ;; I maybe wrong and fail, but it's worth to try.
   (define (get-table-schema tname)
-    (let* ((sql (->sql select '("lcase(column_name)") from
-                       (select * from 'information_schema.columns (having #:table_name tname))
-                       as 'tmp_alias))
-           (sch (DB-get-all-rows (DB-query conn sql))))
-      ;; NOTE: The Schema queried from DB is case sensitive, so it's safe to
-      ;;       convert all the columns to downcase.
-      (map (lambda (x) (string->symbol (cdar x))) sch)))
+    (let-values (((sql params)
+                  (->sql select '("lcase(column_name)") from
+                         (select * from 'information_schema.columns
+                                 (having #:table_name tname))
+                         as 'tmp_alias)))
+      (let ((sch (DB-get-all-rows (DB-query conn sql #:params params))))
+        ;; NOTE: The Schema queried from DB is case sensitive, so it's safe to
+        ;;       convert all the columns to downcase.
+        (map (lambda (x) (string->symbol (cdar x))) sch))))
   (define (checker ci? tname . args)
     (define schema (get-table-schema tname))
     (define-syntax-rule (-> c) (map (cut normalize-column <> ci?) c))

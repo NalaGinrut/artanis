@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013-2025
+;;  Copyright (C) 2013-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -25,7 +25,12 @@
   #:use-module (artanis ssql)
   #:use-module (artanis env)
   #:use-module (artanis server ragnarok)
-  #:autoload (dbi dbi) (dbi-open dbi-query dbi-get_status dbi-close dbi-get_row)
+  #:autoload (dbi dbi) (dbi-open
+                        dbi-params-query
+                        dbi-get_status
+                        dbi-close
+                        dbi-get_row
+                        dbi-params-query)
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
   #:use-module (ice-9 threads)
@@ -247,13 +252,15 @@
           (rc-conn! rc conn)
           conn))))
 
-(define (db-query-debug-info sql)
+(define (db-query-debug-info sql params)
   (when (get-conf 'debug-mode)
-    (display sql)(newline)))
+    (display sql)(newline)
+    (when params
+      (display "Params: ")(write params)(newline))))
 
 ;; FIXME: The first level to avoid SQL-injection is that run only one valid statment each time.
 ;;        So we have to find the index of first valid semi-colon, then use substring.
-(define* (DB-query conn sql #:key (check? #f))
+(define* (DB-query conn sql #:key (check? #f) (params #f))
   (define (recreate-DB-conn!)
     (cond
      ((db-conn-is-closed? conn)
@@ -278,8 +285,11 @@
     (throw 'artanis-err 500 DB-query
            "Invalid SQL string ~a!" sql))
    (else
-    (db-query-debug-info sql)
-    (dbi-query (<connection>-conn conn) sql)
+    (db-query-debug-info sql params)
+    (if params
+        (dbi-params-query (<connection>-conn conn) sql params)
+        (dbi-params-query (<connection>-conn conn) sql))
+    ;; Clear the parameters after use
     (cond
      ((db-conn-success? conn)
       conn)
