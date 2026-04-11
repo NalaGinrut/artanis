@@ -20,7 +20,9 @@
   #:use-module (artanis utils)
   #:use-module (ice-9 threads)
   #:export (artanis-log
-            artanis-warn))
+            artanis-warn
+            artanis-status
+            artanis-error/continue))
 
 ;; ENHANCE: use colored output
 (define* (artanis-log blame-who? status mime #:key
@@ -41,11 +43,6 @@
   (define (atomic-output thunk)
     (monitor (thunk)))
   (case blame-who?
-    ((warn)
-     (atomic-output
-      (lambda ()
-        (when msg
-          (display (WARN-TEXT msg) port)))))
     ((client)
      (when (not request)
        (error "artanis-log: Fatal bug! Request shouldn't be #f here!~%"))
@@ -70,7 +67,29 @@
           (display s1 port)
           (display s2 port)
           (and msg (display msg port))))))
+    ((warn)
+     (atomic-output
+      (lambda ()
+        (when msg
+          (display (WARN-TEXT msg) port)))))
+    ((status)
+     (atomic-output
+      (lambda ()
+        (when msg
+          (display (STATUS-TEXT msg) port)))))
+    ((error/continue)
+     (atomic-output
+      (lambda ()
+        (when msg
+          (display (ERROR-TEXT msg) port)))))
     (else (error "artanis-log: Fatal BUG here!"))))
 
 (define (artanis-warn fmt . args)
   (artanis-log 'warn #f #f #:msg (apply format #f fmt args)))
+
+(define (artanis-status fmt . args)
+  (artanis-log 'status #f #f #:msg (apply format #f fmt args)))
+
+;; Throw error with message, but continue the server loop.
+(define (artanis-error/continue fmt . args)
+  (artanis-log 'error/continue #f #f #:msg (apply format #f fmt args)))
