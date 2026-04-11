@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016-2024
+;;  Copyright (C) 2016-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -30,6 +30,7 @@
 (define-module (artanis server ragnarok)
   #:use-module (artanis env)
   #:use-module (artanis utils)
+  #:use-module (artanis exception)
   #:use-module (artanis config)
   #:use-module (artanis page)
   #:use-module (artanis server epoll)
@@ -370,7 +371,9 @@
       ;;       has to stop before the data is fully received.
       ;; NOTE: For blocking I/O, buffering is always meaningless. We're using
       ;;       non-blocking I/O, so we need block-buffer.
-      (setvbuf conn 'block)
+      ;; NOTE: The bufsize in setvbuf should be the same as the bufsize in
+      ;;       setsockopt, otherwise it's meaningless.
+      (setvbuf conn 'block bufsize)
       (setsockopt conn SOL_SOCKET SO_SNDBUF bufsize)
       (setsockopt conn SOL_SOCKET SO_KEEPALIVE 1)
       ;; If `edge' mode, then set new connection port to non-blocking
