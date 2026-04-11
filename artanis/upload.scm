@@ -25,6 +25,7 @@
   #:use-module (artanis route)
   #:use-module (artanis server scheduler)
   #:use-module (artanis server server-context)
+  #:use-module (artanis runner)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 iconv)
   #:use-module (ice-9 match)
@@ -259,9 +260,11 @@
           (if need-mfd?
               `(success ,mfds ,(get-slist mfds) ,(get-flist mfds))
               `(success ,(get-slist mfds) ,(get-flist mfds))))))
-  (cond
-   ((content-type-is-mfd? rc) => finalize-mfds)
-   (else 'none)))
+  (call-with-runner
+   (lambda ()
+     (cond
+      ((content-type-is-mfd? rc) => finalize-mfds)
+      (else 'none)))))
 
 (define-record-type mfds-operator
   (fields
