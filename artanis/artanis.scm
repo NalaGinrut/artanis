@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013-2025
+;;  Copyright (C) 2013-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -19,6 +19,7 @@
 
 (define-module (artanis artanis)
   #:use-module (artanis utils)
+  #:use-module (artanis logger)
   #:use-module (artanis config)
   #:use-module (artanis env)
   #:use-module (artanis tpl)
@@ -367,6 +368,11 @@
   (format #t "Server core: ~a~%" (get-conf '(server engine)))
   (format #t "~a~%" (current-myhost))
   (format #t "Anytime you want to quit just try Ctrl+C, thanks!~%")
+  (when (and debug (get-conf '(server nginx)))
+    ;; warning it
+    (artanis-warn
+     "[WARNING] You have enabled server.nginx, make sure you configured Nginx to work with your app properly,
+it is suggested to disable it when you debug in localhost.~%"))
   (let ((handler (if debug
                      (lambda (r b . _)
                        (format #t "[Request] ~a~%[Body] ~a~%" r (->proper-body-display b))
