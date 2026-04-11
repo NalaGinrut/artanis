@@ -26,6 +26,7 @@
   #:use-module (ice-9 receive)
   #:use-module (ice-9 format)
   #:use-module ((rnrs) #:select (define-record-type))
+  #:use-module ((srfi srfi-1) #:select (map-in-order))
   #:export (->sql
             where
             having
@@ -37,6 +38,8 @@
             /id
             letq
             use-params?
+            current-param-index
+            current-param-list
             sql-int sql-text sql-bool sql-numeric sql-double sql-real
             sql-bigint sql-smallint sql-varchar sql-char sql-timestamp
             sql-date sql-time sql-bytea sql-json sql-jsonb sql-uuid
@@ -205,7 +208,7 @@
         (-> "~a~a~s" a1 op a2)))
   (define (->opn opn . ll)
     (if (use-params?)
-        (-> "~a ~{~a~^ ~}" opn (map add-param! ll))
+        (-> "~a ~{~a~^ ~}" opn (map-in-order add-param! ll))
         (-> "~a ~{'~a'~^ ~}" opn ll)))
   (match lst
     (() "")
@@ -291,26 +294,27 @@
      (-> "into ~a select ~a" table (sql-select rest ...)))
     ((_ into table values lst)
      (if (use-params?)
-         (-> "into ~a values (~{~a~^,~})" table (map add-param! lst))
+         (-> "into ~a values (~{~a~^,~})"
+             table (map-in-order add-param! lst))
          (-> "into ~a values (~{~a~^,~})" table (fix-values lst))))
     ((_ into table values lst select rest ...)
      (if (use-params?)
          (-> "into ~a values (~{~a~^,~}) select ~a"
-             table (map add-param! lst)
+             table (map-in-order add-param! lst)
              (sql-select rest ...))
          (-> "into ~a values (~{~a~^,~}) select ~a"
              table (fix-values lst) (sql-select rest ...))))
     ((_ into table fields values lst)
      (if (use-params?)
          (-> "into ~a (~{~a~^,~}) values (~{~a~^,~})"
-             table fields (map add-param! lst))
+             table fields (map-in-order add-param! lst))
          (-> "into ~a (~{~a~^,~}) values (~{~a~^,~})"
              table fields (fix-values lst))))
     ((_ into table fields values lst select rest ...)
      (if (use-params?)
          (-> "into ~a (~{~a~^,~}) values (~{~a~^,~}) select ~a"
              table fields
-             (map add-param! lst)
+             (map-in-order add-param! lst)
              (sql-select rest ...))
          (-> "into ~a (~{~a~^,~}) values (~{~a~^,~}) select ~a"
              table fields (fix-values lst) (sql-select rest ...))))))
@@ -444,6 +448,7 @@
   (parameterize ((get-prefix " having "))
     (apply gen-cond conds)))
 
+(define *key/pred-re* (string->sre "([^<>=]+)(<|>|<=|>=|<>)"))
 (define (gen-cond . conds)
   (define (->or/and kp)
     (let* ((len (string-length kp))
@@ -453,7 +458,7 @@
         (else " or "))))
   (define (->key/pred k)
     (let* ((str (keyword->string k))
-           (m (irregex-match "([^<>=]+)(<|>|<=|>=|<>)" str)))
+           (m (irregex-match *key/pred-re* str)))
       (if m str (string-append str "="))))
   (define (->range lst)
     (match lst
@@ -532,7 +537,7 @@
     (((? keyword? column) (? list? vals))
      (if (use-params?)
          (format #f "~a in (~{~a~^,~})"
-                 (keyword->symbol column) (map add-param! vals))
+                 (keyword->symbol column) (map-in-order add-param! vals))
          (format #f "~a in (~{~a~^,~})"
                  (keyword->symbol column) (fix-values vals))))
     (else (throw 'artanis-err 500 /in "Invalid args" lst))))
