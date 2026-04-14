@@ -20,7 +20,6 @@ before_script:
   - ./autogen.sh
   - ./configure --prefix=/usr && make
   - make install && ldconfig && cd ..
-  - cd ..
   - cd guile-dbd-postgresql
   - ./autogen.sh
   - ./configure --prefix=/usr && make
