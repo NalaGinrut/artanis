@@ -71,3 +71,4 @@ typescript
 *.gz
 *.gz.sig
 *.tmp
+.aider*
