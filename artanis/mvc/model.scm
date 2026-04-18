@@ -96,15 +96,24 @@
     (case name
       ;; Auto index field
       ((auto)
-       (match dbd
-         ((or 'mysql 'postgresql)
+       (case dbd
+         ((mysql postgresql)
           (list 'serial (opts-add '(#:no-edit #:not-null #:primary-key) opts)))
-         ('sqlite3
+         ((sqlite3)
           (list 'integer (opts-add '(#:no-edit #:not-null #:primary-key #:auto-increment) opts)))
          (else (throw 'artanis-err 500 general-field-handler
                       "Unsupported DBD `~a' for auto field!" dbd))))
-      ((tiny-integer) `(tinyint ,@(get-diswidth opts)))
-      ((small-integer) `(smallint ,@(get-diswidth opts)))
+      ((tiny-integer tinyint)
+       (case dbd
+         ((postgresql)
+          (list 'smallint opts))
+         (else
+          `(tinyint ,@(get-diswidth opts)))))
+      ((small-integer smallint)
+       (case dbd
+         ((sqlite3) (list 'integer opts))
+         (else
+          `(smallint ,@(get-diswidth opts)))))
       ;; 64 long integer
       ((big-integer) (list 'integer 64 opts))
       ;; NOTE: No, we may not going to provide fix-sized binary field, in Django,
@@ -116,6 +125,12 @@
       ;;       It's OK if you convert blob into base64 string to text field.
       ;;       But remember that you pay what you choose.
       ((text) (list (db-specific-type 'text) opts))
+      ((longtext)
+       (case dbd
+         ((mysql) (list 'longtext opts))
+         ((postgresql sqlite3) (list (db-specific-type 'text) opts))
+         (else (throw 'artanis-err 500 general-field-handler
+                      "Unsupported DBD `~a' for longtext field!" dbd))))
       ((boolean) (list (db-specific-type 'boolean) opts))
       ;; Integer part is the total number of digits.
       ;; Fractional part is the number of digits following the decimal point.

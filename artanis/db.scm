@@ -26,11 +26,11 @@
   #:use-module (artanis env)
   #:use-module (artanis server ragnarok)
   #:autoload (dbi dbi) (dbi-open
+                        dbi-query
                         dbi-params-query
                         dbi-get_status
                         dbi-close
-                        dbi-get_row
-                        dbi-params-query)
+                        dbi-get_row)
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
   #:use-module (ice-9 threads)
@@ -45,6 +45,7 @@
             DB-get-n-rows
             db-conn-success?
             db-conn-failed-reason
+            db-conn-returned-reason
             db-conn-is-closed?
             get-conn-from-pool!
             init-DB
@@ -229,10 +230,13 @@
 (define (db-conn-failed-reason conn)
   (%db-conn-stat conn cdr))
 
+(define (db-conn-returned-reason conn)
+  (%db-conn-stat conn cdr))
+
 (define (init-connection-pool)
   (display "connection pools are initilizing...")
   (let ((poolsize (get-conf '(db poolsize))))
-    (*conn-pool* ; hey, don't forget *conn-pool* is a parameter
+    (*conn-pool*        ; hey, don't forget *conn-pool* is a parameter
      (let ((dbconns
             (map
              (lambda (_) (create-new-DB-conn))
@@ -253,14 +257,13 @@
           conn))))
 
 (define (db-query-debug-info sql params)
-  (when (get-conf 'debug-mode)
-    (display sql)(newline)
-    (when params
-      (display "Params: ")(write params)(newline))))
+  (DEBUG "DB query: ~a~%" sql)
+  (when params
+    (DEBUG "DB query params: ~a~%" params)))
 
 ;; FIXME: The first level to avoid SQL-injection is that run only one valid statment each time.
 ;;        So we have to find the index of first valid semi-colon, then use substring.
-(define* (DB-query conn sql #:key (check? #f) (params #f))
+(define* (DB-query conn sql #:key (check? #t) (params #f))
   (define (recreate-DB-conn!)
     (cond
      ((db-conn-is-closed? conn)
@@ -271,40 +274,41 @@
         (<connection>-status-set! conn 'open)
         (recreate-DB-conn!)))
      (else #t)))
-  (cond
-   ((not (<connection>? conn))
-    (throw 'artanis-err 500 DB-query
-           "Invalid DB connection ~a!" conn))
-   ((not (eq? (<connection>-status conn) 'open))
-    (throw 'artanis-err 500 DB-query
-           "Can't query from a closed connection ~a!" conn))
-   ((db-conn-is-closed? conn)
-    (recreate-DB-conn!)
-    (DB-query conn sql #:check? check?))
-   ((not (string? sql))
-    (throw 'artanis-err 500 DB-query
-           "Invalid SQL string ~a!" sql))
-   (else
-    (db-query-debug-info sql params)
-    (if params
-        (dbi-params-query (<connection>-conn conn) sql params)
-        (dbi-params-query (<connection>-conn conn) sql))
-    ;; Clear the parameters after use
+  (let ((dbd (get-conf '(db dbd))))
     (cond
-     ((db-conn-success? conn)
-      conn)
+     ((not (<connection>? conn))
+      (throw 'artanis-err 500 DB-query
+             "Invalid DB connection ~a!" conn))
+     ((not (eq? (<connection>-status conn) 'open))
+      (throw 'artanis-err 500 DB-query
+             "Can't query from a closed connection ~a!" conn))
+     ((db-conn-is-closed? conn)
+      (recreate-DB-conn!)
+      (DB-query conn sql #:check? check?))
+     ((not (string? sql))
+      (throw 'artanis-err 500 DB-query
+             "Invalid SQL string ~a!" sql))
      (else
+      (db-query-debug-info sql params)
+      (if params
+          (dbi-params-query (<connection>-conn conn) sql params)
+          (dbi-query (<connection>-conn conn) sql))
+      ;; Clear the parameters after use
       (cond
-       ((db-conn-is-closed? conn)
-        (DEBUG "DB connection was closed, reconnect it ...~%")
-        (DB-query (create-new-DB-conn) sql #:check? check?))
-       (else
-        (format (current-error-port) "SQL: ~a~%" sql)
-        (if check?
-            (format (current-error-port) "DB-query check failed: ~a"
-                    (db-conn-failed-reason conn))
-            (throw 'artanis-err 500 DB-query "failed reason: `~a'~%"
-                   (db-conn-failed-reason conn))))))))))
+       ((db-conn-success? conn)
+       conn)
+      (else
+       (cond
+        ((db-conn-is-closed? conn)
+         (DEBUG "[~a] DB connection was closed, reconnect it ...~%" dbd)
+         (DB-query (create-new-DB-conn) sql #:check? check?))
+        (else
+         (format (current-error-port) "SQL: ~a~%" sql)
+         (if check?
+             (format (current-error-port) "[~a] DB-query check failed: ~a"
+                     dbd (db-conn-failed-reason conn))
+             (throw 'artanis-err 500 DB-query "[~a] failed reason: `~a'~%"
+                    dbd (db-conn-failed-reason conn)))))))))))
 
 ;; NOTE: actually it'll never close the connection, just recycle it.
 (define (DB-close conn)
@@ -348,15 +352,19 @@
            "Can't query from a closed connection ~a!" conn))
    (else
     (let lp((next (dbi-get_row (<connection>-conn conn))) (result '()))
-      (cond
-       ((not (db-conn-success? conn))
-        (throw 'artanis-err 500 DB-get-all-rows
-               "Failed to get all rows: ~a"
-               (db-conn-failed-reason conn)))
-       (next
-        (lp (dbi-get_row (<connection>-conn conn)) (cons next result)))
-       (else
-        (reverse! result)))))))
+      (pk 'row next)
+      (pk 'conn conn)
+      (pk 'status (db-conn-success? conn))
+      (let ((reason (db-conn-returned-reason conn)))
+        (pk 'next next)
+        (match (pk 'reason reason)
+          ("row end"
+           (reverse! result))
+          ("row fetched"
+           (lp (dbi-get_row (<connection>-conn conn)) (cons next result)))
+          (else
+           (throw 'artanis-err 500 DB-get-all-rows
+                  "Failed to get all rows: ~a" reason))))))))
 
 (define (DB-get-top-row conn)
   (cond
@@ -377,10 +385,22 @@
     (throw 'artanis-err 500 DB-get-n-rows
            "Can't query from a closed connection ~a!" conn))
    (else
-    (let lp((next (dbi-get_row (<connection>-conn conn))) (cnt 0) (result '()))
-      (if (or next (< cnt n))
-          (lp (dbi-get_row (<connection>-conn conn)) (1+ cnt) (cons next result))
-          (reverse! result))))))
+    (let lp ((next (dbi-get_row (<connection>-conn conn)))
+             (cnt 0)
+             (result '()))
+      (let ((reason (db-conn-returned-reason conn)))
+        (match reason
+          ("row end"
+           (reverse! result))
+          ("row fetched"
+           (if (>= cnt n)
+               (reverse! result)
+               (lp (dbi-get_row (<connection>-conn conn))
+                   (1+ cnt)
+                   (cons next result))))
+          (else
+           (throw 'artanis-err 500 DB-get-n-rows
+                  "Failed to get rows: ~a" reason))))))))
 ;;--------------------------------------------------------------------
 
 (define (init-DB)

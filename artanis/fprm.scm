@@ -24,6 +24,7 @@
   #:use-module (artanis route)
   #:use-module (artanis ssql)
   #:use-module (artanis db)
+  #:use-module (artanis irregex)
   #:use-module ((srfi srfi-1) #:renamer (symbol-prefix-proc 'srfi-1:))
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-11) ; for let-values
@@ -301,68 +302,82 @@
 (define (is-exception-opt? x)
   (memq x *exception-opts*))
 
-(define (->mysql-opts x opts)
-  (define-syntax-rule (->value o x)
-    (format #f "~:@(~a~) ~s" o (kw-arg-ref opts x)))
-  (case x
-    ((#:not-null) "NOT NULL")
-    ((#:null) "NULL")
-    ((#:default) (->value 'default x))
-    ((#:unique) "UNIQUE")
-    ((#:unique-key) "UNIQUE KEY")
-    ((#:primary-key) "PRIMARY KEY")
-    ((#:key) "KEY")
-    ((#:auto-increment) "AUTO_INCREMENT")
-    ((#:comment) (->value 'comment x))
-    ((#:column-format) "COLUMN_FORMAT")
-    ((#:storage) (->value 'storage x))
-    ((#:reference-definition) "reference_definition")
-    ((#:signed) "signed")
-    ((#:unsigned) "unsigned")
-    ((#:zerofill) "zerofill")
-    (else
-     (cond
-      ((keyword? x)
-       (if (is-exception-opt? x)
-           ""
-           ;; Throw exception for invalid keyword
-           (throw 'artanis-err 500 ->mysql-opts
-                  "Invalid opts `~a' for MySQL table definition!" x)))
-      (else
-       ;; Just ignore the non-keyword, since there're only 2 situations:
-       ;; 1. The value of option has already been fetched.
-       ;; 2. Invalid item here, neither keyword as options, nor valid value.
-       "")))))
+(define (opt:mysql-default opts)
+  (format #f "DEFAULT ~s"
+          (kw-arg-ref opts #:default)))
 
-(define (->postgresql-opts dbd opts)
-  (format #t "PostgreSQL migration hasn't been supported yet!~%"))
+(define (opt:psql-default opts)
+  (format #f "DEFAULT ~s"
+          (kw-arg-ref opts #:default)))
 
-(define (->sqlite3-opts x opts)
-  (define-syntax-rule (->value o x)
-    (format #f "~:@(~a~) ~s" o (kw-arg-ref opts x)))
-  (case x
-    ((#:not-null) "NOT NULL")
-    ((#:null) "NULL")
-    ((#:default) "DEFAULT")
-    ((#:unique) "UNIQUE")
-    ((#:unique-key) (throw 'artanis-err 500 "Unique Key is not supported in sqlite3 during table creation."))
-    ((#:primary-key) "PRIMARY KEY")
-    ((#:key) (throw 'artanis-err 500 "Key is not supported in sqlite3 during table creation."))
-    ((#:auto-increment) "AUTOINCREMENT")
-    ((#:auto-now-once) "DEFAULT CURRENT_TIMESTAMP")
-    (else
-     (cond
-      ((keyword? x)
-       (if (is-exception-opt? x)
-           ""
-           (throw 'artanis-err 500 ->mysql-opts
-                  (format #f "Invalid opts `~a' for SQLite3 table definition!" x)))
-       "")))))
+(define (opt:mysql-comment opts)
+  (format #f "COMMENT ~s"
+          (kw-arg-ref opts #:comment)))
+
+(define (opt:mysql-storage opts)
+  (format #f "STORAGE ~s"
+          (kw-arg-ref opts #:storage)))
+
+;; Canonical opts and their per-DBD SQL output.
+;; Value can be:
+;;   string   — emit as-is
+;;   #f       — silently ignore (not applicable for this DBD)
+;;   'error   — throw, this opt is explicitly unsupported
+;;   proc     — called with (opts) to produce a string (for value-carrying opts)
+;;
+(define *opts-table*
+  ;;  keyword         mysql                    postgresql           sqlite3
+  `((#:not-null       "NOT NULL"               "NOT NULL"           "NOT NULL")
+    (#:null           "NULL"                   "NULL"                   "NULL")
+    (#:default        ,opt:mysql-default       ,opt:psql-default     "DEFAULT")
+    (#:unique         "UNIQUE"                 "UNIQUE"               "UNIQUE")
+    (#:unique-key     "UNIQUE KEY"             #f                       'error)
+    (#:primary-key    "PRIMARY KEY"            "PRIMARY KEY"     "PRIMARY KEY")
+    (#:key            "KEY"                    #f                       'error)
+    (#:auto-increment "AUTO_INCREMENT"         #f              "AUTOINCREMENT")
+    (#:auto-now-once  "DEFAULT CURRENT_TIMESTAMP"
+                      "DEFAULT CURRENT_TIMESTAMP"
+                      "DEFAULT CURRENT_TIMESTAMP")
+    (#:comment        ,opt:mysql-comment       #f                           #f)
+    (#:column-format  "COLUMN_FORMAT"          #f                           #f)
+    (#:storage        ,opt:mysql-storage       #f                           #f)
+    (#:ref-def        "reference_definition"   "REFERENCES"                 #f)
+    (#:signed         "SIGNED"                 #f                           #f)
+    (#:unsigned       "UNSIGNED"               #f                           #f)
+    (#:zerofill       "ZEROFILL"               #f                           #f)
+    (#:no-edit        #f                       #f                           #f)
+    ))
+
+(define *dbd-col-index*
+  '((mysql . 1) (postgresql . 2) (sqlite3 . 3)))
+
+(define (->unified-opts x opts)
+  (let* ((dbd (get-conf '(db dbd)))
+         (col (assq-ref *dbd-col-index* dbd))
+         (row (assq x *opts-table*)))
+    (cond
+     ((not row)
+      (if (keyword? x)
+          (throw 'artanis-err 500 ->unified-opts
+                 "Unknown opt `~a' for ~a table definition!" x dbd)
+          ""))
+     (else
+      (let ((entry (list-ref row col)))
+        (cond
+         ((string? entry) entry)
+         ((not entry) "")
+         ((eq? entry 'error)
+          (throw 'artanis-err 500 ->unified-opts
+                 "Opt `~a' is not supported in ~a!" x dbd))
+         ((procedure? entry) (entry opts))
+         (else
+          (throw 'artanis-err 500 ->unified-opts
+                 "BUG: invalid entry ~a in *opts-table*" entry))))))))
 
 (define *table-builder-opts-handler*
-  `((mysql . ,->mysql-opts)
-    (postgresql . ,->postgresql-opts)
-    (sqlite3 . ,->sqlite3-opts)))
+  `((mysql      . ,->unified-opts)
+    (postgresql . ,->unified-opts)
+    (sqlite3    . ,->unified-opts)))
 
 (define (get-table-builder-opts-handler)
   (assoc-ref *table-builder-opts-handler* (get-conf '(db dbd))))
@@ -436,25 +451,28 @@
   ;; TODO: who to deal with constrained tables without foreign-keys in stateless?
   (lambda* (tname defs #:key (if-exists? #f) (engine (get-conf '(db engine)))
                   (dump #f) (primary-keys '()))
-    (let* ((types (map ->types defs))
+    (let* ((dbd (get-conf '(db dbd)))
+           (types (map ->types defs))
            (pks (gen-primary-keys primary-keys))
-           (engine (if (eq? 'mysql (get-conf '(db dbd)))
+           (engine (if (eq? 'mysql dbd)
                        engine
                        "")))
       (let-values (((sql params)
                     (case if-exists?
                       ((overwrite drop)
                        (table-drop! tname)
-                       (->sql create table tname (types pks) engine))
+                       (->sql create table tname `(,types ,pks) engine))
                       ((ignore)
-                       (->sql create table if not exists tname (types pks) engine))
-                      (else (->sql create table tname (types pks) engine)))))
+                       (->sql create table if not exists tname `(,types ,pks) engine))
+                      (else (->sql create table tname `(,types ,pks) engine)))))
         (cond
          ((not dump)
+          (pk 'dbd dbd)
+          (pk 'sql sql)
+          (pk 'after conn)
           (DB-query conn sql #:params params)
           (lambda cmd
-            (match cmd
-              ('(valid?) (db-conn-success? conn))
+            (match (pk 'cmd cmd)
               ('(primary-keys) primary-keys)
               (`(add-primary-keys ,keys)
                (call-with-values
@@ -469,7 +487,8 @@
                  (lambda (sql params)
                    (DB-query conn sql #:params params))))
               ;; TODO
-              (_ (throw 'artanis-err 500 make-table-builder "Invalid cmd `~a'!" cmd)))))
+              (_ (throw 'artanis-err 500 make-table-builder
+                        "Invalid cmd `~a'!" cmd)))))
          (else sql))))))
 
 (define (get-conn-from-rc/conn rc/conn fname)
@@ -492,25 +511,48 @@
 ;;        (column1, column1 ...) values (value1, value2 ...)
 (define (make-table-setter rc/conn)
   (define (->kvp kargs)
-    (let lp((next kargs) (kvs '()) (w ""))
+    (let lp ((next kargs) (kvs '()) (w #f))
       (match next
         (((? keyword? k) v rest ...)
          (lp rest (cons (list (keyword->symbol k) v) kvs) w))
+        (((? promise? wcond))
+         (lp '() kvs wcond))
         (((? string? wcond))
-         (lp (cdr next) kvs wcond))
+         (lp '() kvs wcond))
         (() (values kvs w))
-        (else (throw 'artanis-err 500 make-table-setter "Invalid kargs `~a'" next)))))
+        (else (throw 'artanis-err 500 make-table-setter
+                     "Invalid kargs `~a'" next)))))
   (define (->kv kvp) (srfi-1:unzip2 kvp))
   (lambda (tname . kargs)
+    (when (and (not (and (string? condition) (string-null? condition)))
+               (not (promise? condition)))
+      (throw 'artanis-err 500 make-table-setter
+             "Invalid condition `~a', should be either a string or a promise! ~a"
+             condition
+             "Say, (delay (where #:name \"nala\")), you need srfi-45."))
     (let-values (((kvp wcond) (->kvp kargs)))
       (let-values (((sql params)
-                    (if (string-null? wcond)
+                    (if (not wcond)
                         (let-values (((k v) (->kv kvp)))
                           (->sql insert into tname k values v))
-                        ;; NOTE: If there's no cond string (say, `where' clauses), you MUSTN'T
-                        ;;       use UPDATE because it'll effect all the records!!! In such case,
-                        ;;       you should use INSERT.
-                        (->sql update tname set (kvp) wcond))))
+                        (parameterize ((current-param-index 1)
+                                       (current-param-list (new-queue)))
+                          (let* ((kvp/ordered (reverse kvp))
+                                 (flat (apply append
+                                              (map (lambda (kv)
+                                                     (list (symbol->keyword (car kv))
+                                                           (cadr kv)))
+                                                   kvp/ordered)))
+                                 (set-str (kv->bind-str flat))
+                                 (cnd (cond
+                                       ((promise? wcond) (force wcond))
+                                       (else wcond)))
+                                 (sql (format #f "update ~a set ~a ~a;"
+                                              tname set-str
+                                              (string-trim-both cnd)))
+                                 (params (map value-detect
+                                              (queue-slots (current-param-list)))))
+                            (values sql params))))))
         (let ((conn (get-conn-from-rc/conn rc/conn make-table-setter)))
           (if (sql-to-string?)
               (values sql params)
@@ -545,21 +587,28 @@
            "In ~a, ~a: unsafe SQL identifier rejected: `~a'" proc who name)))
 
 (define (non-negative-integer? x)
+  (pk 'non-negative-integer? x)
+  (when (not (number? x))
+    (throw 'artanis-err 500 non-negative-integer?
+           "Invalid non-negative integer `~a'!" x))
   (or (integer? x) (zero? x)))
 
 (define (positive-integer? x)
+  (when (not (number? x))
+    (throw 'artanis-err 500 positive-integer?
+           "Invalid positive integer `~a'!" x))
   (and (integer? x) (> x 0)))
 
 (define (make-table-getter rc/conn)
   (define (->ret ret)
     (match ret
+      ('top 1)
+      ('all #f)
       ((? positive-integer? n)
        (when (> n (max-ret-limit))
          (throw 'artanis-err 500 make-table-getter
                 "Invalid #:ret `~a', max is ~a" n (max-ret-limit)))
        n)
-      ('top 1)
-      ('all #f)
       (_ (throw 'artanis-err 500
                 make-table-getter "Invalid #:ret `~a'" ret))))
   (define (->offset offset)
@@ -568,6 +617,7 @@
       (when (> offset (max-offset-limit))
         (throw 'artanis-err 500 make-table-getter
                "Invalid #:offset `~a', max is ~a" offset (max-offset-limit)))
+      (pk 'what offset)
       offset)
      (else
       (throw 'artanis-err 500
@@ -663,7 +713,8 @@
                   ;; 2. 'getter: return a getter as a function
                   )
     ;; We have to check condition in case the use misuses it.
-    (when (and (not (string-null? condition)) (not (promise? condition)))
+    (when (and (not (and (string? condition) (string-null? condition)))
+               (not (promise? condition)))
       (throw 'artanis-err 500 make-table-getter
              "Invalid condition `~a', should be either a string or a promise! ~a"
              condition
@@ -677,26 +728,27 @@
                    (cnd+foreach (->foreach-clause cnd foreach))
                    (group-str (->group-by group-by))
                    (order-str (->order-by order-by))
-                   (ret-val (->ret ret))
-                   (offset-val (->offset offset))
+                   (ret-val (and ret (->ret ret)))
+                   (offset-val (and offset (->offset offset)))
                    (ret-str (if ret-val
                                 (format #f " limit ~a " (add-param! ret-val))
                                 ""))
                    (offset-str (if offset-val
                                    (format #f " offset ~a " (add-param! offset-val))
                                    ""))
-                   (opts (string-concatenate
-                          (list cnd+foreach group-str order-str ret-str offset-str)))
+                   (opts (pk 'opts (string-concatenate
+                                    (list cnd+foreach group-str order-str ret-str offset-str))))
                    (col-str (format #f "~{~a~^,~}" (->mix columns functions)))
-                   (sql (format #f "select ~a from ~a ~a;" col-str tname opts))
-                   (params (map value-detect (queue-slots (current-param-list)))))
+                   (sql (pk 'sql (format #f "select ~a from ~a ~a;" col-str tname opts)))
+                   (params (pk 'params (map value-detect (queue-slots (current-param-list))))))
               (values sql params))))
       (lambda (sql params)
         (cond
          ((or dump (sql-to-string?)) (values sql params))
          (else
           (let ((conn (get-conn-from-rc/conn rc/conn make-table-getter)))
-            (DB-query conn sql #:params params)
+            (pk 'before sql params)
+            (pk 'after (DB-query conn sql #:params params))
             (when (not (db-conn-success? conn))
               (DEBUG "Failed to execute SQL: `~a'~%~a!" sql (db-conn-failed-reason conn))
               (throw 'artanis-err 500 make-table-getter
@@ -881,16 +933,18 @@
     (DB-get-top-row rc/conn))
   (lambda (cmd tname . args)
     (define-syntax-rule (->call func)
-      (apply func (cons tname args)))
+      (apply func (pk 'args (cons tname args))))
     (case cmd
       ((valid?) (db-conn-success? conn))
       ((get) (->call getter))
       ((set) (->call setter))
       ((table-exists?) (table-exists? tname))
       ((try-create try-build)
-       (if (table-exists? tname)
-           (format (artanis-current-output) "Table `~a' already exists!~%" tname)
-           (->call builder)))
+       (cond
+        ((table-exists? tname)
+         (format (artanis-current-output)
+                 "Table `~a' already exists!~%" tname))
+        (else (->call builder))))
       ((create build) (->call builder))
       ((remove delete drop) (->call dropper))
       ;; (_ exists? 'Persons 'city 'lastname)
@@ -906,7 +960,7 @@
                    "Invalid cmd: `~a'" cmd)))))
 
 (define* (fprm-find mt tname val #:key (id 'id))
-  (mt 'get tname #:condition (where (symbol->keyword id) val)))
+  (mt 'get tname #:condition (delay (where (symbol->keyword id) val))))
 
 (define *table-mapper-handlers*
   `((find . ,fprm-find)))

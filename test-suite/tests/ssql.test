@@ -125,11 +125,11 @@
 
   ;; CREATE TABLE tests
   (pass-if "CREATE TABLE simple"
-    (string=? (->sql create table 'Persons ("name varchar(10)" "age int"))
+    (string=? (->sql create table 'Persons '("name varchar(10)" "age int"))
               "create table Persons (name varchar(10),age int);"))
 
   (pass-if "CREATE TABLE IF NOT EXISTS"
-    (string=? (->sql create table if not exists 'Persons ("name varchar(10)" "age int"))
+    (string=? (->sql create table if not exists 'Persons '("name varchar(10)" "age int"))
               "create table if not exists Persons (name varchar(10),age int);"))
 
   ;; CREATE VIEW test
@@ -137,13 +137,12 @@
     (string=? (->sql create view 'AdultPersons as select * from 'Persons (where #:age>= 18))
               "create view AdultPersons as select * from Persons where age>=18;"))
 
-  ;; CREATE INDEX tests - fixed to use (PersonID) instead of '(PersonID)
   (pass-if "CREATE INDEX"
-    (string=? (->sql create index 'PersonID on 'Persons (PersonID))
+    (string=? (->sql create index 'PersonID on 'Persons '(PersonID))
               "create index PersonID on Persons(PersonID);"))
 
   (pass-if "CREATE UNIQUE INDEX"
-    (string=? (->sql create unique index 'PersonID on 'Persons (PersonID))
+    (string=? (->sql create unique index 'PersonID on 'Persons '(PersonID))
               "create unique index PersonID on Persons(PersonID);"))
 
   ;; ALTER TABLE tests
