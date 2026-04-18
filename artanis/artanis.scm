@@ -40,6 +40,8 @@
   #:use-module (artanis websocket)
   #:use-module (artanis lpc)
   #:use-module (artanis security nss)
+  #:use-module (artanis security hash)
+  #:use-module (artanis irregex)
   #:use-module (artanis i18n)
   #:use-module (artanis cli)
   #:use-module (artanis runner)
