@@ -96,7 +96,7 @@
             procedure-name->string gen-content-length
             make-file-sender file-sender? file-sender-size file-sender-thunk
             get-string-all-with-detected-charset make-unstop-exception-handler
-            bv-copy/share bv-backward artanis-list-matches get-syspage
+            bv-copy/share bv-backward artanis-list-matches
             artanis-sys-response char-predicate handle-upload is-valid-table-name?
             is-guile-compatible-server-core? positive-integer? negative-integer?
             io-exception:peer-is-shutdown? io-exception:out-of-memory?
@@ -1347,23 +1347,6 @@
     (lambda (port)
       (set-port-encoding! port (get-conf '(server charset)))
       (get-string-all port))))
-
-(define (get-syspage file)
-  (let ((local-syspage (format #f "~a/sys/pages/~a"
-                               (current-toplevel) file)))
-    (if (file-exists? local-syspage)
-        local-syspage
-        (let ((sys-syspage (format #f "~a/~a" (get-conf '(server syspage path)) file)))
-          (and (file-exists? sys-syspage)
-               sys-syspage)))))
-
-;; ENHANCE: use a cache.
-(define (syspage-show status)
-  (let* ((file (format #f "~a.html" status))
-         (syspage (get-syspage file)))
-    (if syspage
-        (bv-cat syspage #f)
-        #vu8())))
 
 (define *guile-compatible-server-core*
   '(guile fibers))

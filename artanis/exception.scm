@@ -23,9 +23,27 @@
   #:use-module (ice-9 iconv)
   #:use-module (web uri)
   #:use-module (srfi srfi-19)
-  #:export (render-sys-page
+  #:export (syspage-show
+            render-sys-page
             exception-from-client
             exception-from-server))
+
+(define (get-syspage file)
+  (let ((local-syspage (format #f "~a/sys/pages/~a"
+                               (current-toplevel) file)))
+    (if (file-exists? local-syspage)
+        local-syspage
+        (let ((sys-syspage (format #f "~a/~a" (get-conf '(server syspage path)) file)))
+          (and (file-exists? sys-syspage)
+               sys-syspage)))))
+
+;; ENHANCE: use a cache.
+(define (syspage-show status)
+  (let* ((file (format #f "~a.html" status))
+         (syspage (get-syspage file)))
+    (if syspage
+        (bv-cat syspage #f)
+        #vu8())))
 
 (define (render-sys-page blame-who? status request)
   (artanis-log blame-who? status 'text/html #:request request)
