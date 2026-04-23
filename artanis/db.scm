@@ -278,16 +278,16 @@
     (cond
      ((not (<connection>? conn))
       (throw 'artanis-err 500 DB-query
-             "Invalid DB connection ~a!" conn))
+             "Invalid DB connection ~a!~%" conn))
      ((not (eq? (<connection>-status conn) 'open))
       (throw 'artanis-err 500 DB-query
-             "Can't query from a closed connection ~a!" conn))
+             "Can't query from a closed connection ~a!~%" conn))
      ((db-conn-is-closed? conn)
       (recreate-DB-conn!)
       (DB-query conn sql #:check? check?))
      ((not (string? sql))
       (throw 'artanis-err 500 DB-query
-             "Invalid SQL string ~a!" sql))
+             "Invalid SQL string ~a!~%" sql))
      (else
       (db-query-debug-info sql params)
       (if params
@@ -296,19 +296,21 @@
       ;; Clear the parameters after use
       (cond
        ((db-conn-success? conn)
-       conn)
-      (else
-       (cond
-        ((db-conn-is-closed? conn)
-         (DEBUG "[~a] DB connection was closed, reconnect it ...~%" dbd)
-         (DB-query (create-new-DB-conn) sql #:check? check?))
-        (else
-         (format (current-error-port) "SQL: ~a~%" sql)
-         (if check?
-             (format (current-error-port) "[~a] DB-query check failed: ~a"
-                     dbd (db-conn-failed-reason conn))
-             (throw 'artanis-err 500 DB-query "[~a] failed reason: `~a'~%"
-                    dbd (db-conn-failed-reason conn)))))))))))
+        conn)
+       (else
+        (cond
+         ((db-conn-is-closed? conn)
+          (DEBUG "[~a] DB connection was closed, reconnect it ...~%" dbd)
+          (DB-query (create-new-DB-conn) sql #:check? check?))
+         (else
+          (format (current-error-port) "SQL: ~a~%" sql)
+          (when params
+            (format (current-error-port) "Params: ~a~%" params))
+          (if check?
+              (format (current-error-port) "[~a] DB-query check failed: ~a~%"
+                      dbd (db-conn-failed-reason conn))
+              (throw 'artanis-err 500 DB-query "[~a] failed reason: `~a'~%"
+                     dbd (db-conn-failed-reason conn)))))))))))
 
 ;; NOTE: actually it'll never close the connection, just recycle it.
 (define (DB-close conn)
@@ -320,15 +322,6 @@
     (throw 'artanis-err 500 DB-close
            "The connection ~a is already closed!" conn))
    (else
-    ;; NOTE: Because Artanis uses green-thread, all requests share the same
-    ;;       DB connection, so it's dangerous to leave the connection to next
-    ;;       request!
-    ;;       We use "select NULL;" here to clear the last query, sometimes last
-    ;;       request may left some results weren't clear. It's reasonable! Since
-    ;;       sometimes we don't use DB-get-all-rows, which means something will
-    ;;       be left in the <connection> object.
-    ;; NOTE: "select null;" is safe and quickly to clear the last query.
-    (DB-query conn "select null;")
     (<connection>-status-set! conn 'closed)
     (recycle-DB-conn conn))))
 
