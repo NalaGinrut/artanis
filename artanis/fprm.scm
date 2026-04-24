@@ -515,21 +515,15 @@
       (match next
         (((? keyword? k) v rest ...)
          (lp rest (cons (list (keyword->symbol k) v) kvs) w))
-        (((? promise? wcond))
+        (((? promise? wcond)) ; (delay (where #:name "nala"))
          (lp '() kvs wcond))
-        (((? string? wcond))
+        (((? string? wcond)) ; (where #:name "nala")
          (lp '() kvs wcond))
         (() (values kvs w))
         (else (throw 'artanis-err 500 make-table-setter
                      "Invalid kargs `~a'" next)))))
   (define (->kv kvp) (srfi-1:unzip2 kvp))
   (lambda (tname . kargs)
-    (when (and (not (and (string? condition) (string-null? condition)))
-               (not (promise? condition)))
-      (throw 'artanis-err 500 make-table-setter
-             "Invalid condition `~a', should be either a string or a promise! ~a"
-             condition
-             "Say, (delay (where #:name \"nala\")), you need srfi-45."))
     (let-values (((kvp wcond) (->kvp kargs)))
       (let-values (((sql params)
                     (if (not wcond)
@@ -543,6 +537,8 @@
                                                      (list (symbol->keyword (car kv))
                                                            (cadr kv)))
                                                    kvp/ordered)))
+                                 ;; NOTE: The placeholder counting is inside
+                                 ;;       kv->bind-str.
                                  (set-str (kv->bind-str flat))
                                  (cnd (cond
                                        ((promise? wcond) (force wcond))
@@ -841,8 +837,9 @@
              "Say, (delay (where #:name \"nala\")), you need srfi-45."))
     (verify-identifier make-table-counter 'tname tname)
     (verify-identifier make-table-counter #:key key)
-    (verify-identifier #:column column)
-    (when group-by (very-identifier make-table-counter #:group-by group-by))
+    (verify-identifier make-table-counter #:column column)
+    (when group-by
+      (verify-identifier make-table-counter #:group-by group-by))
     (call-with-values
         (lambda ()
           (parameterize ((current-param-index 1)
