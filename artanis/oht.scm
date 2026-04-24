@@ -48,7 +48,7 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-26)
-  #:use-module (srfi srfi-11)
+  #:use-module (srfi srfi-11) ; for let-values
   #:use-module (web uri)
   #:use-module (web request)
   #:export (define-handler
@@ -491,8 +491,8 @@
                      "Invalid mode `~a'~" mode))))))
 
 (define (auth-maker val rule keys)
-  (define-syntax-rule (->passwd rc passwd-field salt-field sql)
-    (let ((ret (DB-get-top-row (DB-query (DB-open rc) sql))))
+  (define-syntax-rule (->passwd rc passwd-field salt-field sql params)
+    (let ((ret (DB-get-top-row (DB-query (DB-open rc) sql #:params params))))
       (values (assoc-ref ret passwd-field)
               (assoc-ref ret salt-field))))
   (define-syntax-rule (post-ref post-data key)
@@ -501,7 +501,8 @@
           (car ret)
           "")))
   (define (basic-checker rc p sql passwd-field salt-field)
-    (let-values (((stored-pw _) (->passwd rc passwd-field salt-field sql)))
+    (let-values (((stored-pw _)
+                  (->passwd rc passwd-field salt-field sql #f)))
       (string=? p stored-pw)))
   (define (init-post rc)
     (and (rc-body rc)
@@ -511,11 +512,12 @@
   (define (default-hmac pw salt)
     ;; We still have sha384, sha512 as options, but I think sha256 is enough.
     (string->sha-256 (string-append pw salt)))
-  (define* (gen-result rc mode sql post-data
+  (define* (gen-result rc mode sql params post-data
                        #:key (hmac default-hmac) (checker #f)
                        (passwd-field "passwd") (salt-field "salt"))
     (define (table-checker)
-      (let-values (((stored-pw salt) (->passwd rc passwd-field salt-field sql)))
+      (let-values (((stored-pw salt)
+                    (->passwd rc passwd-field salt-field sql params)))
         (cond
          ((or (not stored-pw) (not salt))
           (DEBUG "Stored PW: ~a, Salt: ~a, SQL: ~a~%" stored-pw salt sql)
@@ -531,7 +533,6 @@
     (case mode
       ((table) (run-checker))
       ((table-specified-fields) (run-checker))
-      ((tpl) (run-checker))
       ((basic)
        (match (get-header rc 'authorization)
          ;; NOTE: In match `=' opetator, the order of evaluation is from left to right.
@@ -549,56 +550,60 @@
      (lambda (rc . kargs)
        (let* ((post-data (init-post rc))
               (username (post-ref post-data username-field))
-              (passwd (post-ref post-data passwd-field))
-              (sql (->sql select `(,passwd-field salt) from table
-                          (where (string->keyword username-field)
-                                 username))))
-         (gen-result rc 'table-specified-fields sql post-data
-                     #:passwd-field passwd-field))))
+              (passwd (post-ref post-data passwd-field)))
+         (let-values (((sql params) (->sql select `(,passwd-field salt)
+                                           from table
+                                           (where
+                                            (string->keyword username-field)
+                                            username))))
+           (gen-result rc 'table-specified-fields sql params post-data
+                       #:passwd-field passwd-field)))))
     (`(table ,table ,username-field ,passwd-field ,salt-field ,hmac)
      (lambda (rc . kargs)
        (let* ((post-data (init-post rc))
               (username (post-ref post-data username-field))
-              (passwd (post-ref post-data passwd-field))
-              (sql (->sql select (list passwd-field salt-field) from table
-                          (where (string->keyword username-field)
-                                 username))))
-         (gen-result rc 'table-specified-fields sql post-data
-                     #:hmac hmac #:passwd-field passwd-field
-                     #:salt-field salt-field))))
+              (passwd (post-ref post-data passwd-field)))
+         (let-values (((sql params)
+                       (->sql select
+                              (list passwd-field salt-field) from table
+                              (where (string->keyword username-field)
+                                     username))))
+           (gen-result rc 'table-specified-fields sql params post-data
+                       #:hmac hmac #:passwd-field passwd-field
+                       #:salt-field salt-field)))))
     (`(table ,table ,username-field ,passwd-field ,hmac)
      (lambda (rc . kargs)
        (let* ((post-data (init-post rc))
               (username (post-ref post-data username-field))
-              (passwd (post-ref post-data passwd-field))
-              (sql (->sql select `(,passwd-field salt) from table
-                          (where (string->keyword username-field)
-                                 username))))
-         (gen-result rc 'table-specified-fields sql post-data
-                     #:hmac hmac #:passwd-field passwd-field))))
+              (passwd (post-ref post-data passwd-field)))
+         (let-values (((sql params)
+                       (->sql select `(,passwd-field salt) from table
+                              (where (string->keyword username-field)
+                                     username))))
+           (gen-result rc 'table-specified-fields sql params post-data
+                       #:hmac hmac #:passwd-field passwd-field)))))
     (`(table ,table ,hmac)
      (lambda (rc . kargs)
        (let* ((post-data (init-post rc))
               (username (car kargs))
-              (passwd (cadr kargs))
-              (sql (->sql select '(passwd salt) from table
-                          (where #:username username))))
-         (gen-result rc 'table sql post-data #:hmac hmac))))
+              (passwd (cadr kargs)))
+         (let-values (((sql params) (->sql select '(passwd salt) from table
+                                           (where #:username username))))
+           (gen-result rc 'table sql params post-data #:hmac hmac)))))
     (`(basic ,table ,username-field ,passwd-field)
      (lambda (rc . kargs)
        (let* ((post-data (init-post rc))
               (username (post-ref post-data username-field))
-              (passwd (post-ref post-data passwd-field))
-              (sql (->sql select `(,passwd-field salt) from table
-                          (where (string->keyword username-field)
-                                 username))))
-         (gen-result rc 'basic sql post-data #:passwd-field passwd-field))))
+              (passwd (post-ref post-data passwd-field)))
+         (let-values (((sql params)
+                       (->sql select `(,passwd-field salt) from table
+                              (where (string->keyword username-field)
+                                     username))))
+           (gen-result rc 'basic sql params
+                       post-data #:passwd-field passwd-field)))))
     (`(basic ,checker)
      (lambda (rc)
-       (gen-result rc 'basic #f #f #:checker checker)))
-    ((? string? tpl)
-     (lambda _
-       (make-db-string-template tpl)))
+       (gen-result rc 'basic #f #f #f #:checker checker)))
     (('post username passwd checker)
      (lambda* (rc #:optional (mode #t))
        (when (not (rc-oht-ref rc #:from-post))
@@ -607,7 +612,8 @@
          (when (not post-handler)
            (throw 'artanis-err 500 auth-maker
                   "BUG: #:from-post should already be initialized but it seems not!"))
-         (let-values (((user pw) (apply post-handler rc `(get-vals ,username ,passwd))))
+         (let-values (((user pw) (apply post-handler rc
+                                        `(get-vals ,username ,passwd))))
            (and (checker user pw)
                 (and=> (rc-oht-ref rc #:session)
                        (lambda (h) (h rc 'spawn))))))))
@@ -662,12 +668,7 @@
    ;; 2. (table-name username-field passwd-field crypto-proc)
    ;; 3. (table-name crypto-proc), so passwd field will be "passwd" in default.
    ;; e.g (get "/auth"
-   ;;      #:auth "select ${passwd} from blog where usrname=${myname}"
-   ;;      (lambda (rc)
-   ;;       (:auth rc #:usrname (params rc "username") #:passwd (params rc "passwd"))
-   ;;       ...))
-   ;; The #:usrname and #:passwd will be expaned automatically.
-   ;; or (get "/auth" #:auth `(blog "myuser" "mypasswd" ,string->md5)
+   ;; (get "/auth" #:auth `(blog "myuser" "mypasswd" ,string->md5)
    ;;     (lambda (rc)
    ;;      (if (:auth rc)
    ;;          (redirect-to rc "/dashboard")
