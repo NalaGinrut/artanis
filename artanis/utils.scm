@@ -1084,9 +1084,9 @@
              'body ...))
      (else body ...))))
 
-(define-syntax-rule (DEBUG fmt args ...)
+(define (DEBUG fmt . args)
   (when (get-conf 'debug-mode)
-    (format (artanis-current-output) fmt args ...)))
+    (apply format (artanis-current-output) fmt args)))
 
 (define call-with-sigint
   (if (not (provided? 'posix))
@@ -1152,6 +1152,7 @@
    ((bytevector? o) 'bv)
    ((port? o) 'port)
    ((boolean? o) 'boolean)
+   ((hash-table? o) 'hash-table)
    (else 'ANY)))
 
 (define (check-args-types op args)
