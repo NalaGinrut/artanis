@@ -290,8 +290,9 @@
          #f)
         ((not-found) #f)
         (else
-         (when (get-conf '(session hijackcheck))
-           (session-from-correct-client? session rc))))))
+         (if (get-conf '(session hijackcheck))
+             (and (session-from-correct-client? session rc) session)
+             session)))))
   (lambda (rc cmd . args)
     (match cmd
       ('check (check-it rc "sid"))
