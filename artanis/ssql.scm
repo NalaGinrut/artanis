@@ -41,6 +41,7 @@
             current-param-index
             current-param-list
             add-param!
+            kv->bind-str
             value-detect
             sql-int sql-text sql-bool sql-numeric sql-double sql-real
             sql-bigint sql-smallint sql-varchar sql-char sql-timestamp
