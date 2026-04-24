@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013-2024
+;;  Copyright (C) 2013-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -50,7 +50,8 @@
             session-backend-set!
             session-backend-ref))
 
-(define (make-session args)
+(::define (make-session args)
+  (:anno: (list) -> hash-table)
   (let ((ht (make-hash-table)))
     (for-each (lambda (e)
                 (hash-set! ht (car e) (cdr e)))
@@ -59,7 +60,6 @@
 
 ;; Session identifiers should be at least 128 bits (16 chars)
 ;; long to prevent brute-force session guessing attacks.
-;; Here, we use 256 bits sid.
 (define (get-new-sid)
   (get-random-from-dev #:length 16)) ; NOTE: one hex contains two chars
 
@@ -363,7 +363,8 @@
    (current-session-backend)
    sid))
 
-(define (session-expired? session)
+(::define (session-expired? session)
+  (:anno: (hash-table) -> boolean)
   (let ((expir (hash-ref session "expires")))
     (and expir (time-expired? expir))))
 
