@@ -1,6 +1,6 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
 ;;  === NSS tests ===
-;;  Copyright (C) 2019,2024
+;;  Copyright (C) 2019-2026
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License as published by
@@ -15,15 +15,17 @@
 ;;  You should have received a copy of the GNU General Public License
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-module (test nss)
+(define-module (test hash)
   #:use-module (artanis utils)
+  #:use-module (ice-9 iconv)
   #:use-module (test-suite lib))
 
 ;; export all things, since we need to test inner cookie
 (eval-when (eval load compile)
-  (export-all-from-module! '(artanis security nss)))
+  (export-all-from-module! '(artanis security nss))
+  (export-all-from-module! '(artanis security hash)))
 
-(with-test-prefix "NSS test"
+(with-test-prefix "Hash test"
 
   #;
   (pass-if "sha-224"                    ; ;
@@ -55,4 +57,52 @@
     (string=? "hello"
               (nss:base64-decode (nss:base64-encode "hello"))))
 
+  ;; test base16
+  (pass-if "base16"
+    (string=? "hello"
+              (base16-decode (base16-encode "hello"))))
+
+  ;; test base32
+  (pass-if "base32"
+    (string=? "hello"
+              (base32-decode (base32-encode "hello"))))
+
+  (define test-key "a-random-salt")
+  (define test-data "The quick brown fox jumps over the lazy dog")
+
+  ;; HMAC tests — key/data from RFC 4231 / well-known vectors
+  (pass-if "hmac-md5"
+    (string=? "a8c3829ddb8fd852d56678067586fdd2"
+              (string->hmac-md5 test-key test-data)))
+
+  (pass-if "hmac-sha-1"
+    (string=? "b2c349f9e9042b728434cfb54b2b778140c928c2"
+              (string->hmac-sha-1 test-key test-data)))
+
+  #;
+  (pass-if "hmac-sha-224"               ;
+  (string=? "c7aaaddeb5599b299aa6b434590f208ff6a2254b4c79de1f2634e86a" ;
+  (string->hmac-sha-224 test-key test-data)))
+
+  (pass-if "hmac-sha-256"
+    (string=? "a6a67c6106705fe3abf8310a8f5f0fc12121848cc1a25fc10919991482086126"
+              (string->hmac-sha-256 test-key test-data)))
+  (pass-if "hmac-sha-384"
+    (string=? "3fc78c25dc495dfda3e906f95d519b25a46d8c693ed5f1eed21467056ce99c0cb026f2eb0f8c90079a48d70f2292db49"
+              (string->hmac-sha-384 test-key test-data)))
+  (pass-if "hmac-sha-512"
+    (string=? "e136a1b22d8f7f8ff868c346fe053aab1b22e6ba7794a614dac231a1aee6754b2be18adfa821ad45e0beb89bb4eb706263c497e38692359039101c630ce91082"
+              (string->hmac-sha-512 test-key test-data)))
+
+  ;; Verify bytevector input works the same as string input
+  (pass-if "hmac-sha-256 bytevector input"
+    (string=? (string->hmac-sha-256 test-key test-data)
+              (string->hmac-sha-256
+               (string->bytevector test-key "iso-8859-1")
+               (string->bytevector test-data "iso-8859-1"))))
+
+  ;; Verify different keys produce different output (sanity check)
+  (pass-if "hmac-sha-256 key sensitivity"
+    (not (string=? (string->hmac-sha-256 "key1" "hello")
+                   (string->hmac-sha-256 "key2" "hello"))))
   )

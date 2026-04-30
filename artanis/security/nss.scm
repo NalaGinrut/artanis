@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2019-2024
+;;  Copyright (C) 2019-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -42,8 +42,29 @@
             string->sha-512
             generate-rule-uid
 
+            SEC_OID_SHA1
+            SEC_OID_SHA256
+            SEC_OID_SHA384
+            SEC_OID_SHA512
+
+            MD5_DIGEST_LENGTH
+            SHA1_DIGEST_LENGTH
+            SHA224_DIGEST_LENGTH
+            SHA256_DIGEST_LENGTH
+            SHA384_DIGEST_LENGTH
+            SHA512_DIGEST_LENGTH
+
+            CKM_MD5_HMAC
+            CKM_SHA1_HMAC
+            CKM_SHA224_HMAC
+            CKM_SHA256_HMAC
+            CKM_SHA384_HMAC
+            CKM_SHA512_HMAC
+
             nss:hash-it
-            nss:pr-cleanup))
+            nss:pr-cleanup
+
+            nss:hmac-raw))
 
 (define *nss-error-msg*
   "
@@ -62,7 +83,17 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
     (define-c-function '* NSS_InitContext ('* '* '* '* '* uint32))
     (define-c-function '* NSSBase64_DecodeBuffer ('* '* '* unsigned-int))
     (define-c-function '* NSSBase64_EncodeItem ('* '* unsigned-int '*))
+    ;; For HMAC
     (define-c-function int PK11_HashBuf (int '* '* uint32))
+    (define-c-function '* PK11_GetInternalKeySlot)
+    (define-c-function '* PK11_ImportSymKey ('* uint32 int int '* '*))
+    (define-c-function '* PK11_CreateContextBySymKey (uint32 int '* '*))
+    (define-c-function int PK11_DigestBegin ('*))
+    (define-c-function int PK11_DigestOp ('* '* unsigned-int))
+    (define-c-function int PK11_DigestFinal ('* '* '* unsigned-int))
+    (define-c-function void PK11_DestroyContext ('* int))
+    (define-c-function void PK11_FreeSymKey ('*))
+    (define-c-function void PK11_FreeSlot ('*))
     )
 
   (ffi-binding "libssl3"
@@ -79,6 +110,12 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
     (define-c-function int PR_Cleanup)
     )
   )
+
+;; Internal: make a SECItem struct pointing at a bytevector
+;; SECItem = { int type, unsigned char* data, unsigned int len }
+(define *SECItem* (list int '* unsigned-int))
+(define* (make-sec-item #:optional (type 0) (data %null-pointer) (len 0))
+  (make-c-struct *SECItem* (list type data len)))
 
 (define (no-check x) #f)
 (define (<0 x) (< x 0))
@@ -142,31 +179,27 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
                            "Invalid input type `~a'" str/bv)))))
     (algo in len)))
 
-(define *SECItem* (list int uint64 unsigned-int))
-(define* (make-sec-item #:optional (type 0) (data 0) (len 0))
-  (make-c-struct *SECItem* (list type data len)))
-
 (define (base64-decode ibuf len)
-  (let* ((ret (%NSSBase64_DecodeBuffer %null-pointer %null-pointer
-                                       ibuf len)))
-    (cond
-     ((eq? ret %null-pointer)
-      (throw 'artanis-err 500 nss:base64-decode
-             "Invalid string to be decode to Base64!"))
-     (else
-      (let ((item (parse-c-struct ret *SECItem*)))
-        (pointer->string (make-pointer (cadr item)) (caddr item)))))))
+  (call-with-values
+      (lambda ()
+        (%NSSBase64_DecodeBuffer %null-pointer %null-pointer ibuf len))
+    (lambda (ptr errno)
+      (if (null-pointer? ptr)
+          (throw 'artanis-err 500 nss:base64-decode
+                 "Invalid string to be decoded from Base64!")
+          (let ((item (parse-c-struct ptr *SECItem*)))
+            (pointer->string (cadr item) (caddr item)))))))
 
 (define (base64-encode ibuf len)
-  (let* ((addr (pointer-address ibuf))
-         (item (make-sec-item 0 addr len))
-         (ret (%NSSBase64_EncodeItem %null-pointer %null-pointer
-                                     0 item)))
-    (cond
-     ((eq? ret %null-pointer)
-      (throw 'artanis-err 500 nss:base64-encode
-             "Invalid string to be encoded to Base64!"))
-     (else (pointer->string ret)))))
+  (let ((item (make-sec-item 0 ibuf len)))
+    (call-with-values
+        (lambda ()
+          (%NSSBase64_EncodeItem %null-pointer %null-pointer 0 item))
+      (lambda (ret errno)
+        (if (null-pointer? ret)
+            (throw 'artanis-err 500 nss:base64-encode
+                   "Invalid string to be encoded to Base64!")
+            (pointer->string ret))))))
 
 (define (nss:base64-encode str/bv)
   (nss:hash-it base64-encode str/bv))
@@ -174,10 +207,9 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
 (define (nss:base64-decode str/bv)
   (nss:hash-it base64-decode str/bv))
 
-(define SEC_OID_MD5 3)
+(define-public SEC_OID_MD5 3)
 (define SEC_OID_SHA1 4)
 ;; NOTE: In NSS, sha-224 only supports by HMAC
-;; TODO: Support HMAC
 ;;(define SEC_OID_HMAC_SHA224 295)
 (define SEC_OID_SHA256 191)
 (define SEC_OID_SHA384 192)
@@ -189,6 +221,22 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
 (define SHA512_DIGEST_LENGTH 64)
 (define SHA1_DIGEST_LENGTH 20)
 (define MD5_DIGEST_LENGTH 16)
+
+;; For HMAC
+;; PKCS#11 CKM mechanism types for HMAC
+(define CKM_MD5_HMAC    #x00000211)
+(define CKM_SHA1_HMAC   #x00000221)
+(define CKM_SHA224_HMAC #x00000241)
+(define CKM_SHA256_HMAC #x00000251)
+(define CKM_SHA384_HMAC #x00000261)
+(define CKM_SHA512_HMAC #x00000271)
+
+;; PKCS#11 attribute/origin constants
+(define CKA_SIGN          #x00000108)
+(define PK11_OriginUnwrap 4)
+
+;; PR_TRUE for PK11_DestroyContext freeit param
+(define PR_TRUE 1)
 
 (define (pk11-haskbuf algo out in len algo-len)
   (gen-common-api (%PK11_HashBuf algo out in len))
@@ -260,3 +308,60 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
 ;; FIXME: MD5 may not be the best choice
 (define-syntax-rule (generate-rule-uid rule)
   (string->md5 rule))
+
+
+;; For HMAC
+
+;; We reuse the existing *SECItem* definition: (list int uint64 unsigned-int)
+(define (bv->sec-item bv)
+  (make-c-struct *SECItem*
+                 (list 0
+                       (bytevector->pointer bv)
+                       (bytevector-length bv))))
+
+;; Internal: make an empty SECItem (for the HMAC param — must be present but empty)
+(define (make-empty-sec-item)
+  (make-c-struct *SECItem* (list 0 %null-pointer 0)))
+
+;; Internal: core native HMAC using NSS PK11 HMAC context
+;; Returns raw bytevector of length digest-len
+(define (nss:hmac-raw ckm-mech digest-len key-bv data-bv)
+  (define (call/check thunk who)
+    (call-with-values thunk
+      (lambda (ret errno)
+        (when (and (integer? ret) (< ret 0))
+          (throw 'artanis-err 500 who "NSS error errno=~a" errno))
+        ret)))
+  (define (call/ptr thunk who)
+    (call-with-values thunk
+      (lambda (ret errno)
+        (when (null-pointer? ret)
+          (throw 'artanis-err 500 who "NSS returned null, errno=~a" errno))
+        ret)))
+  (when (not (nss:is-initialized?))
+    (nss:no-db-init))
+  (let ((slot (call/ptr %PK11_GetInternalKeySlot 'nss:hmac-raw)))
+    (let ((sym-key (call/ptr
+                    (lambda ()
+                      (%PK11_ImportSymKey slot ckm-mech
+                                          PK11_OriginUnwrap CKA_SIGN
+                                          (bv->sec-item key-bv) %null-pointer))
+                    'nss:hmac-raw)))
+      (let ((ctx (call/ptr
+                  (lambda ()
+                    (%PK11_CreateContextBySymKey ckm-mech CKA_SIGN
+                                                 sym-key (make-empty-sec-item)))
+                  'nss:hmac-raw)))
+        (let* ((data-ptr (bytevector->pointer data-bv))
+               (data-len (bytevector-length data-bv))
+               (out-bv (make-bytevector digest-len 0))
+               (out-ptr (bytevector->pointer out-bv))
+               (out-len-bv (make-bytevector (sizeof unsigned-int) 0))
+               (out-len-ptr (bytevector->pointer out-len-bv)))
+          (call/check (lambda () (%PK11_DigestBegin ctx)) 'nss:hmac-raw)
+          (call/check (lambda () (%PK11_DigestOp ctx data-ptr data-len)) 'nss:hmac-raw)
+          (call/check (lambda () (%PK11_DigestFinal ctx out-ptr out-len-ptr digest-len)) 'nss:hmac-raw)
+          (%PK11_DestroyContext ctx PR_TRUE)
+          (%PK11_FreeSymKey sym-key)
+          (%PK11_FreeSlot slot)
+          out-bv)))))
