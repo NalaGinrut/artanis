@@ -219,6 +219,15 @@
              (lambda (_) (create-new-DB-conn))
              (iota poolsize))))
        (list->queue dbconns)))
+    ;; NOTEL: SQLite3 needs WAL to support connections pool.
+    (when (eq? 'sqlite3 (get-conf '(db dbd)))
+      (let ((conn (get-conn-from-pool!)))
+        (DB-query conn (format #f "
+PRAGMA journal_mode = WAL;
+PRAGMA synchronous = NORMAL;
+PRAGMA busy_timeout = 5000;
+"))
+        (recycle-DB-conn conn)))
     (display "DB pool init ok!\n")
     (format #t "Now the size of connection pool is ~a.~%" poolsize)))
 
