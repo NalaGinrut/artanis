@@ -47,8 +47,7 @@
   #:re-export (->sql
                where
                /or
-               /and
-               connect-db))
+               /and))
 
 ;; This is Functional Programming Relational Mapping.
 ;; It's named as this because ... (I'll continue later)
@@ -469,8 +468,9 @@
          ((not dump)
           (pk 'dbd dbd)
           (pk 'sql sql)
-          (pk 'after conn)
+          (pk 'before conn)
           (DB-query conn sql #:params params)
+          (pk 'after conn)
           (lambda cmd
             (match (pk 'cmd cmd)
               ('(primary-keys) primary-keys)

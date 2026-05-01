@@ -49,7 +49,6 @@
             db-conn-is-closed?
             get-conn-from-pool!
             init-DB
-            connect-db
             make-<connection>
             <connection>?
             recycle-DB-conn))
@@ -87,7 +86,7 @@
      ;; FIXME: is it necessary for sqlite3 to require username/passwd??
      ;; NOTE: sqlite3 requires the dbname to be postfixed by ".db", or it
      ;;       complains that DB open failed.
-     (string-append dbname ".db"))
+     (format #f "~a/prv/~a.sqlite3" (current-toplevel) dbname))
     (else (error 'sqlite3 "Wrong connection config!" sqlite3))))
 
 (define-record-type <postgresql>
@@ -122,28 +121,6 @@
    ;; status provides a simple way to avoid reopen or reclose
    (mutable status) ; open or closed
    (mutable conn))) ; dbi raw connection
-
-(define (%do-connect dbd str)
-  (define-syntax-rule (-> s) (format #f "~a" s))
-  (let ((conn (make-<connection> 'open (dbi-open (-> dbd) str))))
-    (if (db-conn-success? conn)
-        conn
-        (throw 'artanis-err 500 "connect to DB error:" (db-conn-failed-reason conn)))))
-
-;; Connect database from DBI.
-;; e.g: (connect-db "mysql" "root:123:artanis:tcp:localhost:3306")
-(define connect-db
-  (case-lambda*
-    ((dbd str) (%do-connect dbd str))
-    ((dbd #:key (db-name "artanis") (db-username "root") (db-passwd "")
-          (addr "localhost:3306") (proto 'tcp))
-     (let ((str (case dbd
-                  ((mysql) (format #f "~a:~a:~a:~a:~a"
-                                   db-username db-passwd db-name proto addr))
-                  ((postgresql) (format #f "~a:~a:~a:~a:~a"
-                                        db-username db-passwd db-name proto addr))
-                  ((sqlite3) (format #f "~a" db-name)))))
-       (%do-connect dbd str)))))
 
 (define (new-DB)
   ;; TODO:

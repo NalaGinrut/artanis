@@ -105,7 +105,6 @@
                DB-get-n-rows
                db-conn-success?
                init-DB
-               connect-db
                make-<connection>
                <connection>?
                get-conn-from-pool!
