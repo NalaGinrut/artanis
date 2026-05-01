@@ -238,6 +238,16 @@
   (gen-readme)
   ;; TODO
   )
+
+(define (create-git-ignore)
+  (define git-ignore-content
+    "prv
+*~
+")
+  (let ((fp (open-file ".gitignore" "w")))
+    (display git-ignore-content fp)
+    (close fp)))
+
 ;;Upgrade config from old version to the new one with comments
 (define (upgrade-config)
   (current-conf-file *current-conf-file*)
@@ -265,6 +275,7 @@
     (working-for-toplevel)
     (create-entry name)
     (create-framework)
+    (create-git-ignore)
     (format #t "OK~%"))))
 
 (define (upgrade-project)
