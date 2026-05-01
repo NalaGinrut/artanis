@@ -152,23 +152,22 @@
     conn))
 
 (define (get-conn-from-pool!)
-  (with-mutex
-   *conn-pool-mutex*
-   (if (*conn-pool*)
-       (if (queue-empty? (*conn-pool*))
-           (case (get-conf '(db pool))
-             ((increase) (create-new-DB-conn))
-             ((fixed)
-              (DEBUG "There's no DB connection from pool, wait for a moment!~%")
-              (try-to-recycle-resources) ; must be in front of scheduling
-              (schedule-task)
-              (get-conn-from-pool!))
-             (else
-              (throw 'artanis-err 500 get-conn-from-pool!
-                     "BUG: Invalid DB pool mode `~a'" (get-conf '(db pool)))))
-           (queue-out! (*conn-pool*)))
-       (error get-conn-from-pool! "Seems the *conn-pool* wasn't well initialized!"
-              (*conn-pool*)))))
+  (if (*conn-pool*)
+      (if (queue-empty? (*conn-pool*))
+          (case (get-conf '(db pool))
+            ((increase) (create-new-DB-conn))
+            ((fixed)
+             (DEBUG "There's no DB connection from pool, wait for a moment!~%")
+             (try-to-recycle-resources) ; must be in front of scheduling
+             (schedule-task)
+             (get-conn-from-pool!))
+            (else
+             (throw 'artanis-err 500 get-conn-from-pool!
+                    "BUG: Invalid DB pool mode `~a'" (get-conf '(db pool)))))
+          (monitor *conn-pool*
+                   (queue-out! (*conn-pool*))))
+      (error get-conn-from-pool! "Seems the *conn-pool* wasn't well initialized!"
+             (*conn-pool*))))
 
 (define (%db-conn-stat conn ret)
   (ret (dbi-get_status (<connection>-conn conn))))
@@ -196,10 +195,12 @@
 (define (recycle-DB-conn conn)
   (cond
    ((*conn-pool*)
-    (if (db-conn-is-closed? conn)
-        ;; if the connection is unfortunetly closed, then we make a new one
-        (queue-in! (*conn-pool*) (create-new-DB-conn))
-        (queue-in! (*conn-pool*) conn)))
+    (monitor
+     *conn-pool-mutex*
+     (if (db-conn-is-closed? conn)
+         ;; if the connection is unfortunetly closed, then we make a new one
+         (queue-in! (*conn-pool*) (create-new-DB-conn))
+         (queue-in! (*conn-pool*) conn))))
    (else
     (error recycle-DB-conn "Seems the *conn-pool* wasn't well initialized!"
            (*conn-pool*)))))
