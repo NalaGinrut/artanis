@@ -41,6 +41,7 @@
   #:use-module (artanis third-party csv)
   #:use-module (artanis server scheduler)
   #:use-module (artanis security nss)
+  #:use-module (artanis security passwd)
   #:use-module (artanis irregex)
   #:use-module (artanis lpc)
   #:use-module (artanis i18n)
@@ -492,48 +493,41 @@
                      "Invalid mode `~a'~" mode))))))
 
 (define (auth-maker val rule keys)
-  (define-syntax-rule (->passwd rc passwd-field salt-field sql params)
-    (let ((ret (DB-get-top-row (DB-query (DB-open rc) sql #:params params))))
-      (values (assoc-ref ret passwd-field)
-              (assoc-ref ret salt-field))))
+  (define-syntax-rule (->passwd rc passwd-field sql params)
+    (let* ((conn (get-conn-from-pool!))
+           (ret (DB-get-top-row (DB-query conn sql #:params params))))
+      (and ret (assoc-ref ret passwd-field))))
   (define-syntax-rule (post-ref post-data key)
     (let ((ret (assoc-ref post-data key)))
       (if ret
           (car ret)
           "")))
-  (define (basic-checker rc p sql passwd-field salt-field)
-    (let-values (((stored-pw _)
-                  (->passwd rc passwd-field salt-field sql #f)))
-      (string=? p stored-pw)))
+  (define (basic-checker rc p sql passwd-field)
+    (let ((pw-encoded-hash (->passwd rc passwd-field sql #f)))
+      (and pw-encoded-hash
+           (artanis-passwd-verify pw-encoded-hash p))))
   (define (init-post rc)
     (and (rc-body rc)
          (generate-kv-from-post-qstr
           (rc-body rc)
           #:no-evil? (get-conf '(db encodeparams)))))
-  (define (default-hmac pw salt)
-    ;; We still have sha384, sha512 as options, but I think sha256 is enough.
-    (string->sha-256 (string-append pw salt)))
   (define* (gen-result rc mode sql params post-data
-                       #:key (hmac default-hmac) (checker #f)
-                       (passwd-field "passwd") (salt-field "salt"))
+                       #:key (checker #f) (passwd-field "passwd"))
     (define (table-checker)
-      (let-values (((stored-pw salt)
-                    (->passwd rc passwd-field salt-field sql params)))
+      (let ((pw-encoded-hash (->passwd rc passwd-field sql params)))
         (cond
-         ((or (not stored-pw) (not salt))
-          (DEBUG "Stored PW: ~a, Salt: ~a, SQL: ~a~%" stored-pw salt sql)
+         ((not pw-encoded-hash)
+          (DEBUG "PW hash: ~a, SQL: ~a~%" pw-encoded-hash salt sql)
           #f)
          (else
-          (string=? (hmac (post-ref post-data passwd-field)
-                          salt)
-                    stored-pw)))))
+          (artanis-passwd-verify pw-encoded-hash
+                                 (post-ref post-data passwd-field))))))
     (define (run-checker)
       (and (if checker (checker) (table-checker))
            (and=> (rc-oht-ref rc #:session)
                   (lambda (h) (h rc 'spawn)))))
     (case mode
       ((table) (run-checker))
-      ((table-specified-fields) (run-checker))
       ((basic)
        (match (get-header rc 'authorization)
          ;; NOTE: In match `=' opetator, the order of evaluation is from left to right.
@@ -542,7 +536,7 @@
           (let ((u (car up)) (p (cadr up)))
             (if checker
                 (checker rc u p)
-                (basic-checker rc p (sql u) passwd-field salt-field))))
+                (basic-checker rc p (sql u) passwd-field))))
          (else #f)))
       (else (throw 'artanis-err 500 auth-maker
                    "Fatal BUG! Invalid mode! Shouldn't be here!" mode))))
@@ -552,56 +546,13 @@
        (let* ((post-data (init-post rc))
               (username (post-ref post-data username-field))
               (passwd (post-ref post-data passwd-field)))
-         (let-values (((sql params) (->sql select `(,passwd-field salt)
+         (let-values (((sql params) (->sql select `(,passwd-field)
                                            from table
                                            (where
                                             (string->keyword username-field)
                                             username))))
-           (gen-result rc 'table-specified-fields sql params post-data
+           (gen-result rc 'table sql params post-data
                        #:passwd-field passwd-field)))))
-    (`(table ,table ,username-field ,passwd-field ,salt-field ,hmac)
-     (lambda (rc . kargs)
-       (let* ((post-data (init-post rc))
-              (username (post-ref post-data username-field))
-              (passwd (post-ref post-data passwd-field)))
-         (let-values (((sql params)
-                       (->sql select
-                              (list passwd-field salt-field) from table
-                              (where (string->keyword username-field)
-                                     username))))
-           (gen-result rc 'table-specified-fields sql params post-data
-                       #:hmac hmac #:passwd-field passwd-field
-                       #:salt-field salt-field)))))
-    (`(table ,table ,username-field ,passwd-field ,hmac)
-     (lambda (rc . kargs)
-       (let* ((post-data (init-post rc))
-              (username (post-ref post-data username-field))
-              (passwd (post-ref post-data passwd-field)))
-         (let-values (((sql params)
-                       (->sql select `(,passwd-field salt) from table
-                              (where (string->keyword username-field)
-                                     username))))
-           (gen-result rc 'table-specified-fields sql params post-data
-                       #:hmac hmac #:passwd-field passwd-field)))))
-    (`(table ,table ,hmac)
-     (lambda (rc . kargs)
-       (let* ((post-data (init-post rc))
-              (username (car kargs))
-              (passwd (cadr kargs)))
-         (let-values (((sql params) (->sql select '(passwd salt) from table
-                                           (where #:username username))))
-           (gen-result rc 'table sql params post-data #:hmac hmac)))))
-    (`(basic ,table ,username-field ,passwd-field)
-     (lambda (rc . kargs)
-       (let* ((post-data (init-post rc))
-              (username (post-ref post-data username-field))
-              (passwd (post-ref post-data passwd-field)))
-         (let-values (((sql params)
-                       (->sql select `(,passwd-field salt) from table
-                              (where (string->keyword username-field)
-                                     username))))
-           (gen-result rc 'basic sql params
-                       post-data #:passwd-field passwd-field)))))
     (`(basic ,checker)
      (lambda (rc)
        (gen-result rc 'basic #f #f #f #:checker checker)))

@@ -389,8 +389,15 @@
             (lambda ()
               (stack-catch (car exception)
                            (lambda () (thunk) #f)
-                           (lambda (key proc message . rest)
+                           (lambda (key status proc message . rest)
                              (cond
+                              ((eq? key 'artanis-err)
+                               (and (eq? key (car exception))
+                                    (= status (cadr exception))
+                                    (eq? proc (caddr exception))
+                                    (string-match (cadddr exception)
+                                                  message)
+                                    #t))
                               ;; handle explicit key
                               ((string-match (cdr exception) message)
                                #t)

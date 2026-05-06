@@ -1,0 +1,327 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  === Password tests ===
+;;  Copyright (C) 2026
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License as published by
+;;  the Free Software Foundation, either version 3 of the License, or
+;;  (at your option) any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (test argon2)
+  #:use-module (artanis utils)
+  #:use-module (artanis security hash)
+  #:use-module (ice-9 iconv)
+  #:use-module (srfi srfi-1)
+  #:use-module ((rnrs bytevectors)
+                #:select (bytevector?
+                          make-bytevector bytevector-length
+                          bytevector=? bytevector-copy))
+  #:use-module (test-suite lib))
+
+;; export all things for testing
+(eval-when (eval load compile)
+  (export-all-from-module! '(artanis security passwd)))
+
+(with-test-prefix "Argon2 test"
+
+  ;; ========== Basic functionality tests ==========
+
+  (pass-if "argon2id basic hash and verify"
+    (let ((hash (argon2:hash-password "test-password")))
+      (and (string? hash)
+           (string-prefix? "$argon2id$" hash)
+           (argon2:verify-password hash "test-password"))))
+
+  (pass-if "argon2i basic hash and verify"
+    (let ((hash (argon2:hash-password "test-password" #:variant 'argon2i)))
+      (and (string? hash)
+           (string-prefix? "$argon2i$" hash)
+           (argon2:verify-password hash "test-password" #:variant 'argon2i))))
+
+  (pass-if "wrong password fails verification"
+    (let ((hash (argon2:hash-password "correct-password")))
+      (not (argon2:verify-password hash "wrong-password"))))
+
+  (pass-if "empty password"
+    (let ((hash (argon2:hash-password "")))
+      (argon2:verify-password hash "")))
+
+  (pass-if "long password (>100 chars)"
+    (let* ((long-pwd (make-string 150 #\a))
+           (hash (argon2:hash-password long-pwd)))
+      (argon2:verify-password hash long-pwd)))
+
+  (pass-if "unicode password"
+    (let ((pwd "密码测试🔐"))
+      (let ((hash (argon2:hash-password pwd)))
+        (argon2:verify-password hash pwd))))
+
+  ;; ========== Parameter tests ==========
+
+  (pass-if "custom t-cost (time cost)"
+    (let ((hash (argon2:hash-password "password" #:t-cost 3)))
+      (and (string? hash)
+           (argon2:verify-password hash "password"))))
+
+  (pass-if "custom m-cost (memory cost)"
+    (let ((hash (argon2:hash-password "password" #:m-cost 32768)))
+      (and (string? hash)
+           (argon2:verify-password hash "password"))))
+
+  (pass-if "custom parallelism"
+    (let ((hash (argon2:hash-password "password" #:parallelism 2)))
+      (and (string? hash)
+           (argon2:verify-password hash "password"))))
+
+  (pass-if "custom hashlen 64"
+    (let ((hash (argon2:hash-password "password" #:hashlen 64)))
+      (and (string? hash)
+           (argon2:verify-password hash "password"))))
+
+  (pass-if "custom hashlen 32"
+    (let ((hash (argon2:hash-password "password" #:hashlen 32)))
+      (and (string? hash)
+           (argon2:verify-password hash "password"))))
+
+  (pass-if "all custom parameters"
+    (let ((hash (argon2:hash-password "password"
+                                      #:t-cost 4
+                                      #:m-cost 131072
+                                      #:parallelism 4
+                                      #:hashlen 48)))
+      (and (string? hash)
+           (argon2:verify-password hash "password"))))
+
+  (pass-if "minimal parameters (fast, low security)"
+    (let ((hash (argon2:hash-password "password"
+                                      #:t-cost 1
+                                      #:m-cost 8192
+                                      #:parallelism 1)))
+      (and (string? hash)
+           (argon2:verify-password hash "password"))))
+
+  (pass-if "high security parameters"
+    (let ((hash (argon2:hash-password "password"
+                                      #:t-cost 5
+                                      #:m-cost 262144
+                                      #:parallelism 2)))
+      (and (string? hash)
+           (argon2:verify-password hash "password"))))
+
+  ;; ========== Salt tests ==========
+
+  (pass-if "custom salt"
+    (let* ((salt (make-bytevector 16 42))
+           (hash1 (argon2:hash-password "password" #:salt salt))
+           (hash2 (argon2:hash-password "password" #:salt salt)))
+      ;; Same password + same salt should produce same hash
+      (string=? hash1 hash2)))
+
+  (pass-if "different salts produce different hashes"
+    (let* ((salt1 (make-bytevector 16 1))
+           (salt2 (make-bytevector 16 2))
+           (hash1 (argon2:hash-password "password" #:salt salt1))
+           (hash2 (argon2:hash-password "password" #:salt salt2)))
+      (not (string=? hash1 hash2))))
+
+  (pass-if "random salts produce different hashes"
+    (let ((hash1 (argon2:hash-password "password"))
+          (hash2 (argon2:hash-password "password")))
+      ;; Random salts should make hashes different
+      (not (string=? hash1 hash2))))
+
+  ;; ========== Bytevector input tests ==========
+
+  (pass-if "bytevector password input"
+    (let* ((pwd-bv (string->bytevector "test-password" "utf-8"))
+           (hash (argon2:hash-password pwd-bv)))
+      (and (string? hash)
+           (argon2:verify-password hash pwd-bv))))
+
+  (pass-if "string and bytevector produce same result with same salt"
+    (let* ((salt (make-bytevector 16 0))
+           (pwd-str "password")
+           (pwd-bv (string->bytevector pwd-str "utf-8"))
+           (hash1 (argon2:hash-password pwd-str #:salt salt))
+           (hash2 (argon2:hash-password pwd-bv #:salt salt)))
+      (string=? hash1 hash2)))
+
+  ;; ========== Variant tests ==========
+
+  (pass-if "argon2i variant"
+    (let ((hash (argon2:hash-password "password" #:variant 'argon2i)))
+      (and (string-prefix? "$argon2i$" hash)
+           (argon2:verify-password hash "password" #:variant 'argon2i))))
+
+  (pass-if "argon2id variant"
+    (let ((hash (argon2:hash-password "password" #:variant 'argon2id)))
+      (and (string-prefix? "$argon2id$" hash)
+           (argon2:verify-password hash "password" #:variant 'argon2id))))
+
+  (pass-if "cross-variant verification fails"
+    (let ((hash-id (argon2:hash-password "password" #:variant 'argon2id)))
+      ;; Trying to verify argon2id hash with argon2i should fail
+      (not (argon2:verify-password hash-id "password" #:variant 'argon2i))))
+
+  (pass-if "argon2i and argon2id produce different hashes"
+    (let* ((salt (make-bytevector 16 0))
+           (hash-i (argon2:hash-password "password" #:variant 'argon2i #:salt salt))
+           (hash-id (argon2:hash-password "password" #:variant 'argon2id #:salt salt)))
+      (not (string=? hash-i hash-id))))
+
+  ;; ========== Low-level API tests ==========
+
+  (pass-if "argon2i:hash-encoded"
+    (let* ((salt (make-bytevector 16 0))
+           (hash (argon2i:hash-encoded 2 65536 1 "password" salt 32)))
+      (and (string? hash)
+           (string-prefix? "$argon2i$" hash))))
+
+  (pass-if "argon2id:hash-encoded"
+    (let* ((salt (make-bytevector 16 0))
+           (hash (argon2id:hash-encoded 2 65536 1 "password" salt 32)))
+      (and (string? hash)
+           (string-prefix? "$argon2id$" hash))))
+
+  (pass-if "argon2i:verify low-level"
+    (let* ((salt (make-bytevector 16 0))
+           (hash (argon2i:hash-encoded 2 65536 1 "password" salt 32)))
+      (argon2i:verify hash "password")))
+
+  (pass-if "argon2id:verify low-level"
+    (let* ((salt (make-bytevector 16 0))
+           (hash (argon2id:hash-encoded 2 65536 1 "password" salt 32)))
+      (argon2id:verify hash "password")))
+
+  ;; ========== Error handling tests ==========
+
+  (pass-if-exception "invalid variant throws error"
+    '(artanis-err 500 argon2 "Invalid variant")
+    (argon2:hash-password "password" #:variant 'invalid-variant))
+
+  (pass-if-exception "invalid variant in verify throws error"
+    '(artanis-err 500 argon2 "Invalid variant")
+    (let ((hash (argon2:hash-password "password")))
+      (argon2:verify-password hash "password" #:variant 'invalid-variant)))
+
+  ;; ========== Edge cases and special characters ==========
+
+  (pass-if "password with special characters"
+    (let ((pwd "p@ssw0rd!#$%^&*()"))
+      (let ((hash (argon2:hash-password pwd)))
+        (argon2:verify-password hash pwd))))
+
+  (pass-if "password with whitespace"
+    (let ((pwd "pass word with spaces"))
+      (let ((hash (argon2:hash-password pwd)))
+        (argon2:verify-password hash pwd))))
+
+  (pass-if "password with newlines"
+    (let ((pwd "pass\nword\nwith\nnewlines"))
+      (let ((hash (argon2:hash-password pwd)))
+        (argon2:verify-password hash pwd))))
+
+  (pass-if "password with null bytes in bytevector"
+    (let* ((pwd-bv (make-bytevector 10 0))
+           (hash (argon2:hash-password pwd-bv)))
+      (argon2:verify-password hash pwd-bv)))
+
+  ;; ========== Consistency tests ==========
+
+  (pass-if "same password hashed multiple times verifies correctly"
+    (let* ((pwd "consistent-password")
+           (hash1 (argon2:hash-password pwd))
+           (hash2 (argon2:hash-password pwd))
+           (hash3 (argon2:hash-password pwd)))
+      (and (argon2:verify-password hash1 pwd)
+           (argon2:verify-password hash2 pwd)
+           (argon2:verify-password hash3 pwd))))
+
+  (pass-if "verification is case-sensitive"
+    (let ((hash (argon2:hash-password "Password")))
+      (and (argon2:verify-password hash "Password")
+           (not (argon2:verify-password hash "password"))
+           (not (argon2:verify-password hash "PASSWORD")))))
+
+  ;; ========== Performance baseline tests ==========
+
+  (pass-if "fast parameters complete quickly"
+    ;; This should complete in reasonable time even on slow systems
+    (let ((hash (argon2:hash-password "password"
+                                      #:t-cost 1
+                                      #:m-cost 8192
+                                      #:parallelism 1)))
+      (argon2:verify-password hash "password")))
+
+  ;; ========== Real-world usage patterns ==========
+
+  (pass-if "typical web application scenario"
+    (let* ((user-password "MySecureP@ssw0rd123")
+           ;; Hash during registration
+           (stored-hash (argon2:hash-password user-password
+                                              #:t-cost 2
+                                              #:m-cost 65536
+                                              #:parallelism 1))
+           ;; Verify during login - correct password
+           (login-success (argon2:verify-password stored-hash user-password))
+           ;; Verify during login - wrong password
+           (login-fail (argon2:verify-password stored-hash "WrongPassword")))
+      (and login-success (not login-fail))))
+
+  (pass-if "multiple users with same password have different hashes"
+    (let ((pwd "common-password")
+          (users 5))
+      (let ((hashes (map (lambda (_) (argon2:hash-password pwd))
+                        (iota users))))
+        ;; All hashes should be different (random salts)
+        (= (length hashes)
+           (length (delete-duplicates hashes string=?))))))
+
+  ;; ========== Integration with existing hash functions ==========
+
+  (pass-if "argon2 can replace md5 in auth workflow"
+    (let* ((password "test-password")
+           ;; Old way (insecure, for comparison only)
+           (md5-hash (string->md5 password))
+           ;; New way (secure)
+           (argon2-hash (argon2:hash-password password)))
+      ;; Both produce hashes, but argon2 is verifiable
+      (and (string? md5-hash)
+           (string? argon2-hash)
+           (argon2:verify-password argon2-hash password))))
+
+  ;; ========== Memory and resource tests ==========
+
+  (pass-if "can hash multiple passwords in sequence"
+    (let ((passwords '("pass1" "pass2" "pass3" "pass4" "pass5")))
+      (let ((hashes (map argon2:hash-password passwords)))
+        (every (lambda (hash pwd)
+                 (argon2:verify-password hash pwd))
+               hashes
+               passwords))))
+
+  ;; ========== Encoded string format tests ==========
+
+  (pass-if "encoded string contains version info"
+    (let ((hash (argon2:hash-password "password")))
+      (and (string-contains hash "$v=19$") #t)))
+
+  (pass-if "encoded string contains parameter info"
+    (let ((hash (argon2:hash-password "password"
+                                      #:t-cost 3
+                                      #:m-cost 65536
+                                      #:parallelism 2)))
+      (and (string-contains hash "t=3")
+           (string-contains hash "m=65536")
+           (string-contains hash "p=2")
+           #t)))
+
+  )
