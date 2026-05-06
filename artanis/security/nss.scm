@@ -297,12 +297,19 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
 
 (define (pr-read sock buffer size) #t)
 
+
 (define (pr-close) #t)
 
-(define (pr-cleanup) #t)
+(define (pr-cleanup)
+  (call-with-values (lambda () (%PR_Cleanup))
+    (lambda (ret errno)
+      (when (< ret 0)
+        (throw 'artanis-err 500 pr-cleanup
+               "PR_Cleanup failed, errno=~a" errno)))))
 
 (define (nss:pr-cleanup)
   (when (nss:is-initialized?)
+    (nss:shutdown)
     (pr-cleanup)))
 
 ;; FIXME: MD5 may not be the best choice
