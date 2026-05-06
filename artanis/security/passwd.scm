@@ -216,6 +216,3 @@
   (let ((argon-config (current-argon2-config)))
     (argon2:verify-password encoded passwd
                             #:variant (argon2-config-variant argon-config))))
-
-(define (init-passwd-policy!)
-  #t  )
