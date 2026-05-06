@@ -135,24 +135,31 @@
 (define write-date (@@ (web http) write-date))
 
 ;; There's a famous rumor that 'urandom' is safer, so we pick it.
-(define* (get-random-from-dev #:key (length 8) (uppercase #f))
+(define* (get-random-from-dev #:key (length 8) (uppercase #f) (bv? #f))
   (define-syntax-rule (gen-for-even port)
     (let ((bv (get-bytevector-n port (div length 2))))
-      (format #f "~{~2,'0x~}" (bytevector->u8-list bv))))
+      (if bv?
+          bv
+          (format #f "~{~2,'0x~}" (bytevector->u8-list bv)))))
 
   (call-with-input-file "/dev/urandom"
     (lambda (port)
       ;; generate token directly when length is even, otherwise, add the last byte with 8bit length.
       (and=>
        (cond
-        ((even? length) (gen-for-even port))
+        ((or bv? (even? length)) (gen-for-even port))
         (else
          (string-append (gen-for-even port)
                         (format #f "~x" (logand #xf (get-u8 port))))))
-       (lambda (str)
-         (if uppercase
-             (string-upcase str)
-             str))))))
+       (lambda (ret)
+         (cond
+          (bv? ret)
+          (uppercase
+           (when (not (string? ret))
+             (throw 'artanis-err 500 get-random-from-dev
+                    "BUG: uppercase shouldn't be bytevector here (~a)!" ret))
+           (string-upcase str))
+          (else ret)))))))
 
 (define-syntax-rule (local-eval-string str e)
   (local-eval
