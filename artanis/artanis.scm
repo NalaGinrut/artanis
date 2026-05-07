@@ -115,6 +115,7 @@
                make-table-setter
                make-table-builder
                make-table-dropper
+               query-result-ref
 
                ;; ssql module
                ->sql

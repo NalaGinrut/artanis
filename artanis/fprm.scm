@@ -40,7 +40,8 @@
             make-table-modifier
             make-table-indexer
             fprm->string
-            with-transaction)
+            with-transaction
+            query-result-ref)
   ;; NOTE:
   ;; We re-export these symbols so that users may use FPRM to handle DB
   ;; independently, without using the web-framework.
@@ -967,6 +968,14 @@
     (lambda (cmd . args)
       (and=> (assoc-ref *table-mapper-handlers* cmd)
              (lambda (h) (apply h mt tname args))))))
+
+(define (query-result-ref result k)
+  (cond
+   ((or (not result) (null? result))
+    'no-result)
+   ((assoc-ref result k)
+    => car)
+   (else 'no-such-key)))
 
 (define-syntax-rule (fprm->string rc body ...)
   (parameterize ((sql-to-string? #t))
