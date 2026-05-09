@@ -35,11 +35,9 @@
                       ;;              #:meta '((pool-size . 10)
                       ;;                       (waiting . 3)))
                       (meta #f))
-  ;; NOTE: Optimized for mutex lock granularity.
-  ;; 1. Each `monitor' calling will expand to create a new global mutex for the context.
-  ;; 2. However, we only need one mutex for both client and server logging in case
-  ;;    people want to get result from external web api with Artanis client.
-  ;; 3. So we create a unified monitor context here.
+  ;; NOTE:
+  ;; monitor provides per-call execution atomicity (no interleaving within this block),
+  ;; but does NOT guarantee cross-call synchronization.
   (define (atomic-output thunk)
     (monitor (thunk)))
   (case blame-who?
