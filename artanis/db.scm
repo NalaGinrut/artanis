@@ -164,8 +164,9 @@
             (else
              (throw 'artanis-err 500 get-conn-from-pool!
                     "BUG: Invalid DB pool mode `~a'" (get-conf '(db pool)))))
-          (monitor *conn-pool*
-                   (queue-out! (*conn-pool*))))
+          (with-mutex
+           *conn-pool-mutex**
+           (queue-out! (*conn-pool*))))
       (error get-conn-from-pool! "Seems the *conn-pool* wasn't well initialized!"
              (*conn-pool*))))
 
