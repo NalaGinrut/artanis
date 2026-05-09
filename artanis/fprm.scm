@@ -614,7 +614,6 @@
       (when (> offset (max-offset-limit))
         (throw 'artanis-err 500 make-table-getter
                "Invalid #:offset `~a', max is ~a" offset (max-offset-limit)))
-      (pk 'what offset)
       offset)
      (else
       (throw 'artanis-err 500
@@ -733,10 +732,10 @@
                    (offset-str (if offset-val
                                    (format #f " offset ~a " (add-param! offset-val))
                                    ""))
-                   (opts (pk 'opts (string-concatenate
-                                    (list cnd+foreach group-str order-str ret-str offset-str))))
+                   (opts (string-concatenate
+                          (list cnd+foreach group-str order-str ret-str offset-str)))
                    (col-str (format #f "~{~a~^,~}" (->mix columns functions)))
-                   (sql (pk 'sql (format #f "select ~a from ~a ~a;" col-str tname opts)))
+                   (sql (format #f "select ~a from ~a ~a;" col-str tname opts))
                    (params (pk 'params (map value-detect (queue-slots (current-param-list))))))
               (values sql params))))
       (lambda (sql params)
@@ -744,8 +743,7 @@
          ((or dump (sql-to-string?)) (values sql params))
          (else
           (let ((conn (get-conn-from-rc/conn rc/conn make-table-getter)))
-            (pk 'before sql params)
-            (pk 'after (DB-query conn sql #:params params))
+            (DB-query conn sql #:params params)
             (when (not (db-conn-success? conn))
               (DEBUG "Failed to execute SQL: `~a'~%~a!" sql (db-conn-failed-reason conn))
               (throw 'artanis-err 500 make-table-getter
