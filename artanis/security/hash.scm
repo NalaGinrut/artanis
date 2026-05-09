@@ -46,7 +46,10 @@
             string->hmac-sha-256
             string->hmac-sha-384
             string->hmac-sha-512
-            string->hmac-sha-224))
+            string->hmac-sha-224
+
+            integer->base62
+            base62->integer))
 
 (define (->bv str/bv proc)
   (cond
@@ -127,3 +130,32 @@
 (define (string->hmac-sha-224 key str/bv)
   (throw 'artanis-err 500 string->hmac-sha-224
          "HMAC-SHA-224 is not supported by this NSS version"))
+
+(define *base62-chars*
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+
+(define (integer->base62 n)
+  (when (not (and (integer? n) (>= n 0)))
+    (throw 'artanis-err 500 integer->base62
+           "Invalid input, need non-negative integer: ~a" n))
+  (if (zero? n)
+      "0"
+      (let lp ((n n) (acc '()))
+        (if (zero? n)
+            (list->string acc)
+            (lp (quotient n 62)
+                (cons (string-ref *base62-chars* (remainder n 62))
+                      acc))))))
+
+(define (base62->integer s)
+  (when (or (not (string? s)) (string-null? s))
+    (throw 'artanis-err 500 base62->integer
+           "Invalid input, need non-empty string: ~a" s))
+  (let lp ((i 0) (acc 0))
+    (if (= i (string-length s))
+        acc
+        (let ((c (string-index *base62-chars* (string-ref s i))))
+          (if (not c)
+              (throw 'artanis-err 500 base62->integer
+                     "Invalid base62 character: ~a" (string-ref s i))
+              (lp (+ i 1) (+ (* acc 62) c)))))))

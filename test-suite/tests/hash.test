@@ -105,4 +105,8 @@
   (pass-if "hmac-sha-256 key sensitivity"
     (not (string=? (string->hmac-sha-256 "key1" "hello")
                    (string->hmac-sha-256 "key2" "hello"))))
+
+  (pass-if "base62 integer encode/decode"
+    (= 1234
+       (base62->integer (integer->base62 1234))))
   )
