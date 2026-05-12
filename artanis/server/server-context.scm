@@ -41,6 +41,10 @@
             ragnarok-server-services
             current-work-table ; get work-table from specified server
 
+            high-prio-task-add!
+            high-prio-task-remove!
+            is-high-prio-task?
+
             new-ready-queue
             ready-queue?
             ready-queue-empty?
@@ -116,13 +120,32 @@
    loader))
 
 (define-record-type ragnarok-server
-  (fields
-   epfd
-   listen-socket
-   work-table  ; a table contains continuations
-   ready-queue ; a queue contains connect socket
-   event-set
-   services))  ; a table to hold all redirectors (int -> redirector)
+    (fields
+     epfd
+     listen-socket
+     work-table  ; a table contains continuations
+     ready-queue ; a queue contains connect socket
+     event-set
+     services))  ; a table to hold all redirectors (int -> redirector)
+
+(define *high-prio-mutex* (make-mutex))
+(define *high-prio-table* (make-hash-table))
+
+(::define (high-prio-task-remove! client)
+  (:anno: (ragnarok-client) -> ANY)
+  (with-mutex
+   *high-prio-mutex*
+   (hash-remove! *high-prio-table* client)))
+
+(::define (high-prio-task-add! client)
+  (:anno: (ragnarok-client) -> ANY)
+  (with-mutex
+   *high-prio-mutex*
+   (hash-set! *high-prio-table* client)))
+
+(::define (is-high-prio-task? client)
+  (:anno: (ragnarok-client) -> boolean)
+  (hash-ref *high-prio-table* client))
 
 (define-box-type ready-queue)
 
@@ -133,26 +156,36 @@
   (:anno: (ready-queue) -> boolean)
   (queue-empty? (unbox-type rq)))
 
+(define *ready-queue-mutex* (make-mutex))
+
 (::define (ready-queue-in! rq v)
-  (:anno: (ready-queue) -> ready-queue)
-  (queue-in! (unbox-type rq) v))
+  (:anno: (ready-queue ragnarok-client) -> ready-queue)
+  (with-mutex
+   *ready-queue-mutex*
+   (if (is-high-prio-task? v)
+       (stack-push! (unbox-type rq) v)
+       (queue-in! (unbox-type rq) v))))
 
 (::define (ready-queue-out! rq)
   (:anno: (ready-queue) -> ANY)
-  (queue-out! (unbox-type rq)))
+  (with-mutex
+   *ready-queue-mutex*
+   (queue-out! (unbox-type rq))))
 
 (::define (ready-queue-length rq)
   (:anno: (ready-queue) -> int)
-  (queue-length (unbox-type rq)))
+  (with-mutex
+   *ready-queue-mutex*
+   (queue-length (unbox-type rq))))
 
 (define (current-work-table server)
   (ragnarok-server-work-table server))
 
 ;; A table contains continuations
 (define-record-type work-table
-  (fields
-   content ; the continuation
-   mutex)) ; a mutex for lock
+    (fields
+     content ; the continuation
+     mutex)) ; a mutex for lock
 
 
 ;; NOTE: Any methods in protocol shouldn't be bound to Ragnarok.

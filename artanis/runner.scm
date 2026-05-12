@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2025
+;;  Copyright (C) 2025-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License published by
@@ -21,6 +21,7 @@
   #:use-module (artanis server)
   #:use-module (artanis server server-context)
   #:use-module (ice-9 futures)
+  #:use-module (srfi srfi-11) ; for let-values
   #:export (call-with-runner))
 
 ;; ========== Monkey patching ==========
@@ -42,19 +43,25 @@
 
 (define (create-runner thunk)
   (let ((client (current-client)))
-    (make-future
-     (lambda ()
-       (call-with-values thunk
-         (lambda results
-           (DEBUG "Runner thunk done, client: ~a~%" client)
-           (oneshot-mention! client)
-           (apply values results)))))))
+    ;; NOTE: We tag runners as high prio task, so that the scheduler will
+    ;;       return to the client as soon as possible when the runner is
+    ;;       done.
+    (high-prio-task-add! client)
+    (values client
+            (make-future
+             (lambda ()
+               (call-with-values thunk
+                 (lambda results
+                   (DEBUG "Runner thunk done, client: ~a~%" client)
+                   (oneshot-mention! client)
+                   (apply values results))))))))
 
 (define (call-with-runner thunk)
-  (let ((runner (create-runner thunk)))
+  (let-values (((client runner) (create-runner thunk)))
     (while (not (eq? 'done ((@@ (ice-9 futures) future-state) runner)))
            (DEBUG "Runner is still running, waiting for it to finish...~a~%"
                   runner)
            (break-task))
     (DEBUG "Wait for returning from runner, client: ~a~%" (current-client))
+    (high-prio-task-remove! client)
     (touch runner)))
