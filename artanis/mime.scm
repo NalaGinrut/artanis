@@ -59,6 +59,7 @@
     (application/rss+xml (rss))
     (application/rtf (rtf))
     (application/smil (smi smil))
+    (application/wasm (wasm))
     (application/xhtml+xml (xhtml xht))
     (application/xml (xml xsl xsd))
     (application/xspf+xml (xspf))
