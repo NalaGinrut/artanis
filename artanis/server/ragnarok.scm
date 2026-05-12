@@ -77,11 +77,11 @@
   (DEBUG "generating work-table~%")
   (make-work-table (make-hash-table) (make-mutex)))
 
-;; Ragnarok server will establish a http-gateway, and support various protocols
-;; based on websocket.
-;; NOTE: Different from other ragnarok interfaces, ragnarok-open is not going to
-;;       call `open' method of protocol instance. ragnarok-open is only used for
-;;       establishing http-gateway.
+;; NOTE: Ragnarok server will establish a http-gateway, and support various
+;;       protocols based on websocket.
+;; NOTE: Different from other ragnarok interfaces, ragnarok-open is not
+;;       going to call `open' method of protocol instance. ragnarok-open is
+;;       only used for establishing http-gateway.
 ;; NOTE: Since http service always opens, it's no need to call http-open.
 (define* (ragnarok-open #:key
                         (host (get-conf '(host name)))
@@ -110,11 +110,12 @@
      (task ; if task exists in work-table
       (DEBUG "Task ~a exists!~%" (client-sockport (task-client task)))
       (DEBUG "Continuable work ~a~%" (client-sockport client))
-      ;; NOTE: Don't remove the task from work-table here, even it'll be obsoleted later.
-      ;;       If there's new task caused by scheduling, then it'll be overwritten to the
-      ;;       work-table.
-      ;;       And if we remove it here, then we've lost necessary information to release
-      ;;       it later.
+      ;; NOTE: Don't remove the task from work-table here, even it'll be
+      ;;       obsoleted later.
+      ;;       If there's new task caused by scheduling, then it'll be
+      ;;       overwritten to the work-table.
+      ;;       And if we remove it here, then we've lost necessary
+      ;;       information to release it later.
       task) ; and return this task for later application (restore the execution)
      (else #f)))) ; not a continuable work since it's not in the work-table
 
