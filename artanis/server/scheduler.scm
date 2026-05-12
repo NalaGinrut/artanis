@@ -58,9 +58,9 @@
       (break-task)
       (lp))
      (else
-      (lock-mutex mutex)
-      body ...
-      (unlock-mutex mutex)))))
+      (with-mutex
+       mutex
+       body ...)))))
 
 (define (compute-prio proto client server)
   ;; TODO: how to compute priority

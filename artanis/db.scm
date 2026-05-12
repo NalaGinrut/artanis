@@ -25,6 +25,7 @@
   #:use-module (artanis ssql)
   #:use-module (artanis env)
   #:use-module (artanis server ragnarok)
+  #:use-module (artanis server scheduler)
   #:autoload (dbi dbi) (dbi-open
                         dbi-query
                         dbi-params-query
@@ -164,7 +165,7 @@
             (else
              (throw 'artanis-err 500 get-conn-from-pool!
                     "BUG: Invalid DB pool mode `~a'" (get-conf '(db pool)))))
-          (with-mutex
+          (schedule-if-locked
            *conn-pool-mutex**
            (queue-out! (*conn-pool*))))
       (error get-conn-from-pool! "Seems the *conn-pool* wasn't well initialized!"
