@@ -740,7 +740,7 @@
                           (list cnd+foreach group-str order-str ret-str offset-str)))
                    (col-str (format #f "~{~a~^,~}" (->mix columns functions)))
                    (sql (format #f "select ~a from ~a ~a;" col-str tname opts))
-                   (params (pk 'params (map value-detect (queue-slots (current-param-list))))))
+                   (params (map value-detect (queue-slots (current-param-list)))))
               (values sql params))))
       (lambda (sql params)
         (cond
@@ -898,6 +898,28 @@
           (throw 'artanis-err 500 make-table-indexer
                  "Failed to execute SQL: `~a'~%~a!" sql (db-conn-failed-reason conn))))))))
 
+(define (make-table-row-checker rc/conn)
+  (lambda* (tname #:key (condition ""))
+    (when (and (not (string-null? condition)) (not (promise? condition)))
+      (throw 'artanis-err 500 make-table-row-checker
+             "Invalid condition `~a', should be either a string or a promise! ~a"
+             condition
+             "Say, (delay (where #:name \"nala\")), you need srfi-45."))
+    (verify-identifier make-table-row-checker 'tname tname)
+    (parameterize ((current-param-index 1)
+                   (current-param-list (new-queue)))
+      (let* ((cnd (if (promise? condition) (force condition) condition))
+             (sql (format #f "select exists (select 1 from ~a ~a);"
+                          tname cnd))
+             (params (queue-slots (current-param-list)))
+             (conn (get-conn-from-rc/conn rc/conn make-table-row-checker)))
+        (DB-query conn sql #:params params)
+        (when (not (db-conn-success? conn))
+          (DEBUG "Failed to execute SQL: `~a'~%~a!" sql (db-conn-failed-reason conn))
+          (throw 'artanis-err 500 make-table-row-checker
+                 "Failed to execute SQL: `~a'~%~a!" sql (db-conn-failed-reason conn)))
+        (DB-get-one-row conn)))))
+
 ;; NOTE: the name of columns is charactar-caseless, at least in MySQL/MariaDB.
 (define (map-table-from-DB rc/conn)
   (define conn (get-conn-from-rc/conn rc/conn map-table-from-DB))
@@ -908,6 +930,7 @@
   (define modifier (make-table-modifier conn))
   (define counter (make-table-counter conn))
   (define indexer (make-table-indexer conn))
+  (define row-checker (make-table-row-checker conn))
   ;; NOTE:
   ;; It maybe inefficient to fetch table-schema without any cache, because the request session may generate
   ;; table-schema each time. Although we may build a cache or delayed mechanism here, there's one reason
@@ -963,6 +986,7 @@
       ((ci-check ci-exists?) (apply checker #t tname args))
       ;; schema is always in downcase.
       ((schema) (get-table-schema tname))
+      ((row-exists?) (apply row-checker))
       ((mod) (->call modifier))
       ((count) (->call counter))
       ((index) (->call indexer))
