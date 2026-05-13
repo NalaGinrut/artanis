@@ -707,6 +707,10 @@
                   ;; The return value;
                   ;; 1. 'raw: returns all rows
                   ;; 2. 'getter: return a getter as a function
+                  (cursor #f)
+                  ;; cursor is #f or (cursor_name . number). Say, '(cur . 50)
+                  ;; It will return a
+                  ;; cursor generator for users convienience.
                   )
     ;; We have to check condition in case the use misuses it.
     (when (and (not (and (string? condition) (string-null? condition)))
@@ -743,20 +747,30 @@
          ((or dump (sql-to-string?)) (values sql params))
          (else
           (let ((conn (get-conn-from-rc/conn rc/conn make-table-getter)))
+            (when cursor
+              (let ((cursor-name (car cursor))
+                    (cursor-size (cdr cursor)))
+                (prepare-for-cursor conn cursor-name cursor-size)))
             (DB-query conn sql #:params params)
             (when (not (db-conn-success? conn))
               (DEBUG "Failed to execute SQL: `~a'~%~a!" sql (db-conn-failed-reason conn))
               (throw 'artanis-err 500 make-table-getter
                      "Failed to execute SQL: `~a'~%~a!" sql (db-conn-failed-reason conn)))
-            (let ((result (DB-get-all-rows conn)))
-              (case mode
-                ((raw) result)
-                ((getter)
-                 (lambda (k)
-                   (and (not (null? result))
-                        (assoc-ref (car result) k))))
-                (else (throw 'artanis-err 500 make-table-getter
-                             "Invalid mode `~a'" mode)))))))))))
+            (cond
+             (cursor  ; if cursor is enabled, the mode will be ignored
+              (let ((cursor-name (car cursor))
+                    (cursor-size (cdr cursor)))
+                (return-cursor-generator conn cursor-name cursor-size)))
+             (else
+              (let ((result (DB-get-all-rows conn)))
+                (case mode
+                  ((raw) result)
+                  ((getter)
+                   (lambda (k)
+                     (and (not (null? result))
+                          (assoc-ref (car result) k))))
+                  (else (throw 'artanis-err 500 make-table-getter
+                               "Invalid mode `~a'" mode)))))))))))))
 
 (define (make-table-modifier rc/conn)
   (define (table-add tname col t)
