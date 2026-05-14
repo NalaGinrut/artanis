@@ -1005,13 +1005,17 @@
       (and=> (assoc-ref *table-mapper-handlers* cmd)
              (lambda (h) (apply h mt tname args))))))
 
-(define (query-result-ref result k)
+(define* (query-result-ref result k #:key (throw-when-no-key? #t))
   (cond
    ((or (not result) (null? result))
     'no-result)
    ((assoc-ref result k)
     => car)
-   (else 'no-such-key)))
+   (else
+    (if throw-when-no-key?
+        (throw 'artanis-err 500 query-result-ref
+               "No such key `~a' in result `~a'!" k result)
+        'no-such-key))))
 
 (define-syntax-rule (fprm->string rc body ...)
   (parameterize ((sql-to-string? #t))
