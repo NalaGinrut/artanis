@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015-2017,2024
+;;  Copyright (C) 2015-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -42,6 +42,14 @@
            (define-syntax-rule (#,(datum->syntax x 'view-render) method e)
              (let ((file (format #f "~a/app/views/~a/~a.html.tpl"
                                  (current-toplevel) 'name method)))
+               (cond
+                ((file-exists? file)
+                 (let ((html ((@@ (artanis tpl) tpl-render-from-file) file e)))
+                   ((@ (artanis artanis) response-emit) html)))
+                (else ((@ (artanis artanis) response-emit) "" #:status 404)))))
+           (define-syntax-rule (#,(datum->syntax x 'theme-render) theme method e)
+             (let ((file (format #f "~a/sys/themes/~a/~a/~a.html.tpl"
+                                 (current-toplevel) theme 'name method)))
                (cond
                 ((file-exists? file)
                  (let ((html ((@@ (artanis tpl) tpl-render-from-file) file e)))
