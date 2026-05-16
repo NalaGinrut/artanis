@@ -1036,7 +1036,7 @@
             (DB-query conn "commit;")
             (cond
              ((db-conn-success? conn)
-              #t)
+              'success)
              (else
               ;; NOTE: `commit' failure happens in various situations,
               ;;       we return #f here in the hope that users should treat
@@ -1054,11 +1054,18 @@
               ;;       committed.
               (artanis-warn "Transaction commit failed `~a'~%"
                             (list 'body ...))
-              #f)))
+              'unknown)))
            (else
             (throw 'artanis-err 500 with-transaction
                    "Transaction failed `~a'" (list 'body ...))
-            #f)))
+            'failed)))
         (lambda e
           (DB-query conn "rollback;")
-          (apply throw e))))))
+          (cond
+           ((db-conn-success? conn)
+            (artanis-warn "Transaction rolled back due to error ~a~%" e)
+            (apply throw e))
+           (else
+            (artanis-warn
+             "Transaction rollback, this DB connection will be reopened!")
+            (recycle-DB-conn conn #:trustable? #f))))))))
