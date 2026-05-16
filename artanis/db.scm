@@ -334,12 +334,8 @@ PRAGMA busy_timeout = 5000;
            "Can't query from a closed connection ~a!" conn))
    (else
     (let lp((next (dbi-get_row (<connection>-conn conn))) (result '()))
-      (pk 'row next)
-      (pk 'conn conn)
-      (pk 'status (db-conn-success? conn))
       (let ((reason (db-conn-returned-reason conn)))
-        (pk 'next next)
-        (match (pk 'reason reason)
+        (match reason
           ("row end"
            (reverse! result))
           ("row fetched"
