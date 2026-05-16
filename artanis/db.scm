@@ -194,12 +194,12 @@
                            (throw 'artanis-err 500 db-conn-is-closed?
                                   "Unsupported DBD `~a'" (get-conf '(db dbd))))))))
 
-(define (recycle-DB-conn conn)
+(define* (recycle-DB-conn conn #:key (trustable? #t))
   (cond
    ((*conn-pool*)
     (monitor
      *conn-pool-mutex*
-     (if (db-conn-is-closed? conn)
+     (if (or (not trustable?) (db-conn-is-closed? conn))
          ;; if the connection is unfortunetly closed, then we make a new one
          (queue-in! (*conn-pool*) (create-new-DB-conn))
          (queue-in! (*conn-pool*) conn))))
