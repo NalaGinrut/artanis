@@ -1028,9 +1028,37 @@
   (let ((conn (rc-conn rc)))
     (parameterize ((current-dbconn conn))
       (DB-query conn "start transaction;")
-      body ...
-      (DB-query conn "commit;")
-      (unless (db-conn-success? conn)
-        (DB-query conn "rollback;")
-        (throw 'artanis-err 500 with-transaction
-               (db-conn-failed-reason conn))))))
+      (catch #t
+        (lambda ()
+          body ...
+          (cond
+           ((db-conn-success? conn)
+            (DB-query conn "commit;")
+            (cond
+             ((db-conn-success? conn)
+              #t)
+             (else
+              ;; NOTE: `commit' failure happens in various situations,
+              ;;       we return #f here in the hope that users should treat
+              ;;       it as a whole `body' failure.
+              ;;       Although the `body' may not be idempotent, you'd
+              ;;       better treat unknown outcome as failure for retry
+              ;;       safety.
+              ;;
+              ;; NOTE: The advices:
+              ;; 1. body is idempotent, try it again.
+              ;; 2. body is not idempotent, you must reconcile/query confirm.
+              ;;
+              ;; NOTE: We can't throw here, since it will be caught and do
+              ;;       rollback, it's impossible to rollback when it was
+              ;;       committed.
+              (artanis-warn "Transaction commit failed `~a'~%"
+                            (list 'body ...))
+              #f)))
+           (else
+            (throw 'artanis-err 500 with-transaction
+                   "Transaction failed `~a'" (list 'body ...))
+            #f)))
+        (lambda e
+          (DB-query conn "rollback;")
+          (apply throw e))))))
