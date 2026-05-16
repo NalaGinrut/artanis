@@ -1218,7 +1218,7 @@
   (syntax-rules (-> :anno:)
     ((_ (op args ...) (:anno: (targs ...) -> func-types ...) body ...)
      (begin
-       (define (op args ...)
+       (define-public (op args ...)
          (when (get-conf 'debug-mode) (check-args-types op (list args ...)))
          (call-with-values
              (lambda () body ...)
