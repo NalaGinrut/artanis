@@ -1021,45 +1021,63 @@
   (parameterize ((sql-to-string? #t))
     body ...))
 
+(define-syntax-rule (obsolete-current-DB-conn! rc)
+  (recycle-DB-conn conn #:trustable? #f)
+  (rc-conn! rc (get-conn-from-pool!)))
+
 ;; NOTE: Users have to get result by themselves.
 ;; NOTE: Due to the forbidden multi statements in some DBD (e.g., MySQL),
 ;;       we have to run each statement one by one.
+;; NOTE: The caller has the responsibility to throw exception if query status
+;;       is not successful, and the transaction will be rolled back by the
+;;       `catch'.
+;;
+;; NOTE: Please notice that some errors will cause recreate DB connection,
+;;       e.g, the DB server restarted due to certain reason.
 (define-syntax-rule (with-transaction rc body ...)
   (let ((conn (rc-conn rc)))
     (parameterize ((current-dbconn conn))
       (DB-query conn "start transaction;")
+      (when (not (db-conn-success? conn))
+        (throw 'artanis-transaction-begin-failed))
       (catch #t
         (lambda ()
-          body ...
-          (cond
-           ((db-conn-success? conn)
-            (DB-query conn "commit;")
+          (let ((ret (begin body ...)))
             (cond
              ((db-conn-success? conn)
-              'success)
+              (DB-query conn "commit;")
+              (cond
+               ((db-conn-success? conn)
+                ret)
+               (else
+                ;; NOTE: `commit' failure happens in various situations,
+                ;;       we return `unknown', and users should treat
+                ;;       it as a whole `body' failure.
+                ;;       Please notice that the `body' may not be idempotent,
+                ;;       you'd better treat unknown outcome as failure for
+                ;;       retry safety.
+                ;;
+                ;; NOTE: The advices:
+                ;; 1. body is idempotent, try it again.
+                ;; 2. body is not idempotent, you must reconcile to confirm.
+                ;;
+                ;; NOTE: We can't throw here, since it will be caught and do
+                ;;       rollback, it's impossible to rollback when it was
+                ;;       committed.
+                (artanis-warn "Transaction commit failed `~a'~%"
+                              (list 'body ...))
+                ;; NOTE: The unknown may imply the DB connection is in a bad
+                ;;       state, so we recycle it and get a new one.
+                (obsolete-current-DB-conn! rc))))
              (else
-              ;; NOTE: `commit' failure happens in various situations,
-              ;;       we return #f here in the hope that users should treat
-              ;;       it as a whole `body' failure.
-              ;;       Although the `body' may not be idempotent, you'd
-              ;;       better treat unknown outcome as failure for retry
-              ;;       safety.
-              ;;
-              ;; NOTE: The advices:
-              ;; 1. body is idempotent, try it again.
-              ;; 2. body is not idempotent, you must reconcile/query confirm.
-              ;;
-              ;; NOTE: We can't throw here, since it will be caught and do
-              ;;       rollback, it's impossible to rollback when it was
-              ;;       committed.
-              (artanis-warn "Transaction commit failed `~a'~%"
-                            (list 'body ...))
-              'unknown)))
-           (else
-            (throw 'artanis-err 500 with-transaction
-                   "Transaction failed `~a'" (list 'body ...))
-            'failed)))
+              (throw 'artanis-err 500 with-transaction
+                     "Transaction failed `~a'" (list 'body ...))
+              'transaction-status-failed))))
         (lambda e
+          (when (eq? (car e) 'artanis-transaction-begin-failed)
+            (obsolete-current-DB-conn! rc)
+            (throw 'artanis-err 500 with-transaction
+                   "Failed to start transaction! Was DB server restarted?"))
           (DB-query conn "rollback;")
           (cond
            ((db-conn-success? conn)
@@ -1068,4 +1086,8 @@
            (else
             (artanis-warn
              "Transaction rollback, this DB connection will be reopened!")
-            (recycle-DB-conn conn #:trustable? #f))))))))
+            ;; NOTE: If the rollback failed, first, we untrust the DB conn.
+            ;;       So we forcely recycle it and close it. And we will get
+            ;;       a new conn to this rc in case any later use.
+            (obsolete-current-DB-conn! rc)
+            'transaction-rolled-back-failed)))))))
