@@ -260,7 +260,7 @@
 ;;    (->sql select * from 'user (where #:a 1))
 ;;    => "select * from user where a=\"1\" ;"
 (define-syntax sql-select
-  (syntax-rules (* where from distinct order by group having as)
+  (syntax-rules (* where from distinct order by group having as join on)
     ((_ * from table)
      (-> "* from ~a" table))
     ((_ field from table)
@@ -269,6 +269,9 @@
          (-> "~a from ~a" field table)))
     ((_ fields as name from table)
      (-> "~{~a~^,~} as ~a from ~a" fields 'name table))
+    ((_ fields from table-1 t1-alias join table-2 t2-alias on cond cond-str)
+     (-> "~{~a~^,~} from ~a ~a join ~a ~a on ~a~a"
+         fields table-1 t1-alias table-2 t2-alias (->cond 'cond) cond-str))
     ((_ fields from table where rest ...)
      (->where (sql-select fields from table) rest ...))
     ((_ fields from table cond-str)
