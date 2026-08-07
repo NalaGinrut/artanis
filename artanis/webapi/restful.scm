@@ -21,6 +21,8 @@
   #:use-module (artanis utils)
   #:use-module (artanis tpl)
   #:use-module (artanis env)
+  #:use-module (artanis irregex)
+  #:use-module (ice-9 ftw)
   #:use-module (ice-9 format)
   #:export (do-restful-api-create
             define-restful-api
@@ -38,7 +40,8 @@
            (define-module (app api version)
              #:use-module (artanis artanis)
              #:use-module (artanis env)
-             #:use-module (artanis utils))
+             #:use-module (artanis utils)
+             #:declarative? #f)
            (define-syntax #,(datum->syntax x 'api-define)
              (syntax-rules ::: ()
                ((_ method rest rest* :::)
@@ -47,15 +50,19 @@
                  (format #f "/api/~a/~a" 'version 'method)
                  (draw-expander rest rest* :::))))))))))
 
-(define-syntax-rule (scan-restful-api)
-  (scan-app-components 'api))
+(define *api-file-re* (string->irregex "^v[0-9.]+\\.scm"))
+(define (scan-restful-api)
+  (define (is-api? f)
+    (irregex-match *api-file-re* f))
+  (let ((path (format #f "~a/app/api" (current-toplevel))))
+    (scandir path is-api?)))
 
 (define (load-app-restful-api)
   (display "Loading restful API...\n" (artanis-current-output))
   (use-modules (artanis webapi restful)) ; black magic to make Guile happy
   (for-each
    (lambda (s)
-     (load (format #f "~a/app/api/~a.scm" (current-toplevel) s)))
+     (load (format #f "~a/app/api/~a" (current-toplevel) s)))
    (scan-restful-api)))
 
 (define (register-restful-api)
