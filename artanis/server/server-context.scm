@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016-2025
+;;  Copyright (C) 2016-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -120,13 +120,13 @@
    loader))
 
 (define-record-type ragnarok-server
-    (fields
-     epfd
-     listen-socket
-     work-table  ; a table contains continuations
-     ready-queue ; a queue contains connect socket
-     event-set
-     services))  ; a table to hold all redirectors (int -> redirector)
+  (fields
+   epfd
+   listen-socket
+   work-table  ; a table contains continuations
+   ready-queue ; a queue contains connect socket
+   event-set
+   services))  ; a table to hold all redirectors (int -> redirector)
 
 (define *high-prio-mutex* (make-mutex))
 (define *high-prio-table* (make-hash-table))
@@ -141,7 +141,7 @@
   (:anno: (ragnarok-client) -> ANY)
   (with-mutex
    *high-prio-mutex*
-   (hash-set! *high-prio-table* client)))
+   (hash-set! *high-prio-table* client #t)))
 
 (::define (is-high-prio-task? client)
   (:anno: (ragnarok-client) -> boolean)
