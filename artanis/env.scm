@@ -75,7 +75,7 @@
             oh-ref
             is-mmapped-file?
             register-mmapped-file!
-            http-status
+            http-status-register!
             get-syspage-handler
             register-cache-handler!
             has-cache-handler?
@@ -261,7 +261,7 @@
   (hashv-ref *mmapped-bv-from-file* fd #f))
 
 (define *sys-page-handlers* (make-hash-table))
-(define (http-status status thunk)
+(define (http-status-register! status thunk)
   (hashv-set! *sys-page-handlers* status thunk))
 (define (get-syspage-handler status)
   (hashv-ref *sys-page-handlers* status #f))

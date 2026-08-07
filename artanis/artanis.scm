@@ -51,7 +51,7 @@
   #:use-module (ice-9 format)
   #:use-module (ice-9 threads)
   #:re-export ( ;; env
-               http-status
+               http-status-register!
 
                ;; page module
                response-emit
@@ -261,7 +261,7 @@
                               "~%Fare you well, your server is cold.~%")))
 
   ;; define default system error status
-  (http-status 408 (lambda () ""))
+  (http-status-register! 408 (lambda () ""))
 
   (is-init-server-run? #t))
 
@@ -322,6 +322,15 @@
    (else (format (artanis-current-output)
                  "[WARN] You're not in application folder, the file motoring is disabled!~%"))))
 
+(define (is-db-enabled? use-db?)
+  (cond
+   ((or use-db? (get-conf '(db enable)))
+    (display "User wants to use Database, initializing...\n")
+    #t)
+   (else
+    (display "Database is not enabled. Make sure you have no models.\n")
+    #f)))
+
 ;; Invalid use-db? must be (dbd username passwd) or #f
 (define* (run #:key (host #f) (port #f) (debug #f) (use-db? #f) (db-proto #f) (server #f)
               (dbd #f) (db-username #f) (db-passwd #f) (db-name #f) (db-addr #f))
@@ -349,9 +358,8 @@
   (when debug
     (display "DEBUG: ON\n")
     (init-debug-mode))
-  (when (or use-db? (get-conf '(db enable)))
+  (when (is-db-enabled? use-db?)
     (conf-set! '(db enable) #t)
-    (display "User wants to use Database, initializing...\n")
     (init-database-config dbd db-username db-passwd db-name db-addr db-proto)
     (init-DB)
     (display "DB init done!\n")
