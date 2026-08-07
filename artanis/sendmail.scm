@@ -21,6 +21,7 @@
   #:use-module (artanis utils)
   #:use-module (artanis config)
   #:use-module (artanis mime)
+  #:use-module (artanis security hash)
   #:use-module ((rnrs) #:select (define-record-type))
   #:use-module (ice-9 popen)
   #:export (make-simple-mail-sender
@@ -53,8 +54,8 @@
      (display " >\n" port))))
 
 (define-syntax-rule (add-header! sm new-header)
-  (let ((header (sendmail-header sm)))
-    (sendmail-header-set! sm (cons new-header header))))
+  (let ((header (sendmail-headers sm)))
+    (sendmail-headers-set! sm (cons new-header header))))
 
 (define-syntax-rule (add-attachment! sm file-with-path)
   (if (not (file-exists? file-with-path))
@@ -122,11 +123,14 @@
 
 (define (%send-the-mail sm t)
   (let* ((sender (sendmail-sender sm))
+         (recipient (sendmail-to sm))
          (account (sendmail-account sm))
-         (a-arg (if account
+         (a-arg (or account
                     (format #f "-a ~a" account)
                     ""))
-         (port (open-pipe* OPEN_WRITE sender a-arg "-i" "-t")))
+         (port (if account
+                   (open-pipe* OPEN_WRITE sender "-a" account "-i" "-t")
+                   (open-pipe* OPEN_WRITE sender "-i" "-t"))))
     (display t port)
     (unless (zero? (status:exit-val (close-pipe port)))
       (throw 'artanis-err 500 %send-the-mail
@@ -148,7 +152,7 @@
 (define* (make-simple-mail-sender from to
                                   #:key (sender (get-conf '(mail sender)))
                                   (account #f))
-  (let ((sm (make-sendmail sender from to "no subject" #f '() '())))
+  (let ((sm (make-sendmail account sender from to "no subject" #f '() '())))
     (lambda* (message #:key (attachements #f) (header #f) (subject #f))
       (if (string? message)
           (sendmail-message-set! sm message)
