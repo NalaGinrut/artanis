@@ -23,12 +23,12 @@
   #:use-module (artanis config)
   #:use-module (artanis server server-context)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 threads)
   #:export (ragnarok-scheduler
             schedule-with-command
             break-task
             close-task
             simply-quit
-            schedule-if-locked
             close-current-task!))
 
 ;; NOTE: We must pass parameters here, say, current-proto, etc.
@@ -50,17 +50,6 @@
 
 (define (simply-quit)
   (schedule-with-command 'simply-quit))
-
-(define-syntax-rule (schedule-if-locked mutex body ...)
-  (let lp ()
-    (cond
-     ((mutex-locked? mutex)
-      (break-task)
-      (lp))
-     (else
-      (with-mutex
-       mutex
-       body ...)))))
 
 (define (compute-prio proto client server)
   ;; TODO: how to compute priority
