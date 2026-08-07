@@ -24,6 +24,7 @@
   #:use-module (artanis route)
   #:use-module (artanis ssql)
   #:use-module (artanis db)
+  #:use-module (artanis logger)
   #:use-module (artanis irregex)
   #:use-module ((srfi srfi-1) #:renamer (symbol-prefix-proc 'srfi-1:))
   #:use-module (srfi srfi-9)
@@ -1022,8 +1023,9 @@
     body ...))
 
 (define-syntax-rule (obsolete-current-DB-conn! rc)
-  (recycle-DB-conn conn #:trustable? #f)
-  (rc-conn! rc (get-conn-from-pool!)))
+  (begin
+    (recycle-DB-conn (rc-conn rc) #:trustable? #f)
+    (rc-conn! rc (get-conn-from-pool!))))
 
 ;; NOTE: Users have to get result by themselves.
 ;; NOTE: Due to the forbidden multi statements in some DBD (e.g., MySQL),
@@ -1070,13 +1072,13 @@
                 ;;       state, so we recycle it and get a new one.
                 (obsolete-current-DB-conn! rc))))
              (else
-              (throw 'artanis-err 500 with-transaction
-                     "Transaction failed `~a'" (list 'body ...))
+              (artanis-warn "Transaction has error and failed to finish `~a'"
+                            (list 'body ...))
               'transaction-status-failed))))
         (lambda e
           (when (eq? (car e) 'artanis-transaction-begin-failed)
             (obsolete-current-DB-conn! rc)
-            (throw 'artanis-err 500 with-transaction
+            (throw 'artanis-err 500 'with-transaction
                    "Failed to start transaction! Was DB server restarted?"))
           (DB-query conn "rollback;")
           (cond
