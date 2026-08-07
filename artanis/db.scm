@@ -31,7 +31,8 @@
                         dbi-params-query
                         dbi-get_status
                         dbi-close
-                        dbi-get_row)
+                        dbi-get_row
+                        dbi-affected-rows)
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
   #:use-module (ice-9 threads)
@@ -44,6 +45,7 @@
             DB-get-all-rows
             DB-get-top-row
             DB-get-n-rows
+            DB-affected-rows
             db-conn-success?
             db-conn-failed-reason
             db-conn-returned-reason
@@ -165,8 +167,8 @@
             (else
              (throw 'artanis-err 500 get-conn-from-pool!
                     "BUG: Invalid DB pool mode `~a'" (get-conf '(db pool)))))
-          (schedule-if-locked
-           *conn-pool-mutex**
+          (with-mutex
+           *conn-pool-mutex*
            (queue-out! (*conn-pool*))))
       (error get-conn-from-pool! "Seems the *conn-pool* wasn't well initialized!"
              (*conn-pool*))))
@@ -197,7 +199,7 @@
 (define* (recycle-DB-conn conn #:key (trustable? #t))
   (cond
    ((*conn-pool*)
-    (monitor
+    (with-mutex
      *conn-pool-mutex*
      (if (or (not trustable?) (db-conn-is-closed? conn))
          ;; if the connection is unfortunetly closed, then we make a new one
@@ -216,7 +218,7 @@
 (define (init-connection-pool)
   (display "connection pools are initilizing...")
   (let ((poolsize (get-conf '(db poolsize))))
-    (*conn-pool*        ; hey, don't forget *conn-pool* is a parameter
+    (*conn-pool* ; hey, don't forget *conn-pool* is a parameter
      (let ((dbconns
             (map
              (lambda (_) (create-new-DB-conn))
@@ -224,7 +226,9 @@
        (list->queue dbconns)))
     ;; NOTEL: SQLite3 needs WAL to support connections pool.
     (when (eq? 'sqlite3 (get-conf '(db dbd)))
+      (display "000here......\n")
       (let ((conn (get-conn-from-pool!)))
+        (display "111here......\n")
         (DB-query conn (format #f "
 PRAGMA journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
@@ -379,6 +383,17 @@ PRAGMA busy_timeout = 5000;
           (else
            (throw 'artanis-err 500 DB-get-n-rows
                   "Failed to get rows: ~a" reason))))))))
+
+(define (DB-affected-rows conn)
+  (cond
+   ((not (<connection>? conn))
+    (throw 'artanis-err 500 DB-affected-rows
+           "Invalid DB connection ~a!" conn))
+   ((not (eq? (<connection>-status conn) 'open))
+    (throw 'artanis-err 500 DB-affected-rows
+           "Can't query from a closed connection ~a!" conn))
+   (else (dbi-affected-rows (<connection>-conn conn)))))
+
 ;;--------------------------------------------------------------------
 
 (define (init-DB)
