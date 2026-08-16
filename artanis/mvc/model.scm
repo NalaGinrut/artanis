@@ -137,7 +137,7 @@
       ((float) `(float ,@(get-integer-fractional-part opts)))
       ((double) `(double ,@(get-integer-fractional-part opts)))
       ((char-field) `(varchar ,@(get-maxlen opts)))
-      ((date-field) (apply date-field-handler name opts))
+      ((date-field) (apply date-field-handler (car opts) (cdr opts)))
       (else `(,name ,opts)))))
 
 (define (date-field-handler now . opts)

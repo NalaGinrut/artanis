@@ -336,6 +336,9 @@
     (#:primary-key    "PRIMARY KEY"            "PRIMARY KEY"     "PRIMARY KEY")
     (#:key            "KEY"                    #f                       'error)
     (#:auto-increment "AUTO_INCREMENT"         #f              "AUTOINCREMENT")
+    (#:auto-now       "DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+                      'error
+                      'error)
     (#:auto-now-once  "DEFAULT CURRENT_TIMESTAMP"
                       "DEFAULT CURRENT_TIMESTAMP"
                       "DEFAULT CURRENT_TIMESTAMP")
