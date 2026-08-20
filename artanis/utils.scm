@@ -66,7 +66,7 @@
             string-substitute nfx static-filename remote-info seconds-now local-time-stamp
             make-expires export-all-from-module!
             alist->hashtable expires->time-utc local-eval-string
-            time-expired? valid-method? mmap munmap get-random-from-dev
+            time-expired? valid-method? mmap munmap get-random-from-dev gen-uuid
             string->byteslist list-slice bv-slice uni-basename detect-type-name
             checkout-the-path make-string-template guess-mime prepare-headers
             new-stack new-queue stack-slots queue-slots stack-pop! stack-push!
@@ -160,6 +160,28 @@
                     "BUG: uppercase shouldn't be bytevector here (~a)!" ret))
            (string-upcase str))
           (else ret)))))))
+
+(define (gen-uuid)
+  (define linux-uuid "/proc/sys/kernel/random/uuid")
+  (define (hex-char->value c)
+    (let ((n (char->integer c)))
+      (+ (logand n #xF) (* 9 (ash n -6)))))
+  ;; RFC 4122 v4: segment 3 must start with "4" (version), segment 4
+  ;; must start with 8/9/a/b (variant, i.e. top two bits = "10").
+  (define (variant-char c)
+    (string-ref "89ab" (logand (hex-char->value c) #x3)))
+  (define (gen-from-urandom)
+    (let ((s3 (get-random-from-dev #:length 4))
+          (s4 (get-random-from-dev #:length 4)))
+      (string-concatenate
+       (list (get-random-from-dev #:length 8) "-"
+             (get-random-from-dev #:length 4) "-"
+             "4" (substring s3 1) "-"
+             (string (variant-char (string-ref s4 0))) (substring s4 1) "-"
+             (get-random-from-dev #:length 12)))))
+  (if (file-exists? linux-uuid)
+      (call-with-input-file linux-uuid read-line)
+      (gen-from-urandom)))
 
 (define-syntax-rule (local-eval-string str e)
   (local-eval
