@@ -297,6 +297,26 @@
               (where (/and #:id (sql-int 5) #:name (sql-text "Alice") #:active (sql-bool #t))))
        "select * from users where id=$1::INT and name=$2::TEXT and active=$3::BOOLEAN;"
        '(5 "Alice" #t)))
+
+    ;; Regression tests for `/id' under the DEFAULT (use-params? #t) path.
+    ;; Before this fix, add-param! had no sql-id? branch, so a column
+    ;; reference produced by `/id' was silently pushed into the params
+    ;; queue and bound as a literal value instead of being interpolated
+    ;; as a bare identifier -- wrong SQL semantics with no error raised.
+    ;; The pre-existing "/id in SELECT" test above only ever exercised the
+    ;; use-params? #f / fix-value path, so this gap had zero coverage.
+    (pass-if "/id with params on: no placeholder, no param pushed"
+      (params-query-equal?
+       (->sql select 'age from 'Persons (where #:id (/id name)))
+       "select age from Persons where id=name;"
+       '()))
+
+    (pass-if "/id mixed with a real value: only the value is parameterized"
+      (params-query-equal?
+       (->sql select * from 'articles
+              (where (/and #:guid (/id t2.article_id) #:status (sql-int 1))))
+       "select * from articles where guid=t2.article_id and status=$1::INT;"
+       '(1)))
     )
 
   ;; Test non-parameterized queries
@@ -351,6 +371,22 @@
          ;; For now, just check that it doesn't crash
          "select * from users where id=?;"
          '(5))))
+
+    ;; /id must produce a bare identifier regardless of DBD, since it never
+    ;; goes through make-placeholder at all.
+    (pass-if "/id with MySQL placeholders (identifier, not '?')"
+      (parameterize ((use-params? #t))
+        (params-query-equal?
+         (->sql select * from 'users (where #:name (/id other_table.name)))
+         "select * from users where name=other_table.name;"
+         '())))
+
+    (pass-if "/id with SQLite3 placeholders (identifier, not '?')"
+      (parameterize ((use-params? #t))
+        (params-query-equal?
+         (->sql select * from 'users (where #:name (/id other_table.name)))
+         "select * from users where name=other_table.name;"
+         '())))
     )
 
   ;; Test edge cases

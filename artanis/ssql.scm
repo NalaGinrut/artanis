@@ -148,17 +148,24 @@
 (define current-param-index (make-parameter 1))
 (define current-param-list (make-parameter (new-queue)))
 
-;; Add a parameter value and return appropriate placeholder
+;; Add a parameter value and return appropriate placeholder.
+;; NOTE: sql-id values (from `/id') are column/identifier references, not
+;;       literal values -- they must NEVER be pushed into the params queue
+;;       or bound as a placeholder. This branch must come first, before the
+;;       sql-type? check, since an identifier is never a typed literal.
 (define (add-param! value)
   (define-syntax-rule (fix x)
     (if (sql-type? x) (sql-type-value x) x))
-  (let* ((actual-value (if (sql-type? value) (sql-type-value value) value))
-         (placeholder (make-placeholder (current-param-index) value))
-         (index (current-param-index))
-         (params (current-param-list)))
-    (queue-in! params actual-value)
-    (current-param-index (+ index 1))
-    (fix placeholder)))
+  (cond
+   ((sql-id? value) (sql-id-name value))
+   (else
+    (let* ((actual-value (if (sql-type? value) (sql-type-value value) value))
+           (placeholder (make-placeholder (current-param-index) value))
+           (index (current-param-index))
+           (params (current-param-list)))
+      (queue-in! params actual-value)
+      (current-param-index (+ index 1))
+      (fix placeholder)))))
 
 (define-syntax ->
   (syntax-rules (end)
