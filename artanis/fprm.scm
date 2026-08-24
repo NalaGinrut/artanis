@@ -990,7 +990,7 @@
       ((ci-check ci-exists?) (apply checker #t tname args))
       ;; schema is always in downcase.
       ((schema) (get-table-schema tname))
-      ((row-exists?) (apply row-checker))
+      ((row-exists?) (->call row-checker))
       ((mod) (->call modifier))
       ((count) (->call counter))
       ((index) (->call indexer))
