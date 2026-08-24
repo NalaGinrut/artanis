@@ -44,16 +44,32 @@
              (write-header (car e) (cdr e) port)))))
        headers))
 
-(define (request-it url handle headers cert bv?)
+;; NOTE: `cert' and `verify-peer?' are two independent concerns and must
+;; not be conflated:
+;;   - `verify-peer?' controls whether curl validates the *server's*
+;;     certificate (CURLOPT_SSL_VERIFYPEER / CURLOPT_SSL_VERIFYHOST).
+;;     This should default to #t for any real HTTPS endpoint (e.g. a
+;;     third-party payment API). Only flip it to #f for local/dev
+;;     endpoints with self-signed certs.
+;;   - `cert' is an optional *client* certificate (CURLOPT_SSLCERT) used
+;;     for mutual TLS. Most third-party APIs (Stripe included) never need
+;;     this; it has nothing to do with whether the server cert is checked.
+;; Previously these were conflated: not passing `cert' silently disabled
+;; peer verification entirely, which is unsafe for any endpoint handling
+;; secrets or financial data.
+(define (request-it url handle headers cert verify-peer? bv?)
   (curl-easy-setopt handle 'url url)
   (curl-easy-setopt handle 'http-version 2)
   (curl-easy-setopt handle 'followlocation #t)
-  (cond
-   ((not cert)
-    (curl-easy-setopt handle 'ssl-verifypeer #f)
-    (curl-easy-setopt handle 'ssl-verifyhost #f))
-   (else
-    (curl-easy-setopt handle 'sslcert cert)))
+  (if verify-peer?
+      (begin
+        (curl-easy-setopt handle 'ssl-verifypeer #t)
+        (curl-easy-setopt handle 'ssl-verifyhost #t))
+      (begin
+        (curl-easy-setopt handle 'ssl-verifypeer #f)
+        (curl-easy-setopt handle 'ssl-verifyhost #f)))
+  (when cert
+    (curl-easy-setopt handle 'sslcert cert))
   (curl-easy-setopt handle 'httpheader
                     (gen-headers-list headers))
   (let* ((ret (call-with-runner
@@ -66,8 +82,8 @@
          (errstr (curl-error-string)))
     (values ret code errstr)))
 
-(define (get-result url method handle headers cert bv?)
-  (let-values (((ret code errstr) (request-it url handle headers cert bv?)))
+(define (get-result url method handle headers cert verify-peer? bv?)
+  (let-values (((ret code errstr) (request-it url handle headers cert verify-peer? bv?)))
     (when (not ret)
       (curl-easy-cleanup handle)
       (throw 'artanis-error 500 get-result
@@ -94,38 +110,38 @@
         (curl-easy-cleanup handle)
         (values res body))))))
 
-(define* (artanis:http-head url #:key (headers '()) (cert #f))
+(define* (artanis:http-head url #:key (headers '()) (cert #f) (verify-peer? #t))
   (let ((handle (curl-easy-init)))
     (curl-easy-setopt handle 'nobody #t)
-    (get-result url artanis:http-head handle headers cert #f)))
+    (get-result url artanis:http-head handle headers cert verify-peer? #f)))
 
-(define* (artanis:http-get url #:key (headers '()) (cert #f)
+(define* (artanis:http-get url #:key (headers '()) (cert #f) (verify-peer? #t)
                            (bytevector? #f))
   (let ((handle (curl-easy-init)))
     (curl-easy-setopt handle 'httpget #t)
-    (get-result url artanis:http-get handle headers cert bytevector?)))
+    (get-result url artanis:http-get handle headers cert verify-peer? bytevector?)))
 
-(define* (artanis:http-post url #:key (headers '()) (cert #f) (body #u8(0))
-                            (bytevector? #f) (customrequest #f))
+(define* (artanis:http-post url #:key (headers '()) (cert #f) (verify-peer? #t)
+                            (body #u8(0)) (bytevector? #f) (customrequest #f))
   (let ((handle (curl-easy-init)))
     (curl-easy-setopt handle 'httpget #f)
     (curl-easy-setopt handle 'post #t)
     (when customrequest
       (curl-easy-setopt handle 'customrequest customrequest))
     (curl-easy-setopt handle 'postfields body)
-    (get-result url artanis:http-post handle headers cert bytevector?)))
+    (get-result url artanis:http-post handle headers cert verify-peer? bytevector?)))
 
-(define* (artanis:http-patch url #:key (headers '()) (cert #f) (body #u8(0))
-                             (bytevector? #f))
-  (artanis:http-post url #:headers headers #:cert cert #:body body
-                     #:bytevector? bytevector? #:customrequest "PATCH"))
+(define* (artanis:http-patch url #:key (headers '()) (cert #f) (verify-peer? #t)
+                             (body #u8(0)) (bytevector? #f))
+  (artanis:http-post url #:headers headers #:cert cert #:verify-peer? verify-peer?
+                     #:body body #:bytevector? bytevector? #:customrequest "PATCH"))
 
-(define* (artanis:http-delete url #:key (headers '()) (cert #f) (body #u8(0))
-                              (bytevector? #f))
-  (artanis:http-post url #:headers headers #:cert cert #:body body
-                     #:bytevector? bytevector? #:customrequest "DELETE"))
+(define* (artanis:http-delete url #:key (headers '()) (cert #f) (verify-peer? #t)
+                              (body #u8(0)) (bytevector? #f))
+  (artanis:http-post url #:headers headers #:cert cert #:verify-peer? verify-peer?
+                     #:body body #:bytevector? bytevector? #:customrequest "DELETE"))
 
-(define* (artanis:http-put url #:key (headers '()) (cert #f) (body #u8(0))
-                           (bytevector? #f))
-  (artanis:http-post url #:headers headers #:cert cert #:body body
-                     #:bytevector? bytevector? #:customrequest "PUT"))
+(define* (artanis:http-put url #:key (headers '()) (cert #f) (verify-peer? #t)
+                           (body #u8(0)) (bytevector? #f))
+  (artanis:http-post url #:headers headers #:cert cert #:verify-peer? verify-peer?
+                     #:body body #:bytevector? bytevector? #:customrequest "PUT"))
