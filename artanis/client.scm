@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2022-2025
+;;  Copyright (C) 2022-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -36,12 +36,24 @@
 
 ;; It's recommended to use (artanis client) rather than (web client)
 
+;; NOTE: Guile's (web http) enforces structured values for *declared*
+;; headers -- e.g. 'authorization and 'content-type expect a parsed
+;; credentials/media-type object, not a raw string, and write-header will
+;; throw a match-error if you hand it "Bearer sk_xxx" directly (verified).
+;; Undeclared/custom header symbols (e.g. 'stripe-version) go through a
+;; generic fallback and accept plain strings fine.
+;; To let callers set declared headers with a raw value (as every real
+;; third-party API expects), a header entry may now be EITHER:
+;;   - a (name . value) pair, handled via write-header as before, or
+;;   - an already-formatted "Name: value" string, used verbatim.
 (define (gen-headers-list headers)
   (map (lambda (e)
-         (string-trim-both
-          (call-with-output-string
-           (lambda (port)
-             (write-header (car e) (cdr e) port)))))
+         (if (string? e)
+             e
+             (string-trim-both
+              (call-with-output-string
+               (lambda (port)
+                 (write-header (car e) (cdr e) port))))))
        headers))
 
 ;; NOTE: `cert' and `verify-peer?' are two independent concerns and must
