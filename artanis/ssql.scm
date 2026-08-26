@@ -26,7 +26,7 @@
   #:use-module (ice-9 receive)
   #:use-module (ice-9 format)
   #:use-module ((rnrs) #:select (define-record-type))
-  #:use-module ((srfi srfi-1) #:select (map-in-order filter-map))
+  #:use-module ((srfi srfi-1) #:select (map-in-order filter-map lset-difference))
   #:export (->sql
             where
             having
@@ -46,7 +46,8 @@
             sql-int sql-text sql-bool sql-numeric sql-double sql-real
             sql-bigint sql-smallint sql-varchar sql-char sql-timestamp
             sql-date sql-time sql-bytea sql-json sql-jsonb sql-uuid
-            sql-inet sql-cidr sql-macaddr sql-point sql-array))
+            sql-inet sql-cidr sql-macaddr sql-point sql-array
+            sql-literal? sql-literal-text sql-vector))
 
 (define (->string obj) (if (string? obj) obj (object->string obj)))
 
@@ -59,6 +60,7 @@
 (define (fix-value v)
   (match v
     ((? sql-id? id) (sql-id-name id))
+    ((? sql-literal? lit) (sql-literal-text lit))
     ((? number? num) num)
     ((? sql-type? t) (sql-type-value t))
     (else (format #f "'~a'" v))))
@@ -97,6 +99,25 @@
 (define (sql-macaddr val) (make-sql-type val "::MACADDR"))
 (define (sql-point val) (make-sql-type val "::POINT"))
 (define (sql-array vals elem-type) (make-sql-array vals elem-type))
+
+;; Generic escape hatch for values whose SQL type has no driver-level
+;; parameter-binding support at all (pgvector's `vector' oid isn't known
+;; to guile-dbi/guile-dbd-postgresql, unlike the built-in types above
+;; which all bind fine via sql-type + a placeholder). The text is
+;; spliced directly into the SQL string instead of going through
+;; add-param!/a placeholder -- callers are responsible for producing
+;; already-validated, safe text; this constructor does no validation of
+;; its own. Not vector-specific: any future type that hits the same
+;; driver-binding gap can build a constructor on top of this the same
+;; way sql-vector does below, instead of needing its own bypass wired
+;; into fix-value/add-param! separately.
+(define-record-type sql-literal (fields text))
+
+;; Fixed-length embedding vectors for pgvector. `floats' must already be
+;; validated by the caller (real numbers, correct dimension) -- this
+;; only formats them, it doesn't validate.
+(define (sql-vector floats)
+  (make-sql-literal (format #f "'[~{~a~^,~}]'::vector" (map exact->inexact floats))))
 
 ;; Generate placeholder based on database type and parameter index
 (define (type-detect value)
@@ -153,11 +174,16 @@
 ;;       literal values -- they must NEVER be pushed into the params queue
 ;;       or bound as a placeholder. This branch must come first, before the
 ;;       sql-type? check, since an identifier is never a typed literal.
+;; NOTE: sql-literal values (from `sql-vector' etc.) likewise must never be
+;;       pushed into the params queue -- their whole purpose is to bypass
+;;       parameter binding for types the driver can't bind, so they must be
+;;       checked before the parameterizing else branch, same tier as sql-id.
 (define (add-param! value)
   (define-syntax-rule (fix x)
     (if (sql-type? x) (sql-type-value x) x))
   (cond
    ((sql-id? value) (sql-id-name value))
+   ((sql-literal? value) (sql-literal-text value))
    (else
     (let* ((actual-value (if (sql-type? value) (sql-type-value value) value))
            (placeholder (make-placeholder (current-param-index) value))
@@ -304,7 +330,7 @@
      (-> "~a having ~a" (sql-select rest ...) what))))
 
 (define-syntax sql-insert
-  (syntax-rules (into values select)
+  (syntax-rules (into values select on-conflict do update)
     ((_ into table)
      (-> "into ~a" table))
     ((_ into table select rest ...)
@@ -334,7 +360,35 @@
              (map-in-order add-param! lst)
              (sql-select rest ...))
          (-> "into ~a (~{~a~^,~}) values (~{~a~^,~}) select ~a"
-             table fields (fix-values lst) (sql-select rest ...))))))
+             table fields (fix-values lst) (sql-select rest ...))))
+    ;; Upsert. update-cols defaults to "every inserted column except the
+    ;; conflict target columns" when omitted, since that's what an upsert
+    ;; normally means: overwrite everything else with the new row.
+    ((_ into table fields values lst on-conflict conflict-cols do update)
+     (sql-insert into table fields values lst on-conflict conflict-cols
+                 do update (lset-difference eq? fields conflict-cols)))
+    ;; Dispatches per-DBD since the syntax genuinely differs: postgres/
+    ;; sqlite3 (3.24+) use ON CONFLICT (...) DO UPDATE SET col=EXCLUDED.col;
+    ;; mysql has no conflict-target-column concept at all -- it uses
+    ;; ON DUPLICATE KEY UPDATE col=VALUES(col) and infers the colliding key
+    ;; itself. These are structurally different clauses, not one shared SQL
+    ;; template with find/replace, so each branch is spelled out.
+    ((_ into table fields values lst on-conflict conflict-cols do update update-cols)
+     (let ((vals-sql (if (use-params?)
+                          (map-in-order add-param! lst)
+                          (fix-values lst))))
+       (case (current-dbd)
+         ((postgresql sqlite3)
+          (-> "into ~a (~{~a~^,~}) values (~{~a~^,~}) on conflict (~{~a~^,~}) do update set ~{~a~^,~}"
+              table fields vals-sql conflict-cols
+              (map (lambda (c) (format #f "~a=excluded.~a" c c)) update-cols)))
+         ((mysql)
+          (-> "into ~a (~{~a~^,~}) values (~{~a~^,~}) on duplicate key update ~{~a~^,~}"
+              table fields vals-sql
+              (map (lambda (c) (format #f "~a=values(~a)" c c)) update-cols)))
+         (else (throw 'artanis-err 500 'sql-insert
+                      (format #f "on-conflict upsert not supported for DBD `~a'"
+                              (current-dbd)))))))))
 
 (define-syntax sql-update
   (syntax-rules (set where)
