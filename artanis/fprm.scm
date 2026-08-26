@@ -246,12 +246,16 @@
     ((json) (->0 name args))
     ((jsonb) (->0 name args))
 
-    ;; pgvector extension type: vector(N), N is a fixed dimension that
-    ;; must match the embedding model in use. Requires
-    ;; `CREATE EXTENSION IF NOT EXISTS vector;` to have been run on the
-    ;; target database already -- this layer only emits the column type,
-    ;; it doesn't install the extension.
-    ((vector) (->1 name args))
+    ;; pgvector extension type. With no args: bare `vector`, unconstrained
+    ;; dimension -- storage only, dimension checked at the application
+    ;; layer instead of the DB schema, so an embedding-model change never
+    ;; needs a column migration. With a size arg: `vector(N)`, a fixed
+    ;; dimension, which also enables ANN indexes (ivfflat/hnsw) later if
+    ;; retrieval volume ever grows enough to need one.
+    ;; Requires `CREATE EXTENSION IF NOT EXISTS vector;` to have been run
+    ;; on the target database already -- this layer only emits the column
+    ;; type, it doesn't install the extension.
+    ((vector) (if (null? args) (->0 name args) (->1 name args)))
 
     (else (throw 'artanis-err 500 ->postgresql-type "Invalid type name `~a'" name))))
 

@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2015-2026
+;;  Copyright (C) 2015-2025
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -138,13 +138,18 @@
       ((double) `(double ,@(get-integer-fractional-part opts)))
       ((char-field) `(varchar ,@(get-maxlen opts)))
       ((date-field) (apply date-field-handler (car opts) (cdr opts)))
-      ;; pgvector fixed-dimension type, e.g. (embedding vector (#:maxlen 1536)).
-      ;; Reuses #:maxlen (rather than inventing a #:dims keyword) since it's
-      ;; the same shape of concept char-field already uses: "a single
-      ;; parenthesized size argument on the type". #:maxlen is stripped out
-      ;; here and reassembled by ->1 in fprm.scm's ->postgresql-type into
-      ;; "vector(1536)".
-      ((vector) `(vector ,@(get-maxlen opts)))
+      ;; pgvector type. Dimension is optional: (embedding vector) yields a
+      ;; bare, unconstrained `vector` column; (embedding vector (#:maxlen N))
+      ;; yields a fixed `vector(N)` column. Reuses #:maxlen (rather than
+      ;; inventing a #:dims keyword) since it's the same shape of concept
+      ;; char-field already uses: "a single parenthesized size argument on
+      ;; the type". Only extract it when actually present -- otherwise pass
+      ;; opts through untouched, same as any other zero-arg type, instead
+      ;; of miscoding the whole opts list as a fake dimension.
+      ((vector)
+       (if (kw-arg-ref opts #:maxlen)
+           `(vector ,@(get-maxlen opts))
+           `(vector ,opts)))
       ;; NOTE: json/jsonb take no size argument, so they need no dedicated
       ;; case here -- they fall through to the `else' branch below exactly
       ;; like every other zero-arg type name, and are handled entirely by
