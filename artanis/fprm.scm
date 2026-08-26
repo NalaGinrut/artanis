@@ -159,6 +159,11 @@
     ;;       Values allowed in two-digit format: 70 to 69, representing years from 1970 to 2069
     ((boolean) (->0 name args))  ; BOOLEAN Stores TRUE or FALSE values
     ((year) (->0 name args))
+
+    ;; JSON Type (MySQL 5.7+): native JSON column type, validated on
+    ;; write and stored in an optimized binary form.
+    ((json) (->0 name args))
+
     (else (throw 'artanis-err 500 ->mysql-type "Invalid type name `~a'" name))))
 
 (define (->postgresql-type name . args)
@@ -231,6 +236,22 @@
 
     ;; Composite Types
     ;; TODO: do we really need this?
+
+    ;; JSON Types
+    ;; json stores an exact copy of the input text; jsonb stores it in a
+    ;; decomposed binary format (slightly slower to input, faster to
+    ;; process, supports indexing) -- jsonb is almost always the right
+    ;; default choice, json is kept for cases that need exact textual
+    ;; round-tripping.
+    ((json) (->0 name args))
+    ((jsonb) (->0 name args))
+
+    ;; pgvector extension type: vector(N), N is a fixed dimension that
+    ;; must match the embedding model in use. Requires
+    ;; `CREATE EXTENSION IF NOT EXISTS vector;` to have been run on the
+    ;; target database already -- this layer only emits the column type,
+    ;; it doesn't install the extension.
+    ((vector) (->1 name args))
 
     (else (throw 'artanis-err 500 ->postgresql-type "Invalid type name `~a'" name))))
 
