@@ -167,7 +167,19 @@
 (define (init-query! rc)
   ;; NOTE: All the prefix/postfix ":" in query/post keys are trimmed.
   ;;       Because only rule keys can use such naming.
-  (define (-> x) (string-trim-both x))
+  ;; PATCHED: previously this only trimmed whitespace and never
+  ;; percent-decoded or un-plussed the raw query string -- verified via
+  ;; (uri-query (string->uri "...?email=a%40b.com")) returning the
+  ;; literal "a%40b.com" unchanged. A standard browser GET with a form
+  ;; (or a hand-built link) percent-encodes "@"/space/etc. and encodes
+  ;; space as "+", so downstream code reading via `params' was getting
+  ;; still-encoded values. Decoding here (before (current-encoder) runs
+  ;; in `params') fixes that for every route using `params' on a GET
+  ;; query string, not just the wishlist/newsletter controllers that
+  ;; surfaced this.
+  (define (-> x)
+    (uri-decode (string-map (lambda (c) (if (char=? c #\+) #\space c))
+                            (string-trim-both x))))
   (let ((str (case (rc-method rc)
                ((GET) (uri-query (request-uri (rc-req rc))))
                ;; The accessor of GET and POST should be divided

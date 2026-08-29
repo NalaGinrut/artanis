@@ -799,8 +799,19 @@
       ((k v) (list (key-converter k) ((current-encoder) v)))
       (else (throw 'artanis-err 500 generate-kv-from-post-qstr
                    "Fatal! Can't be here `~a'!" lst))))
+  ;; PATCHED: previously this only trimmed whitespace/":"/CR and never
+  ;; percent-decoded or un-plussed the raw body -- verified by reading
+  ;; this function directly, no uri-decode call existed here. A
+  ;; standard application/x-www-form-urlencoded POST percent-encodes
+  ;; "@"/space/etc. and encodes space as "+", so every #:from-post
+  ;; consumer was getting still-encoded key/value strings. Decoding
+  ;; here (both k and v, before key-converter/(current-encoder) run)
+  ;; fixes that for every controller using #:from-post, not just
+  ;; wishlist/newsletter. Mirrors the same fix applied to
+  ;; (artanis route)'s init-query! for the GET query-string path.
   (define (-> x)
-    (string-trim-both x (lambda (c) (member c '(#\sp #\: #\return)))))
+    (uri-decode (string-map (lambda (c) (if (char=? c #\+) #\space c))
+                            (string-trim-both x (lambda (c) (member c '(#\sp #\: #\return)))))))
   (define (fix x)
     (cond
      ((string? x) x)
