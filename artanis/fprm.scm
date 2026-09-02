@@ -446,7 +446,7 @@
               ((#:unique name columns ...)
                (format #f "UNIQUE INDEX ~a (~{~a~^,~})" name columns))
               ((name columns ...)
-               (format #f "INDEX ~a (~{~a~^,~})" name colunms))
+               (format #f "INDEX ~a (~{~a~^,~})" name columns))
               (else (throw 'artanis-err 500 ->indexes
                            "Invalid index definition `~a'!" iexp))))
           index-exps)
@@ -1064,8 +1064,8 @@
 ;;
 ;; NOTE: Please notice that some errors will cause recreate DB connection,
 ;;       e.g, the DB server restarted due to certain reason.
-(define-syntax-rule (with-transaction rc body ...)
-  (let ((conn (rc-conn rc)))
+(define-syntax-rule (with-transaction rc/conn body ...)
+  (let ((conn get-conn-from-rc/conn rc/conn 'with-transaction))
     (parameterize ((current-dbconn conn))
       (DB-query conn "start transaction;")
       (when (not (db-conn-success? conn))
