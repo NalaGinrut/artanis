@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014-2025
+;;  Copyright (C) 2014-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -691,7 +691,7 @@
    ;; NOTE: Only used at the end of the handler (to replace response-emit)
    ;; e.g (get "/json" #:mime 'json
    ;;       (lambda (rc)
-   ;;         (let ((j (json (object ("name" "nala") ("age" "15")))))
+   ;;         (let ((j '(("name" "nala") ("age" "15"))))
    ;;           (:mime j))))
    ;; e.g (get "/csv" #:mime 'csv
    ;;       (lambda (rc)
