@@ -21,11 +21,32 @@
   #:use-module (artanis utils)
   #:use-module (artanis tpl)
   #:use-module (artanis env)
+  #:use-module (artanis irregex)
   #:use-module (ice-9 format)
-  #:export (do-controller-create
+  #:use-module ((srfi srfi-1) #:select (every))
+  #:use-module ((rnrs) #:select (define-record-type))
+  #:export (compose-theme-path
+            do-controller-create
             define-artanis-controller
             load-app-controllers
             register-controllers))
+
+(define *theme-segment-re* (string->irregex "^[a-zA-Z0-9_-]+$"))
+
+(define (valid-theme-segment? s)
+  (and (string? s)
+       (irregex-match *theme-segment-re* s)))
+
+(define-record-type <theme-path> (fields path))
+
+(define (compose-theme-path . segments)
+  (unless (every valid-theme-segment? segments)
+    (throw 'artanis-err 500 compose-theme-path
+           "Invalid theme path segment `~a'" segments))
+  (make-<theme-path> (string-join segments "/")))
+
+;; (compose-theme-path 'business "42" "7")   => "business/42/7"
+;; (compose-theme-path 'pro "minimal-01")    => "pro/minimal-01"
 
 (define-syntax define-artanis-controller
   (lambda (x)
@@ -39,22 +60,28 @@
              #:use-module (artanis artanis)
              #:use-module (artanis env)
              #:use-module (artanis utils))
-           (define-syntax-rule (#,(datum->syntax x 'view-render) method e)
-             (let ((file (format #f "~a/app/views/~a/~a.html.tpl"
-                                 (current-toplevel) 'name method)))
-               (cond
-                ((file-exists? file)
-                 (let ((html ((@@ (artanis tpl) tpl-render-from-file) file e)))
-                   ((@ (artanis artanis) response-emit) html)))
-                (else ((@ (artanis artanis) response-emit) "" #:status 404)))))
-           (define-syntax-rule (#,(datum->syntax x 'theme-render) theme method e)
-             (let ((file (format #f "~a/sys/themes/~a/~a/~a.html.tpl"
-                                 (current-toplevel) theme 'name method)))
-               (cond
-                ((file-exists? file)
-                 (let ((html ((@@ (artanis tpl) tpl-render-from-file) file e)))
-                   ((@ (artanis artanis) response-emit) html)))
-                (else ((@ (artanis artanis) response-emit) "" #:status 404)))))
+           (define-syntax #,(datum->syntax x 'view-render)
+             (syntax-rules ()
+               ((_ method e)
+                (let ((file (format #f "~a/app/views/~a/~a.html.tpl"
+                                    (current-toplevel) 'name method)))
+                  (cond
+                   ((file-exists? file)
+                    (let ((html ((@@ (artanis tpl) tpl-render-from-file) file e)))
+                      ((@ (artanis artanis) response-emit) html)))
+                   (else ((@ (artanis artanis) response-emit) "" #:status 404)))))
+               ((_ theme method e)
+                (when (not (<theme-path>? theme))
+                  (throw 'artanis-err 500 'view-render
+                         "Theme `~a' is not a valid <theme-path>, did you use `compose-theme-path' API?" theme))
+                (let ((file (format #f "~a/sys/themes/~a/~a/~a.html.tpl"
+                                    (current-toplevel)
+                                    (<theme-path>-path theme) 'name method)))
+                  (cond
+                   ((file-exists? file)
+                    (let ((html ((@@ (artanis tpl) tpl-render-from-file) file e)))
+                      ((@ (artanis artanis) response-emit) html)))
+                   (else ((@ (artanis artanis) response-emit) "" #:status 404)))))))
            (define-syntax #,(datum->syntax #'name (symbol-append (syntax->datum #'name) '-define))
              (syntax-rules ::: ()
                ((_ method rest rest* :::)
