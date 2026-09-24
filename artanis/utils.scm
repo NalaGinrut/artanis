@@ -390,7 +390,7 @@
       (lambda(ret errno)
         (cond
          ((not (= (pointer-address ret) MAP_FAILED)) ret)
-         (else (throw 'artanis-error mmap
+         (else (throw 'artanis-err 500 mmap
                       "Error: ~a" (strerror errno))))))))
 
 (define %munmap
@@ -406,7 +406,7 @@
     (lambda (ret errno)
       (cond
        ((>= ret 0) ret)
-       (else (throw 'artanis-error 500 munmap
+       (else (throw 'artanis-err 500 munmap
                     "Error: ~a" (strerror errno)))))))
 
 (define (file->bytevector filename)

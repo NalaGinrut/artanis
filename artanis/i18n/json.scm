@@ -40,7 +40,7 @@
 
 (::define (i18n-json-plural-ref lang key)
   (:anno: (string string +int) -> string)
-  (throw 'artanis-error 500 i18n-json-plural-ref
+  (throw 'artanis-err 500 i18n-json-plural-ref
          "Function is not implemented yet."))
 
 (define *i18n-json-file-re* (string->irregex "(.*)\\.json$"))

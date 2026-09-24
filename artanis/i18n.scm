@@ -55,7 +55,7 @@
                 (or (getter fixed-lang key)
                     key)))
           (else
-           (throw 'artanis-error 500 make-i18n-handler
+           (throw 'artanis-err 500 make-i18n-handler
                   "Unexpected: i18n getter is not initialized!"))))
         (((? string? key-single) (? string? key-plural) (? number? num))
          (cond
@@ -63,7 +63,7 @@
            => (lambda (getter)
                 (getter fixed-lang key-single key-plural num)))
           (else
-           (throw 'artanis-error 500 make-i18n-handler
+           (throw 'artanis-err 500 make-i18n-handler
                   "Unexpected: i18n plural getter is not initialized!"))))
         ((('money money))
          ;; NOTE: We recommend the name of currency rather than the symbol.
@@ -95,7 +95,7 @@
          (locale-day weekday locale))
         ((('month month))
          (locale-month month locale))
-        (else (throw 'artanis-error 500 make-i18n-handler
+        (else (throw 'artanis-err 500 make-i18n-handler
                      "Unknown i18n pattern" pattern))))))
 
 (define (init-i18n)

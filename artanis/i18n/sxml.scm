@@ -39,7 +39,7 @@
 
 (::define (i18n-sxml-plural-ref lang key)
   (:anno: (string string +int) -> string)
-  (throw 'artanis-error 500 i18n-sxml-plural-ref
+  (throw 'artanis-err 500 i18n-sxml-plural-ref
          "Function is not implemented yet."))
 
 (define *i18n-sxml-file-re* (string->irregex "(.*)\\.scm$"))

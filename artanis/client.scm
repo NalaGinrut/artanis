@@ -98,7 +98,7 @@
   (let-values (((ret code errstr) (request-it url handle headers cert verify-peer? bv?)))
     (when (not ret)
       (curl-easy-cleanup handle)
-      (throw 'artanis-error 500 get-result
+      (throw 'artanis-err 500 get-result
              (format #f "client error: method `~a', code `~a', errstr `~a'!"
                      method code errstr)))
     (let* ((res (call-with-input-string
@@ -115,7 +115,7 @@
       (cond
        ((not (zero? code))
         (curl-easy-cleanup handle)
-        (throw 'artanis-error 500 get-result
+        (throw 'artanis-err 500 get-result
                (format #f "client error: method `~a', code `~a', errstr `~a'!"
                        method code errstr)))
        (else
