@@ -18,6 +18,7 @@
 (define-module (artanis logger)
   #:use-module (artanis env)
   #:use-module (artanis utils)
+  #:use-module (artanis config)
   #:use-module (ice-9 threads)
   #:export (artanis-log
             artanis-warn
