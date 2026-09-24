@@ -23,7 +23,13 @@
   #:use-module (artanis server epoll)
   #:use-module (ice-9 threads)
   #:use-module ((rnrs) #:select (define-record-type))
-  #:export (make-ragnarok-engine
+  #:export (init-wakeup-fd!
+            wakeup-fd
+            wake-up-task!
+            take-woken-clients!
+            client-live-fd
+
+            make-ragnarok-engine
             ragnarok-engine?
             ragnarok-engine-name
             ragnarok-engine-breaker
@@ -127,6 +133,46 @@
    ready-queue ; a queue contains connect socket
    event-set
    services))  ; a table to hold all redirectors (int -> redirector)
+
+;; ========== Cross-thread wake-up ==========
+;; Other threads (e.g. runner workers) can't resume a Ragnarok task directly,
+;; since the work-table and the ready-queue belong to the server thread. They
+;; push the client to be resumed into *woken-clients*, then signal the wake-up
+;; eventfd, which is registered in epoll. So the server thread returns from
+;; epoll_wait, drains *woken-clients*, and puts their tasks into ready-queue.
+;; The eventfd is only a doorbell, *woken-clients* tells who to wake up.
+;; NOTE: We push the client rather than its fd, so that the server thread can
+;;       check the task of the fd still belongs to the same client (eq?), in
+;;       case the fd has been closed and reused by another connection.
+;; NOTE: Only for the single-threaded server core (server.workers = 1), since
+;;       the eventfd and *woken-clients* are global rather than per server.
+
+(define *woken-mutex* (make-mutex))
+(define *woken-clients* '())
+(define *wakeup-fd* #f)
+
+(define (init-wakeup-fd!)
+  (when (not *wakeup-fd*)
+    (set! *wakeup-fd* (eventfd-create)))
+  *wakeup-fd*)
+
+(define (wakeup-fd) *wakeup-fd*)
+
+;; Safe to be called from any thread, including the server thread.
+(define (wake-up-task! client)
+  (with-mutex *woken-mutex*
+    (set! *woken-clients* (cons client *woken-clients*)))
+  (eventfd-signal! *wakeup-fd*))
+
+;; Called from the server thread when epoll reports the eventfd readable.
+;; Returns the clients pushed by wake-up-task! since last call, oldest first.
+(define (take-woken-clients!)
+  (eventfd-drain! *wakeup-fd*)
+  (with-mutex *woken-mutex*
+    (let ((clients *woken-clients*))
+      (set! *woken-clients* '())
+      (reverse clients))))
+;; =========== end Cross-thread wake-up ===========
 
 (define *high-prio-mutex* (make-mutex))
 (define *high-prio-table* (make-hash-table))
@@ -303,6 +349,13 @@
         (throw 'artanis-err 410 client-sockport
                "The client was closed suddenly!"))))
      (else port))))
+
+;; Return the fd of the client, or #f if its port has been closed. Unlike
+;; client-sockport-descriptor, it never throws.
+(define (client-live-fd c)
+  (let ((port (car (unbox-type c))))
+    (and (not (port-closed? port))
+         (port->fdes port))))
 
 (::define (client-sockport-descriptor c)
   (:anno: (ragnarok-client) -> int)

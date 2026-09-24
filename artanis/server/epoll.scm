@@ -20,13 +20,66 @@
 (define-module (artanis server epoll)
   #:use-module (artanis utils)
   #:use-module (artanis config)
+  #:use-module (artanis ffi)
   #:use-module ((rnrs)
                 #:select (bytevector-s32-native-ref
                           bytevector-s32-native-set!
                           bytevector-u32-native-ref
                           bytevector-u32-native-set!
+                          bytevector-u64-native-ref
+                          bytevector-u64-native-set!
                           make-bytevector))
   #:use-module (system foreign))
+
+;; ========== eventfd ==========
+;; eventfd(2) is used as a doorbell for other threads to wake up the server
+;; thread blocking in epoll_wait. We call read/write directly rather than using
+;; ports, so it never goes through suspendable ports and their waiters, and it's
+;; safe to be called from any thread.
+
+(eval-when (eval load compile)
+  (ffi-binding ()
+    (define-c-function int eventfd (unsigned-int int))
+    (define-c-function ssize_t read (int '* size_t))
+    (define-c-function ssize_t write (int '* size_t))))
+
+(define EFD_CLOEXEC #o2000000)
+(define EFD_NONBLOCK #o4000)
+
+(define-public (eventfd-create)
+  (call-with-values
+      (lambda () (%eventfd 0 (logior EFD_CLOEXEC EFD_NONBLOCK)))
+    (lambda (fd errno)
+      (if (< fd 0)
+          (throw 'system-error 'eventfd-create "~A"
+                 (list (strerror errno)) (list errno))
+          fd))))
+
+;; Add 1 to the counter. Never blocks. EAGAIN means the counter is about to
+;; overflow, which implies there's a pending wake-up already, so ignore it.
+(define-public (eventfd-signal! fd)
+  (let ((bv (make-bytevector 8 0)))
+    (bytevector-u64-native-set! bv 0 1)
+    (call-with-values
+        (lambda () (%write fd (bytevector->pointer bv) 8))
+      (lambda (ret errno)
+        (when (and (< ret 0) (not (= errno EAGAIN)))
+          (throw 'system-error 'eventfd-signal! "~A"
+                 (list (strerror errno)) (list errno)))))))
+
+;; Read and reset the counter. Returns 0 if nothing is pending.
+(define-public (eventfd-drain! fd)
+  (let ((bv (make-bytevector 8 0)))
+    (call-with-values
+        (lambda () (%read fd (bytevector->pointer bv) 8))
+      (lambda (ret errno)
+        (cond
+         ((= ret 8) (bytevector-u64-native-ref bv 0))
+         ((= errno EAGAIN) 0)
+         (else
+          (throw 'system-error 'eventfd-drain! "~A"
+                 (list (strerror errno)) (list errno))))))))
+;; ========== end eventfd ==========
 
 (define-public EPOLL_CLOEXEC 2000000)
 (define-public EPOLL_NONBLOCK 4000)

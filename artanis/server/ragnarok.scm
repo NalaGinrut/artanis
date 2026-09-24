@@ -38,7 +38,7 @@
   #:use-module (artanis server scheduler)
   #:use-module (artanis server aio)
   #:use-module (artanis websocket named-pipe)
-  #:use-module ((srfi srfi-1) #:select (fold))
+  #:use-module ((srfi srfi-1) #:select (fold any))
   #:use-module (system repl error-handling)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-9 gnu)
@@ -99,6 +99,11 @@
     (DEBUG "Prepare for regnarok-open~%")
     (epoll-ctl epfd EPOLL_CTL_ADD listen-fd listen-event)
     (DEBUG "Added listenning port to epoll~%")
+    ;; The wake-up eventfd lets other threads (e.g. runner workers) resume a
+    ;; task. Level-triggered, so it's harmless even if it's not drained.
+    (let ((wfd (init-wakeup-fd!)))
+      (epoll-ctl epfd EPOLL_CTL_ADD wfd (make-epoll-event wfd EPOLLIN))
+      (DEBUG "Added wake-up eventfd to epoll~%"))
     (make-ragnarok-server epfd listen-socket wt ready-q event-set services)))
 
 ;; NOTE: make sure `client' is connect socket
@@ -214,15 +219,48 @@
       (= (car e) (port->fdes listen-socket))))
   ;;(DEBUG "Start to fill ready queue~%")
   ;;(print-work-table server)
-  (let ((epfd (ragnarok-server-epfd server))
-        (events (ragnarok-server-event-set server))
-        (timeout (get-conf '(server polltimeout)))
-        (rq (ragnarok-server-ready-queue server)))
+  (define (is-wakeup-fd? e)
+    (eqv? (car e) (wakeup-fd)))
+  (let* ((epfd (ragnarok-server-epfd server))
+         (event-set (ragnarok-server-event-set server))
+         (timeout (get-conf '(server polltimeout)))
+         (rq (ragnarok-server-ready-queue server))
+         (events (epoll-wait epfd event-set timeout))
+         (woken? (any is-wakeup-fd? events))
+         ;; epoll never returns an fd twice in one round, but a task may be
+         ;; restored by its own socket event AND woken up by another thread
+         ;; in the same round. If so, it must be queued only once, otherwise
+         ;; it may be served again after it has finished and been closed.
+         ;; So we record the fds queued in this round only when there's a
+         ;; wake-up to handle.
+         (enqueued (and woken? (make-hash-table))))
+    (define (enqueue! client)
+      (when enqueued
+        (hashv-set! enqueued (client-sockport-descriptor client) #t))
+      (ready-queue-in! rq client))
+    (define (resume-woken-client! client)
+      (let* ((fd (client-live-fd client))
+             (task (and fd (hashv-ref (work-table-content
+                                       (current-work-table server))
+                                      fd))))
+        (cond
+         ((not (and task (eq? (task-client task) client)))
+          ;; The task has gone, e.g. the peer closed the connection while
+          ;; the runner was working. Nothing to resume.
+          (DEBUG "Woken client ~a has no task, ignore~%" client))
+         ((hashv-ref enqueued fd)
+          (DEBUG "Woken fd ~a was already queued in this round~%" fd))
+         (else
+          (DEBUG "Woken up client ~a~%" fd)
+          (enqueue! client)))))
     (for-each
      (lambda (e)
        (DEBUG "Checking event ~a~%" e)
        (let ((client
               (cond
+               ((is-wakeup-fd? e)
+                (DEBUG "Wake-up eventfd is readable~%")
+                'wakeup)
                ((is-listenning-fd? e)
                 (DEBUG "New connection from listening socket ~a~%" e)
                 (accept-them-all (ragnarok-server-listen-socket server)))
@@ -261,10 +299,13 @@
            (for-each (lambda (c) (ready-queue-in! rq c)) client))
           ((ragnarok-client? client)
            (DEBUG "Restored client ~a~%" (client-ip client))
-           (ready-queue-in! rq client))
+           (enqueue! client))
+          ((eq? client 'wakeup) #t) ; handled after this round
           (else
            (DEBUG "The client ~a is ready to shutdown~%" e)))))
-     (epoll-wait epfd events timeout))))
+     events)
+    (when woken?
+      (for-each resume-woken-client! (take-woken-clients!)))))
 
 (define (handle-request handler request request-body)
   (define (request-error-handler k . e)
