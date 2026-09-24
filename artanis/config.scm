@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2013-2025
+;;  Copyright (C) 2013-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -239,6 +239,16 @@ The throughput will be dramatically increased when you set it to a larger number
    to implement thread local storage. But need more tests.
 NOTE: If the workers is larger than 1, then it implies server.multi = true.
 server.workers = <integer>")
+
+    ((server runners)
+     2
+     "The number of runner threads for asynchronous operations (call-with-runner).
+Runners are for blocking operations that can't be done by non-blocking I/O, say, file I/O,
+foreign blocking calls, etc. They're NOT for parallel computing. The server core is still
+single-threaded, and the task calling call-with-runner will be suspended until it's done.
+NOTE: The runner queue is unbounded. Overload protection (backpressure) is expected to be
+done by rate limiting in front of Artanis, e.g. by the reverse proxy.
+server.runners = <integer>")
 
     ((server websocket)
      #f
@@ -483,11 +493,23 @@ session.i18n = json | sxml | locale | <third-party-engine>")
                 #f
                 "Invalid db.pool value, we accept: ~{~a~^,~}" *pool-modes*)))))
 
-(define-syntax-rule (->workers x)
-  (let ((w (string->number x)))
+(define-syntax-rule (->positive-integer x err)
+  (let ((n (string->number x)))
     (cond
-     ((positive? w) w)
-     (else (error "Invalid server.workers number! Must be >= 1" x)))))
+     ((and (integer? n) (positive? n)) n)
+     (else (err x)))))
+
+(define-syntax-rule (->workers x)
+  (->positive-integer
+   x
+   (lambda (x)
+     (error "Invalid server.workers number! Must be >= 1" x))))
+
+(define-syntax-rule (->runners x)
+  (->positive-integer
+   x
+   (lambda (x)
+     (error "Invalid server.runners number! Must be >= 1" x))))
 
 (define (parse-namespace-db item)
   (match item
@@ -521,6 +543,7 @@ session.i18n = json | sxml | locale | <third-party-engine>")
     (('impl impl) (conf-set! '(server impl) (string->symbol impl)))
     (('multi multi) (conf-set! '(server multi) (->bool multi)))
     (('workers workers) (conf-set! '(server workers) (->workers workers)))
+    (('runners runners) (conf-set! '(server runners) (->runners runners)))
     (('engine engine) (conf-set! '(server engine) (->symbol engine)))
     (('websocket websocket) (conf-set! '(server websocket) (->bool websocket)))
     (('pub pub) (conf-set! '(server pub) (basename pub)))
