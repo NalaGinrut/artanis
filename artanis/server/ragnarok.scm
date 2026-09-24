@@ -599,7 +599,20 @@
                  (resources-collector)))
               (else
                (format (artanis-current-output)
-                       "Ingore it to avoid Ragnarok crash.~%")))))
+                       "Ignore it to avoid Ragnarok crash.~%")
+               ;; NOTE: The exception has escaped from the task, so the task
+               ;;       can't be continued any more. Close it, otherwise the
+               ;;       task and its fd are leaked. Any error here is ignored
+               ;;       as well, the server must not die.
+               ;; NOTE: close-current-task! is safe out of a task, it only
+               ;;       touches the null-task then.
+               (catch #t
+                 (lambda ()
+                   (when (ragnarok-client? client)
+                     (parameterize ((current-server server))
+                       (remove-named-pipe-if-the-connection-is-websocket! client)
+                       (close-current-task! server client))))
+                 (lambda _ #t))))))
          (DEBUG "main-loop again~%")
          (main-loop (get-one-request-from-clients http server))))
      (lambda ()
