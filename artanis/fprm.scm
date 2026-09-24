@@ -1065,7 +1065,14 @@
 ;; NOTE: Please notice that some errors will cause recreate DB connection,
 ;;       e.g, the DB server restarted due to certain reason.
 (define-syntax-rule (with-transaction rc/conn body ...)
-  (let ((conn get-conn-from-rc/conn rc/conn 'with-transaction))
+  (let ((conn (get-conn-from-rc/conn rc/conn 'with-transaction)))
+    ;; NOTE: A bad conn can only be swapped out for a fresh one when we were
+    ;;       given an rc, since the replacement has to be written back via
+    ;;       rc-conn!. When the caller passed a bare conn, it owns that conn's
+    ;;       lifecycle, so we leave it alone.
+    (define (obsolete-conn!)
+      (when (route-context? rc/conn)
+        (obsolete-current-DB-conn! rc/conn)))
     (parameterize ((current-dbconn conn))
       (DB-query conn "start transaction;")
       (when (not (db-conn-success? conn))
@@ -1081,8 +1088,8 @@
                 ret)
                (else
                 ;; NOTE: `commit' failure happens in various situations,
-                ;;       we return `unknown', and users should treat
-                ;;       it as a whole `body' failure.
+                ;;       we return `transaction-status-unknown', and users
+                ;;       should treat it as a whole `body' failure.
                 ;;       Please notice that the `body' may not be idempotent,
                 ;;       you'd better treat unknown outcome as failure for
                 ;;       retry safety.
@@ -1098,14 +1105,24 @@
                               (list 'body ...))
                 ;; NOTE: The unknown may imply the DB connection is in a bad
                 ;;       state, so we recycle it and get a new one.
-                (obsolete-current-DB-conn! rc))))
+                (obsolete-conn!)
+                'transaction-status-unknown)))
              (else
+              ;; NOTE: The body finished without throwing, but the last
+              ;;       statement failed. The transaction must still be
+              ;;       rolled back here: in PostgreSQL a failed statement
+              ;;       leaves the transaction in the aborted state, and a
+              ;;       conn returned to the pool in that state makes every
+              ;;       later query on it fail.
               (artanis-warn "Transaction has error and failed to finish `~a'"
                             (list 'body ...))
+              (DB-query conn "rollback;")
+              (when (not (db-conn-success? conn))
+                (obsolete-conn!))
               'transaction-status-failed))))
         (lambda e
           (when (eq? (car e) 'artanis-transaction-begin-failed)
-            (obsolete-current-DB-conn! rc)
+            (obsolete-conn!)
             (throw 'artanis-err 500 'with-transaction
                    "Failed to start transaction! Was DB server restarted?"))
           (DB-query conn "rollback;")
@@ -1119,5 +1136,5 @@
             ;; NOTE: If the rollback failed, first, we untrust the DB conn.
             ;;       So we forcely recycle it and close it. And we will get
             ;;       a new conn to this rc in case any later use.
-            (obsolete-current-DB-conn! rc)
+            (obsolete-conn!)
             'transaction-rolled-back-failed)))))))
