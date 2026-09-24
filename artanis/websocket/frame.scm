@@ -300,8 +300,10 @@
                    (else len7))))
         (unless (control-opcode? opcode)
           (when (> len data-limit)
+            ;; data-limit may be the frame limit or what is left of the
+            ;; message limit, so the text names neither.
             (throw 'websocket-err 1009 'read-websocket-frame
-                   "Frame too large: ~a > ~a" len data-limit))
+                   "Payload too large: ~a > ~a" len data-limit))
           (when (and (not final?) (< len min-fragment))
             (throw 'websocket-err 1008 'read-websocket-frame
                    "Fragment too small: ~a < ~a" len min-fragment)))
@@ -427,6 +429,14 @@
                                 (start 0)
                                 (count (- (bytevector-length payload) start)))
   (let ((opcode (type->opcode type)))
+    ;; Validate the slice before anything is written or marked, otherwise a
+    ;; bad slice leaves a header on the wire and the stream out of sync.
+    (unless (and (exact-integer? start) (exact-integer? count)
+                 (<= 0 start) (<= 0 count)
+                 (<= (+ start count) (bytevector-length payload)))
+      (throw 'websocket-err 1011 'write-websocket-frame
+             "Invalid slice: start ~a, count ~a, payload length ~a"
+             start count (bytevector-length payload)))
     (cond
      ((websocket-output-closed? port)
       (DEBUG "Drop a ~a frame, the websocket output is closed on ~a~%" type port)
@@ -466,17 +476,22 @@
            "Invalid data frame type `~a'" type))
   (let ((end (+ start count))
         (offset start)
-        (first? #t))
+        (first? #t)
+        (done? #f))
     (lambda (port)
-      (let* ((rest (- end offset))
-             (n (if (and (> fragment 0) (> rest fragment)) fragment rest))
-             (final? (= (+ offset n) end))
-             (written? (write-websocket-frame port final?
-                                              (if first? type 'continuation)
-                                              payload offset n)))
-        (set! first? #f)
-        (set! offset (+ offset n))
-        (or final? (not written?))))))
+      ;; Once the final fragment is written (or the output is closed), later
+      ;; calls write nothing, instead of an extra empty FIN continuation.
+      (or done?
+          (let* ((rest (- end offset))
+                 (n (if (and (> fragment 0) (> rest fragment)) fragment rest))
+                 (final? (= (+ offset n) end))
+                 (written? (write-websocket-frame port final?
+                                                  (if first? type 'continuation)
+                                                  payload offset n)))
+            (set! first? #f)
+            (set! offset (+ offset n))
+            (set! done? (or final? (not written?)))
+            done?)))))
 
 (define* (write-websocket-message port type payload
                                   #:key

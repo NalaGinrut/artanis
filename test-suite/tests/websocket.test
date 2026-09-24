@@ -21,6 +21,7 @@
 (define-module (test websocket)
   #:use-module (artanis websocket handshake)
   #:use-module (artanis websocket frame)
+  #:use-module (artanis websocket named-pipe)
   #:use-module (rnrs bytevectors)
   #:use-module (rnrs io ports)
   #:use-module (test-suite lib))
@@ -292,6 +293,29 @@
                  (write-websocket-frame p #t 'ping (bv))
                  (next! p)))))
 
+  (pass-if-equal "invalid slice writes nothing" '(1011 #vu8())
+    (call-with-values open-bytevector-output-port
+      (lambda (p get)
+        (let ((code (ws-code (write-websocket-frame p #t 'text (ascii "abc") 2 5))))
+          (list code (get))))))
+
+  (pass-if-equal "invalid slice of a close doesn't mark the output closed"
+    '(1011 #vu8() #f)
+    (call-with-values open-bytevector-output-port
+      (lambda (p get)
+        (let ((code (ws-code (write-websocket-frame p #t 'close (bv 3 232) -1 2))))
+          (list code (get) (websocket-output-closed? p))))))
+
+  (pass-if-equal "fragment writer writes nothing after the final fragment"
+    (list (bv-append (bv #x02 2) (ascii "ab") (bv #x80 1) (ascii "c")) '(#f #t #t))
+    (call-with-values open-bytevector-output-port
+      (lambda (p get)
+        (let* ((next! (make-fragment-writer 'binary (ascii "abc") 2))
+               (r1 (next! p))
+               (r2 (next! p))
+               (r3 (next! p)))
+          (list (get) (list r1 r2 r3))))))
+
   (pass-if-equal "control frame over 125 bytes" 1011
     (ws-code (written (lambda (p) (write-websocket-frame
                                    p #t 'ping (make-bytevector 126 0))))))
@@ -319,3 +343,10 @@
     (ws-code (written (lambda (p) (send-websocket-close
                                    p #:code 1000
                                    #:reason (make-string 124 #\a)))))))
+
+(with-test-prefix "websocket named-pipe"
+
+  (pass-if "closing a connection without a named-pipe"
+    (begin
+      (remove-named-pipe-if-the-connection-is-websocket! (list 'not-a-pipe-client))
+      #t)))
