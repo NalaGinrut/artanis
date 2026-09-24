@@ -1,0 +1,58 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  === Exception handler tests ===
+;;  Copyright (C) 2026
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License and GNU
+;;  Lesser General Public License published by the Free Software
+;;  Foundation, either version 3 of the License, or (at your option)
+;;  any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License and GNU Lesser General Public License
+;;  for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  and GNU Lesser General Public License along with this program.
+;;  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (test exception)
+  #:use-module (artanis utils)
+  #:use-module (test-suite lib))
+
+;; The generator returns 3 values like render-sys-page does.
+(define (gen status) (values 'response status 'exception))
+
+;; Throw with the given args, catch it like Ragnarok does, return the status
+;; passed to the generator.
+(define (status-of . args)
+  (call-with-values
+      (lambda ()
+        (catch 'artanis-err
+          (lambda () (apply throw 'artanis-err args))
+          (lambda e
+            (parameterize ((current-error-port (%make-void-port "w")))
+              (apply (make-unstop-exception-handler gen) e)))))
+    (lambda (r status s) status)))
+
+(with-test-prefix "unstop exception handler"
+
+  (pass-if-equal "valid shape with symbol" 404
+    (status-of 404 'foo "not found ~a" 1))
+
+  (pass-if-equal "valid shape with procedure" 403
+    (status-of 403 car "forbidden"))
+
+  (pass-if-equal "no status" 500
+    (status-of car "no status ~a" 1))
+
+  (pass-if-equal "no proc-name" 500
+    (status-of 500 "no proc-name ~a" 1))
+
+  (pass-if-equal "no fmt" 500
+    (status-of 500 'foo))
+
+  (pass-if-equal "nothing" 500
+    (status-of)))

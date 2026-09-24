@@ -106,4 +106,4 @@
     (else
      (if customized-scheduler
          (customized-scheduler cmd)
-         (throw 'artanis-err ragnarok-scheduler "Invalid command ~a" cmd)))))
+         (throw 'artanis-err 500 'ragnarok-scheduler "Invalid command ~a" cmd)))))

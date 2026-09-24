@@ -131,7 +131,7 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
     (lambda (ret errno)
       (cond
        ((checker ret)
-        (throw 'artanis-err 500 "NSS error: ~a" errno *nss-error-msg*))
+        (throw 'artanis-err 500 'gen-nss-api "NSS error: ~a~a" errno *nss-error-msg*))
        (else (caster ret))))))
 
 (define-syntax-rule (gen-common-api expr ...)

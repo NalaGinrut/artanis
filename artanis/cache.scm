@@ -151,7 +151,7 @@
       (('private . maxage)
        (let ((m (if (null? maxage) (get-conf '(cache maxage)) (car maxage))))
          `(private ,(cons 'max-age m))))
-      (else (throw 'artanis-err try-to-cache-dynamic-content
+      (else (throw 'artanis-err 500 'try-to-cache-dynamic-content
                    "Invalid opts `~a'!" o))))
   (cache-to-tlb! rc etag) ; cache the hash to the TLB
   (response-emit body #:headers `(,@headers
@@ -234,7 +234,7 @@
              ((? integer? m) m)
              (((? integer? m)) m)
              (() (get-conf '(cache maxage)))
-             (else (throw 'artanis-err ->maxage "Invalid maxage `~a'!" maxage)))))
+             (else (throw 'artanis-err 500 '->maxage "Invalid maxage `~a'!" maxage)))))
     (DEBUG "Cache maxage is ~a~%" m)
     m))
 

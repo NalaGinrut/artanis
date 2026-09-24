@@ -1403,19 +1403,31 @@
             (format #f "artanis/~a" (irregex-match-substring m 1))
             filename))
       "In unknown file"))
+;; NOTE: The only valid shape is:
+;;       (throw 'artanis-err status proc-name fmt args ...)
+;;       For any other shape we print a BUG warning and still render a 500
+;;       page, so that the caller always gets (values response body ...) and
+;;       the task can be closed normally. It must never re-throw from here,
+;;       otherwise the exception escapes to the outermost catch and the task
+;;       and its fd are leaked.
+;; NOTE: It's only used within a catch of a specific key ('artanis-err or
+;;       'resources-collector), so no control key (e.g. quit) can reach here.
 (define-syntax-rule (make-unstop-exception-handler syspage-generator)
   (let ((port (current-error-port))
         (filename (current-filename)))
     (lambda (k . e)
       (match e
         (((? procedure? subr) (? string? msg) . args)
+         (format port "~a~%"
+                 (WARN-TEXT "BUG: exception without status, render 500 for it!"))
          (format port "Captured in <~a>~%" (WARN-TEXT (->reasonable-file filename)))
          (when subr (format port "In procedure ~a :~%"
                             (WARN-TEXT (procedure-name->string subr))))
          (apply format port
                 (REASON-TEXT (string-append "[REASON] " msg))
                 args)
-         (newline port))
+         (newline port)
+         (syspage-generator 500))
         (((? integer? status) (or (? symbol? subr) (? procedure? subr))
           (? string? msg) . args)
          (format port "HTTP ~a~%" (STATUS-TEXT status))
@@ -1433,11 +1445,11 @@
          (newline port)
          (syspage-generator status))
         (else
-         (format port "~a - ~a~%"
+         (format port "~a - ~a ~a~%"
                  (WARN-TEXT
-                  "BUG: invalid exception format, but we throw it anyway!")
-                 e)
-         (apply throw k e))))))
+                  "BUG: invalid exception format, render 500 for it!")
+                 k e)
+         (syspage-generator 500))))))
 
 (define* (bv-copy/share bv #:key (from 0) (type 'vu8)
                         (size (- (bytevector-length bv) from)))
