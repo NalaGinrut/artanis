@@ -1,0 +1,129 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  === WebSocket server-side tests: idle connections, close codes ===
+;;  Copyright (C) 2026
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License and GNU
+;;  Lesser General Public License published by the Free Software
+;;  Foundation, either version 3 of the License, or (at your option)
+;;  any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License and GNU Lesser General Public License
+;;  for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  and GNU Lesser General Public License along with this program.
+;;  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (test ws-server)
+  #:use-module (artanis utils)
+  #:use-module (artanis server server-context)
+  #:use-module (artanis server websocket)
+  #:use-module (ice-9 threads)
+  #:use-module (test-suite lib))
+
+(define (new-client)
+  (let ((p (socketpair PF_UNIX SOCK_STREAM 0)))
+    (new-ragnarok-client (list (car p)))))
+
+(define (new-wt) (make-work-table (make-hash-table) (make-mutex)))
+
+;; A client with a task in wt, idle since `idle' seconds.
+(define* (client+task wt timeout idle)
+  (let* ((c (new-client))
+         (t (make-task c (- (current-time) idle) timeout #f #f #t)))
+    (add-a-task-to-work-table! wt c t)
+    c))
+
+(define idle-queues (@@ (artanis server server-context) *idle-queues*))
+
+(define (reset-idle!) (hash-clear! idle-queues))
+
+;; Watch client as if it was enqueued `ago' seconds ago.
+(define (watch! client timeout ago)
+  (idle-watch! client timeout)
+  (let ((q (hashv-ref idle-queues timeout)))
+    (set-cdr! (queue-tail q) (- (current-time) ago))))
+
+(define (queued timeout)
+  (let ((q (hashv-ref idle-queues timeout)))
+    (if q (queue-length q) 0)))
+
+(with-test-prefix "idle connections"
+
+  (pass-if "an idle task expires"
+    (reset-idle!)
+    (let* ((wt (new-wt)) (c (client+task wt 5 10)))
+      (watch! c 5 5)
+      (and (equal? (list c) (take-idle-expired! wt))
+           (zero? (queued 5)))))
+
+  (pass-if "an active task is watched again"
+    (reset-idle!)
+    (let* ((wt (new-wt)) (c (client+task wt 5 1)))
+      (watch! c 5 5)
+      (and (null? (take-idle-expired! wt))
+           (= 1 (queued 5))
+           ;; re-queued with the current time, so not due in this round
+           (null? (take-idle-expired! wt)))))
+
+  (pass-if "a head not due yet stops the scan"
+    (reset-idle!)
+    (let* ((wt (new-wt)) (c (client+task wt 5 10)))
+      (watch! c 5 1)
+      (and (null? (take-idle-expired! wt))
+           (= 1 (queued 5)))))
+
+  (pass-if "a gone task is dropped"
+    (reset-idle!)
+    (let* ((wt (new-wt)) (c (new-client)))
+      (watch! c 5 5)
+      (and (null? (take-idle-expired! wt))
+           (zero? (queued 5)))))
+
+  (pass-if "a closed connection is dropped"
+    (reset-idle!)
+    (let* ((wt (new-wt)) (c (client+task wt 5 10)))
+      (watch! c 5 5)
+      (remove-from-work-table! wt c #f)
+      (and (null? (take-idle-expired! wt))
+           (zero? (queued 5)))))
+
+  (pass-if "a task of another connection on the same fd is not expired"
+    (reset-idle!)
+    (let* ((wt (new-wt)) (c (client+task wt 5 10)) (other (new-client)))
+      (watch! c 5 5)
+      ;; Put another client's task under c's fd.
+      (hashv-set! (work-table-content wt) (client-sockport-descriptor c)
+                  (make-task other (- (current-time) 10) 5 #f #f #t))
+      (and (null? (take-idle-expired! wt))
+           (zero? (queued 5)))))
+
+  (pass-if "a busy task is not idle"
+    (reset-idle!)
+    (let* ((wt (new-wt)) (c (client+task wt 5 10)))
+      (watch! c 5 5)
+      (task-busy-begin! c #f)
+      (let ((r (take-idle-expired! wt)))
+        (task-busy-end! c)
+        (and (null? r) (= 1 (queued 5))))))
+
+  (pass-if-equal "queues of different timeouts" 2
+    (reset-idle!)
+    (let* ((wt (new-wt))
+           (a (client+task wt 5 10))
+           (b (client+task wt 30 40))
+           (c (client+task wt 30 1)))
+      (watch! a 5 5)
+      (watch! b 30 30)
+      (watch! c 30 30)
+      (length (take-idle-expired! wt)))))
+
+(with-test-prefix "close codes"
+
+  (pass-if-equal "HTTP status -> close code"
+    '(1011 1011 1008 1008 1009 1008 #f)
+    (map status->close-code '(500 503 401 403 413 404 408))))

@@ -130,6 +130,13 @@
    (task-kont task)
    ragnarok-scheduler))
 
+;; The protocol of the connection: the one it was switched to (e.g. WebSocket
+;; after the handshake), see the proto table, or the default one (HTTP).
+;; NOTE: It must be selected on each call, a connection may be switched while
+;;       it's served.
+(define (client-proto client default)
+  (or (specified-proto? client) default))
+
 (define (resources-collector)
   (define (remove-timemout-connections)
     (let* ((server (current-server))
@@ -154,8 +161,9 @@
                (lambda (r b s)
                  (catch #t
                    (lambda ()
-                     (ragnarok-write http server (task-client t) r b #f)
-                     (ragnarok-close http server (task-client t) #f))
+                     (let ((proto (client-proto (task-client t) http)))
+                       (ragnarok-write proto server (task-client t) r b #f)
+                       (ragnarok-close proto server (task-client t) #f)))
                    (lambda _
                      ;; ignore any error since there's no resource to handle.
                      (remove-named-pipe-if-the-connection-is-websocket! (task-client t))
@@ -231,18 +239,23 @@
          (woken? (any is-wakeup-fd? events))
          ;; Busy tasks whose deadline has passed, see Busy tasks.
          (expired (take-expired-busy-clients!))
+         ;; Idle long-lived connections, see Idle connections.
+         (idle (take-idle-expired! (current-work-table server)))
          ;; epoll never returns an fd twice in one round, but a task may be
          ;; restored by its own socket event AND woken up by another thread
          ;; (or by its deadline) in the same round. If so, it must be queued
          ;; only once, otherwise it may be served again after it has finished
          ;; and been closed. So we record the fds queued in this round only
          ;; when there's such a wake-up to handle.
-         (enqueued (and (or woken? (pair? expired)) (make-hash-table))))
+         (enqueued (and (or woken? (pair? expired) (pair? idle))
+                        (make-hash-table))))
     (define (enqueue! client)
       (when enqueued
         (hashv-set! enqueued (client-sockport-descriptor client) #t))
       (ready-queue-in! rq client))
-    (define (resume-woken-client! client)
+    ;; touch? is #f for an idle task: it's resumed to get its timeout, so its
+    ;; time must not be refreshed.
+    (define* (resume-woken-client! client #:optional (touch? #t))
       (let* ((fd (client-live-fd client))
              (task (and fd (hashv-ref (work-table-content
                                        (current-work-table server))
@@ -257,7 +270,7 @@
          (else
           (DEBUG "Woken up client ~a~%" fd)
           ;; Waiting for the server isn't idle, don't let the task timeout.
-          (update-task-time! task)
+          (when touch? (update-task-time! task))
           (enqueue! client)))))
     (define (handle-woken-item! item)
       (let ((client (car item))
@@ -283,7 +296,7 @@
                             (DEBUG "Connecting socket ~a was shutdown!~%" e)
                             (parameterize ((half-closed? s))
                               (ragnarok-close
-                               proto
+                               (client-proto client proto)
                                server
                                client
                                #t)
@@ -317,7 +330,8 @@
      events)
     (when woken?
       (for-each handle-woken-item! (take-woken-items!)))
-    (for-each resume-woken-client! expired)))
+    (for-each resume-woken-client! expired)
+    (for-each (lambda (client) (resume-woken-client! client #f)) idle)))
 
 (define (handle-request handler request request-body)
   (define (request-error-handler k . e)
@@ -383,12 +397,13 @@
                      (call-with-values
                          (lambda ()
                            (DEBUG "Ragnarok: start to read client ~a~%" client)
-                           (ragnarok-read proto server client))
+                           (ragnarok-read (client-proto client proto) server client))
                        (lambda (request body)
                          (call-with-values
                              (lambda ()
                                (let ((task (current-task)))
-                                 (when (and (allow-long-live-connection?)
+                                 (when (and (not (specified-proto? client))
+                                            (allow-long-live-connection?)
                                             (request-keep-alive? request))
                                    (task-keepalive?-set! task #t)))
                                (handle-request handler request body))
@@ -397,15 +412,23 @@
                              ;;       compatible with the continuation of Guile built-in
                              ;;       server, although it's useless in Ragnarok.
                              (DEBUG "Ragnarok: write client~%")
-                             (ragnarok-write proto server client response body
+                             (ragnarok-write (client-proto client proto)
+                                             server client response body
                                              (eq? 'HEAD (request-method request)))
-                             (let ((keepalive? (and (allow-long-live-connection?)
-                                                    (or (response-keep-alive? response)
-                                                        (task-keepalive? (current-task))))))
+                             ;; NOTE: A switched connection (e.g. WebSocket) is
+                             ;;       long-lived by its protocol, it doesn't
+                             ;;       depend on HTTP keep-alive or server.timeout.
+                             ;;       It's served until its protocol closes it, or
+                             ;;       an exception.
+                             (let ((keepalive? (or (specified-proto? client)
+                                                   (and (allow-long-live-connection?)
+                                                        (or (response-keep-alive? response)
+                                                            (task-keepalive? (current-task)))))))
                                (cond
                                 ((or (eq? request-status 'exception)
                                      (not keepalive?))
-                                 (ragnarok-close proto server client #f))
+                                 (ragnarok-close (client-proto client proto)
+                                                 server client #f))
                                 (else
                                  (DEBUG "Client ~a keep alive, status: ~a~%"
                                         (client-sockport client) request-status)
@@ -557,8 +580,9 @@
                                ;;       continuation, we have no way to manage exceptions here
                                ;;       but only ignore them.
                                (parameterize ((out-of-task-prompt? #t))
-                                 (ragnarok-write http server client r b #f)
-                                 (ragnarok-close http server client #f)))
+                                 (let ((proto (client-proto client http)))
+                                   (ragnarok-write proto server client r b #f)
+                                   (ragnarok-close proto server client #f))))
                              (lambda e
                                (DEBUG "An error occured outside of the task prmpt, ")
                                (DEBUG "we have no choice but ignore it.~%")
@@ -582,10 +606,11 @@
                        (format (artanis-current-output)
                                "Client `~a(~a)` was timeout, closed by server!"
                                (client-sockport client) (client-ip client))
-                       (ragnarok-close http server client #f))
+                       (ragnarok-close (client-proto client http) server client #f))
                       (else
-                       (ragnarok-write http server client r b #f)
-                       (ragnarok-close http server client #f)))))))
+                       (let ((proto (client-proto client http)))
+                         (ragnarok-write proto server client r b #f)
+                         (ragnarok-close proto server client #f))))))))
              (DEBUG "Serve one done~%"))
            (lambda e
              (format (artanis-current-output)
