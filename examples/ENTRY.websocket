@@ -1,0 +1,29 @@
+;; This an Artanis ENTRY file, don't remove it!
+
+ (use-modules (artanis artanis)
+              ;; Put modules you want to be imported here
+              ;; only for this file, not controllers/views
+
+              (artanis utils))
+ ;; Put whatever you want to be called before server initilization here
+
+ (init-server #:statics '(png gif jpg jpeg ico html js json csv xml css woff woff2 ttf))
+ (add-to-load-path (string-append (current-toplevel) "/lib"))
+ ;; Put whatever you want to be called before server running here
+
+ (get "/echo" #:websocket 'raw
+      (lambda (rc) (:websocket rc 'payload)))
+ (get "/room/:id" #:websocket '(proto chat)
+      (lambda (rc) (string-append (params rc "id") ":" (utf8->string (:websocket rc 'payload)))))
+ (get "/quiet" #:websocket 'raw
+      (lambda (rc) ""))
+ (get "/boom" #:websocket 'raw
+      (lambda (rc)
+        (let ((s (utf8->string (:websocket rc 'payload))))
+          (cond
+           ((string=? s "404") (throw 'artanis-err 404 'boom "nope"))
+           ((string=? s "scheme") (car '()))
+           (else (throw 'artanis-err 500 'boom "boom"))))))
+ (get "/short" #:websocket 'raw #:timeout 2
+      (lambda (rc) (:websocket rc 'payload)))
+ (get "/hello" (lambda (rc) "hello"))
