@@ -40,6 +40,9 @@
             deadline-after
             deadline-passed?
 
+            idle-watch!
+            take-idle-expired!
+
             make-ragnarok-engine
             ragnarok-engine?
             ragnarok-engine-name
@@ -320,6 +323,63 @@
    '()
    *busy-tasks*))
 ;; =========== end Busy tasks ===========
+;; ========== Idle connections ==========
+;; A long-lived connection (e.g. WebSocket) is idle when its task has been
+;; waiting for the peer longer than its timeout. The task timeout is only
+;; checked when the task is resumed, so an idle task must be resumed by the
+;; server to get its 408 (then the protocol closes it, e.g. a WebSocket close
+;; 1001).
+;; Lazy re-queue: there's one queue per timeout T, each item is
+;; (client . time-enqueued). Items are enqueued in time order, so only the
+;; head of each queue needs to be checked in each round. When an item is due
+;; (enqueued T ago), the task is expired if it's idle for T now, otherwise the
+;; item is enqueued again with the current time. So a task expires between T
+;; and 2T after its last activity.
+;; An item whose task has gone (or whose fd now belongs to another connection)
+;; is just dropped, nothing has to be done when a connection is closed.
+;; NOTE: Only for the single-threaded server core (server.workers = 1).
+;; NOTE: Server thread only.
+
+(define *idle-queues* (make-hash-table)) ; timeout -> queue
+
+;; Watch the task of client, timeout is its task timeout in seconds (> 0).
+(define (idle-watch! client timeout)
+  (let ((q (or (hashv-ref *idle-queues* timeout)
+               (let ((q (new-queue)))
+                 (hashv-set! *idle-queues* timeout q)
+                 q))))
+    (queue-in! q (cons client (current-time)))))
+
+;; Returns the clients whose task is idle for its timeout. They're removed
+;; from the watch: the resumed task is closed by its timeout.
+(define (take-idle-expired! wt)
+  (let ((now (current-time))
+        (tasks (work-table-content wt)))
+    (define (alive-task client)
+      (let* ((fd (client-live-fd client))
+             (task (and fd (hashv-ref tasks fd))))
+        (and task (eq? (task-client task) client) task)))
+    (hash-fold
+     (lambda (timeout q acc)
+       (let lp ((acc acc))
+         (cond
+          ((queue-empty? q) acc)
+          ;; The head isn't due yet, neither is the rest.
+          ((< (- now (cdr (queue-head q))) timeout) acc)
+          (else
+           (let* ((client (car (queue-out! q)))
+                  (task (alive-task client)))
+             (cond
+              ((not task) (lp acc))
+              ;; A busy task is waiting for the server, not idle.
+              ((and (not (task-busy? client)) (is-task-timeout? task))
+               (lp (cons client acc)))
+              (else
+               (queue-in! q (cons client now))
+               (lp acc))))))))
+     '()
+     *idle-queues*)))
+;; =========== end Idle connections ===========
 
 (define *high-prio-mutex* (make-mutex))
 (define *high-prio-table* (make-hash-table))
