@@ -1,0 +1,65 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  === Per-connection protocol table tests ===
+;;  Copyright (C) 2026
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License and GNU
+;;  Lesser General Public License published by the Free Software
+;;  Foundation, either version 3 of the License, or (at your option)
+;;  any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License and GNU Lesser General Public License
+;;  for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  and GNU Lesser General Public License along with this program.
+;;  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (test proto-table)
+  #:use-module (artanis env)
+  #:use-module (artanis server server-context)
+  #:use-module (ice-9 threads)
+  #:use-module (test-suite lib))
+
+(define *test-proto*
+  (make-ragnarok-protocol 'test-proto #f #f #f #f))
+(protocol-add! 'test-proto *test-proto*)
+
+(define (new-client)
+  (let ((p (socketpair PF_UNIX SOCK_STREAM 0)))
+    (new-ragnarok-client (list (car p)))))
+
+(define (new-wt) (make-work-table (make-hash-table) (make-mutex)))
+
+(with-test-prefix "proto table"
+
+  (pass-if "a plain connection has no protocol"
+    (not (specified-proto? (new-client))))
+
+  (pass-if-equal "register with state" (list *test-proto* 'st)
+    (let ((c (new-client)))
+      (register-proto! c 'test-proto 'st)
+      (list (specified-proto? c) (proto-conn-state c))))
+
+  (pass-if-equal "unknown protocol" 500
+    (catch 'artanis-err
+      (lambda () (register-proto! (new-client) 'no-such-proto) 'no-error)
+      (lambda (k status . _) status)))
+
+  (pass-if "the entry doesn't survive its connection"
+    ;; Close through remove-from-work-table!, then take the same fd number
+    ;; for a new connection: it must be a plain connection.
+    (let* ((c (new-client))
+           (fd (port->fdes (car ((@@ (artanis server server-context) unbox-type) c)))))
+      (register-proto! c 'test-proto 'st)
+      (remove-from-work-table! (new-wt) c #f)
+      (let lp ((n 0))
+        (let ((c2 (new-client)))
+          (cond
+           ((= fd (client-sockport-descriptor c2))
+            (not (specified-proto? c2)))
+           ((> n 16) (throw 'test-err "fd was not reused"))
+           (else (lp (1+ n)))))))))

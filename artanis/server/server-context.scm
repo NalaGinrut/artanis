@@ -121,7 +121,9 @@
             restore-working-client
 
             specified-proto?
+            proto-conn-state
             register-proto!
+            unregister-proto!
 
             current-task
             current-proto
@@ -540,6 +542,8 @@
   (:anno: (work-table ragnarok-client boolean) -> ANY)
   (DEBUG "Removed task ~a~%" (client-sockport client))
   (hashv-remove! (work-table-content wt) (client-sockport-descriptor client))
+  ;; Before the fd could be closed and reused.
+  (unregister-proto! client)
   (if (task-busy? client)
       ;; Another thread may still use the port, see Busy tasks.
       (defer-close! client)
@@ -559,17 +563,35 @@
   (:anno: (work-table int) -> ragnarok-client)
   (and=> (hashv-ref (work-table-content wt) fd) task-client))
 
-;; This is a table to record client and proto pairs (CP pairs), client is the
-;; key while protocol name is the value.
-;; NOTE: The CP pairs should be recorded in http-open handler,
+;; This is a table to record the protocol of a connection which is switched
+;; from HTTP, e.g. WebSocket after the handshake. The key is the fd, the value
+;; is (protocol . state), where state is the per-connection state owned by that
+;; protocol.
+;; NOTE: The entry is removed in remove-from-work-table!, every close path goes
+;;       through it. So the entry can never survive its connection, otherwise
+;;       a reused fd would be served by the wrong protocol.
+;; NOTE: Only for the single-threaded server core (server.workers = 1).
 (define *proto-conn-table* (make-hash-table))
 
+;; Returns the protocol record, or #f for a plain HTTP connection.
 (define (specified-proto? client)
   (and=> (hashv-ref *proto-conn-table* (client-sockport-descriptor client))
-         lookup-protocol))
+         car))
 
-(define (register-proto! client protoname)
-  (hashv-set! *proto-conn-table* (client-sockport-descriptor client) protoname))
+(define (proto-conn-state client)
+  (and=> (hashv-ref *proto-conn-table* (client-sockport-descriptor client))
+         cdr))
+
+(define* (register-proto! client protoname #:optional (state #f))
+  (let ((proto (lookup-protocol protoname)))
+    (when (not proto)
+      (throw 'artanis-err 500 'register-proto!
+             "Protocol `~a' isn't registered!" protoname))
+    (hashv-set! *proto-conn-table* (client-sockport-descriptor client)
+                (cons proto state))))
+
+(define (unregister-proto! client)
+  (hashv-remove! *proto-conn-table* (client-sockport-descriptor client)))
 
 
 ;; NOTE: We need this null-task as a placeholder to let task scheduling loop
