@@ -209,7 +209,8 @@
         (write-response-body res body)
         (force-output port))
        ((file-sender? body)
-        (call-with-runner (file-sender-thunk body)))
+        ;; No runner timeout: the runner writes to the client socket itself.
+        (call-with-runner (file-sender-thunk body) #:timeout 0))
        (else
         (throw 'artanis-err 500 http-write
                "Expected a bytevector for body" body)))))))

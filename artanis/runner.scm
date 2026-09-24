@@ -74,19 +74,31 @@
               (eq? (runner-state r) 'done)))
 
 (define (execute-runner! r)
-  (let ((result (catch #t
-                  (lambda ()
-                    (call-with-values (runner-thunk r)
-                      (lambda results
-                        (lambda () (apply values results)))))
-                  (lambda args
-                    (lambda () (apply throw args))))))
-    ;; NOTE: The result must be ready before waking up the task. Otherwise the
+  (let ((result
+         (cond
+          ((task-abandoned? (runner-client r))
+           ;; The task has gone or given up waiting before we start, e.g.
+           ;; the peer closed the connection, or the runner timed out while
+           ;; queued. Don't run it, nobody will take the result.
+           (lambda ()
+             (throw 'artanis-err 500 execute-runner!
+                    "The runner was abandoned before it started")))
+          (else
+           (catch #t
+             (lambda ()
+               (call-with-values (runner-thunk r)
+                 (lambda results
+                   (lambda () (apply values results)))))
+             (lambda args
+               (lambda () (apply throw args))))))))
+    ;; NOTE: The result must be ready before notifying Ragnarok. Otherwise the
     ;;       task may be resumed, find it pending, and be suspended forever.
     (with-mutex (runner-mutex r)
                 (set-runner-result! r result)
                 (set-runner-state! r 'done))
-    (wake-up-task! (runner-client r))))
+    ;; NOTE: Always notify, even if the task has gone, since Ragnarok owns the
+    ;;       state of the runner and may be deferring the close of connection.
+    (notify-task-done! (runner-client r))))
 
 ;; Captured at load time, before the server binds any parameter.
 (define *clean-dynamic-state* (current-dynamic-state))
@@ -133,7 +145,15 @@
    (queue-in! *runner-queue* r)
    (signal-condition-variable *runner-available*)))
 
-(define (call-with-runner thunk)
+;; #:timeout is the max seconds to wait for the runner, default to
+;; server.timeout. 0 or #f means no limit. When it's passed, the task gives up
+;; waiting and throws 504, but the runner can't be cancelled: it keeps running
+;; until the thunk returns, and its result is dropped.
+;; NOTE: If the thunk writes to the client socket (e.g. sending a file), use
+;;       #:timeout 0, since the task can't respond while the runner is still
+;;       writing to the same socket.
+;; NOTE: #:timeout is ignored when the thunk is run in place (see below).
+(define* (call-with-runner thunk #:key (timeout (get-conf '(server timeout))))
   (cond
    ((or (within-runner?) (not (ragnarok-client? (current-client))))
     ;; Already in a runner thread, or not in a Ragnarok task (so there's no
@@ -141,16 +161,30 @@
     (thunk))
    (else
     (let* ((client (current-client))
+           (deadline (and timeout (positive? timeout)
+                          (deadline-after timeout)))
            (r (make-runner thunk 'pending #f (make-mutex) client)))
       ;; NOTE: We tag runners as high prio task, so that the scheduler will
       ;;       return to the client as soon as possible when the runner is
       ;;       done.
       (high-prio-task-add! client)
+      ;; Let Ragnarok own the state of this runner, see Busy tasks in
+      ;; server-context.scm.
+      (task-busy-begin! client deadline)
       (submit-runner! r)
       (let lp ()
-        (when (not (runner-done? r))
+        (cond
+         ((runner-done? r)
+          (high-prio-task-remove! client)
+          ((runner-result r)))
+         ((and deadline (deadline-passed? deadline))
+          ;; Give up waiting. The task stays busy until the runner is done,
+          ;; so the connection won't be closed under the runner's feet.
+          (task-abandon! client)
+          (high-prio-task-remove! client)
+          (throw 'artanis-err 504 call-with-runner
+                 "The runner didn't finish in ~a seconds" timeout))
+         (else
           (DEBUG "Runner is still running, suspend the task ~a~%" client)
           (break-task)
-          (lp)))
-      (high-prio-task-remove! client)
-      ((runner-result r))))))
+          (lp))))))))

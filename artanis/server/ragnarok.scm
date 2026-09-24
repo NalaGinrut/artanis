@@ -101,7 +101,7 @@
     (DEBUG "Added listenning port to epoll~%")
     ;; The wake-up eventfd lets other threads (e.g. runner workers) resume a
     ;; task. Level-triggered, so it's harmless even if it's not drained.
-    (let ((wfd (init-wakeup-fd!)))
+    (let ((wfd (init-wakeup-fd! epfd)))
       (epoll-ctl epfd EPOLL_CTL_ADD wfd (make-epoll-event wfd EPOLLIN))
       (DEBUG "Added wake-up eventfd to epoll~%"))
     (make-ragnarok-server epfd listen-socket wt ready-q event-set services)))
@@ -139,7 +139,9 @@
        (lambda (_ t)
          (catch 'resources-collector
            (lambda ()
-             (when (is-task-timeout? t)
+             ;; A busy task is waiting for the server, not idle.
+             (when (and (not (task-busy? (task-client t)))
+                        (is-task-timeout? t))
                (format (artanis-current-output)
                        "Collecting task ~a~%" t)
                (throw 'resources-collector 408 remove-timemout-connections
@@ -227,13 +229,15 @@
          (rq (ragnarok-server-ready-queue server))
          (events (epoll-wait epfd event-set timeout))
          (woken? (any is-wakeup-fd? events))
+         ;; Busy tasks whose deadline has passed, see Busy tasks.
+         (expired (take-expired-busy-clients!))
          ;; epoll never returns an fd twice in one round, but a task may be
          ;; restored by its own socket event AND woken up by another thread
-         ;; in the same round. If so, it must be queued only once, otherwise
-         ;; it may be served again after it has finished and been closed.
-         ;; So we record the fds queued in this round only when there's a
-         ;; wake-up to handle.
-         (enqueued (and woken? (make-hash-table))))
+         ;; (or by its deadline) in the same round. If so, it must be queued
+         ;; only once, otherwise it may be served again after it has finished
+         ;; and been closed. So we record the fds queued in this round only
+         ;; when there's such a wake-up to handle.
+         (enqueued (and (or woken? (pair? expired)) (make-hash-table))))
     (define (enqueue! client)
       (when enqueued
         (hashv-set! enqueued (client-sockport-descriptor client) #t))
@@ -252,7 +256,14 @@
           (DEBUG "Woken fd ~a was already queued in this round~%" fd))
          (else
           (DEBUG "Woken up client ~a~%" fd)
+          ;; Waiting for the server isn't idle, don't let the task timeout.
+          (update-task-time! task)
           (enqueue! client)))))
+    (define (handle-woken-item! item)
+      (let ((client (car item))
+            (done? (cdr item)))
+        (when (or (not done?) (task-busy-end! client))
+          (resume-woken-client! client))))
     (for-each
      (lambda (e)
        (DEBUG "Checking event ~a~%" e)
@@ -305,7 +316,8 @@
            (DEBUG "The client ~a is ready to shutdown~%" e)))))
      events)
     (when woken?
-      (for-each resume-woken-client! (take-woken-clients!)))))
+      (for-each handle-woken-item! (take-woken-items!)))
+    (for-each resume-woken-client! expired)))
 
 (define (handle-request handler request request-body)
   (define (request-error-handler k . e)
@@ -353,7 +365,8 @@
                         (current-server server)
                         (current-client client)
                         (current-task task))
-           (when (is-task-timeout? task)
+           (when (and (not (task-busy? client))
+                      (is-task-timeout? task))
              (DEBUG "Peer ~a timeout!~%" client)
              (throw 'artanis-err 408 serve-one-request
                     "The request is timeout!"))

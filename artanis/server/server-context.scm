@@ -28,6 +28,17 @@
             wake-up-task!
             take-woken-clients!
             client-live-fd
+            notify-task-done!
+
+            task-busy-begin!
+            task-busy?
+            task-abandoned?
+            task-abandon!
+            task-busy-end!
+            take-woken-items!
+            take-expired-busy-clients!
+            deadline-after
+            deadline-passed?
 
             make-ragnarok-engine
             ragnarok-engine?
@@ -151,28 +162,162 @@
 (define *woken-clients* '())
 (define *wakeup-fd* #f)
 
-(define (init-wakeup-fd!)
+(define *server-epfd* #f) ; for detaching a busy connection, see defer-close!
+
+(define (init-wakeup-fd! epfd)
+  (set! *server-epfd* epfd)
   (when (not *wakeup-fd*)
     (set! *wakeup-fd* (eventfd-create)))
   *wakeup-fd*)
 
 (define (wakeup-fd) *wakeup-fd*)
 
-;; Safe to be called from any thread, including the server thread.
-(define (wake-up-task! client)
+;; Each item is (client . done?). done? is #t when it's the completion of a
+;; busy operation (see Busy tasks below), so Ragnarok must end the busy state.
+
+(define (push-woken-item! client done?)
   (with-mutex *woken-mutex*
-    (set! *woken-clients* (cons client *woken-clients*)))
+    (set! *woken-clients* (cons (cons client done?) *woken-clients*)))
   (eventfd-signal! *wakeup-fd*))
 
+;; Safe to be called from any thread, including the server thread.
+(define (wake-up-task! client)
+  (push-woken-item! client #f))
+
+;; Called by the other thread when the busy operation of the client is done.
+;; Safe to be called from any thread.
+(define (notify-task-done! client)
+  (push-woken-item! client #t))
+
 ;; Called from the server thread when epoll reports the eventfd readable.
-;; Returns the clients pushed by wake-up-task! since last call, oldest first.
-(define (take-woken-clients!)
+;; Returns the (client . done?) items pushed since last call, oldest first.
+(define (take-woken-items!)
   (eventfd-drain! *wakeup-fd*)
   (with-mutex *woken-mutex*
-    (let ((clients *woken-clients*))
+    (let ((items *woken-clients*))
       (set! *woken-clients* '())
-      (reverse clients))))
+      (reverse items))))
+
+(define (take-woken-clients!)
+  (map car (take-woken-items!)))
 ;; =========== end Cross-thread wake-up ===========
+
+;; ========== Busy tasks ==========
+;; A task is busy when it's waiting for an operation running in another thread,
+;; e.g. a runner. The operation runs outside the server core, but its state is
+;; owned by Ragnarok, so that the task can always come back to Ragnarok:
+;;  1. A busy task isn't idle, it's waiting for the server itself, so the task
+;;     timeout doesn't apply. The operation may have its own deadline instead:
+;;     when it has passed, Ragnarok resumes the task to let it give up waiting.
+;;  2. If the task has to be closed while busy (peer shutdown, exception,
+;;     timeout, etc.), the connection is detached from epoll and the
+;;     work-table, and shut down, but its port is NOT closed until the
+;;     operation is done, since the other thread may still hold the fd
+;;     (deferred close). The task is marked as abandoned, so an operation not
+;;     started yet can be skipped.
+;;  3. When the operation is done, the other thread calls notify-task-done!,
+;;     and Ragnarok ends the busy state: it either resumes the task, or
+;;     finishes the deferred close if the task has gone.
+;; Keyed by client, which is unique for each connection.
+;; NOTE: Only abandoned? is read by other threads, so it's protected by
+;;       *busy-mutex*. The rest is touched by the server thread only.
+
+;; Deadlines use the monotonic internal clock, since current-time only has
+;; 1-second resolution.
+(define (deadline-after seconds)
+  (+ (get-internal-real-time)
+     (inexact->exact (round (* seconds internal-time-units-per-second)))))
+
+(define (deadline-passed? deadline)
+  (>= (get-internal-real-time) deadline))
+
+(define-record-type busy
+  (fields (mutable count)       ; in-flight operations
+          (mutable deadline)    ; #f or the time to resume the task
+          (mutable abandoned?)  ; the task has gone
+          (mutable closing?)))  ; the close of connection is deferred
+
+(define *busy-mutex* (make-mutex))
+(define *busy-tasks* (make-hash-table)) ; client -> busy
+
+;; Server thread only.
+(define (task-busy-begin! client deadline)
+  (let ((b (hashq-ref *busy-tasks* client)))
+    (cond
+     (b (busy-count-set! b (1+ (busy-count b)))
+        (busy-deadline-set! b deadline))
+     (else
+      (hashq-set! *busy-tasks* client (make-busy 1 deadline #f #f))))))
+
+(define (task-busy? client)
+  (and (hashq-ref *busy-tasks* client) #t))
+
+;; Safe to be called from any thread.
+(define (task-abandoned? client)
+  (with-mutex *busy-mutex*
+    (and=> (hashq-ref *busy-tasks* client) busy-abandoned?)))
+
+;; Server thread only. The task gives up waiting for the operation, e.g. its
+;; deadline has passed. The operation will be skipped if it's not started.
+(define (task-abandon! client)
+  (and=> (hashq-ref *busy-tasks* client)
+         (lambda (b)
+           (with-mutex *busy-mutex*
+             (busy-abandoned?-set! b #t))
+           (busy-deadline-set! b #f))))
+
+;; Server thread only. Called by remove-from-work-table! when the task is
+;; closed while it's busy.
+(define (defer-close! client)
+  (let ((b (hashq-ref *busy-tasks* client))
+        (fd (client-live-fd client)))
+    (DEBUG "Defer closing busy client ~a~%" fd)
+    (task-abandon! client)
+    (busy-closing?-set! b #t)
+    ;; Keep the fd open so that its number can't be reused while the other
+    ;; thread may still hold it, but shut the connection down now: the peer
+    ;; sees the end of the response immediately, and the other thread gets
+    ;; EPIPE if it's still writing, which ends it early.
+    (false-if-exception (shutdown (car (unbox-type client)) 2))
+    ;; Some close paths don't remove the fd from epoll. It must be removed,
+    ;; otherwise its next event would be regarded as an orphan fd and closed.
+    (when (and fd *server-epfd*)
+      (false-if-exception (epoll-ctl *server-epfd* EPOLL_CTL_DEL fd #f)))))
+
+;; Server thread only. Called by Ragnarok on notify-task-done!.
+;; Returns #t if the task is still alive and should be resumed.
+(define (task-busy-end! client)
+  (let ((b (hashq-ref *busy-tasks* client)))
+    (cond
+     ((not b) #t) ; not a busy operation, just a wake-up
+     ((> (busy-count b) 1)
+      (busy-count-set! b (1- (busy-count b)))
+      (not (busy-closing? b)))
+     (else
+      (hashq-remove! *busy-tasks* client)
+      (cond
+       ((busy-closing? b)
+        (DEBUG "Finish the deferred close of client ~a~%" (client-live-fd client))
+        (high-prio-task-remove! client)
+        (let ((port (car (unbox-type client))))
+          (false-if-exception (close port)))
+        #f)
+       (else #t))))))
+
+;; Server thread only. Returns the alive busy clients whose deadline has
+;; passed. Their deadline is cleared, so each of them is returned only once.
+(define (take-expired-busy-clients!)
+  (hash-fold
+   (lambda (client b acc)
+     (let ((deadline (busy-deadline b)))
+       (cond
+        ((and deadline (not (busy-closing? b)) (deadline-passed? deadline))
+         (busy-deadline-set! b #f)
+         (cons client acc))
+        (else acc))))
+   '()
+   *busy-tasks*))
+;; =========== end Busy tasks ===========
 
 (define *high-prio-mutex* (make-mutex))
 (define *high-prio-table* (make-hash-table))
@@ -395,7 +540,10 @@
   (:anno: (work-table ragnarok-client boolean) -> ANY)
   (DEBUG "Removed task ~a~%" (client-sockport client))
   (hashv-remove! (work-table-content wt) (client-sockport-descriptor client))
-  (close (client-sockport client)))
+  (if (task-busy? client)
+      ;; Another thread may still use the port, see Busy tasks.
+      (defer-close! client)
+      (close (client-sockport client))))
 
 (::define (add-a-task-to-work-table! wt client task)
   (:anno: (work-table ragnarok-client task) -> ANY)
