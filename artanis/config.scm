@@ -282,28 +282,39 @@ server.allowedmethods = <methods-list>")
 server.jsmanifest = <string>")
 
     ((websocket maxpayload)
-     ,(1- (ash 1 64))
-     "The maximum payload size of WebSocket request in bytes. If it exceeds, then it
-will be segemented.
+     ,(ash 1 20)
+     "The maximum payload size of a single incoming WebSocket frame in bytes.
+A larger frame is rejected with close code 1009 before its payload is read.
+The default is fine for most cases, don't change it without a clear reason.
 websocket.maxpayload = <integer>")
 
     ((websocket minpayload)
-     1
-     "The minimum payload size of WebSocket request in bytes.
-Enlarge it to avoid slow 1-byte attack (only for fragment).
+     0
+     "The minimum payload size of a non-final fragment of an incoming WebSocket
+message in bytes. It helps against floods of tiny fragments. A smaller fragment
+is rejected with close code 1008. The final fragment and unfragmented messages
+are never checked. 0 disables the check (default).
 websocket.minpayload = <integer>")
 
     ((websocket fragment)
-     4096
-     "If fragment >= 0, then it's the size of the websocket frame fragment.
-If fragment = 0, then the websocket frame will not be fragmented.
+     0
+     "The payload size of each fragment of an outgoing WebSocket message in bytes.
+0 means outgoing messages are not fragmented (default).
 websocket.fragment = <integer>")
 
     ((websocket maxsize)
-     ,(ash 1 10)
-     "Maximum upload size in bytes from WebSocket request, the exceeded request
-will be fobidden.
+     ,(ash 1 22)
+     "The maximum size of a whole incoming WebSocket message in bytes, after
+reassembling its fragments. A larger message is rejected with close code 1009.
+The default is fine for most cases, don't change it without a clear reason.
 websocket.maxsize = <integer>")
+
+    ((websocket maxfragments)
+     65536
+     "The maximum number of fragments of an incoming WebSocket message. More
+fragments are rejected with close code 1008. 0 means no limit.
+The default is fine for most cases, don't change it without a clear reason.
+websocket.maxfragments = <integer>")
 
     ((websocket timeout)
      64
@@ -556,9 +567,11 @@ session.i18n = json | sxml | locale | <third-party-engine>")
 (define (parse-namespace-websocket item)
   (match item
     (('maxpayload maxpayload) (conf-set! '(websocket maxpayload) (->ws-payload maxpayload)))
-    (('minpayload minpayload) (conf-set! '(websocket minpayload) (->ws-payload minpayload)))
-    (('fragment fragment) (conf-set! '(websocket fragment) (->ws-payload fragment)))
-    (('maxsize maxsize) (conf-set! '(websocket maxsize) (->integer maxsize)))
+    (('minpayload minpayload) (conf-set! '(websocket minpayload) (->integer minpayload)))
+    (('fragment fragment) (conf-set! '(websocket fragment) (->integer fragment)))
+    (('maxsize maxsize) (conf-set! '(websocket maxsize) (->ws-payload maxsize)))
+    (('maxfragments maxfragments)
+     (conf-set! '(websocket maxfragments) (->integer maxfragments)))
     (('timeout timeout) (conf-set! '(websocket timeout) (->integer timeout)))
     (else (error parse-namespace-websocket "Config: Invalid item" item))))
 

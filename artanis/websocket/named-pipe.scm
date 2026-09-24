@@ -107,14 +107,13 @@
 
 (define (send-to-websocket-named-pipe name data)
   (let ((clients (get-pipe-clients name))
-        (frame (new-websocket-frame/client
-                'text #t
-                (cond
-                 ((string? data) (string->bytevector data "iso-8859-1"))
-                 ((bytevector? data) data)
-                 (else (throw 'artanis-err 500 send-to-websocket-named-pipe
-                              "Wrong type of websocket data, should be string or bv `~a'"
-                              data))))))
+        (payload
+         (cond
+          ((string? data) (string->bytevector data "iso-8859-1"))
+          ((bytevector? data) data)
+          (else (throw 'artanis-err 500 send-to-websocket-named-pipe
+                       "Wrong type of websocket data, should be string or bv `~a'"
+                       data)))))
     (cond
      (clients
       (let ((task-queue (get-pipe-task-queue name)))
@@ -131,7 +130,8 @@
              (queue-in! task-queue
                         (lambda ()
                           (parameterize ((current-client client))
-                            (write-websocket-frame/client (client-sockport client) frame)))))
+                            (write-websocket-message (client-sockport client)
+                                                     'text payload)))))
            clients))))
      (else
       (throw 'artanis-err 400 send-to-websocket-named-pipe

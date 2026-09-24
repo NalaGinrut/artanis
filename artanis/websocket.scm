@@ -20,6 +20,7 @@
 (define-module (artanis websocket)
   #:use-module (artanis utils)
   #:use-module (artanis config)
+  #:use-module (artanis env)
   #:use-module (artanis irregex)
   #:use-module (artanis server server-context)
   #:use-module (artanis websocket handshake)
@@ -47,19 +48,16 @@
                url-need-inexclusive-websocket?
 
                ;; from (artanis websocket frame)
-               received-closing-frame?
-
                make-websocket-frame
                websocket-frame?
-               websocket-frame-parser
-               websocket-frame-head
-               websocket-frame-final-fragment?
+               websocket-frame-final?
                websocket-frame-opcode
                websocket-frame-payload
-
+               websocket-frame-type
                print-websocket-frame
-               new-websocket-frame/client
-               write-websocket-frame/client
+               write-websocket-message
+               send-websocket-close
+               websocket-output-closed?
 
                ;; from (artanis websocket named-pipe)
                register-websocket-pipe!
@@ -108,26 +106,45 @@
   ;; return 401 or 3xx redirection if authentication failed
   #t)
 
-;; TODO: Register protobuf handler to ragnarok-server when server start.
-(::define (websocket-read req server client)
-  (:anno: (<request> ragnarok-server ragnarok-client) -> websocket-frame)
+;; NOTE: The protocol reader of the redirector is not applied here, it
+;;       belongs to the connection layer. The body is the websocket-frame of
+;;       a whole message, or the received close frame (opcode 8).
+;; NOTE: Until the connection layer exists, this is the boundary between the
+;;       frame layer and Ragnarok: 'websocket-err must not leak to Ragnarok's
+;;       outermost catch, which only logs it without closing the task.
+(define (websocket-read req server client)
   (DEBUG "Enter websocket-read~%")
   (cond
    ((websocket-check-auth req)
-    (let* ((redirector (get-the-redirector-of-websocket server client))
-           ;; reader: bytevector -> customized data frame
-           (reader (redirector-reader redirector)))
-      (read-websocket-frame reader (client-sockport client))))
+    (let ((port (client-sockport client)))
+      (catch 'websocket-err
+        (lambda ()
+          (read-websocket-message port))
+        (lambda (k code thrower fmt . args)
+          (let ((reason (apply format #f fmt args)))
+            (format (artanis-current-output)
+                    "[Websocket] Client `~a' failed with close code ~a: ~a~%"
+                    (client-ip client) code reason)
+            (cond
+             ((= code 1006)
+              ;; The peer is gone, nothing can be written anymore.
+              (websocket-output-close! port))
+             (else
+              (catch #t
+                (lambda () (send-websocket-close port #:code code))
+                (lambda _ (websocket-output-close! port)))))
+            ;; Rethrow with a valid HTTP status so that the task is closed.
+            ;; Anything written for this error is dropped since the output
+            ;; is closed now.
+            (throw 'artanis-err (if (= code 1011) 500 400) thrower
+                   "Websocket close code ~a: ~a" code reason))))))
    (else
     (throw 'artanis-err 401 websocket-read
            "Authentication failed: ~a" (client-ip client)))))
 
-(::define (websocket-write type body server client)
-  (:anno: (symbol ANY ragnarok-server ragnarok-client) -> ANY)
+(define (websocket-write type body server client)
   (DEBUG "Enter websocket-write~%")
   (let* ((redirector (get-the-redirector-of-websocket server client))
-         (writer (redirector-writer redirector)) ; writer: record-type -> bytevector
-         (frame (new-websocket-frame/client 'text #t (writer body)))
+         (writer (redirector-writer redirector)) ; writer: ANY -> bytevector
          (port (client-sockport client)))
-    ;; TODO: Check websocket.fragment and do fragmentation
-    (write-websocket-frame/client port frame)))
+    (write-websocket-message port 'text (writer body))))

@@ -174,8 +174,14 @@
    (else
     (format (artanis-current-output)
             "[Websocket] Client `~a' was closed by server.~%" (client-ip client))
-    (when (not (client-sockport client))
-      (send-websocket-closing-frame (client-sockport client)))
+    (let ((port (client-sockport client)))
+      (when (and port (not (port-closed? port)))
+        (catch #t
+          (lambda () (send-websocket-close port))
+          (lambda (k . e)
+            (format (artanis-current-output)
+                    "[Websocket] Failed to send closing frame to `~a': ~a ~a~%"
+                    (client-ip client) k e)))))
     (if (received-closing-frame? (client-sockport client))
         (format (artanis-current-output)
                 "[Websocket] Closing `~a' normally.~%" (client-ip client))

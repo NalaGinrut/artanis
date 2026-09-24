@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2017,2018,2019
+;;  Copyright (C) 2017,2018,2019,2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -17,349 +17,500 @@
 ;;  and GNU Lesser General Public License along with this program.
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
+;; RFC 6455 frame layer: frame parsing and validation, message assembly,
+;; control frames, close frames, frame writing and outbound fragmentation.
+;;
+;; Conventions:
+;; 1. Frame-level errors are thrown as
+;;      (throw 'websocket-err close-code 'thrower-name fmt . args)
+;;    where close-code is a WebSocket close code (1002, 1007, 1008, 1009...),
+;;    never an HTTP status. 1006 means the peer went away; it's internal only
+;;    and must never be sent on the wire. 1011 is used for misuse of this API.
+;; 2. Payloads are bytevectors. The wire is binary, so port encoding never
+;;    matters here: we only use get-u8/get-bytevector-n/put-u8/put-bytevector.
+;;    Text is UTF-8 on the wire; strings are encoded by upper layers.
+;; 3. Zero-copy: outgoing payloads are written as (bv start count) slices of
+;;    the caller's bytevector, fragments are index ranges, nothing is copied
+;;    in this layer. The caller must not modify the bytevector until the write
+;;    returns (the synchronous write is the release point).
+;; 4. All checks on a frame header are done before its payload is allocated.
+
 (define-module (artanis websocket frame)
   #:use-module (artanis utils)
   #:use-module (artanis config)
-  #:use-module (artanis server)
-  #:use-module (artanis env)
-  #:use-module (ice-9 iconv)
   #:use-module (ice-9 format)
-  #:use-module (ice-9 match)
-  #:use-module (system foreign)
   #:use-module ((rnrs) #:select (bytevector-u8-ref
                                  bytevector-u8-set!
-                                 bytevector-u64-ref
-                                 bytevector-u32-ref
                                  bytevector-u16-ref
-                                 make-bytevector
-                                 put-u8
-                                 put-bytevector
-                                 get-bytevector-all
-                                 get-bytevector-n
+                                 bytevector-u16-set!
                                  bytevector-length
-                                 uint-list->bytevector
+                                 bytevector-copy!
+                                 make-bytevector
+                                 string->utf8
+                                 put-u8
+                                 get-u8
+                                 put-bytevector
+                                 get-bytevector-n
                                  define-record-type))
-  #:export (received-closing-frame?
-            send-websocket-closing-frame
-
-            make-websocket-frame
+  #:export (make-websocket-frame
             websocket-frame?
-            websocket-frame-parser
-            websocket-frame-head
-            websocket-frame-final-fragment?
+            websocket-frame-final?
             websocket-frame-opcode
             websocket-frame-payload
-            websocket-frame-mask
-
-            websocket-frame/client-final?
-            websocket-frame/client-type
-            websocket-frame/client-length
-            websocket-frame/client-payload
-
+            websocket-frame-type
             print-websocket-frame
-            new-websocket-frame/client
-            write-websocket-frame/client
-            read-websocket-frame))
 
+            read-websocket-frame
+            read-websocket-message
+            default-control-handler
+
+            write-websocket-frame
+            make-fragment-writer
+            write-websocket-message
+            send-websocket-close
+
+            websocket-output-closed?
+            websocket-output-close!
+            received-closing-frame?))
+
+;; payload is always the unmasked bytevector.
 (define-record-type websocket-frame
-  (fields
-   head
-   parser
-   payload-length
-   mask
-   payload))
+  (fields final? opcode payload))
 
-(define-record-type websocket-frame/client
-  (fields
-   final?
-   type
-   length
-   payload))
+;; ---------------------------------------------------------------------------
+;; Opcodes
 
-(define (%read-bytevector port n)
-  (let ((bv (get-bytevector-n port n)))
+(define *type->opcode*
+  '((continuation . #x0)
+    (text . #x1)
+    (binary . #x2)
+    (close . #x8)
+    (ping . #x9)
+    (pong . #xa)))
+
+(define (type->opcode type)
+  (or (assq-ref *type->opcode* type)
+      (throw 'websocket-err 1011 'type->opcode
+             "Invalid frame type `~a'" type)))
+
+(define (opcode->type opcode)
+  (let lp ((lst *type->opcode*))
     (cond
-     ((eof-object? bv)
-      (throw 'artanis-err 400 %read-bytevector "Websocket get EOF from peer!"))
-     ((= (bytevector-length bv) n)
-      bv)
+     ((null? lst) 'reserved)
+     ((= (cdar lst) opcode) (caar lst))
+     (else (lp (cdr lst))))))
+
+(define (websocket-frame-type frame)
+  (opcode->type (websocket-frame-opcode frame)))
+
+(define (reserved-opcode? op)
+  (or (<= #x3 op #x7) (<= #xb op #xf)))
+
+(define (control-opcode? op) (logtest #x8 op))
+
+(define (close-opcode? op) (= op #x8))
+
+;; ---------------------------------------------------------------------------
+;; UTF-8 validation
+;;
+;; Byte-level DFA, no allocation, and the state survives across fragments so
+;; that an invalid sequence fails on the fragment containing it.
+;; States: 0 accept; 1-3 expect that many continuation bytes (#x80-#xbf);
+;; 4 after #xe0 (#xa0-#xbf); 5 after #xed (#x80-#x9f, no surrogates);
+;; 6 after #xf0 (#x90-#xbf); 7 after #xf4 (#x80-#x8f, <= U+10FFFF).
+;; #f means invalid.
+
+(define (utf8-step state b)
+  (case state
+    ((0) (cond
+          ((< b #x80) 0)
+          ((< b #xc2) #f)
+          ((< b #xe0) 1)
+          ((= b #xe0) 4)
+          ((= b #xed) 5)
+          ((< b #xf0) 2)
+          ((= b #xf0) 6)
+          ((< b #xf4) 3)
+          ((= b #xf4) 7)
+          (else #f)))
+    ((1 2 3) (and (<= #x80 b #xbf) (1- state)))
+    ((4) (and (<= #xa0 b #xbf) 1))
+    ((5) (and (<= #x80 b #x9f) 1))
+    ((6) (and (<= #x90 b #xbf) 2))
+    ((7) (and (<= #x80 b #x8f) 2))
+    (else #f)))
+
+;; Scan bv[start, end) from state, return the new state or #f.
+(define (utf8-scan bv start end state)
+  (let lp ((i start) (s state))
+    (cond
+     ((not s) #f)
+     ((= i end) s)
+     (else (lp (1+ i) (utf8-step s (bytevector-u8-ref bv i)))))))
+
+;; ---------------------------------------------------------------------------
+;; Close codes
+
+(define (valid-close-code? code)
+  (or (<= 1000 code 1003)
+      (<= 1007 code 1011)
+      (<= 3000 code 4999)))
+
+;; 1005/1006/1015 are reserved for local use and must never be sent;
+;; valid-close-code? already excludes them.
+(define sendable-close-code? valid-close-code?)
+
+(define (make-close-payload code reason-bv)
+  (let* ((n (bytevector-length reason-bv))
+         (bv (make-bytevector (+ 2 n))))
+    (bytevector-u16-set! bv 0 code 'big)
+    (bytevector-copy! reason-bv 0 bv 2 n)
+    bv))
+
+(define *close-reasons*
+  '((1000 . "Normal Closure")
+    (1001 . "Going Away")
+    (1002 . "Protocol Error")
+    (1003 . "Unsupported Data")
+    (1007 . "Invalid Frame Payload Data")
+    (1008 . "Policy Violation")
+    (1009 . "Message Too Big")
+    (1010 . "Mandatory Extension")
+    (1011 . "Internal Error")))
+
+;; Built once at load time; they're only ever read.
+(define *close-payloads*
+  (map (lambda (p)
+         (cons (car p) (make-close-payload (car p) (string->utf8 (cdr p)))))
+       *close-reasons*))
+
+;; Validate a received close payload.
+(define (check-close-payload payload)
+  (let ((len (bytevector-length payload)))
+    (cond
+     ((zero? len) #t)
+     ((= len 1)
+      (throw 'websocket-err 1002 'check-close-payload
+             "Close frame payload of 1 byte"))
      (else
-      (throw 'artanis-err 400 %read-bytevector
-             "Can't read from the client successfully!")))))
+      (let ((code (bytevector-u16-ref payload 0 'big)))
+        (unless (valid-close-code? code)
+          (throw 'websocket-err 1002 'check-close-payload
+                 "Invalid close code ~a" code))
+        (unless (eqv? 0 (utf8-scan payload 2 len 0))
+          (throw 'websocket-err 1007 'check-close-payload
+                 "Close reason is not valid UTF-8")))))))
 
-;;  %x0 denotes a continuation frame
-(define (is-continue-frame? opcode) (= opcode #x0))
-;;  %x1 denotes a text frame
-(define (is-text-frame? opcode) (= opcode #x1))
-;;  %x2 denotes a binary frame
-(define (is-binary-frame? opcode) (= opcode #x2))
-(define (is-control-frame? opcode)
-  (logand #x8 opcode))
-(define (is-non-control-frame? opcode)
-  (not (is-continue-frame? opcode)))
-;;  %x8 denotes a connection close
-(define (is-close-frame? opcode) (= opcode #x8))
-;;  %x9 denotes a ping
-(define (is-ping-frame? opcode) (= opcode #x9))
-;;  %xA denotes a pong
-(define (is-pong-frame? opcode) (= opcode #xa))
-;;  %xB-F are reserved for further control frames
-(define (is-reserved-frame? opcode)
-  (and (> opcode #xb) (< opcode #xf)))
+;; ---------------------------------------------------------------------------
+;; Output side state
+;;
+;; Once a close frame was sent (or the peer is known to be gone), nothing may
+;; be written on that connection anymore. Keyed by the port object itself: a
+;; reused fd gets a new port, and the weak key lets a dead port be collected.
+;; Only touched by the single-threaded server core, so no lock is needed.
 
-(define (is-masked-frame? head)
-  (logtest #x8000 head))
+(define *closed-outputs* (make-weak-key-hash-table))
 
-(define (is-final-frame? head)
-  (logtest #x8000 head))
+(define (websocket-output-closed? port)
+  (hashq-ref *closed-outputs* port #f))
 
+(define (websocket-output-close! port)
+  (hashq-set! *closed-outputs* port #t))
+
+;; TODO: waiting for the peer's closing frame belongs to the connection layer.
 (define (received-closing-frame? port)
-  ;; TODO: finish it
   #t)
 
-(define (->bv code reason)
-  (let* ((bv (string->bytevector reason "iso-8859-1"))
-         (payload (make-bytevector (+ 2 (bytevector-length bv)) 0)))
-    ;; code must be network-byte-order (big-endian)
-    (bytevector-u8-set! payload 0 (bit-extract code 8 16))
-    (bytevector-u8-set! payload 1 (bit-extract code 0 8))
-    (for-each
-     (lambda (i) (bytevector-u8-set! payload (+ 2 i) (bytevector-u8-ref bv i)))
-     (iota (bytevector-length bv)))
-    payload))
+;; ---------------------------------------------------------------------------
+;; Reading
 
-(define *websocket-status-code*
-  `((1000 . ,(->bv 1000 "Normal Closure"))
-    (1001 . ,(->bv 1001 "Going Away"))
-    (1002 . ,(->bv 1002 "Protocol error"))
-    (1003 . ,(->bv 1003 "Unsupported Data"))
-    (1004 . ,(->bv 1004 "Reserved"))
-    (1005 . ,(->bv 1005 "No status received"))
-    (1006 . ,(->bv 1006 "Abnormal Closure"))
-    (1007 . ,(->bv 1007 "Invalid frame payload data"))
-    (1008 . ,(->bv 1008 "Policy Violation"))
-    (1009 . ,(->bv 1009 "Message Too Big"))
-    (1010 . ,(->bv 1010 "Mandatory Ext."))
-    (1011 . ,(->bv 1011 "Internet Server Error"))
-    (1015 . ,(->bv 1015 "TLS handshake"))))
+(define (read-u8 port thrower)
+  (let ((b (get-u8 port)))
+    (if (eof-object? b)
+        (throw 'websocket-err 1006 thrower
+               "Peer closed the connection in the middle of a frame")
+        b)))
 
-(define* (send-websocket-closing-frame port #:key (status #f))
-  (define (gen-body)
-    (cond
-     (status
-      (let ((reason (assoc-ref status *websocket-status-code*)))
-        (or reason #vu8(0))))
-     (else #vu8(0))))
-  (let ((close-frame (new-websocket-frame/client 'close #t (gen-body))))
-    (write-websocket-frame/client port close-frame)))
+(define (read-uint port n thrower)
+  (let lp ((i 0) (v 0))
+    (if (= i n)
+        v
+        (lp (1+ i) (logior (ash v 8) (read-u8 port thrower))))))
 
-(define *opcode-list*
-  '(continuation         ; #x0
-    text                 ; #x1
-    binary               ; #x2
-    non-control-reserved ; #x3
-    non-control-reserved ; #x4
-    non-control-reserved ; #x5
-    non-control-reserved ; #x6
-    non-control-reserved ; #x7
-    close                ; #x8
-    ping                 ; #x9
-    pong                 ; #xA
-    control-reserved     ; #xB
-    control-reserved     ; #xC
-    control-reserved     ; #xD
-    control-reserved     ; #xE
-    control-reserved))   ; #xF
+;; Short read only happens at EOF: in edge mode Ragnarok installs suspendable
+;; ports with async-read-waiter (break-task), so straight-line reads are fine.
+(define (read-payload port len)
+  (if (zero? len)
+      (make-bytevector 0)
+      (let ((bv (get-bytevector-n port len)))
+        (if (or (eof-object? bv) (< (bytevector-length bv) len))
+            (throw 'websocket-err 1006 'read-payload
+                   "Peer closed the connection in the middle of a frame")
+            bv))))
 
-(define-syntax-rule (generate-opcode type)
-  (list-index *opcode-list* type))
-
-(::define (websocket-get-head port)
-  (:anno: (port) -> int)
-  (bytevector-u16-ref (%read-bytevector port 2) 0 'big))
-
-(define-syntax-rule (get-mask port)
-  (%read-bytevector port 4))
-
-(define-syntax-rule (%get-opcode head)
-  (ash (logand head #x0f00) -8))
-
-(define-syntax-rule (%get-type opcode)
-  (assoc-ref *opcode-list* opcode))
-
-(define-syntax-rule (%verify-type type)
-  (cond
-   ((eq? type 'non-control-reserved)
-    (throw 'artanis-err 500 websocket-type
-           "The opcode `#x~:@(~x~)' is reserved for non-control frame" opcode))
-   ((eq? type 'control-reserved)
-    (throw 'artanis-err 500 websocket-type
-           "The opcode `#x~:@(~x~)' is reserved for control frame" opcode))
-   (else type)))
-
-(::define (websocket-frame-final-fragment? frame)
-  (:anno: (websocket-frame) -> boolean)
-  (is-final-frame? (logand #xff00 (websocket-frame-head frame))))
-
-(::define (websocket-frame-opcode frame)
-  (:anno: (websocket-frame) -> int)
-  (%get-opcode (ash (logand #xff00 (websocket-frame-head frame)) -8)))
-
-(::define (websocket-frame-fin frame)
-  (:anno: (websocket-frame) -> int)
-  (if (websocket-frame-final-fragment? frame)
-      #x80
-      #x00))
-
-;; NOTE: The frame will not be decoded or parsed into a record-type, on the contrary,
-;;       it'll be kept as a binary frame read from client, and use bitwise operations for
-;;       fetching the fields. This kind of `lazy' design will save much time on parsing
-;;       unused fields each time, and eaiser for redirecting without any serialization.
-;;       If users want to get certain field, Artanis provides APIs for fetching them. Users
-;;       can decide how to parse the frames for efficiency.
-(define (read-websocket-frame parser port)
-  (define-syntax-rule (get-len payload-len port control-frame?)
-    (cond
-     ((< payload-len 126)
-      ;; Yes, it's redundant, but I never trust the data from client
-      payload-len)
-     ((= payload-len 126)
-      (bytevector-u16-ref (%read-bytevector port 2) 0 'big))
-     ((= payload-len 127)
-      (if (not control-frame?)
-          (let ((real-len (bytevector-u64-ref (%read-bytevector port 8) 0 'big)))
-            (if (<= real-len (get-conf '(websocket maxpayload)))
-                real-len
-                (throw 'artanis-err 1009 read-websocket-frame
-                       "Too big message received! `~a' > `~a'"
-                       payload-len (get-conf '(websocket maxpayload)))))
-          (throw 'artanis-err 1007 read-websocket-frame
-                 "Invalid websocket frame, the control frame can't be segmented!")))
-     (else (throw 'artanis-err 500 read-websocket-frame
-                  "Invalid payload-len `~a'!" payload-len))))
-  (define (detect-payload-offset mask payload-len)
-    (+ 1 ; head1
-       1 ; head2
-       (if (< payload-len 126) 0 (if (= payload-len 126) 2 8)) ; real-len
-       (if mask 4 0))) ; mask-lenre
-  (define (decode-with-mask! payload len mask)
+;; TODO: xor 4 bytes at a time.
+(define (unmask! bv m0 m1 m2 m3)
+  (let ((len (bytevector-length bv)))
     (let lp ((i 0))
-      (DEBUG "payload: ~a~%len: ~a~%mask: ~a~%" payload len mask)
+      (when (< i len)
+        (bytevector-u8-set!
+         bv i
+         (logxor (bytevector-u8-ref bv i)
+                 (case (logand i 3) ((0) m0) ((1) m1) ((2) m2) (else m3))))
+        (lp (1+ i))))
+    bv))
+
+;; Read one client frame.
+;; data-limit: max payload of a data frame (control frames are capped at 125
+;;             bytes by the protocol and ignore it).
+;; min-fragment: min payload of a non-final data frame, 0 disables the check.
+(define* (read-websocket-frame port data-limit #:optional (min-fragment 0))
+  (let ((b0 (let ((b (get-u8 port)))
+              (if (eof-object? b)
+                  (throw 'websocket-err 1006 'read-websocket-frame
+                         "Peer closed the connection")
+                  b))))
+    (let* ((b1 (read-u8 port 'read-websocket-frame))
+           (final? (logtest #x80 b0))
+           (opcode (logand #x0f b0))
+           (len7 (logand #x7f b1)))
+      (unless (zero? (logand #x70 b0))
+        (throw 'websocket-err 1002 'read-websocket-frame
+               "RSV bits set without negotiated extension"))
+      (when (reserved-opcode? opcode)
+        (throw 'websocket-err 1002 'read-websocket-frame
+               "Reserved opcode #x~x" opcode))
+      (unless (logtest #x80 b1)
+        (throw 'websocket-err 1002 'read-websocket-frame
+               "Client frame is not masked"))
+      (when (control-opcode? opcode)
+        (unless final?
+          (throw 'websocket-err 1002 'read-websocket-frame
+                 "Fragmented control frame"))
+        (when (> len7 125)
+          (throw 'websocket-err 1002 'read-websocket-frame
+                 "Control frame payload exceeds 125 bytes")))
+      (let ((len (case len7
+                   ((126) (read-uint port 2 'read-websocket-frame))
+                   ((127) (let ((n (read-uint port 8 'read-websocket-frame)))
+                            (when (logbit? 63 n)
+                              (throw 'websocket-err 1002 'read-websocket-frame
+                                     "64-bit payload length has MSB set"))
+                            n))
+                   (else len7))))
+        (unless (control-opcode? opcode)
+          (when (> len data-limit)
+            (throw 'websocket-err 1009 'read-websocket-frame
+                   "Frame too large: ~a > ~a" len data-limit))
+          (when (and (not final?) (< len min-fragment))
+            (throw 'websocket-err 1008 'read-websocket-frame
+                   "Fragment too small: ~a < ~a" len min-fragment)))
+        (let* ((m0 (read-u8 port 'read-websocket-frame))
+               (m1 (read-u8 port 'read-websocket-frame))
+               (m2 (read-u8 port 'read-websocket-frame))
+               (m3 (read-u8 port 'read-websocket-frame))
+               (payload (read-payload port len)))
+          (make-websocket-frame final? opcode (unmask! payload m0 m1 m2 m3)))))))
+
+;; Default reaction to control frames: pong with the ping payload, ignore
+;; pongs, echo the status code of a close. The replies reuse the received
+;; payload, nothing is copied.
+;; NOTE: The connection layer should replace it with a handler that goes
+;;       through the connection's single writer, so that a reply can never be
+;;       interleaved inside an outgoing frame.
+(define (default-control-handler port)
+  (lambda (frame)
+    (let ((payload (websocket-frame-payload frame)))
+      (case (websocket-frame-opcode frame)
+        ((#x9) (write-websocket-frame port #t 'pong payload))
+        ((#xa) #t)
+        ((#x8) (if (zero? (bytevector-length payload))
+                   (write-websocket-frame port #t 'close payload)
+                   (write-websocket-frame port #t 'close payload 0 2)))
+        (else #t)))))
+
+;; Read one complete message.
+;; Returns a websocket-frame: opcode 1/2 with the whole message as payload,
+;; or the received close frame (opcode 8) after `control' has handled it.
+;; Control frames between fragments are passed to `control' and reading goes
+;; on. An unfragmented message is delivered without copying; a fragmented one
+;; is concatenated once when its final fragment arrives.
+;; max-fragments: max data frames per message, 0 means no limit.
+(define* (read-websocket-message port
+                                 #:key
+                                 (control (default-control-handler port))
+                                 (max-frame (get-conf '(websocket maxpayload)))
+                                 (max-message (get-conf '(websocket maxsize)))
+                                 (min-fragment (get-conf '(websocket minpayload)))
+                                 (max-fragments (get-conf '(websocket maxfragments))))
+  (define (text? op) (= op #x1))
+  (define (check-utf8 payload state)
+    (or (utf8-scan payload 0 (bytevector-length payload) state)
+        (throw 'websocket-err 1007 'read-websocket-message
+               "Text message is not valid UTF-8")))
+  (define (check-complete state)
+    (unless (zero? state)
+      (throw 'websocket-err 1007 'read-websocket-message
+             "Text message ends in the middle of a UTF-8 sequence")))
+  (define (assemble frags total)
+    ;; frags is in reverse order
+    (if (null? (cdr frags))
+        (car frags)
+        (let ((bv (make-bytevector total)))
+          (let lp ((lst frags) (end total))
+            (if (null? lst)
+                bv
+                (let* ((f (car lst))
+                       (n (bytevector-length f))
+                       (start (- end n)))
+                  (bytevector-copy! f 0 bv start n)
+                  (lp (cdr lst) start)))))))
+  ;; opcode: #f when no fragmented message is in progress
+  (let lp ((opcode #f) (frags '()) (total 0) (count 0) (state 0))
+    (let* ((limit (min max-frame (- max-message total)))
+           (frame (read-websocket-frame port limit min-fragment))
+           (op (websocket-frame-opcode frame))
+           (final? (websocket-frame-final? frame))
+           (payload (websocket-frame-payload frame)))
       (cond
-       ((>= i len) payload)
+       ((control-opcode? op)
+        (when (close-opcode? op)
+          (check-close-payload payload))
+        (control frame)
+        (if (close-opcode? op)
+            frame
+            (lp opcode frags total count state)))
+       ((zero? op)
+        (unless opcode
+          (throw 'websocket-err 1002 'read-websocket-message
+                 "Continuation frame without a message in progress"))
+        (let ((count (1+ count))
+              (total (+ total (bytevector-length payload)))
+              (state (if (text? opcode) (check-utf8 payload state) state)))
+          (when (and (> max-fragments 0) (> count max-fragments))
+            (throw 'websocket-err 1008 'read-websocket-message
+                   "Too many fragments: > ~a" max-fragments))
+          (cond
+           (final?
+            (when (text? opcode) (check-complete state))
+            (make-websocket-frame #t opcode (assemble (cons payload frags) total)))
+           (else
+            (lp opcode (cons payload frags) total count state)))))
        (else
-        (let ((masked (logxor (u8vector-ref payload i)
-                              (u8vector-ref mask (modulo i 4)))))
-          (u8vector-set! payload i masked)
-          (lp (1+ i)))))))
-  (define (cook-payload mask payload real-len)
-    (if mask
-        (decode-with-mask! payload real-len mask)
-        payload))
-  (define* (read-and-verify-payload port size)
-    (let ((payload (get-bytevector-n port size)))
-      (cond
-       ((eof-object? payload)
-        (throw 'artanis-err 400 read-and-verify-payload "Websocket get EOF from peer!"))
-       ((= (bytevector-length payload) size)
-        (DEBUG "Websocket get payload (~a bytes) sucessfully!" size)
-        payload)
-       (else
-        (throw 'artanis-err 400 read-and-verify-payload
-               "Websocket payload in wrong size ~a bytes! Expect ~a bytes!"
-               (bytevector-length payload) size)))))
-  ;; NOTE: We have to read the header first since we need to check the payload length for
-  ;;       security isssue.
-  ;; FIXME: Maybe we have to drop the whole-body-redirecting method, since the socket
-  ;;        demands a size to get all body. If we use get-bytevector-all, then it's stuck.
-  ;;        Even if we are in non-blocking, so sad.
-  (let* ((head (websocket-get-head port))
-         (control-frame? (is-control-frame? (%get-opcode head)))
-         (payload-len (logand #x7f head))
-         (real-len (get-len payload-len port control-frame?))
-         (mask (is-masked-frame? head))
-         (mask-array (and mask (get-mask port)))
-         (payload (read-and-verify-payload port real-len))
-         (cooked-payload (cook-payload mask-array payload real-len)))
-    (make-websocket-frame head parser real-len mask-array cooked-payload)))
+        (when opcode
+          (throw 'websocket-err 1002 'read-websocket-message
+                 "New data frame while a fragmented message is in progress"))
+        (let ((state (if (text? op) (check-utf8 payload 0) 0)))
+          (cond
+           (final?
+            (when (text? op) (check-complete state))
+            frame)
+           (else
+            (lp op (list payload) (bytevector-length payload) 1 state)))))))))
 
-(::define (generate-head1 final? type)
-  (:anno: (boolean symbol) -> int)
-  (logior (if final? #x80 #x00)
-          (generate-opcode type)))
+;; ---------------------------------------------------------------------------
+;; Writing
+;;
+;; NOTE: According to RFC 6455, a server MUST NOT mask any frames that it
+;;       sends to the client.
 
-(define 16bit-size (ash 1 16))
-(define 64bit-size (ash 1 64))
+(define (put-uint port v n)
+  (let lp ((i (1- n)))
+    (when (>= i 0)
+      (put-u8 port (logand #xff (ash v (* -8 i))))
+      (lp (1- i)))))
 
-;; NOTE: According to RFC-6455, A server MUST NOT mask any frames that it sends to
-;;       the client. (From 5.1 Overview).
-;; NOTE: If the length is larger than 16bit, then just speicify it to 127 then deal with
-;;       the actual length in later extended length field.
-(::define (generate-head2 len)
-  (:anno: (int) -> int)
-  (cond
-   ((< len 126) len) ; payload length less than 126 bytes
-   ((< len 16bit-size) 126) ; extended 16bit payload length
-   ((< len 64bit-size) 127) ; extended 64bit payload length
-   (else (throw 'artanis-err 500 generate-head2
-                "The payload size `~a' excceded 64bit!" len))))
-
-(::define (write-websocket-frame/client port frame)
-  (:anno: (port websocket-frame/client) -> ANY)
-  (define (write-payload-size port len)
+;; Write one frame whose payload is the slice payload[start, start+count).
+;; Returns #t when written, #f when dropped because the output is closed.
+(define* (write-websocket-frame port final? type payload
+                                #:optional
+                                (start 0)
+                                (count (- (bytevector-length payload) start)))
+  (let ((opcode (type->opcode type)))
     (cond
-     ((< len 16bit-size) (put-bytevector port (uint-list->bytevector (list len) 'big 2)))
-     ((< len 64bit-size) (put-bytevector port (uint-list->bytevector (list len) 'big 8)))
-     (else (throw 'artanis-err 1009 write-payload-size
-                  "The payload size `~a' exceeded 64bit!" len))))
-  (when (port-closed? port)
-    (throw 'artanis-err 1001 write-websocket-frame/client
-           "The client port `~a' was closed!" port))
-  (let* ((final? (websocket-frame/client-final? frame))
-         (type (websocket-frame/client-type frame))
-         (len (websocket-frame/client-length frame))
-         (payload (websocket-frame/client-payload frame))
-         (head1 (generate-head1 final? type))
-         (head2 (generate-head2 len)))
-    (put-u8 port head1)
-    (put-u8 port head2)
-    (when (> len 125)
-      (write-payload-size port len))
-    (put-bytevector port (websocket-frame/client-payload frame))
-    (force-output port)))
+     ((websocket-output-closed? port)
+      (DEBUG "Drop a ~a frame, the websocket output is closed on ~a~%" type port)
+      #f)
+     ((port-closed? port)
+      (throw 'websocket-err 1006 'write-websocket-frame
+             "The port `~a' was closed" port))
+     (else
+      (when (and (control-opcode? opcode)
+                 (not (and final? (<= count 125))))
+        (throw 'websocket-err 1011 'write-websocket-frame
+               "Invalid control frame: final? ~a, length ~a" final? count))
+      ;; Mark first: nothing may follow a close even if this write fails.
+      (when (close-opcode? opcode)
+        (websocket-output-close! port))
+      (put-u8 port (logior (if final? #x80 #x00) opcode))
+      (cond
+       ((< count 126) (put-u8 port count))
+       ((< count #x10000) (put-u8 port 126) (put-uint port count 2))
+       (else (put-u8 port 127) (put-uint port count 8)))
+      (put-bytevector port payload start count)
+      (force-output port)
+      #t))))
 
-;; NOTE: A better design is not to split then store fields to record-type,
-;;       we just need to parse the frame and store the offset.
-;; NOTE: It's better to delay preprocessing to the time the payload is needed.
-;;       And store the preprocessor to the frame (record-type).
-;; NOTE: Return bytevector
-(::define (new-websocket-frame/client type final? payload)
-  (:anno: (symbol boolean bv) -> websocket-frame/client)
-  (define-syntax-rule (detect-type t)
-    (case t
-      ((proxy binary) 'binary)
-      ((ping pong text close) t)
-      (else 'binary))) ; the unknown redirector type should always be `binary' type
-  (let ((payload-len (bytevector-length payload))
-        (real-type (detect-type type)))
-    (make-websocket-frame/client
-     final?
-     real-type
-     payload-len
-     payload)))
+;; Return a writer for a data message: each call (writer port) writes the
+;; next fragment and returns #t once the final one is written (or the output
+;; is closed). Fragments are index ranges of payload, nothing is copied.
+;; The writer only holds (payload, offset), so a connection writer can put
+;; control frames between two calls.
+;; fragment: max payload per fragment, 0 means no fragmentation.
+(define* (make-fragment-writer type payload fragment
+                               #:optional
+                               (start 0)
+                               (count (- (bytevector-length payload) start)))
+  (unless (memq type '(text binary))
+    (throw 'websocket-err 1011 'make-fragment-writer
+           "Invalid data frame type `~a'" type))
+  (let ((end (+ start count))
+        (offset start)
+        (first? #t))
+    (lambda (port)
+      (let* ((rest (- end offset))
+             (n (if (and (> fragment 0) (> rest fragment)) fragment rest))
+             (final? (= (+ offset n) end))
+             (written? (write-websocket-frame port final?
+                                              (if first? type 'continuation)
+                                              payload offset n)))
+        (set! first? #f)
+        (set! offset (+ offset n))
+        (or final? (not written?))))))
 
-(::define (print-websocket-frame frame)
-  (:anno: (websocket-frame) -> ANY)
+(define* (write-websocket-message port type payload
+                                  #:key
+                                  (fragment (get-conf '(websocket fragment)))
+                                  (start 0)
+                                  (count (- (bytevector-length payload) start)))
+  (let ((next! (make-fragment-writer type payload fragment start count)))
+    (let lp ()
+      (unless (next! port) (lp)))))
+
+;; code #f sends an empty close payload. reason is a string, at most 123
+;; bytes once encoded; without it the standard reason text is used.
+(define* (send-websocket-close port #:key (code 1000) (reason #f))
+  (define (->payload)
+    (cond
+     ((not code) (make-bytevector 0))
+     ((not (sendable-close-code? code))
+      (throw 'websocket-err 1011 'send-websocket-close
+             "Close code ~a can't be sent" code))
+     (reason
+      (let ((bv (string->utf8 reason)))
+        (when (> (bytevector-length bv) 123)
+          (throw 'websocket-err 1011 'send-websocket-close
+                 "Close reason exceeds 123 bytes"))
+        (make-close-payload code bv)))
+     ((assv-ref *close-payloads* code))
+     (else (make-close-payload code (make-bytevector 0)))))
+  (write-websocket-frame port #t 'close (->payload)))
+
+(define (print-websocket-frame frame)
   (call-with-output-string
    (lambda (port)
-     (let* ((head (websocket-frame-head frame))
-            (opcode (%get-opcode head))
-            (payload (websocket-frame-payload frame))
-            (size (websocket-frame-payload-length frame))
-            (mask (websocket-frame-mask frame)))
+     (let ((payload (websocket-frame-payload frame)))
        (format port "<websocket-frame:~%")
-       (format port "~10thead: ~a~%" head)
-       (format port "~10tfinal?: ~a~%" (is-final-frame? head))
-       (format port "~10ttype: ~a~%" (list-ref *opcode-list* opcode))
-       (format port "~10tpayload-size: ~a~%" size)
-       (format port "~10tpayload: ~a>" payload)))))
+       (format port "~10tfinal?: ~a~%" (websocket-frame-final? frame))
+       (format port "~10ttype: ~a~%" (websocket-frame-type frame))
+       (format port "~10tpayload-size: ~a>" (bytevector-length payload))))))

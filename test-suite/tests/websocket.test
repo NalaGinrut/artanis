@@ -1,6 +1,6 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
 ;;  === Websocket tests ===
-;;  Copyright (C) 2013,2014,2015
+;;  Copyright (C) 2013,2014,2015,2026
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -19,31 +19,303 @@
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (test websocket)
-  #:use-module (artanis utils)
-  #:use-module (artanis websocket)
   #:use-module (artanis websocket handshake)
   #:use-module (artanis websocket frame)
-  #:use-module ((ice-9 iconv) #:select (string->bytevector))
-  #:use-module ((rnrs) #:select (open-bytevector-input-port))
+  #:use-module (rnrs bytevectors)
+  #:use-module (rnrs io ports)
   #:use-module (test-suite lib))
 
-(define websocket-echo-read (@@ (artanis websocket protocols) websocket-echo-read))
+;; ---------------------------------------------------------------------------
+;; Helpers
 
-(define (websocket-decode-body-string str)
-  (let* ((bv (string->bytevector str "iso8859-1"))
-         (port (open-bytevector-input-port bv))
-         (ws-frame (read-websocket-frame websocket-echo-read port)))
-    (websocket-echo-read ws-frame)))
+(define (bv . lst) (u8-list->bytevector lst))
+(define (bv-append . bvs)
+  (call-with-bytevector-output-port
+   (lambda (p) (for-each (lambda (b) (put-bytevector p b)) bvs))))
+(define (ascii s) (string->utf8 s))
+(define (bytevector-slice* b start end)
+  (let ((r (make-bytevector (- end start))))
+    (bytevector-copy! b start r 0 (- end start))
+    r))
 
-(with-test-prefix "websocket test"
+(define *key* (bv #x37 #xfa #x21 #x3d))
+
+;; Build a masked client frame.
+(define* (client-frame opcode payload #:key (fin #t) (rsv 0) (mask #t))
+  (let ((len (bytevector-length payload)))
+    (bv-append
+     (bv (logior (if fin #x80 0) (ash rsv 4) opcode))
+     (cond
+      ((< len 126) (bv (logior (if mask #x80 0) len)))
+      ((< len #x10000) (bv (logior (if mask #x80 0) 126)
+                          (ash len -8) (logand len #xff)))
+      (else (let ((b (make-bytevector 8 0)))
+              (bytevector-u64-set! b 0 len 'big)
+              (bv-append (bv (logior (if mask #x80 0) 127)) b))))
+     (if mask *key* (bv))
+     (if mask
+         (let ((m (bytevector-copy payload)))
+           (do ((i 0 (1+ i))) ((= i len) m)
+             (bytevector-u8-set! m i (logxor (bytevector-u8-ref m i)
+                                             (bytevector-u8-ref *key* (logand i 3))))))
+         payload))))
+
+;; Read a message from bytes; return (frame . bytes-written-by-control).
+(define* (read-msg input #:key (max-frame 1024) (max-message 4096)
+                   (min-fragment 0) (max-fragments 0))
+  (call-with-values open-bytevector-output-port
+    (lambda (out get)
+      (let ((frame (read-websocket-message
+                    (open-bytevector-input-port input)
+                    #:control (default-control-handler out)
+                    #:max-frame max-frame #:max-message max-message
+                    #:min-fragment min-fragment #:max-fragments max-fragments)))
+        (cons frame (get))))))
+
+;; Return the close code of a 'websocket-err, or 'no-error.
+(define-syntax-rule (ws-code body ...)
+  (catch 'websocket-err
+    (lambda () body ... 'no-error)
+    (lambda (k code . rest) code)))
+
+(define-syntax-rule (read-code input args ...)
+  (ws-code (read-msg input args ...)))
+
+;; Collect what the thunk writes on a fresh port.
+(define (written proc)
+  (call-with-values open-bytevector-output-port
+    (lambda (out get) (proc out) (get))))
+
+;; ---------------------------------------------------------------------------
+
+(with-test-prefix "websocket handshake"
 
   (pass-if "websocket key->accept"
     (let ((ts (gen-accept-key "x3JJHMbDL1EzLkh9GBhXDw==")))
-      (string=? ts "HSmrc0sMlYUkAGmm5OPpG2HaGWk=")))
+      (string=? ts "HSmrc0sMlYUkAGmm5OPpG2HaGWk="))))
 
-  (pass-if "websocket one frame as string decode"
-    (let ((str (websocket-decode-body-string "\x81\x8cÿ¸½½·ÝÑÑ\x90\x98êÒ\x8dÔÙ\x9c")))
-      (string=? str "Hello World!")))
+(with-test-prefix "websocket read"
 
-  ;; TODO: fill other tests
-  )
+  (pass-if-equal "masked single text frame" "Hello World!"
+    (let ((r (read-msg (client-frame 1 (ascii "Hello World!")))))
+      (utf8->string (websocket-frame-payload (car r)))))
+
+  (pass-if-equal "RFC sample frame" "Hello"
+    (let ((r (read-msg (bv #x81 #x85 #x37 #xfa #x21 #x3d
+                           #x7f #x9f #x4d #x51 #x58))))
+      (utf8->string (websocket-frame-payload (car r)))))
+
+  (pass-if-equal "unmasked frame" 1002
+    (read-code (client-frame 1 (ascii "hi") #:mask #f)))
+
+  (pass-if-equal "RSV bits set" 1002
+    (read-code (client-frame 1 (ascii "hi") #:rsv 4)))
+
+  (pass-if-equal "reserved data opcode" 1002
+    (read-code (client-frame 3 (ascii "hi"))))
+
+  (pass-if-equal "reserved control opcode" 1002
+    (read-code (client-frame #xb (bv))))
+
+  (pass-if-equal "64-bit length with MSB set" 1002
+    (read-code (bv #x82 #xff #x80 0 0 0 0 0 0 1)))
+
+  (pass-if-equal "control frame with 126 length" 1002
+    (read-code (bv #x89 #xfe 0 126)))
+
+  (pass-if-equal "fragmented control frame" 1002
+    (read-code (client-frame 9 (bv) #:fin #f)))
+
+  (pass-if-equal "frame over the limit, rejected before reading payload" 1009
+    ;; claims 2^40 bytes with no payload following: 1006 would mean it read
+    (read-code (bv #x82 #xff 0 0 1 0 0 0 0 0)))
+
+  (pass-if-equal "message over the limit across fragments" 1009
+    (read-code (bv-append (client-frame 2 (make-bytevector 1000 0) #:fin #f)
+                          (client-frame 0 (make-bytevector 1000 0) #:fin #f)
+                          ;; header only: over the rest of the quota
+                          (bv #x80 #xfe 0 200))
+               #:max-message 2100))
+
+  (pass-if-equal "fragmented text with a ping in between"
+    '("Hello World" . #vu8(#x8a 2 #x70 #x69))
+    (let ((r (read-msg (bv-append (client-frame 1 (ascii "Hello") #:fin #f)
+                                  (client-frame 9 (ascii "pi"))
+                                  (client-frame 0 (ascii " Wor") #:fin #f)
+                                  (client-frame 0 (ascii "ld"))))))
+      (cons (utf8->string (websocket-frame-payload (car r))) (cdr r))))
+
+  (pass-if-equal "pong between fragments is ignored" "ab"
+    (let ((r (read-msg (bv-append (client-frame 1 (ascii "a") #:fin #f)
+                                  (client-frame #xa (ascii "x"))
+                                  (client-frame 0 (ascii "b"))))))
+      (utf8->string (websocket-frame-payload (car r)))))
+
+  (pass-if-equal "continuation without a message" 1002
+    (read-code (client-frame 0 (ascii "x"))))
+
+  (pass-if-equal "new data frame inside a fragmented message" 1002
+    (read-code (bv-append (client-frame 1 (ascii "a") #:fin #f)
+                          (client-frame 1 (ascii "b")))))
+
+  (pass-if-equal "empty fragments" ""
+    (let ((r (read-msg (bv-append (client-frame 1 (bv) #:fin #f)
+                                  (client-frame 0 (bv) #:fin #f)
+                                  (client-frame 0 (bv))))))
+      (utf8->string (websocket-frame-payload (car r)))))
+
+  (pass-if-equal "binary payload is not UTF-8 checked" #vu8(#xff #xfe)
+    (websocket-frame-payload (car (read-msg (client-frame 2 (bv #xff #xfe))))))
+
+  (pass-if-equal "EOF in the middle of a frame" 1006
+    (read-code (bv #x81 #x85 #x37 #xfa)))
+
+  (pass-if-equal "EOF before a frame" 1006
+    (read-code (bv))))
+
+(with-test-prefix "websocket UTF-8"
+
+  (pass-if-equal "invalid UTF-8 text" 1007
+    (read-code (client-frame 1 (bv #x61 #xff))))
+
+  (pass-if-equal "overlong encoding" 1007
+    (read-code (client-frame 1 (bv #xc0 #x80))))
+
+  (pass-if-equal "surrogate" 1007
+    (read-code (client-frame 1 (bv #xed #xa0 #x80))))
+
+  (pass-if-equal "above U+10FFFF" 1007
+    (read-code (client-frame 1 (bv #xf4 #x90 #x80 #x80))))
+
+  (pass-if-equal "code point split across fragments" "中文"
+    (let* ((b (string->utf8 "中文"))
+           (r (read-msg (bv-append
+                         (client-frame 1 (bytevector-slice* b 0 2) #:fin #f)
+                         (client-frame 0 (bytevector-slice* b 2 4) #:fin #f)
+                         (client-frame 0 (bytevector-slice* b 4 6))))))
+      (utf8->string (websocket-frame-payload (car r)))))
+
+  (pass-if-equal "fail fast on the invalid fragment" 1007
+    ;; no more fragments follow: 1006 would mean it waited for them
+    (read-code (client-frame 1 (bv #x61 #xc0) #:fin #f)))
+
+  (pass-if-equal "message ends inside a code point" 1007
+    (read-code (bv-append (client-frame 1 (bv #x61) #:fin #f)
+                          (client-frame 0 (bv #xe4 #xb8))))))
+
+(with-test-prefix "websocket close"
+
+  (pass-if-equal "close is echoed with its code only"
+    '(8 . #vu8(#x88 2 #x03 #xe8))
+    (let ((r (read-msg (client-frame 8 (bv-append (bv #x03 #xe8) (ascii "bye"))))))
+      (cons (websocket-frame-opcode (car r)) (cdr r))))
+
+  (pass-if-equal "empty close is echoed empty" #vu8(#x88 0)
+    (cdr (read-msg (client-frame 8 (bv)))))
+
+  (pass-if-equal "close between fragments" 8
+    (websocket-frame-opcode
+     (car (read-msg (bv-append (client-frame 1 (ascii "a") #:fin #f)
+                               (client-frame 8 (bv #x03 #xe8)))))))
+
+  (pass-if-equal "close payload of 1 byte" 1002
+    (read-code (client-frame 8 (bv 3))))
+
+  (pass-if-equal "close code 1005" 1002
+    (read-code (client-frame 8 (bv #x03 #xed))))
+
+  (pass-if-equal "close code 999" 1002
+    (read-code (client-frame 8 (bv #x03 #xe7))))
+
+  (pass-if-equal "close code 3000" 8
+    (websocket-frame-opcode (car (read-msg (client-frame 8 (bv #x0b #xb8))))))
+
+  (pass-if-equal "close reason is not UTF-8" 1007
+    (read-code (client-frame 8 (bv #x03 #xe8 #xff)))))
+
+(with-test-prefix "websocket limits"
+
+  (pass-if-equal "non-final fragment under minpayload" 1008
+    (read-code (bv-append (client-frame 1 (ascii "ab") #:fin #f)
+                          (client-frame 0 (ascii "cdef")))
+               #:min-fragment 4))
+
+  (pass-if-equal "final fragment under minpayload is fine" "abcdx"
+    (utf8->string
+     (websocket-frame-payload
+      (car (read-msg (bv-append (client-frame 1 (ascii "abcd") #:fin #f)
+                                (client-frame 0 (ascii "x")))
+                     #:min-fragment 4)))))
+
+  (pass-if-equal "too many fragments" 1008
+    (read-code (bv-append (client-frame 1 (ascii "a") #:fin #f)
+                          (client-frame 0 (ascii "b") #:fin #f)
+                          (client-frame 0 (ascii "c")))
+               #:max-fragments 2)))
+
+(with-test-prefix "websocket write"
+
+  (pass-if-equal "small text frame" #vu8(#x81 2 #x68 #x69)
+    (written (lambda (p) (write-websocket-frame p #t 'text (ascii "hi")))))
+
+  (pass-if-equal "16-bit length" '(#x82 126 0 200)
+    (let ((b (written (lambda (p) (write-websocket-frame
+                                   p #t 'binary (make-bytevector 200 0))))))
+      (list-head (bytevector->u8-list b) 4)))
+
+  (pass-if-equal "64-bit length" '(#x82 127 0 0 0 0 0 1 #x11 #x70)
+    (let ((b (written (lambda (p) (write-websocket-frame
+                                   p #t 'binary (make-bytevector 70000 0))))))
+      (list-head (bytevector->u8-list b) 10)))
+
+  (pass-if-equal "slice of a bytevector" #vu8(#x81 3 #x6c #x6c #x6f)
+    (written (lambda (p) (write-websocket-frame p #t 'text (ascii "hello") 2 3))))
+
+  (pass-if-equal "outbound fragments"
+    (bv-append (bv #x01 4) (ascii "0123")
+               (bv #x00 4) (ascii "4567")
+               (bv #x80 2) (ascii "89"))
+    (written (lambda (p) (write-websocket-message p 'text (ascii "0123456789")
+                                                  #:fragment 4))))
+
+  (pass-if-equal "no fragmentation with 0" (bv-append (bv #x81 3) (ascii "abc"))
+    (written (lambda (p) (write-websocket-message p 'text (ascii "abc")
+                                                  #:fragment 0))))
+
+  (pass-if-equal "control frame between two fragments"
+    (bv-append (bv #x02 2) (ascii "ab")
+               (bv #x89 0)
+               (bv #x80 1) (ascii "c"))
+    (written (lambda (p)
+               (let ((next! (make-fragment-writer 'binary (ascii "abc") 2)))
+                 (next! p)
+                 (write-websocket-frame p #t 'ping (bv))
+                 (next! p)))))
+
+  (pass-if-equal "control frame over 125 bytes" 1011
+    (ws-code (written (lambda (p) (write-websocket-frame
+                                   p #t 'ping (make-bytevector 126 0))))))
+
+  (pass-if-equal "nothing is written after a close"
+    '(#vu8(#x88 2 #x03 #xe8) #f #t)
+    (call-with-values open-bytevector-output-port
+      (lambda (p get)
+        (send-websocket-close p #:code 1000 #:reason "")
+        (write-websocket-message p 'text (ascii "late") #:fragment 0)
+        (let ((again (send-websocket-close p)))
+          (list (get) again (websocket-output-closed? p))))))
+
+  (pass-if-equal "close with default reason"
+    (bv-append (bv #x88 12 #x03 #xe9) (ascii "Going Away"))
+    (written (lambda (p) (send-websocket-close p #:code 1001))))
+
+  (pass-if-equal "empty close" #vu8(#x88 0)
+    (written (lambda (p) (send-websocket-close p #:code #f))))
+
+  (pass-if-equal "close code 1006 can't be sent" 1011
+    (ws-code (written (lambda (p) (send-websocket-close p #:code 1006)))))
+
+  (pass-if-equal "close reason over 123 bytes" 1011
+    (ws-code (written (lambda (p) (send-websocket-close
+                                   p #:code 1000
+                                   #:reason (make-string 124 #\a)))))))
