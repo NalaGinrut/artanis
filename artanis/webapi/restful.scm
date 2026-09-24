@@ -55,7 +55,9 @@
   (define (is-api? f)
     (irregex-match *api-file-re* f))
   (let ((path (format #f "~a/app/api" (current-toplevel))))
-    (scandir path is-api?)))
+    (or (scandir path is-api?)
+        ;; if path doesn't exist, scandir returns #f, but we need a list.
+        '())))
 
 (define (load-app-restful-api)
   (display "Loading restful API...\n" (artanis-current-output))
