@@ -27,6 +27,7 @@
   #:use-module (artanis env)
   #:use-module (artanis server ragnarok)
   #:use-module (artanis server http)
+  #:use-module (artanis server websocket)
   #:use-module (artanis server scheduler)
   #:re-export (establish-http-gateway
                get-task-breaker
@@ -55,4 +56,6 @@
 (define (init-server-core)
   (schedule-task (get-task-breaker))
   (try-to-recycle-resources (get-resources-collector))
-  (protocol-add! 'http (new-http-protocol)))
+  (protocol-add! 'http (new-http-protocol))
+  ;; A connection is switched to it after the WebSocket handshake.
+  (protocol-add! 'websocket (new-websocket-protocol)))

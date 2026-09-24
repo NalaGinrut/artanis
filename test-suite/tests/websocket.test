@@ -22,8 +22,11 @@
   #:use-module (artanis websocket handshake)
   #:use-module (artanis websocket frame)
   #:use-module (artanis websocket named-pipe)
+  #:use-module (artanis config)
   #:use-module (rnrs bytevectors)
   #:use-module (rnrs io ports)
+  #:use-module (web request)
+  #:use-module (web uri)
   #:use-module (test-suite lib))
 
 ;; ---------------------------------------------------------------------------
@@ -89,11 +92,104 @@
 
 ;; ---------------------------------------------------------------------------
 
+(define *good-headers*
+  '((host . ("localhost" . 3000))
+    (upgrade "websocket")
+    (connection upgrade)
+    (sec-websocket-key . "dGhlIHNhbXBsZSBub25jZQ==")
+    (sec-websocket-version . "13")))
+
+(define* (ws-req #:key (method 'GET) (version '(1 . 1)) (path "/ws")
+                 (headers *good-headers*))
+  ;; A relative URI, so that build-request doesn't add a Host header.
+  (build-request (string->uri-reference path)
+                 #:method method #:version version #:headers headers
+                 #:port (open-bytevector-input-port #vu8())
+                 #:validate-headers? #f))
+
+(define (without key) (assq-remove! (list-copy *good-headers*) key))
+(define (with key val) (cons (cons key val) (without key)))
+
+;; The status of the rejection, or #f if accepted.
+(define (req-error . args)
+  (and=> (websocket-request-error (apply ws-req args)) car))
+
+(websocket-rule-add! "/ws" "^/ws$" 'raw)
+(websocket-rule-add! "/chat/:room" "^/chat/([^\\/\\?]+)$" 'chat #:inexclusive? #t)
+(websocket-rule-timeout-set! "/chat/:room" 7)
+
 (with-test-prefix "websocket handshake"
 
   (pass-if "websocket key->accept"
     (let ((ts (gen-accept-key "x3JJHMbDL1EzLkh9GBhXDw==")))
-      (string=? ts "HSmrc0sMlYUkAGmm5OPpG2HaGWk="))))
+      (string=? ts "HSmrc0sMlYUkAGmm5OPpG2HaGWk=")))
+
+  (pass-if-equal "valid request" #f (req-error))
+
+  (pass-if-equal "not an upgrade" 426
+    (req-error #:headers (without 'upgrade)))
+
+  (pass-if-equal "no upgrade token in Connection" 426
+    (req-error #:headers (with 'connection '(keep-alive))))
+
+  (pass-if-equal "Upgrade is case-insensitive" #f
+    (req-error #:headers (with 'upgrade '("WebSocket"))))
+
+  (pass-if "426 tells the client how to upgrade"
+    (let ((err (websocket-request-error (ws-req #:headers (without 'upgrade)))))
+      (and (assq 'upgrade (cddr err))
+           (equal? "13" (assq-ref (cddr err) 'Sec-WebSocket-Version)))))
+
+  (pass-if-equal "POST" 400 (req-error #:method 'POST))
+
+  (pass-if-equal "HTTP/1.0" 400 (req-error #:version '(1 . 0)))
+
+  (pass-if-equal "no key" 400
+    (req-error #:headers (without 'sec-websocket-key)))
+
+  (pass-if-equal "key isn't 16 bytes" '(400 400 400)
+    (map (lambda (k) (req-error #:headers (with 'sec-websocket-key k)))
+         '("eHh4eHh4eHh4eHh4eHh4" ; 15 bytes
+           "dGhlIHNhbXBsZSBub25jZR==" ; non-zero padding bits
+           "dGhlIHNhbXBsZSBub25jZQ")))
+
+  (pass-if-equal "no version" 400
+    (req-error #:headers (without 'sec-websocket-version)))
+
+  (pass-if "wrong version is 426 with the supported version"
+    (let ((err (websocket-request-error
+                (ws-req #:headers (with 'sec-websocket-version "8")))))
+      (and (= 426 (car err))
+           (equal? "13" (assq-ref (cddr err) 'Sec-WebSocket-Version)))))
+
+  (pass-if-equal "subprotocol only when requested"
+    '(#f "chat" #f)
+    (let ((select (@@ (artanis websocket handshake) select-subprotocol)))
+      (list (select '() 'chat)
+            (select '((sec-websocket-protocol . "a, chat")) 'chat)
+            (select '((sec-websocket-protocol . "a, b")) 'chat)))))
+
+(with-test-prefix "websocket rules"
+
+  (pass-if "exact rule" (url-need-websocket? "/ws"))
+
+  (pass-if "rule with keys" (url-need-websocket? "/chat/42"))
+
+  (pass-if "not a rule" (not (url-need-websocket? "/ws/more")))
+
+  (pass-if-equal "request path is trimmed like the route" "/ws"
+    (websocket-request-path (ws-req #:path "/ws/")))
+
+  (pass-if-equal "inexclusive" '(#f #t)
+    (list (url-need-inexclusive-websocket? "/ws")
+          (url-need-inexclusive-websocket? "/chat/1")))
+
+  (pass-if-equal "timeout of the route" 7
+    (websocket-rule-timeout (find-websocket-rule "/chat/1")))
+
+  (pass-if "default timeout"
+    (equal? (get-conf '(websocket timeout))
+            (websocket-rule-timeout (find-websocket-rule "/ws")))))
 
 (with-test-prefix "websocket read"
 
@@ -343,6 +439,33 @@
     (ws-code (written (lambda (p) (send-websocket-close
                                    p #:code 1000
                                    #:reason (make-string 124 #\a)))))))
+
+;; A port that accepts `n' bytes, then fails.
+(define (failing-port n)
+  (let ((left n))
+    (make-custom-binary-output-port
+     "failing"
+     (lambda (bv start count)
+       (if (>= left count)
+           (begin (set! left (- left count)) count)
+           (throw 'system-error 'write "~A" '("Broken pipe") (list EPIPE))))
+     #f #f #f)))
+
+(with-test-prefix "websocket frame in flight"
+
+  (pass-if "not in flight after a write"
+    (let ((p (open-bytevector-output-port)))
+      (write-websocket-message p 'text (ascii "hi") #:fragment 0)
+      (not (websocket-frame-in-flight? p))))
+
+  (pass-if "in flight after a failed write"
+    (let ((p (failing-port 0)))
+      (setvbuf p 'none)
+      (catch 'system-error
+        (lambda () (write-websocket-message p 'binary (make-bytevector 64 1)
+                                            #:fragment 0))
+        (lambda _ #t))
+      (websocket-frame-in-flight? p))))
 
 (with-test-prefix "websocket named-pipe"
 

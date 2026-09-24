@@ -385,6 +385,7 @@
 ;; for #:websocket
 ;;
 (define (websocket-maker mode rule keys)
+  (define regexp (compile-rule rule))
   (match mode
     ('send-only
      ;; NOTE: send-only is used for sending messages to registed websocket connection by
@@ -395,17 +396,17 @@
      ;; NOTE: Other options could be bi-direction transmission without specified 'send/recv
      ;;       explicitly.
      (DEBUG "~a is registered to be named-pipe send only rule!" rule))
-    (((or #t 'raw))
-     (this-rule-enabled-websocket! rule 'raw))
+    ((or #t 'raw ('raw))
+     (websocket-rule-add! rule regexp 'raw))
     (('proto (? symbol? proto))
      ;; TODO: call protocol initilizer, and establish websocket for it.
      ;; NOTE: By default, we accept only one protocol for each URL-remapping,
      ;;       if you have several protocols to service, please use different
      ;;       URL-remapping.
-     (this-rule-enabled-websocket! rule proto))
+     (websocket-rule-add! rule regexp proto))
     (('proto (? symbol? proto) 'inexclusive)
      ;; NOTE: Allow many clients subscribe to one named-pipe.
-     (this-rule-enabled-inexclusive-websocket! rule proto))
+     (websocket-rule-add! rule regexp proto #:inexclusive? #t))
     (('redirect (? string? ip/usk))
      ;; NOTE: We use IP rather than hostname, since it's usually redirected to
      ;;       a LAN address. Using hostname may cause DNS issues.
@@ -416,14 +417,14 @@
      ;; TODO: call protocol initilizer, and establish websocket
      ;;       to redirect it.
      ;; NOTE: Just call :websocket as the handler is enough to redirect data automatically
-     (this-rule-enabled-websocket! rule 'redirect))
+     (websocket-rule-add! rule regexp 'redirect))
     (('proxy (? symbol? proto))
      ;; NOTE: Setup a proxy with certain protocol handler.
      ;;       Different from the regular proxy design, the proxy in Artanis doesn't
      ;;       need a listen port, since it's always 80/443. The client should
      ;;       support websocket, and visit the related URL for establishing
      ;;       a websocket channel. Then the rest is the same with regular proxy.
-     (this-rule-enabled-websocket! rule 'proxy))
+     (websocket-rule-add! rule regexp 'proxy))
     (else (throw 'artanis-err 500 websocket-maker "Invalid type `~a'!" mode)))
   (lambda (rc . cmd)
     (match cmd
@@ -431,6 +432,19 @@
       ('(frame) (rc-body rc))
       (`(send ,name ,data) (send-to-websocket-named-pipe name data))
       (else (throw 'artanis-err 500 websocket-maker "Invalid cmd `~a'!" cmd)))))
+
+;; for #:timeout
+;; The idle timeout of the connections of this route, in seconds. 0 means no
+;; timeout. The default is websocket.timeout.
+;; NOTE: Only WebSocket routes use it for now. It's registered by rule, so the
+;;       order of #:timeout and #:websocket doesn't matter.
+(define (timeout-maker seconds rule keys)
+  (when (not (and (integer? seconds) (exact? seconds) (>= seconds 0)))
+    (throw 'artanis-err 500 timeout-maker
+           "Invalid #:timeout `~a' for `~a', expect a non-negative integer"
+           seconds rule))
+  (websocket-rule-timeout-set! rule seconds)
+  (lambda (rc) seconds))
 
 ;; for #:lpc
 ;; Local Persistent Cache
@@ -736,6 +750,9 @@
    ;;    b. cooked proxy
    ;;       There's a bound protocol instance for it.
    (#:websocket . ,websocket-maker)
+
+   ;; The idle timeout of the connection, in seconds, see timeout-maker.
+   (#:timeout . ,timeout-maker)
 
    ;; Apply an instance of Local Persistent Cache
    ;; This is useful when you want to store some key-value stuffs.

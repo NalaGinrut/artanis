@@ -24,17 +24,11 @@
   #:use-module (artanis config)
   #:use-module (ice-9 match)
   #:use-module (ice-9 iconv)
-  #:export (register-websocket-redirector!
-            register-websocket-protocol!))
+  #:export (register-websocket-redirector!))
 
-(::define (websocket-echo-read frame)
-  (:anno: (websocket-frame) -> string)
-  (bytevector->string (websocket-frame-payload frame)
-                      (get-conf '(server charset))))
-
-(::define (websocket-echo-write bv)
-  (:anno: (bv) -> bv)
-  bv)
+;; NOTE: The redirector (#:websocket 'redirect / 'proxy) is not wired to the
+;;       `websocket' protocol yet, this module is kept for its rework in
+;;       layer 5. Nothing uses it for now.
 
 (::define (websocket-pipe-read frame)
   (:anno: (websocket-frame) -> bv)
@@ -50,25 +44,10 @@
          "The named-pipe is single way and shouldn't be read"))
 
 (define *websocket-redirector-constructors*
-  `((echo ,websocket-echo-read ,websocket-echo-write)
-    (named-pipe ,websocket-pipe-read ,websocket-pipe-write)))
+  `((named-pipe ,websocket-pipe-read ,websocket-pipe-write)))
 
 (::define (register-websocket-redirector! proto-name reader writer)
   (:anno: (symbol proc proc) -> ANY)
   (set! *websocket-redirector-constructors*
         (cons `(,proto-name ,reader ,writer)
               *websocket-redirector-constructors*)))
-
-(::define (register-websocket-protocol! server client proto-name remote-port)
-  (:anno: (ragnarok-server ragnarok-client symbol port) -> redirector)
-  (let* ((info (assq-ref *websocket-redirector-constructors* proto-name))
-         (reader (car info))
-         (writer (cadr info)))
-    (register-redirector!
-     server
-     client
-     reader
-     writer
-     proto-name
-     ;; NOTE: For non-proxy, the remote-port is always #f
-     (if (eq? proto-name 'proxy) remote-port #f))))

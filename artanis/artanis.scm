@@ -188,9 +188,6 @@
                cache-this-page
                clear-content-cache
 
-               ;; websocket
-               named-pipe-subscribe
-
                ;; server
                schedule-task
 

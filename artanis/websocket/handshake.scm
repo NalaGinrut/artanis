@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2017-2025
+;;  Copyright (C) 2017-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -17,63 +17,99 @@
 ;;  and GNU Lesser General Public License along with this program.
 ;;  If not, see <http://www.gnu.org/licenses/>.
 
+;; RFC 6455 opening handshake, and the table of WebSocket routes.
+;;
+;; The handshake is done in http-read, before any route handler is called:
+;; 1. websocket-request-error checks the upgrade request. A bad one is
+;;    answered with an HTTP error (400, or 426 with the headers the client
+;;    needs to retry) by reject-websocket-request, then the connection is
+;;    closed.
+;; 2. do-websocket-handshake writes the 101 response. From then on the
+;;    connection speaks WebSocket only, any error must be a close frame.
+
 (define-module (artanis websocket handshake)
   #:use-module (artanis utils)
   #:use-module (artanis env)
   #:use-module (artanis config)
-  #:use-module (artanis server server-context)
-  #:use-module (artanis server scheduler)
   #:use-module (artanis irregex)
-  #:use-module (artanis websocket frame)
-  #:use-module (artanis websocket protocols)
   #:use-module (artanis security nss)
-  #:use-module (ice-9 iconv)
   #:use-module (ice-9 format)
+  #:use-module ((web request) #:select (request-version))
   #:use-module (rnrs bytevectors)
   #:use-module ((rnrs) #:select (define-record-type))
-  #:use-module ((srfi srfi-1) #:select (any))
-  #:export (do-websocket-handshake
+  #:use-module ((srfi srfi-1) #:select (find any))
+  #:export (gen-accept-key
+            websocket-request-path
+            websocket-request-error
+            reject-websocket-request
+            do-websocket-handshake
             closing-websocket-handshake
-            gen-accept-key
-            valid-ws-request?
-            this-rule-enabled-websocket!
-            this-rule-enabled-inexclusive-websocket!
+
+            websocket-rule-add!
+            websocket-rule-timeout-set!
+            websocket-rules-defined?
+            find-websocket-rule
+            websocket-rule-rule
+            websocket-rule-protocol
+            websocket-rule-inexclusive?
+            websocket-rule-timeout
             url-need-websocket?
             url-need-inexclusive-websocket?))
 
 (define *ws-magic* "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
-(define *rules-with-websocket* '())
-(define *rules-with-inexclusive-websocket* '())
+;; ---------------------------------------------------------------------------
+;; WebSocket routes
+;;
+;; One entry per route with #:websocket. `rule' is the route rule as written
+;; by the user (trailing "/" trimmed), `irx' matches the request path the same
+;; way the route does, so a rule with keys (e.g. "/chat/:room") works.
+;; `protocol' is the handler protocol of the route (#:websocket), it's not
+;; the Sec-WebSocket-Protocol subprotocol.
 
-(define (url-need-websocket? url)
-  (DEBUG "url-need-websocket? ~a~%" url)
-  (any (lambda (rule)
-         (irregex-match (car rule) url)) *rules-with-websocket*))
+(define-record-type websocket-rule
+  (fields irx rule protocol inexclusive?))
 
-(define (url-need-inexclusive-websocket? url)
-  (DEBUG "url-need-inexclusive-websocket? ~a~%" url)
-  (any
-   (lambda (rule)
-     (irregex-match (car rule) url))
-   *rules-with-inexclusive-websocket*))
+(define *websocket-rules* '())
 
-(define (this-rule-enabled-websocket! rule protocol)
-  (DEBUG "this-rule-enabled-websocket! ~a~%" rule)
-  (set! *rules-with-websocket*
-        (cons (cons (string->irregex rule) protocol) *rules-with-websocket*)))
+;; rule -> seconds, from the #:timeout option of the route.
+(define *websocket-timeouts* (make-hash-table))
 
-(define (this-rule-enabled-inexclusive-websocket! rule protocol)
-  (DEBUG "this-rule-enabled-inexclusive-websocket! ~a~%" rule)
-  (set! *rules-with-inexclusive-websocket*
-        (cons (cons (string->irregex rule) protocol) *rules-with-inexclusive-websocket*)))
+;; regexp is the compiled rule, see compile-rule in (artanis oht).
+(define* (websocket-rule-add! rule regexp protocol #:key (inexclusive? #f))
+  (DEBUG "websocket-rule-add! ~a ~a~%" rule protocol)
+  (set! *websocket-rules*
+        (cons (make-websocket-rule (string->irregex regexp) rule protocol
+                                   inexclusive?)
+              *websocket-rules*)))
 
-(define (get-websocket-protocol rule)
-  (define (check pp)
-    (and (irregex-search (car pp) rule) (cdr pp)))
-  (DEBUG "get-websocket-protocol: ~a~%" rule)
-  (or (any check *rules-with-websocket*)
-      (any check *rules-with-inexclusive-websocket*)))
+(define (websocket-rule-timeout-set! rule seconds)
+  (hash-set! *websocket-timeouts* rule seconds))
+
+(define (websocket-rules-defined?)
+  (pair? *websocket-rules*))
+
+;; The path as the route sees it, see new-route-context.
+(define (websocket-request-path req)
+  (string-trim-right (request-path req) #\/))
+
+(define (find-websocket-rule path)
+  (find (lambda (r) (irregex-match (websocket-rule-irx r) path))
+        *websocket-rules*))
+
+;; The idle timeout of connections of this route, in seconds. 0 means none.
+(define (websocket-rule-timeout r)
+  (or (hash-ref *websocket-timeouts* (websocket-rule-rule r))
+      (get-conf '(websocket timeout))))
+
+(define (url-need-websocket? path)
+  (and (find-websocket-rule path) #t))
+
+(define (url-need-inexclusive-websocket? path)
+  (and=> (find-websocket-rule path) websocket-rule-inexclusive?))
+
+;; ---------------------------------------------------------------------------
+;; Opening handshake
 
 (define (gen-accept-key key)
   (let* ((realkey (string-append key *ws-magic*))
@@ -81,109 +117,110 @@
          (keybv (list->u8vector (string->byteslist keyhash 2 16))))
     (nss:base64-encode keybv)))
 
-(define (validate-websocket-request req client)
-  (define (not-proper-websocket-version? version)
-    (not (string=? version "13")))
-  (define (the-origin-is-not-acceptable? origin)
-    ;; TODO: check origin
-    #f)
+;; A valid key is the Base64 of 16 bytes, which is always 22 characters plus
+;; "==". NSS's decoder is lenient, so we check the form directly.
+(define *key-re* (string->irregex "[A-Za-z0-9+/]{21}[AQgw]=="))
+
+(define (valid-key? key)
+  (and (string? key) (irregex-match *key-re* key) #t))
+
+(define (header-ref headers name)
+  (assq-ref headers name))
+
+;; Is it a request to upgrade to WebSocket at all?
+(define (upgrade-request? headers)
+  (let ((upgrade (header-ref headers 'upgrade))
+        (connection (header-ref headers 'connection)))
+    (and (list? upgrade)
+         (any (lambda (p) (and (string? p) (string-ci=? p "websocket")))
+              upgrade)
+         (list? connection)
+         ;; Guile parses Connection into downcased symbols.
+         (memq 'upgrade connection)
+         #t)))
+
+(define *upgrade-headers*
+  '((upgrade "websocket")
+    (connection upgrade)
+    (Sec-WebSocket-Version . "13")))
+
+;; Check an opening handshake request on a WebSocket route.
+;; Returns #f if it's acceptable, otherwise (status reason . extra-headers).
+;; NOTE: Host is not checked here, Guile's read-request already rejects an
+;;       HTTP/1.1 request without it.
+(define (websocket-request-error req)
   (let* ((headers (request-headers req))
-         (upgrade (car (assoc-ref headers 'upgrade)))
-         (connection (assoc-ref headers 'connection))
-         (version (assoc-ref headers 'sec-websocket-version))
-         (origin (assoc-ref headers 'origin)))
+         (version (header-ref headers 'sec-websocket-version)))
     (cond
-     ((not (memq 'upgrade connection))
-      (throw 'artanis-err 426 validate-websocket-request
-             "Invalid connection `~a' request from ~a, expect 'upgrade!"
-             connection (client-ip client)))
-     ((not (string=? upgrade "websocket"))
-      (throw 'artanis-err 426 validate-websocket-request
-             "Invalid protocol `~a' request from ~a, expect \"websocket\"!"
-             upgrade (client-ip client)))
-     ((not-proper-websocket-version? version)
-      (throw 'artanis-err 426 validate-websocket-request
-             "Invalid websocket version `~a' from client ~a"
-             version (client-ip client)))
-     ((the-origin-is-not-acceptable? origin)
-      (throw 'artanis-err 403 validate-websocket-request
-             "Unacceptable origin `~a' from websocket client ~a"
-             origin (client-ip client)))
-     (else #t))))
+     ((not (upgrade-request? headers))
+      ;; The route speaks WebSocket only.
+      `(426 "Not a WebSocket upgrade request" ,@*upgrade-headers*))
+     ((not (eq? 'GET (request-method req)))
+      `(400 ,(format #f "Invalid method `~a' for WebSocket" (request-method req))))
+     ((let ((v (request-version req)))
+        (or (< (car v) 1) (and (= (car v) 1) (< (cdr v) 1))))
+      `(400 ,(format #f "Invalid HTTP version ~a for WebSocket"
+                     (request-version req))))
+     ((not (valid-key? (header-ref headers 'sec-websocket-key)))
+      '(400 "Missing or invalid Sec-WebSocket-Key"))
+     ((not (string? version))
+      '(400 "No Sec-WebSocket-Version"))
+     ((not (string=? (string-trim-both version) "13"))
+      `(426 ,(format #f "Unsupported WebSocket version `~a'" version)
+            (Sec-WebSocket-Version . "13")))
+     ;; TODO: check Origin, it's the job of AuthN (layer 3).
+     (else #f))))
 
-(define (confirm-available-protocols client path request-protocols)
-  (let ((protocol (get-websocket-protocol path)))
-    (cond
-     ((memq protocol request-protocols) protocol)
-     (else
-      (throw 'artanis-err 1002 validate-websocket-request
-             "Websocket subprotocol `~a' is unacceptable from client ~a"
-             protocol (client-ip client))))))
+;; Answer a rejected handshake request. The caller closes the connection.
+(define (reject-websocket-request req port err)
+  (let ((status (car err))
+        (reason (cadr err))
+        (extra (cddr err)))
+    (format (artanis-current-output)
+            "[WebSocket] Rejected handshake of ~a: ~a ~a~%"
+            (request-path req) status reason)
+    (write-response (build-response #:code status
+                                    #:headers `((content-length . 0) ,@extra))
+                    port)
+    (force-output port)))
 
-(define (run-after-websocket-handshake-hooks req client)
-  (run-hook *after-websocket-handshake-hook* req client))
+;; The Sec-WebSocket-Protocol subprotocol is only negotiated when the client
+;; asks for one: the protocol of the route is selected if the client listed
+;; it. Otherwise the header is omitted, and it's up to the client whether to
+;; go on (RFC 6455 4.2.2).
+(define (select-subprotocol headers protocol)
+  (let ((requested (header-ref headers 'sec-websocket-protocol)))
+    (and (string? requested)
+         (symbol? protocol)
+         (let ((name (symbol->string protocol)))
+           (and (any (lambda (p) (string=? (string-trim-both p) name))
+                     (string-split requested #\,))
+                name)))))
 
-;; NOTE: Although we can get `port' from `request', we still need `client' for IP address.
-(define (do-websocket-handshake req server client)
-  (define-syntax-rule (->protocols pl)
-    (if pl ; FIXME: how to deal with no-protocol-specified situation
-        (map (lambda (p) (string->symbol (string-trim-both p)))
-             (string-split pl #\,))
-        '(echo)))
-  (validate-websocket-request req client)
+;; Write the 101 response. The request must have passed
+;; websocket-request-error, and its path must be a WebSocket route.
+(define (do-websocket-handshake req port)
   (let* ((headers (request-headers req))
-         (path (request-path req))
-         (request-protocols (->protocols (assoc-ref headers 'sec-websocket-protocol)))
-         (proto (confirm-available-protocols client path request-protocols))
-         (port (request-port req))
-         (key (assoc-ref headers 'sec-websocket-key))
-         (accept-key (gen-accept-key key))
-         (origin (or (assoc-ref headers 'origin) "unknown client"))
-         (res (build-response #:code 101 #:headers `((Sec-WebSocket-Accept . ,accept-key)
-                                                     (Sec-WebSocket-Protocol . ,(symbol->string proto))
-                                                     ;;(Sec-WebSocket-Extensions . "permessage-deflate")
-                                                     (Sec-Websocket-Version . "13")
-                                                     (Upgrade . "websocket")
-                                                     (Connection . "Upgrade")))))
-    (format (artanis-current-output)
-            "[WebSocket] Handshake successfully from ~a~a~%"
-            origin (request-path req))
-    (format (artanis-current-output)
-            "[Websocket] Initializing `~a' protocol for Websocket ..."
-            proto)
-    (DEBUG "run-after-websocket-handshake-hooks~%")
-    (run-after-websocket-handshake-hooks req client)
-    (DEBUG "register-websocket-protocol!~%")
-    (register-websocket-protocol! server client proto port)
-    (format (artanis-current-output) " done~%")
+         (rule (find-websocket-rule (websocket-request-path req)))
+         (accept-key (gen-accept-key (header-ref headers 'sec-websocket-key)))
+         (subprotocol (select-subprotocol headers (websocket-rule-protocol rule)))
+         (res (build-response
+               #:code 101
+               #:headers `((upgrade "websocket")
+                           (connection upgrade)
+                           (Sec-WebSocket-Accept . ,accept-key)
+                           ,@(if subprotocol
+                                 `((Sec-WebSocket-Protocol . ,subprotocol))
+                                 '())))))
     (write-response res port)
     (force-output port)
-    (DEBUG "Handshake done!~%")))
+    (format (artanis-current-output)
+            "[WebSocket] Handshake successfully from ~a~a~%"
+            (or (header-ref headers 'origin) "unknown origin")
+            (request-path req))))
 
-;; NOTE: The actual closing operation should be in http-close
-;; NOTE: If peer-shutdown? is #t, then it means the websocket reader got closing-frame,
-;;       So we just remove redirector then close the connection.
-;; NOTE: If the shutdown is not required by client, then we should send closing frame, then
-;;       waiting for the closing-frame from the client, then close the connection.
-;; TODO: Finish all other exceptions which need close operation.
+;; NOTE: Only used by the redirector branch of http-close, which is dead code
+;;       until the redirector is reworked (layer 5). The closing handshake of
+;;       a WebSocket connection is done by ws-close in (artanis server websocket).
 (define (closing-websocket-handshake server client peer-shutdown?)
-  (cond
-   (peer-shutdown?
-    (format (artanis-current-output)
-            "[Websocket] Closed by peer `~a'.~%" (client-ip client)))
-   (else
-    (format (artanis-current-output)
-            "[Websocket] Client `~a' was closed by server.~%" (client-ip client))
-    (let ((port (client-sockport client)))
-      (when (and port (not (port-closed? port)))
-        (catch #t
-          (lambda () (send-websocket-close port))
-          (lambda (k . e)
-            (format (artanis-current-output)
-                    "[Websocket] Failed to send closing frame to `~a': ~a ~a~%"
-                    (client-ip client) k e)))))
-    (if (received-closing-frame? (client-sockport client))
-        (format (artanis-current-output)
-                "[Websocket] Closing `~a' normally.~%" (client-ip client))
-        (throw 'artanis-err 1008 closing-websocket-handshake
-               "The client didn't conform RFC-6544 to send closing frame~%")))))
+  (DEBUG "[Websocket] closing-websocket-handshake ~a~%" peer-shutdown?))

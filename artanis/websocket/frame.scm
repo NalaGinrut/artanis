@@ -71,7 +71,7 @@
 
             websocket-output-closed?
             websocket-output-close!
-            received-closing-frame?))
+            websocket-frame-in-flight?))
 
 ;; payload is always the unmasked bytevector.
 (define-record-type websocket-frame
@@ -217,9 +217,17 @@
 (define (websocket-output-close! port)
   (hashq-set! *closed-outputs* port #t))
 
-;; TODO: waiting for the peer's closing frame belongs to the connection layer.
-(define (received-closing-frame? port)
-  #t)
+;; A port is in this table while a frame is being written to it: from before
+;; its header until it has been flushed. If a write is interrupted (error, or
+;; the task is closed while it's suspended on a full socket), the entry stays,
+;; so the error path knows the peer has half a frame: nothing more may be
+;; written (not even a close frame, it would be parsed as frame data), the
+;; connection can only be dropped.
+;; Same keying and threading rules as *closed-outputs*.
+(define *frames-in-flight* (make-weak-key-hash-table))
+
+(define (websocket-frame-in-flight? port)
+  (hashq-ref *frames-in-flight* port #f))
 
 ;; ---------------------------------------------------------------------------
 ;; Reading
@@ -452,6 +460,7 @@
       ;; Mark first: nothing may follow a close even if this write fails.
       (when (close-opcode? opcode)
         (websocket-output-close! port))
+      (hashq-set! *frames-in-flight* port #t)
       (put-u8 port (logior (if final? #x80 #x00) opcode))
       (cond
        ((< count 126) (put-u8 port count))
@@ -459,6 +468,7 @@
        (else (put-u8 port 127) (put-uint port count 8)))
       (put-bytevector port payload start count)
       (force-output port)
+      (hashq-remove! *frames-in-flight* port)
       #t))))
 
 ;; Return a writer for a data message: each call (writer port) writes the

@@ -30,7 +30,6 @@
   #:use-module (artanis db)
   #:use-module (artanis route)
   #:use-module (artanis websocket)
-  #:use-module (artanis server http)
   #:use-module (artanis server server-context)
   #:use-module (srfi srfi-19)
   #:use-module (web uri)
@@ -58,9 +57,11 @@
 
 (define* (try-to-register-websocket-pipe! req new-client)
   (let ((name (detect-pipe-name req))
-        (inexclusive? (url-need-inexclusive-websocket? (request-path req))))
+        (inexclusive? (url-need-inexclusive-websocket?
+                       (websocket-request-path req))))
     (DEBUG "Register named-pipe: ~a~%" name)
     (cond
+     ((not name) #f) ; the connection doesn't use a named-pipe
      ((get-named-pipe name)
       => (lambda (named-pipe)
            (let ((old-clients (named-pipe-clients named-pipe))
@@ -82,10 +83,16 @@
               (else
                (for-each
                 (lambda (client)
-                  (DEBUG "Closing handshake of replaced WS connection~%")
-                  (closing-websocket-handshake server client #f)
                   (DEBUG "Closing replaced WS connection~%")
-                  (http-close server client #t))
+                  ;; It sends the close frame (1001) then closes the
+                  ;; connection. The old connection may be gone already, it
+                  ;; must not break the new one.
+                  (catch #t
+                    (lambda ()
+                      ((ragnarok-protocol-close (lookup-protocol 'websocket))
+                       server client #f))
+                    (lambda e
+                      (DEBUG "Failed to close replaced WS connection: ~a~%" e))))
                 old-clients)
                (DEBUG "Replace existing named-pipe ~a ...~%" name)
                (named-pipe-clients-set! named-pipe (list new-client))

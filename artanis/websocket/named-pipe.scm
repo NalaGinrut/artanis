@@ -22,14 +22,12 @@
   #:use-module (artanis irregex)
   #:use-module (artanis route)
   #:use-module (artanis websocket frame)
-  #:use-module (artanis server)
   #:use-module (artanis server server-context)
   #:use-module ((ice-9 iconv) #:select (string->bytevector))
   #:use-module ((rnrs) #:select (bytevector? define-record-type))
   #:export (register-websocket-pipe!
             pair-name-to-client!
             send-to-websocket-named-pipe
-            named-pipe-subscribe
             remove-named-pipe-if-the-connection-is-websocket!
             detect-pipe-name
             get-named-pipe
@@ -88,7 +86,8 @@
   (string->sre "artanis_named_pipe=(.*)"))
 
 (define (detect-pipe-name req)
-  (let ((m (irregex-match *named-pipe-re* (uri-query (request-uri req)))))
+  (let* ((query (uri-query (request-uri req)))
+         (m (and query (irregex-match *named-pipe-re* query))))
     (and m
          (irregex-match-substring m 1))))
 
@@ -137,28 +136,3 @@
      (else
       (throw 'artanis-err 400 send-to-websocket-named-pipe
              "Pipe name `~a' hasn't been registered, or it's closed by client!" name)))))
-
-(define* (named-pipe-subscribe rc #:key (init-thunk #f))
-  (let* ((name (detect-pipe-name (rc-req rc)))
-         (task-queue (get-pipe-task-queue name)))
-    (and init-thunk (init-thunk))
-    (let lp ()
-      (cond
-       ((not task-queue)
-        (throw 'artanis-err 400 named-pipe-subscribe
-               "Named-pipe `~a' was closed, we drop this connection!" name))
-       ((queue-empty? task-queue)
-        (DEBUG "Named-pipe: task queue is empty, we scheduled!~%")
-        (break-task)
-        (lp))
-       (else
-        ;; NOTE: Don't pop out message here, the correct way is to pop
-        ;;       after thunk calling successfully.
-        ;;       Because the client maybe closed, so that we lose the
-        ;;       chance to resend again.
-        (let ((t (queue-head task-queue)))
-          (DEBUG "Named-pipe: run a task ~a" t)
-          (when (t)
-            (queue-out! task-queue))
-          (break-task)
-          (lp)))))))

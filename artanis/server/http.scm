@@ -144,29 +144,22 @@
       (%%raw-close-connection server client #t)
       (simply-quit))
      (else
-      (let* ((req (try-to-read-request port))
-             (need-websocket?
-              ;; NOTE: This step includes handshake if it hasn't done it.
-              (detect-if-connecting-websocket req server client))
-             (body (if need-websocket?
-                       #f (try-to-read-request-body req))))
-        (case need-websocket?
+      (let ((req (try-to-read-request port)))
+        (case (detect-if-connecting-websocket req port)
           ((handshake)
-           (let ((ip (client-ip client)))
-             (DEBUG "Client `~a' is in Websocket mode!~%" ip)
-             (DEBUG "The websocket based client ~a is reading...~%" ip)
-             (DEBUG "Just return #f body according to Artanis convention~%")
-             (DEBUG "[Websocket] Client `~a' is requesting Websocket service~%"
-                    (client-ip client)))
-           ;; NOTE: Each time the body is the content from client. The content is parsed
-           ;;       from the frame in websocket-read. And the payload is parsed by the
-           ;;       registered parser. Users don't have to call parser explicitly.
-           ;; NOTE: Handshake should return null body. Don't read more, otherwise it's blocking forever.
-           (values req #vu8()))
-          ((registered)
-           ;; NOTE: Normal Websocket read
-           (values req (websocket-read req server client)))
-          (else (values req body))))))))
+           ;; The 101 response has been sent. Switch the connection to the
+           ;; `websocket' protocol, then Ragnarok will select it for this
+           ;; connection from now on. The handshake has no message for the
+           ;; handler, so return the first message instead.
+           (register-proto! client 'websocket (new-websocket-state req))
+           (let ((ws (specified-proto? client)))
+             ((ragnarok-protocol-open ws) server client)
+             ((ragnarok-protocol-read ws) server client)))
+          ((rejected)
+           ;; The HTTP error has been sent.
+           (%%raw-close-connection server client #f)
+           (simply-quit))
+          (else (values req (try-to-read-request-body req)))))))))
 
 (::define (http-write server client response body method-is-head?)
   (:anno: (ragnarok-server ragnarok-client <response> ANY boolean) -> ANY)
@@ -195,10 +188,11 @@
              (break-task)
              (http-write server client response body #f))
             (else
-             ;; NOTE: For common websocket, http-write will wrap the response body into
-             ;;       a websocket frame by websocket-write.
-             (DEBUG "Common websocket writing for `~a'~%" (client-ip client))
-             (websocket-write type body server client))))))
+             ;; NOTE: WebSocket connections are served by the `websocket'
+             ;;       protocol, see (artanis server websocket). The
+             ;;       redirector is dead code until its rework (layer 5).
+             (throw 'artanis-err 500 http-write
+                    "BUG: WebSocket redirector `~a' is not supported yet" type))))))
    (else
     (let* ((res (write-response response (client-sockport client)))
            (port (response-port res))) ; return the continued port
