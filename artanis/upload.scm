@@ -165,9 +165,6 @@
   (define (get-content-end from)
     (define btable (build-bv-lookup-table boundary))
     (let lp((i from))
-      (when (zero? (modulo i (get-conf '(server bufsize))))
-        (oneshot-mention! (current-client))
-        (break-task))
       (cond
        ((and (< (+ i blen) len)
              (not (hash-ref btable (bytevector-u8-ref body (+ i blen -1)))))
