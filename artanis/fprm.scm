@@ -457,13 +457,42 @@
             (format #f "PRIMARY KEY (~{~a~^,~})" kexp))
           kexps)
      ", "))
+  (define (table-option? d)
+    (and (pair? d) (memq (car d) '(:constrains :indexes :primary-keys)) #t))
+  ;; Table option -> clause inside CREATE TABLE (...), or #f for none.
+  (define (->table-option opt dbd)
+    (match opt
+      ((':constrains cexps ...) (->constrains cexps))
+      ((':primary-keys kexps ...) (->primary-keys kexps))
+      ;; MySQL is the only one accepting INDEX inline.
+      ((':indexes iexps ...) (and (eq? dbd 'mysql) (->indexes iexps)))
+      (else (throw 'artanis-err 500 ->table-option
+                   "Invalid table option `~a'!" opt))))
+  ;; :indexes -> separate CREATE [UNIQUE] INDEX statements (non-MySQL).
+  ;; Index names are identifiers, not parameters, so they're checked with
+  ;; verify-identifier like make-table-indexer does.
+  (define (->separate-indexes tname opt)
+    (match opt
+      ((':indexes iexps ...)
+       (map (lambda (iexp)
+              (define (gen unique? name columns)
+                (verify-identifier make-table-builder 'index-name name)
+                (for-each (cut verify-identifier make-table-builder 'column <>)
+                          columns)
+                (format #f "create ~aindex if not exists ~a on ~a (~{~a~^,~});"
+                        (if unique? "unique " "") name tname columns))
+              (match iexp
+                ((#:unique name columns ...) (gen #t name columns))
+                ((name (columns ...)) (gen #f name columns))
+                ((name columns ...) (gen #f name columns))
+                (else (throw 'artanis-err 500 ->separate-indexes
+                             "Invalid index definition `~a'!" iexp))))
+            iexps))
+      (else '())))
   (define (->type/opts x)
     (match x
       ((types ... (opts ...)) (values types (if (null? opts) "" (->opts opts))))
       ((types ...) (values types ""))
-      ((':constrains cexps ...) (->constrains cexps))
-      ((':indexes iexps ...) (->indexes iexps))
-      ((':primary-keys kexps ...) (->primary-keys kexps))
       (else (throw 'artanis-err 500 ->type/opts
                    "Invalid definition of the table `~a'!" x))))
   (define (->types x)
@@ -481,7 +510,19 @@
   (lambda* (tname defs #:key (if-exists? #f) (engine (get-conf '(db engine)))
                   (dump #f) (primary-keys '()))
     (let* ((dbd (get-conf '(db dbd)))
-           (types (map ->types defs))
+           ;; NOTE: table options (:primary-keys/:constrains/:indexes) are
+           ;;       split from the column definitions first. They used to go
+           ;;       through ->types with the columns, where the first
+           ;;       ->type/opts clause matched them as a column (so any
+           ;;       model using them failed to create its table).
+           (columns (srfi-1:remove table-option? defs))
+           (options (srfi-1:filter table-option? defs))
+           (types (map ->types columns))
+           (inline-opts (srfi-1:filter-map (cut ->table-option <> dbd) options))
+           (index-sqls (if (eq? dbd 'mysql)
+                           '()
+                           (srfi-1:append-map (cut ->separate-indexes tname <>)
+                                       options)))
            (pks (gen-primary-keys primary-keys))
            (engine (if (eq? 'mysql dbd)
                        engine
@@ -490,16 +531,20 @@
                     (case if-exists?
                       ((overwrite drop)
                        (table-drop! tname)
-                       (->sql create table tname `(,types ,pks) engine))
+                       (->sql create table tname `(,types ,inline-opts ,pks) engine))
                       ((ignore)
-                       (->sql create table if not exists tname `(,types ,pks) engine))
-                      (else (->sql create table tname `(,types ,pks) engine)))))
+                       (->sql create table if not exists tname `(,types ,inline-opts ,pks) engine))
+                      (else (->sql create table tname `(,types ,inline-opts ,pks) engine)))))
         (cond
          ((not dump)
           (pk 'dbd dbd)
           (pk 'sql sql)
           (pk 'before conn)
           (DB-query conn sql #:params params)
+          ;; PostgreSQL/SQLite3 have no inline INDEX in CREATE TABLE, so
+          ;; indexes are created right after the table, only if it worked.
+          (when (db-conn-success? conn)
+            (for-each (lambda (isql) (DB-query conn isql)) index-sqls))
           (pk 'after conn)
           (lambda cmd
             (match (pk 'cmd cmd)
