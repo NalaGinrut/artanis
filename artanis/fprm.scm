@@ -1034,17 +1034,32 @@
       (and=> (assoc-ref *table-mapper-handlers* cmd)
              (lambda (h) (apply h mt tname args))))))
 
+;; Accepts either one row or a list of rows (what 'get returns); for a
+;; list, the first row is used. A row is what guile-dbi returns: an alist
+;; of (column-name-string . value), e.g. (("id" . 1) ("email" . "a@b.c")).
+;; SQL NULL comes back from guile-dbi as #<unspecified>, which is a true
+;; value in Scheme, so it's returned as #f here.
+;;
+;; NOTE: This used to do (assoc-ref result k) => car, which fits neither
+;;       shape: on a row it calls car on the value and throws, on a list
+;;       of rows it never finds the key.
 (define* (query-result-ref result k #:key (throw-when-no-key? #t))
-  (cond
-   ((or (not result) (null? result))
-    'no-result)
-   ((assoc-ref result k)
-    => car)
-   (else
-    (if throw-when-no-key?
-        (throw 'artanis-err 500 query-result-ref
-               "No such key `~a' in result `~a'!" k result)
-        'no-such-key))))
+  (define (row? x)
+    (and (pair? x) (pair? (car x)) (string? (caar x))))
+  (let ((row (cond
+              ((or (not result) (null? result)) #f)
+              ((row? result) result)
+              ((and (pair? result) (row? (car result))) (car result))
+              (else #f))))
+    (cond
+     ((not row) 'no-result)
+     ((assoc k row)
+      => (lambda (p) (if (unspecified? (cdr p)) #f (cdr p))))
+     (else
+      (if throw-when-no-key?
+          (throw 'artanis-err 500 query-result-ref
+                 "No such key `~a' in result `~a'!" k result)
+          'no-such-key)))))
 
 (define-syntax-rule (fprm->string rc body ...)
   (parameterize ((sql-to-string? #t))
