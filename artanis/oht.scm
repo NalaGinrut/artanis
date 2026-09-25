@@ -385,8 +385,17 @@
 
 ;; for #:websocket
 ;;
+;; Options can follow 'raw and '(proto name):
+;;   #:overflow reject|close   see ws-send, the default is reject.
+;; e.g. #:websocket '(raw #:overflow close)
 (define (websocket-maker mode rule keys)
   (define regexp (compile-rule rule))
+  (define (overflow-of opts)
+    (match opts
+      (() 'reject)
+      ((#:overflow (and overflow (or 'reject 'close))) overflow)
+      (else (throw 'artanis-err 500 websocket-maker
+                   "Invalid WebSocket options `~a' for `~a'" opts rule))))
   (match mode
     ('send-only
      ;; NOTE: send-only is used for sending messages to registed websocket connection by
@@ -397,17 +406,20 @@
      ;; NOTE: Other options could be bi-direction transmission without specified 'send/recv
      ;;       explicitly.
      (DEBUG "~a is registered to be named-pipe send only rule!" rule))
-    ((or #t 'raw ('raw))
+    ((or #t 'raw)
      (websocket-rule-add! rule regexp 'raw))
-    (('proto (? symbol? proto))
+    (('raw . opts)
+     (websocket-rule-add! rule regexp 'raw #:overflow (overflow-of opts)))
+    (('proto (? symbol? proto) 'inexclusive . opts)
+     ;; NOTE: Allow many clients subscribe to one named-pipe.
+     (websocket-rule-add! rule regexp proto #:inexclusive? #t
+                          #:overflow (overflow-of opts)))
+    (('proto (? symbol? proto) . opts)
      ;; TODO: call protocol initilizer, and establish websocket for it.
      ;; NOTE: By default, we accept only one protocol for each URL-remapping,
      ;;       if you have several protocols to service, please use different
      ;;       URL-remapping.
-     (websocket-rule-add! rule regexp proto))
-    (('proto (? symbol? proto) 'inexclusive)
-     ;; NOTE: Allow many clients subscribe to one named-pipe.
-     (websocket-rule-add! rule regexp proto #:inexclusive? #t))
+     (websocket-rule-add! rule regexp proto #:overflow (overflow-of opts)))
     (('redirect (? string? ip/usk))
      ;; NOTE: We use IP rather than hostname, since it's usually redirected to
      ;;       a LAN address. Using hostname may cause DNS issues.

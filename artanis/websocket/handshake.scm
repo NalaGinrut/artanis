@@ -54,6 +54,7 @@
             websocket-rule-rule
             websocket-rule-protocol
             websocket-rule-inexclusive?
+            websocket-rule-overflow
             websocket-rule-timeout
             url-need-websocket?
             url-need-inexclusive-websocket?))
@@ -68,9 +69,11 @@
 ;; way the route does, so a rule with keys (e.g. "/chat/:room") works.
 ;; `protocol' is the handler protocol of the route (#:websocket), it's not
 ;; the Sec-WebSocket-Protocol subprotocol.
+;; `overflow' is what to do when the outbound queue of a connection is full,
+;; 'reject or 'close, see (artanis websocket connection).
 
 (define-record-type websocket-rule
-  (fields irx rule protocol inexclusive?))
+  (fields irx rule protocol inexclusive? overflow))
 
 (define *websocket-rules* '())
 
@@ -78,11 +81,16 @@
 (define *websocket-timeouts* (make-hash-table))
 
 ;; regexp is the compiled rule, see compile-rule in (artanis oht).
-(define* (websocket-rule-add! rule regexp protocol #:key (inexclusive? #f))
+(define* (websocket-rule-add! rule regexp protocol
+                              #:key (inexclusive? #f) (overflow 'reject))
   (DEBUG "websocket-rule-add! ~a ~a~%" rule protocol)
+  (unless (memq overflow '(reject close))
+    (throw 'artanis-err 500 'websocket-rule-add!
+           "Invalid #:overflow `~a' for `~a', expect reject or close"
+           overflow rule))
   (set! *websocket-rules*
         (cons (make-websocket-rule (string->irregex regexp) rule protocol
-                                   inexclusive?)
+                                   inexclusive? overflow)
               *websocket-rules*)))
 
 (define (websocket-rule-timeout-set! rule seconds)

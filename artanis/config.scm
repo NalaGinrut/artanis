@@ -324,6 +324,14 @@ fragments are rejected with close code 1008. 0 means no limit.
 The default is fine for most cases, don't change it without a clear reason.
 websocket.maxfragments = <integer>")
 
+    ((websocket maxqueue)
+     ,(ash 1 20)
+     "The maximum bytes of the messages waiting to be sent on a WebSocket
+connection. When a message would exceed it, ws-send returns 'overflow, and
+the #:overflow option of the route decides whether the connection is closed.
+0 means no limit.
+websocket.maxqueue = <integer>")
+
     ((websocket timeout)
      64
      "Timeout of WebSocket request, in seconds.
@@ -581,6 +589,7 @@ session.i18n = json | sxml | locale | <third-party-engine>")
     (('maxsize maxsize) (conf-set! '(websocket maxsize) (->ws-payload maxsize)))
     (('maxfragments maxfragments)
      (conf-set! '(websocket maxfragments) (->integer maxfragments)))
+    (('maxqueue maxqueue) (conf-set! '(websocket maxqueue) (->integer maxqueue)))
     (('timeout timeout) (conf-set! '(websocket timeout) (->integer timeout)))
     (else (error parse-namespace-websocket "Config: Invalid item" item))))
 
