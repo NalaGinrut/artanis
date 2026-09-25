@@ -194,6 +194,26 @@
                ;; runner
                call-with-runner
 
+               ;; websocket
+               ws-dispatcher
+               ws-dispatcher?
+               ws-send
+               ws-close!
+               ws-message?
+               ws-message-type
+               ws-message-text?
+               ws-message-binary?
+               ws-message-text
+               ws-message-payload
+               make-ws-buffer
+               ws-buffer?
+               ws-buffer-length
+               ws-buffer-u8-set!
+               ws-buffer-put!
+               ws-buffer-frozen?
+               string->ws-buffer
+               bytevector->ws-buffer
+
                ;; cli
                cli-run
                cli-run*

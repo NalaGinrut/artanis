@@ -37,7 +37,6 @@
   #:use-module (artanis mime)
   #:use-module (artanis upload)
   #:use-module (artanis websocket)
-  #:use-module ((artanis server server-context) #:select (current-client))
   #:use-module (artanis third-party json)
   #:use-module (artanis third-party csv)
   #:use-module (artanis server scheduler)
@@ -385,6 +384,9 @@
 
 ;; for #:websocket
 ;;
+;; The route handler is called once for each connection, with the rc of the
+;; handshake, and returns the dispatcher of the connection, see
+;; (artanis websocket connection).
 ;; Options can follow 'raw and '(proto name):
 ;;   #:overflow reject|close   see ws-send, the default is reject.
 ;; e.g. #:websocket '(raw #:overflow close)
@@ -499,11 +501,6 @@
   (lambda (rc failed-handler thunk)
     (parameterize ((current-rc rc))
       (match mode
-        ;; LAYER-2 STOPGAP: A WebSocket connection is authenticated once at
-        ;; its handshake. Its messages still go through the route handler,
-        ;; don't check them again.
-        ((? (lambda _ (websocket-authenticated? (current-client))))
-         (thunk))
         (#t
          (auth-action rc thunk failed-handler "/login"))
         ((? string? failed-url)

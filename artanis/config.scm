@@ -334,7 +334,10 @@ websocket.maxqueue = <integer>")
 
     ((websocket timeout)
      64
-     "Timeout of WebSocket request, in seconds.
+     "The idle timeout of WebSocket connections, in seconds. A connection is
+closed with 1001 when nothing comes from the peer for this long, what the
+server sends doesn't count. 0 means no timeout. The #:timeout option of a
+route overrides it.
 websocket.timeout = <integer>")
 
     ;; for host namespace

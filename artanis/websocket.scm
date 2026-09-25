@@ -20,8 +20,8 @@
 ;; The entry of WebSocket from HTTP: http-read calls
 ;; detect-if-connecting-websocket for each request. After a successful
 ;; handshake, http-read switches the connection to the `websocket'
-;; ragnarok-protocol, see (artanis server websocket), with a websocket-state
-;; as its per-connection state.
+;; ragnarok-protocol, see (artanis server websocket), with a websocket-conn
+;; as its per-connection state, see (artanis websocket connection).
 
 (define-module (artanis websocket)
   #:use-module (artanis utils)
@@ -29,21 +29,31 @@
   #:use-module (artanis websocket handshake)
   #:use-module (artanis websocket frame)
   #:use-module (artanis websocket named-pipe)
+  #:use-module (artanis websocket connection)
   #:use-module (artanis route)
-  #:use-module (artanis server server-context)
-  #:use-module ((rnrs) #:select (define-record-type))
   #:export (detect-if-connecting-websocket
-            websocket-state?
-            websocket-state-request
-            websocket-state-rule
-            websocket-state-reply-type
-            websocket-state-reply-type-set!
-            websocket-state-authenticated?
-            websocket-state-sid
-            websocket-state-checked-at
-            websocket-state-checked-at-set!
-            websocket-authenticated?)
-  #:re-export (; from (artanis websocket handshake)
+            websocket-state?)
+  #:re-export (; from (artanis websocket connection)
+               ws-dispatcher
+               ws-dispatcher?
+               ws-send
+               ws-close!
+               ws-message?
+               ws-message-type
+               ws-message-text?
+               ws-message-binary?
+               ws-message-text
+               ws-message-payload
+               make-ws-buffer
+               ws-buffer?
+               ws-buffer-length
+               ws-buffer-u8-set!
+               ws-buffer-put!
+               ws-buffer-frozen?
+               string->ws-buffer
+               bytevector->ws-buffer
+
+               ;; from (artanis websocket handshake)
                closing-websocket-handshake
                websocket-rule-add!
                websocket-rule-timeout-set!
@@ -76,33 +86,12 @@
                named-pipe-clients named-pipe-clients-set!
                named-pipe-task-queue-set!))
 
-;; Per-connection state of the `websocket' protocol, kept in the proto table.
-;; request: the handshake request. The route handler is called with it for
-;;          each message (layer-2 stopgap, see ws-read).
-;; rule: the websocket-rule of the route.
-;; reply-type: 'text or 'binary, the type of the last received message, which
-;;             is also the type of the reply (layer-2 stopgap, see ws-write).
-;; authenticated?: #t if the route has #:with-auth and it passed at the
-;;                 handshake.
-;; sid: the session the connection was authenticated with, or #f. The session
-;;      is checked again periodically, see ws-recheck! in
-;;      (artanis server websocket).
-;; checked-at: when the session was checked last time, in seconds.
-(define-record-type websocket-state
-  (fields request rule (mutable reply-type) authenticated? sid
-          (mutable checked-at)))
-
-;; Is the client a WebSocket connection authenticated at its handshake?
-;; LAYER-2 STOPGAP: #:with-auth uses it to skip the check for each message,
-;;                  since each message goes through the route handler.
-(define (websocket-authenticated? client)
-  (and (ragnarok-client? client)
-       (let ((state (proto-conn-state client)))
-         (and (websocket-state? state)
-              (websocket-state-authenticated? state)))))
+;; http-read checks the result of detect-if-connecting-websocket with it.
+(define websocket-state? websocket-conn?)
 
 ;; AuthN of the handshake: run #:with-auth of the route, if any.
-;; Returns (values ok? authenticated? sid).
+;; Returns (values ok? rc sid), rc is the route context of the handshake, the
+;; route handler is called with it once the connection is open.
 ;; The failure mode of #:with-auth (login page, redirect, ...) is for HTTP,
 ;; it's ignored here: a failed handshake is always 401 without body. A
 ;; browser can't see the status of a failed handshake anyway.
@@ -113,22 +102,22 @@
   (let* ((rc (new-route-context req #f))
          (with-auth (rc-oht-ref rc #:with-auth)))
     (cond
-     ((not with-auth) (values #t #f #f))
+     ((not with-auth) (values #t rc #f))
      ((with-auth rc (lambda _ #f) (lambda () #t))
       ;; #:with-auth always comes with #:session. The sid is kept only if the
       ;; session is valid, a token mode may pass without session.
       (let ((session (rc-oht-ref rc #:session)))
-        (values #t #t (and session
+        (values #t rc (and session
                            (session rc 'check)
                            (get-sid-from-client-cookie rc)))))
-     (else (values #f #f #f)))))
+     (else (values #f rc #f)))))
 
 ;; Returns:
 ;;  #f               not a WebSocket route, it's a plain HTTP request.
 ;;  'rejected        a WebSocket route, but the handshake request is invalid
 ;;                   or unauthenticated. The HTTP error has been sent, the
 ;;                   caller must close the connection.
-;;  websocket-state  the 101 response has been sent, the caller must switch
+;;  websocket-conn   the 101 response has been sent, the caller must switch
 ;;                   the connection to the `websocket' protocol with it.
 ;; NOTE: The server core is checked at start-up, see `run'.
 (define (detect-if-connecting-websocket req port)
@@ -140,11 +129,10 @@
    ((websocket-request-error req) => reject)
    (else
     (call-with-values (lambda () (handshake-auth req))
-      (lambda (ok? authenticated? sid)
+      (lambda (ok? rc sid)
         (cond
          ((not ok?) (reject '(401 "Authentication failed")))
          (else
           (do-websocket-handshake req port)
-          (make-websocket-state
-           req (find-websocket-rule (websocket-request-path req)) 'text
-           authenticated? sid (current-time)))))))))
+          (new-websocket-conn
+           rc (find-websocket-rule (websocket-request-path req)) sid))))))))

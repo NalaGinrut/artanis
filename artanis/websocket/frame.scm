@@ -325,9 +325,10 @@
 ;; Default reaction to control frames: pong with the ping payload, ignore
 ;; pongs, echo the status code of a close. The replies reuse the received
 ;; payload, nothing is copied.
-;; NOTE: The connection layer should replace it with a handler that goes
-;;       through the connection's single writer, so that a reply can never be
-;;       interleaved inside an outgoing frame.
+;; NOTE: The connection layer (artanis server websocket) reads within the
+;;       task of the connection, which is the only writer of the socket, and
+;;       never reads in the middle of a write. So a reply can never be put
+;;       inside an outgoing frame.
 (define (default-control-handler port)
   (lambda (frame)
     (let ((payload (websocket-frame-payload frame)))
