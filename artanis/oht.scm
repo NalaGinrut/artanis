@@ -79,7 +79,6 @@
              :auth
              :session
              :from-post
-             :websocket
              :lpc
              :i18n))
 
@@ -431,7 +430,6 @@
      ;; NOTE: Equivalent to transparent proxy.
      ;; TODO: call protocol initilizer, and establish websocket
      ;;       to redirect it.
-     ;; NOTE: Just call :websocket as the handler is enough to redirect data automatically
      (websocket-rule-add! rule regexp 'redirect))
     (('proxy (? symbol? proto))
      ;; NOTE: Setup a proxy with certain protocol handler.
@@ -441,12 +439,8 @@
      ;;       a websocket channel. Then the rest is the same with regular proxy.
      (websocket-rule-add! rule regexp 'proxy))
     (else (throw 'artanis-err 500 websocket-maker "Invalid type `~a'!" mode)))
-  (lambda (rc . cmd)
-    (match cmd
-      ('(payload) (websocket-frame-payload (rc-body rc)))
-      ('(frame) (rc-body rc))
-      (`(send ,name ,data) (send-to-websocket-named-pipe name data))
-      (else (throw 'artanis-err 500 websocket-maker "Invalid cmd `~a'!" cmd)))))
+  ;; There's no :websocket command, messages are passed to the dispatcher.
+  (lambda (rc) mode))
 
 ;; for #:timeout
 ;; The idle timeout of the connections of this route, in seconds. 0 means no
@@ -743,7 +737,7 @@
    (#:from-post . ,from-post-maker)
 
    ;; Establish websocket channel
-   ;; Each time developers set :websocket and specifed a protocol, say, `myproto',
+   ;; Each time developers set #:websocket and specifed a protocol, say, `myproto',
    ;; Artanis will check if the file app/protocols/myproto.scm exists, then load
    ;; the protocol initialize function in `myproto' which will also add `myproto'
    ;; into *proto-table*. Then ragnarok will take charge of it to call the correct
@@ -848,7 +842,6 @@
 (meta-handler-register auth)
 (meta-handler-register session)
 (meta-handler-register from-post)
-(meta-handler-register websocket)
 (meta-handler-register lpc)
 (meta-handler-register i18n)
 

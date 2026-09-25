@@ -91,7 +91,6 @@
                :auth
                :session
                :from-post
-               :websocket
                :lpc
                :i18n
 
