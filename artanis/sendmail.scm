@@ -24,6 +24,8 @@
   #:use-module (artanis security hash)
   #:use-module ((rnrs) #:select (define-record-type))
   #:use-module (ice-9 popen)
+  #:use-module (srfi srfi-1)  ; any, list-tabulate
+  #:use-module ((rnrs bytevectors) #:select (string->utf8))
   #:export (make-simple-mail-sender
             send-the-mail))
 
@@ -113,13 +115,50 @@
       (newline port)
       (dump-all-attachments port boundry sm))))
 
+;; Non-ASCII header values (e.g. a Chinese subject) must be sent as RFC
+;; 2047 encoded-words, each at most 75 chars. Chunks of 10 characters are
+;; at most 40 UTF-8 bytes -> 56 base64 chars + 12 for "=?UTF-8?B?...?=",
+;; and splitting by character never cuts a UTF-8 sequence. Chunks are
+;; joined with folding whitespace, which decoders drop between
+;; encoded-words.
+(define (encode-header-value s)
+  (define (ascii? str)
+    (string-every (lambda (c) (< (char->integer c) 128)) str))
+  (define (b64 str)
+    (string-delete (lambda (c) (memv c '(#\return #\newline)))
+                   (nss:base64-encode (string->utf8 str))))
+  (if (ascii? s)
+      s
+      (let* ((n (string-length s))
+             (chunks (list-tabulate (quotient (+ n 9) 10)
+                                    (lambda (i)
+                                      (substring s (* i 10) (min n (* (+ i 1) 10)))))))
+        (string-join (map (lambda (c) (string-append "=?UTF-8?B?" (b64 c) "?="))
+                          chunks)
+                     "\n "))))
+
+(define (has-header? sm name)
+  (any (lambda (p) (string-ci=? (car p) name)) (sendmail-headers sm)))
+
+;; NOTE: this used to write only From/To/Subject, silently dropping the
+;;       headers passed with #:header (so a Content-Type: text/html never
+;;       reached the recipient), and declared no charset at all. Custom
+;;       headers are written now, and plain text UTF-8 is the default.
 (define (dump-as-normal-mail sm)
   (call-with-output-string
    (lambda (port)
-     (format port
-             "From: ~a~%To: ~a~%Subject: ~a~%~%~a~%"
-             (sendmail-from sm) (sendmail-to sm) (sendmail-subject sm)
-             (sendmail-message sm)))))
+     (format port "From: ~a~%To: ~a~%Subject: ~a~%"
+             (sendmail-from sm) (sendmail-to sm)
+             (encode-header-value (sendmail-subject sm)))
+     (display "MIME-Version: 1.0\n" port)
+     (dump-headers port sm)
+     (unless (has-header? sm "Content-Type")
+       (display "Content-Type: text/plain; charset=UTF-8\n" port))
+     (unless (has-header? sm "Content-Transfer-Encoding")
+       (display "Content-Transfer-Encoding: 8bit\n" port))
+     (newline port)
+     (display (sendmail-message sm) port)
+     (newline port))))
 
 (define (%send-the-mail sm t)
   (let* ((sender (sendmail-sender sm))
@@ -131,6 +170,9 @@
          (port (if account
                    (open-pipe* OPEN_WRITE sender "-a" account "-i" "-t")
                    (open-pipe* OPEN_WRITE sender "-i" "-t"))))
+    ;; NOTE: the pipe otherwise uses the locale's encoding; under a C
+    ;;       locale every non-ASCII character becomes `?'.
+    (set-port-encoding! port "UTF-8")
     (display t port)
     (unless (zero? (status:exit-val (close-pipe port)))
       (throw 'artanis-err 500 %send-the-mail
