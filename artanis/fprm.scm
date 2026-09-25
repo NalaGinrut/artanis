@@ -483,7 +483,6 @@
                         (if unique? "unique " "") name tname columns))
               (match iexp
                 ((#:unique name columns ...) (gen #t name columns))
-                ((name (columns ...)) (gen #f name columns))
                 ((name columns ...) (gen #f name columns))
                 (else (throw 'artanis-err 500 ->separate-indexes
                              "Invalid index definition `~a'!" iexp))))
