@@ -872,7 +872,8 @@
                   ;; Lazy preferred: (delay (where #:status "active"))
                   (condition ""))
     ;; We have to check condition in case the use misuses it.
-    (when (and (not (string-null? condition)) (not (promise? condition)))
+    (when (and (not (and (string? condition) (string-null? condition)))
+               (not (promise? condition)))
       (throw 'artanis-err 500 make-table-getter
              "Invalid condition `~a', should be either a string or a promise! ~a"
              condition
@@ -929,7 +930,8 @@
 
 (define (make-table-row-checker rc/conn)
   (lambda* (tname #:key (condition ""))
-    (when (and (not (string-null? condition)) (not (promise? condition)))
+    (when (and (not (and (string? condition) (string-null? condition)))
+               (not (promise? condition)))
       (throw 'artanis-err 500 make-table-row-checker
              "Invalid condition `~a', should be either a string or a promise! ~a"
              condition
@@ -947,7 +949,15 @@
           (DEBUG "Failed to execute SQL: `~a'~%~a!" sql (db-conn-failed-reason conn))
           (throw 'artanis-err 500 make-table-row-checker
                  "Failed to execute SQL: `~a'~%~a!" sql (db-conn-failed-reason conn)))
-        (DB-get-one-row conn)))))
+        ;; NOTE: this used to return (DB-get-one-row conn), which doesn't
+        ;;       exist in db.scm, so every call threw. It now returns a
+        ;;       boolean, as the ? in row-exists? promises. The single
+        ;;       column is `exists': #t/#f on PostgreSQL, 1/0 on MySQL and
+        ;;       SQLite3.
+        (let ((row (DB-get-top-row conn)))
+          (and (pair? row)
+               (let ((v (cdar row)))
+                 (or (eq? v #t) (eqv? v 1)))))))))
 
 ;; NOTE: the name of columns is charactar-caseless, at least in MySQL/MariaDB.
 (define (map-table-from-DB rc/conn)
