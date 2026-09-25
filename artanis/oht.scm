@@ -37,6 +37,7 @@
   #:use-module (artanis mime)
   #:use-module (artanis upload)
   #:use-module (artanis websocket)
+  #:use-module ((artanis server server-context) #:select (current-client))
   #:use-module (artanis third-party json)
   #:use-module (artanis third-party csv)
   #:use-module (artanis server scheduler)
@@ -486,6 +487,11 @@
   (lambda (rc failed-handler thunk)
     (parameterize ((current-rc rc))
       (match mode
+        ;; LAYER-2 STOPGAP: A WebSocket connection is authenticated once at
+        ;; its handshake. Its messages still go through the route handler,
+        ;; don't check them again.
+        ((? (lambda _ (websocket-authenticated? (current-client))))
+         (thunk))
         (#t
          (auth-action rc thunk failed-handler "/login"))
         ((? string? failed-url)

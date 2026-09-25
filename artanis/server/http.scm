@@ -144,22 +144,23 @@
       (%%raw-close-connection server client #t)
       (simply-quit))
      (else
-      (let ((req (try-to-read-request port)))
-        (case (detect-if-connecting-websocket req port)
-          ((handshake)
-           ;; The 101 response has been sent. Switch the connection to the
-           ;; `websocket' protocol, then Ragnarok will select it for this
-           ;; connection from now on. The handshake has no message for the
-           ;; handler, so return the first message instead.
-           (register-proto! client 'websocket (new-websocket-state req))
-           (let ((ws (specified-proto? client)))
-             ((ragnarok-protocol-open ws) server client)
-             ((ragnarok-protocol-read ws) server client)))
-          ((rejected)
-           ;; The HTTP error has been sent.
-           (%%raw-close-connection server client #f)
-           (simply-quit))
-          (else (values req (try-to-read-request-body req)))))))))
+      (let* ((req (try-to-read-request port))
+             (ws-state (detect-if-connecting-websocket req port)))
+        (cond
+         ((websocket-state? ws-state)
+          ;; The 101 response has been sent. Switch the connection to the
+          ;; `websocket' protocol, then Ragnarok will select it for this
+          ;; connection from now on. The handshake has no message for the
+          ;; handler, so return the first message instead.
+          (register-proto! client 'websocket ws-state)
+          (let ((ws (specified-proto? client)))
+            ((ragnarok-protocol-open ws) server client)
+            ((ragnarok-protocol-read ws) server client)))
+         ((eq? ws-state 'rejected)
+          ;; The HTTP error has been sent.
+          (%%raw-close-connection server client #f)
+          (simply-quit))
+         (else (values req (try-to-read-request-body req)))))))))
 
 (::define (http-write server client response body method-is-head?)
   (:anno: (ragnarok-server ragnarok-client <response> ANY boolean) -> ANY)
