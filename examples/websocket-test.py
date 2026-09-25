@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# Raw-socket end-to-end checks for the Artanis WebSocket layer 2.
+# Raw-socket end-to-end checks for the Artanis WebSocket layers 2 and 4.
+# Needs the routes of examples/ENTRY.websocket, and server.websocket = true.
 import base64, os, socket, struct, sys, time
 
 HOST, PORT = "127.0.0.1", 3000
@@ -188,7 +189,7 @@ def t_quiet():
     s.sendall(frame(1, b"x"))
     s.sendall(frame(9, b"ping"))
     fin, op, p = r.frame()
-    check("empty body -> no reply (next frame is the pong)", op == 10 and p == b"ping", (op, p))
+    check("no ws-send -> no reply (next frame is the pong)", op == 10 and p == b"ping", (op, p))
     s.close()
 
 def expect_close(name, path, send, code, still_open_before=False):
@@ -294,9 +295,10 @@ def t_conformance_extra():
     s.sendall(frame(10, b"unsolicited") + frame(9, b"p" * 125))
     f = r.frame()
     check("125-byte ping -> pong, unsolicited pong ignored", f[1] == 10 and f[2] == b"p" * 125, f[:2])
-    # empty text message: echo of empty body means no reply in layer 2
+    # empty text message is echoed as an empty message
     s.sendall(frame(1, b"") + frame(1, b"after"))
-    check("empty message -> no reply, next is served", r.frame()[2] == b"after")
+    check("empty message echoed", r.frame()[1:] == (1, b""))
+    check("... next is served", r.frame()[2] == b"after")
     # close with no payload
     s.sendall(frame(8))
     f = r.frame()
@@ -332,10 +334,193 @@ def t_half_frame_doesnt_block():
     s1.sendall(slow[4:])
     check("stalled client resumes", Reader(s1, r1).frame()[2] == b"slow client")
     s1.close(); s2.close()
+
+# ---------------------------------------------------------------------------
+# Layer 4: the connection API
+
+def http_get(path):
+    s = conn()
+    head, body = http_raw(s, f"GET {path} HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n")
+    # read the rest of the body
+    s.settimeout(5)
+    try:
+        while True:
+            d = s.recv(65536)
+            if not d:
+                break
+            body += d
+    except socket.timeout:
+        pass
+    s.close()
+    return head, body.decode(errors="replace")
+
+def closed_as(name, wait=3):
+    # on-close of the test routes records "code reason" for /closed/NAME
+    t = time.time()
+    while True:
+        _, body = http_get(f"/closed/{name}")
+        if body != "open" or time.time() - t > wait:
+            return body
+        time.sleep(0.1)
+
+def t_push():
+    s, head, rest = ws_open("/sub?sub=p1")
+    r = Reader(s, rest)
+    _, body = http_get("/push/p1?msg=hi")
+    check("push from HTTP: ws-send -> #t", body == "#t", body)
+    check("push from HTTP arrives while waiting for the peer", r.frame() == (True, 1, b"hi"))
+    _, body = http_get("/runner-push/p1")
+    check("push from a runner thread: ws-send -> #t", body == "#t", body)
+    check("push from a runner thread arrives", r.frame()[1:] == (1, b"from runner"))
+    s.sendall(frame(1, b"still echo"))
+    check("echo after pushes", r.frame()[2] == b"still echo")
+    _, body = http_get("/push/nobody")
+    check("push to an unknown name", body == "none", body)
+    s.close()
+
+def t_welcome():
+    s, head, rest = ws_open("/welcome")
+    r = Reader(s, rest)
+    check("on-open sends before any message", r.frame()[1:] == (1, b"welcome"))
+    s.sendall(frame(1, b"x"))
+    check("... then on-message", r.frame()[2] == b"x")
+    s.close()
+
+def t_invalid_handlers():
+    expect_close("handler returns a non-dispatcher -> 1011", "/not-dispatcher", b"", 1011)
+    expect_close("handler throws 403 -> 1008", "/handler-403", b"", 1008)
+
+def t_server_close():
+    s, head, rest = ws_open("/ctl?sub=c3")
+    r = Reader(s, rest)
+    s.sendall(frame(1, b"binary"))
+    check("ws-buffer is sent as binary", r.frame()[1:] == (2, b"bin"))
+    s.sendall(frame(1, b"text-buffer"))
+    check("ws-buffer with #:type 'text", r.frame()[1:] == (1, b"txt"))
+    s.sendall(frame(1, b"close"))
+    check("queued message goes before ws-close!", r.frame()[1:] == (1, b"before close"))
+    fin, op, p = r.frame()
+    check("ws-close! sends its code and reason",
+          op == 8 and close_code(p) == 4000 and p[2:] == b"bye", (op, p))
+    check("ws-close!: TCP closed", r.eof(3))
+    check("ws-send after ws-close! -> closed", closed_as("after-close") == "closed")
+    check("on-close gets the code sent", closed_as("c3") == "4000 bye", closed_as("c3"))
+
+def t_on_close_codes():
+    s, head, rest = ws_open("/sub?sub=c1")
+    r = Reader(s, rest)
+    s.sendall(frame(8, struct.pack("!H", 1000) + b"see you"))
+    r.frame(); r.eof(2); s.close()
+    got = closed_as("c1")
+    check("on-close: close frame of the peer", got == "1000 see you", got)
+    s, head, rest = ws_open("/sub?sub=c2")
+    s.close()
+    got = closed_as("c2")
+    check("on-close: peer gone without close -> 1006", got.startswith("1006"), got)
+    s, head, rest = ws_open("/sub?sub=c4")
+    r = Reader(s, rest)
+    s.sendall(frame(8))
+    r.frame(); r.eof(2); s.close()
+    got = closed_as("c4")
+    check("on-close: empty close frame -> 1005", got.startswith("1005"), got)
+
+def t_idle_with_push():
+    # Pushes from the server don't keep an idle connection alive.
+    s, head, rest = ws_open("/sub-short?sub=ip")   # #:timeout 2
+    r = Reader(s, rest)
+    t = time.time()
+    pushed = got = 0
+    code = None
+    s.settimeout(0.5)
+    while time.time() - t < 8:
+        _, body = http_get("/push/ip?msg=tick")
+        if body == "#t":
+            pushed += 1
+        try:
+            while True:
+                fin, op, p = r.frame()
+                if op == 8:
+                    code = close_code(p); break
+                got += 1
+        except socket.timeout:
+            pass
+        except EOFError:
+            break
+        if code is not None:
+            break
+        time.sleep(0.3)
+    dt = time.time() - t
+    check("pushes arrive on an idle connection", got >= 1, (pushed, got))
+    check(f"idle with pushes -> close 1001 (took {dt:.1f}s)", code == 1001 and dt <= 5.5, (code, dt))
+    got = closed_as("ip")
+    check("on-close: idle -> 1001", got.startswith("1001"), got)
+
+def t_overflow_reject():
+    # The HTTP handler runs to the end before the connection's task, so the
+    # queue fills up: websocket.maxqueue (1 MiB) = 16 x 64 KiB.
+    s, head, rest = ws_open("/sub?sub=o1")
+    r = Reader(s, rest)
+    _, body = http_get("/push/o1?n=17&size=65536")
+    check("overflow: 16 queued, then 'overflow", body.split() == ["#t"] * 16 + ["overflow"], body)
+    ok = all(r.frame()[1:] == (2, bytes(65536)) for _ in range(16))
+    check("overflow reject: queued messages are delivered", ok)
+    s.sendall(frame(1, b"alive"))
+    check("overflow reject: connection stays open", r.frame()[2] == b"alive")
+    s.close()
+
+def t_overflow_close():
+    s, head, rest = ws_open("/sub-slow?sub=o2")   # #:overflow close
+    r = Reader(s, rest)
+    _, body = http_get("/push/o2?n=18&size=65536")
+    check("overflow close: 'overflow then 'closed",
+          body.split() == ["#t"] * 16 + ["overflow", "closed"], body)
+    fin, op, p = r.frame()
+    check("overflow close: queue dropped, close 1008", op == 8 and close_code(p) == 1008, (op, p[:2]))
+    check("overflow close: TCP closed", r.eof(3))
+    got = closed_as("o2")
+    check("on-close: overflow -> 1008", got.startswith("1008"), got)
+
+def t_write_suspends_in_waiter():
+    # The peer doesn't read: flushing the queue in the read waiter suspends
+    # in the write. The server keeps serving others, and when the peer reads
+    # again, the write goes on and then the read.
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4096)
+    s.settimeout(10)
+    s.connect((HOST, PORT))
+    head, rest = http_raw(s, upgrade_req("/sub?sub=w1"))
+    r = Reader(s, rest)
+    _, body = http_get("/push/w1?n=16&size=65536")
+    check("1 MiB queued for a peer that doesn't read", body.split() == ["#t"] * 16, body)
+    time.sleep(0.5)
+    head2, _ = http_get("/hello")
+    check("server serves others while a write is suspended", head2.startswith("HTTP/1.1 200"), head2)
+    s.sendall(frame(1, b"after the flood"))
+    ok = all(r.frame()[1:] == (2, bytes(65536)) for _ in range(16))
+    check("suspended write resumes", ok)
+    check("... then the read goes on", r.frame()[1:] == (1, b"after the flood"))
+    s.close()
+
+def t_runner_in_on_message():
+    s, head, rest = ws_open("/slow")
+    r = Reader(s, rest)
+    t = time.time()
+    s.sendall(frame(1, b"abc") + frame(9, b"pp"))
+    head2, _ = http_get("/hello")
+    check("server serves others during a runner", head2.startswith("HTTP/1.1 200"), head2)
+    f1 = r.frame(); f2 = r.frame()
+    check("runner result sent when on-message returns", f1[1:] == (1, b"ABC"), f1)
+    check("ping answered after the runner (no read during it)", f2[1:] == (10, b"pp"), f2)
+    check(f"runner took its time ({time.time() - t:.2f}s)", time.time() - t >= 0.3)
+    s.close()
+
 tests = [t_named_pipe_replace, t_half_frame_doesnt_block, t_conformance_extra, t_http_still_works, t_handshake_ok, t_subprotocol, t_rejects, t_echo,
          t_first_message_in_handshake_segment, t_close_by_client, t_quiet,
          t_errors, t_abrupt_disconnects, t_fd_reuse, t_idle_timeout,
-         t_activity_keeps_alive, t_server_alive]
+         t_activity_keeps_alive, t_push, t_welcome, t_invalid_handlers,
+         t_server_close, t_on_close_codes, t_idle_with_push,
+         t_overflow_reject, t_overflow_close, t_write_suspends_in_waiter,
+         t_runner_in_on_message, t_server_alive]
 only = sys.argv[1:]
 for t in tests:
     if only and t.__name__ not in only:

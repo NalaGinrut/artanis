@@ -11,21 +11,28 @@
  (add-to-load-path (string-append (current-toplevel) "/lib"))
  ;; Put whatever you want to be called before server running here
 
+ ;; A WebSocket route handler is called once for each connection, with the rc
+ ;; of the handshake, and returns the dispatcher of the connection. A
+ ;; procedure is the short form of #:on-message.
  (get "/echo" #:websocket 'raw
-      (lambda (rc) (:websocket rc 'payload)))
+      (lambda (rc) (lambda (conn msg) (ws-send conn msg))))
  (get "/room/:id" #:websocket '(proto chat)
-      (lambda (rc) (string-append (params rc "id") ":" (utf8->string (:websocket rc 'payload)))))
+      (lambda (rc)
+        (let ((room (params rc "id")))
+          (lambda (conn msg)
+            (ws-send conn (string-append room ":" (ws-message-text msg)))))))
  (get "/quiet" #:websocket 'raw
-      (lambda (rc) ""))
+      (lambda (rc) (lambda (conn msg) #t)))
  (get "/boom" #:websocket 'raw
       (lambda (rc)
-        (let ((s (utf8->string (:websocket rc 'payload))))
-          (cond
-           ((string=? s "404") (throw 'artanis-err 404 'boom "nope"))
-           ((string=? s "scheme") (car '()))
-           (else (throw 'artanis-err 500 'boom "boom"))))))
+        (lambda (conn msg)
+          (let ((s (ws-message-text msg)))
+            (cond
+             ((string=? s "404") (throw 'artanis-err 404 'boom "nope"))
+             ((string=? s "scheme") (car '()))
+             (else (throw 'artanis-err 500 'boom "boom")))))))
  (get "/short" #:websocket 'raw #:timeout 2
-      (lambda (rc) (:websocket rc 'payload)))
+      (lambda (rc) (lambda (conn msg) (ws-send conn msg))))
  (get "/hello" (lambda (rc) "hello"))
 
  ;; AuthN (layer 3): log in by HTTP, then the handshake carries the sid cookie.
@@ -40,4 +47,101 @@
          ((@ (artanis route) get-sid-from-client-cookie) rc))
         "bye"))
  (get "/secure" #:websocket 'raw #:with-auth 'status #:timeout 0
-      (lambda (rc) (:websocket rc 'payload)))
+      (lambda (rc) (lambda (conn msg) (ws-send conn msg))))
+
+ ;; ---------------------------------------------------------------------------
+ ;; Connection API (layer 4), for websocket-test.py.
+ ;; A connection opened with ?sub=NAME is registered as NAME for pushing, and
+ ;; how it was closed is kept for /closed/NAME.
+ ;; NOTE: This registry is only for the tests. Finding a connection by name
+ ;;       is the job of named-pipe (layer 5).
+
+ (define *subs* (make-hash-table))
+ (define *closed* (make-hash-table))
+
+ (define* (subscriber rc #:optional (on-message (lambda (conn msg) (ws-send conn msg))))
+   (let ((name (params rc "sub")))
+     (ws-dispatcher
+      #:on-open (lambda (conn) (when name (hash-set! *subs* name conn)))
+      #:on-message on-message
+      #:on-close (lambda (conn code reason)
+                   (when name
+                     (hash-remove! *subs* name)
+                     (hash-set! *closed* name (format #f "~a ~a" code reason)))))))
+
+ (define (->reply r) (format #f "~a" r))
+
+ ;; Echo, registered by ?sub=NAME.
+ (get "/sub" #:websocket 'raw #:timeout 0
+      (lambda (rc) (subscriber rc)))
+ (get "/sub-short" #:websocket 'raw #:timeout 2
+      (lambda (rc) (subscriber rc)))
+ (get "/sub-slow" #:websocket '(raw #:overflow close) #:timeout 0
+      (lambda (rc) (subscriber rc)))
+
+ ;; Push from an HTTP request: the text, or n buffers of size bytes.
+ ;; Replies with the result of each ws-send, or "none".
+ (get "/push/:name"
+      (lambda (rc)
+        (let ((conn (hash-ref *subs* (params rc "name")))
+              (n (string->number (or (params rc "n") "1")))
+              (size (and=> (params rc "size") string->number)))
+          (if conn
+              (string-join
+               (map (lambda (_)
+                      (->reply
+                       (ws-send conn (if size
+                                         (make-ws-buffer size)
+                                         (or (params rc "msg") "pushed")))))
+                    (iota n))
+               " ")
+              "none"))))
+
+ ;; Push from a runner thread.
+ (get "/runner-push/:name"
+      (lambda (rc)
+        (let ((conn (hash-ref *subs* (params rc "name"))))
+          (if conn
+              (->reply (call-with-runner
+                        (lambda () (ws-send conn "from runner"))))
+              "none"))))
+
+ (get "/closed/:name"
+      (lambda (rc) (or (hash-ref *closed* (params rc "name")) "open")))
+
+ ;; A runner in on-message: the reply comes when the runner is done.
+ (get "/slow" #:websocket 'raw #:timeout 0
+      (lambda (rc)
+        (lambda (conn msg)
+          (let ((s (ws-message-text msg)))
+            (ws-send conn (call-with-runner
+                           (lambda () (usleep 300000) (string-upcase s))))))))
+
+ ;; Close by the server: "close" -> 4000 "bye", then ws-send is 'closed.
+ (get "/ctl" #:websocket 'raw #:timeout 0
+      (lambda (rc)
+        (subscriber
+         rc
+         (lambda (conn msg)
+           (let ((s (ws-message-text msg)))
+             (cond
+              ((string=? s "close")
+               (ws-send conn "before close")
+               (ws-close! conn #:code 4000 #:reason "bye")
+               (hash-set! *closed* "after-close" (->reply (ws-send conn "x"))))
+              ((string=? s "binary")
+               (ws-send conn (string->ws-buffer "bin")))
+              ((string=? s "text-buffer")
+               (ws-send conn (string->ws-buffer "txt") #:type 'text))
+              (else (ws-send conn s))))))))
+
+ ;; Invalid route handlers.
+ (get "/not-dispatcher" #:websocket 'raw
+      (lambda (rc) 42))
+ (get "/handler-403" #:websocket 'raw
+      (lambda (rc) (throw 'artanis-err 403 'handler-403 "no")))
+ (get "/welcome" #:websocket 'raw
+      (lambda (rc)
+        (ws-dispatcher
+         #:on-open (lambda (conn) (ws-send conn "welcome"))
+         #:on-message (lambda (conn msg) (ws-send conn msg)))))

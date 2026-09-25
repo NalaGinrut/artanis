@@ -1,0 +1,241 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  === WebSocket connection API tests: outbound queue, dispatchers ===
+;;  Copyright (C) 2026
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License and GNU
+;;  Lesser General Public License published by the Free Software
+;;  Foundation, either version 3 of the License, or (at your option)
+;;  any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License and GNU Lesser General Public License
+;;  for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  and GNU Lesser General Public License along with this program.
+;;  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (test ws-conn)
+  #:use-module (artanis utils)
+  #:use-module (artanis config)
+  #:use-module (artanis websocket connection)
+  #:use-module (artanis websocket handshake)
+  #:use-module (artanis server server-context)
+  #:use-module (ice-9 threads)
+  #:use-module (ice-9 match)
+  #:use-module (rnrs bytevectors)
+  #:use-module (test-suite lib))
+
+;; A conn without a route (overflow is reject) and without a client (no
+;; wake-up), as a unit.
+(define* (new-conn #:optional (rule #f))
+  (new-websocket-conn #f rule #f))
+
+(define (drain conn)
+  (let lp ((items '()))
+    (let ((item (websocket-conn-take-outbound! conn)))
+      (if item
+          (lp (cons item items))
+          (reverse items)))))
+
+(define (throws-artanis-err? thunk)
+  (catch 'artanis-err
+    (lambda () (thunk) #f)
+    (lambda _ #t)))
+
+(define-syntax-rule (with-maxqueue n body ...)
+  (let ((old (get-conf '(websocket maxqueue))))
+    (dynamic-wind
+      (lambda () (conf-set! '(websocket maxqueue) n))
+      (lambda () body ...)
+      (lambda () (conf-set! '(websocket maxqueue) old)))))
+
+(define (rule-of path overflow)
+  (websocket-rule-add! path (string-append "^" path "$") 'raw
+                       #:overflow overflow)
+  (find-websocket-rule path))
+
+(with-test-prefix "ws-send"
+
+  (pass-if-equal "a string is a text message in UTF-8"
+    `(#t 6 ((data text ,(string->utf8 "中文"))))
+    (let* ((conn (new-conn))
+           (r (ws-send conn "中文")))
+      (list r (websocket-conn-queued-bytes conn) (drain conn))))
+
+  (pass-if-equal "a ws-buffer is a binary message, #:type overrides"
+    `((data binary ,(u8-list->bytevector '(1 0)))
+      (data text ,(string->utf8 "ok")))
+    (let ((conn (new-conn))
+          (buf (make-ws-buffer 2)))
+      (ws-buffer-u8-set! buf 0 1)
+      (ws-send conn buf)
+      (ws-send conn (string->ws-buffer "ok") #:type 'text)
+      (drain conn)))
+
+  (pass-if-equal "a received message is forwarded with its type"
+    `((data binary ,(u8-list->bytevector '(9))))
+    (let ((conn (new-conn)))
+      (ws-send conn (make-ws-message 'binary (u8-list->bytevector '(9))))
+      (drain conn)))
+
+  (pass-if "a sent buffer is frozen"
+    (let ((conn (new-conn))
+          (buf (make-ws-buffer 1)))
+      (ws-send conn buf)
+      (and (ws-buffer-frozen? buf)
+           (throws-artanis-err? (lambda () (ws-buffer-u8-set! buf 0 1)))
+           (throws-artanis-err?
+            (lambda () (ws-buffer-put! buf 0 (u8-list->bytevector '(1))))))))
+
+  (pass-if "a frozen buffer can be sent again, e.g. broadcast"
+    (let ((a (new-conn)) (b (new-conn))
+          (buf (string->ws-buffer "all")))
+      (and (eq? #t (ws-send a buf))
+           (eq? #t (ws-send b buf)))))
+
+  (pass-if "invalid data or type is an error"
+    (let ((conn (new-conn)))
+      (and (throws-artanis-err? (lambda () (ws-send conn 42)))
+           (throws-artanis-err? (lambda () (ws-send conn "x" #:type 'ping)))
+           (throws-artanis-err? (lambda () (ws-send 'not-a-conn "x"))))))
+
+  (pass-if-equal "the queue drains in order, and counts bytes"
+    '(3 1 0)
+    (let ((conn (new-conn)))
+      (ws-send conn "ab")
+      (ws-send conn "c")
+      (let* ((n0 (websocket-conn-queued-bytes conn))
+             (_ (websocket-conn-take-outbound! conn))
+             (n1 (websocket-conn-queued-bytes conn))
+             (_ (websocket-conn-take-outbound! conn)))
+        (list n0 n1 (websocket-conn-queued-bytes conn))))))
+
+(with-test-prefix "ws-send overflow"
+
+  (pass-if-equal "reject: the message is dropped, the queue is kept"
+    '((#t #t overflow) 4 open)
+    (with-maxqueue 4
+      (let* ((conn (new-conn (rule-of "/ov-reject" 'reject)))
+             (rs (map (lambda (s) (ws-send conn s)) '("ab" "cd" "e"))))
+        (list rs (websocket-conn-queued-bytes conn)
+              (if (websocket-conn-closing? conn) 'closing 'open)))))
+
+  (pass-if-equal "close: the queue is dropped for a close 1008"
+    '((#t overflow closed) ((close 1008 "Outbound queue overflow")))
+    (with-maxqueue 4
+      (let* ((conn (new-conn (rule-of "/ov-close" 'close)))
+             (rs (map (lambda (s) (ws-send conn s)) '("abc" "de" "f"))))
+        (list rs (drain conn)))))
+
+  (pass-if-equal "0 means no limit" #t
+    (with-maxqueue 0
+      (ws-send (new-conn) (make-ws-buffer (ash 1 22)))))
+
+  (pass-if "an invalid #:overflow is an error"
+    (throws-artanis-err?
+     (lambda () (websocket-rule-add! "/ov-bad" "^/ov-bad$" 'raw
+                                     #:overflow 'drop)))))
+
+(with-test-prefix "ws-close!"
+
+  (pass-if-equal "queued after the messages, nothing can be sent after it"
+    '(#t closed closed ((data text #vu8(97)) (close 4000 "bye")))
+    (let* ((conn (new-conn))
+           (_ (ws-send conn "a"))
+           (r1 (ws-close! conn #:code 4000 #:reason "bye"))
+           (r2 (ws-send conn "b"))
+           (r3 (ws-close! conn)))
+      (list r1 r2 r3 (drain conn))))
+
+  (pass-if "invalid code or reason is an error"
+    (let ((conn (new-conn)))
+      (and (throws-artanis-err? (lambda () (ws-close! conn #:code 1006)))
+           (throws-artanis-err? (lambda () (ws-close! conn #:code 1005)))
+           (throws-artanis-err?
+            (lambda () (ws-close! conn #:reason (make-string 124 #\a))))
+           (not (websocket-conn-closing? conn))))))
+
+(with-test-prefix "connection close"
+
+  (pass-if-equal "the first recorded code wins, reported once"
+    '((1008 . "gone") #f closed)
+    (let ((conn (new-conn)))
+      (websocket-conn-note-close! conn 1008 "gone")
+      (websocket-conn-note-close! conn 1011 "later")
+      (let* ((r1 (websocket-conn-close! conn 1001))
+             (r2 (websocket-conn-close! conn 1001)))
+        (list r1 r2 (ws-send conn "x")))))
+
+  (pass-if-equal "the default code, and the queue is dropped"
+    '((1006 . "") 0 ())
+    (let ((conn (new-conn)))
+      (ws-send conn "abc")
+      (let ((r (websocket-conn-close! conn 1006)))
+        (list r (websocket-conn-queued-bytes conn) (drain conn))))))
+
+(with-test-prefix "cross-thread"
+
+  (pass-if "ws-send from another thread queues and wakes the task up"
+    (init-wakeup-fd! #f)
+    (take-woken-items!)
+    (let* ((p (socketpair PF_UNIX SOCK_STREAM 0))
+           (client (new-ragnarok-client (list (car p))))
+           (conn (new-conn)))
+      (websocket-conn-client-set! conn client)
+      (let ((r (join-thread (call-with-new-thread
+                             (lambda () (ws-send conn "hi"))))))
+        (and (eq? r #t)
+             (equal? (list (cons client #f)) (take-woken-items!))
+             (equal? '((data text #vu8(104 105))) (drain conn))))))
+
+  (pass-if-equal "concurrent ws-send loses nothing" 4000
+    (let ((conn (new-conn)))
+      (for-each join-thread
+                (map (lambda (_)
+                       (call-with-new-thread
+                        (lambda ()
+                          (for-each (lambda (_) (ws-send conn "x")) (iota 1000)))))
+                     (iota 4)))
+      (length (drain conn)))))
+
+(with-test-prefix "dispatchers and messages"
+
+  (pass-if "a procedure is the short form of on-message"
+    (let* ((f (lambda (conn msg) 'ok))
+           (d (->ws-dispatcher f)))
+      (and (ws-dispatcher? d)
+           (eq? f (ws-dispatcher-on-message d))
+           (not (ws-dispatcher-on-open d))
+           (not (ws-dispatcher-on-close d)))))
+
+  (pass-if "anything else isn't a dispatcher"
+    (not (or (->ws-dispatcher 42) (->ws-dispatcher "x") (->ws-dispatcher #f))))
+
+  (pass-if "on-message is required"
+    (throws-artanis-err? (lambda () (ws-dispatcher #:on-close (lambda _ #t)))))
+
+  (pass-if-equal "text message" '(#t "中" text)
+    (let ((m (make-ws-message 'text (string->utf8 "中"))))
+      (list (ws-message-text? m) (ws-message-text m) (ws-message-type m))))
+
+  (pass-if "ws-message-text of a binary message is an error"
+    (throws-artanis-err?
+     (lambda () (ws-message-text (make-ws-message 'binary #vu8(1)))))))
+
+(with-test-prefix "handler errors"
+
+  (pass-if-equal "close code of an error of the route handler or dispatcher"
+    '(1011 1008 1001 1011 4001 1011)
+    (map (lambda (e)
+           ((@@ (artanis server websocket) handler-error->close-code)
+            (car e) (cdr e)))
+         '((artanis-err 500 f "x")
+           (artanis-err 404 f "x")
+           (artanis-err 408 f "x")
+           (wrong-type-arg "car" "x" () ())
+           (websocket-err 4001 f "x")
+           (misc-error #f "x" () #f)))))

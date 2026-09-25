@@ -140,10 +140,10 @@ def t_skip_and_recheck():
     s, rest = accepted("session for recheck", sid=sid)
     r = Reader(s, rest)
     logout(sid)
-    # Logged out, but the per-message #:with-auth is skipped for the
-    # authenticated connection until the next check.
+    # Logged out, but messages don't go through #:with-auth, the connection
+    # works until the next check.
     s.sendall(frame(1, b"still"))
-    check("messages skip #:with-auth after the handshake", r.frame() == (1, b"still"))
+    check("messages don't go through #:with-auth", r.frame() == (1, b"still"))
     t = time.time()
     s.settimeout(15)
     try:
