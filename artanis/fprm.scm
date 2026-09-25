@@ -1106,9 +1106,20 @@
               ((and (pair? result) (row? (car result))) (car result))
               (else #f))))
     (cond
-     ((not row) 'no-result)
-     ((assoc k row)
-      => (lambda (p) (if (unspecified? (cdr p)) #f (cdr p))))
+     ((and (not row) (or (not result) (null? result))) 'no-result)
+     ((and row (assoc k row))
+      => (lambda (p)
+           (let ((v (cdr p)))
+             (cond
+              ((unspecified? v) #f)
+              ;; guile-dbi values are never lists, so a list here is the
+              ;; old ((k v)) shape: keep returning v.
+              ((pair? v) (car v))
+              (else v)))))
+     ;; The old behavior, kept for results that aren't guile-dbi rows: an
+     ;; alist whose values are lists, e.g. ((k v)) => v.
+     ((and (not row) (list? result) (assoc-ref result k))
+      => (lambda (v) (if (pair? v) (car v) v)))
      (else
       (if throw-when-no-key?
           (throw 'artanis-err 500 query-result-ref
