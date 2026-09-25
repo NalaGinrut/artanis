@@ -42,6 +42,8 @@
 
             idle-watch!
             take-idle-expired!
+            recheck-watch!
+            take-recheck-due!
 
             make-ragnarok-engine
             ragnarok-engine?
@@ -323,36 +325,43 @@
    '()
    *busy-tasks*))
 ;; =========== end Busy tasks ===========
-;; ========== Idle connections ==========
-;; A long-lived connection (e.g. WebSocket) is idle when its task has been
-;; waiting for the peer longer than its timeout. The task timeout is only
-;; checked when the task is resumed, so an idle task must be resumed by the
-;; server to get its 408 (then the protocol closes it, e.g. a WebSocket close
-;; 1001).
-;; Lazy re-queue: there's one queue per timeout T, each item is
+;; ========== Timed watches ==========
+;; Long-lived connections (e.g. WebSocket) need to be resumed by the server
+;; at some time, even if the peer sends nothing:
+;;  1. Idle connections: a connection is idle when its task has been waiting
+;;     for the peer longer than its timeout. The task timeout is only checked
+;;     when the task is resumed, so an idle task must be resumed by the server
+;;     to get its 408 (then the protocol closes it, e.g. a WebSocket close
+;;     1001).
+;;  2. Periodic checks: the protocol needs to check something periodically
+;;     within the task, e.g. whether the session of a WebSocket connection is
+;;     still valid. The task is resumed, and the protocol does the check when
+;;     it's resumed (e.g. in its read waiter). It must be done within the
+;;     task, since the check may do I/O which has to suspend the task.
+;; Lazy re-queue: a watch has one queue per period T, each item is
 ;; (client . time-enqueued). Items are enqueued in time order, so only the
-;; head of each queue needs to be checked in each round. When an item is due
-;; (enqueued T ago), the task is expired if it's idle for T now, otherwise the
-;; item is enqueued again with the current time. So a task expires between T
-;; and 2T after its last activity.
+;; head of each queue needs to be checked in each round. When an item is
+;; due (enqueued T ago), the watch decides what to do with the task, and the
+;; item is dropped, or enqueued again with the current time.
 ;; An item whose task has gone (or whose fd now belongs to another connection)
 ;; is just dropped, nothing has to be done when a connection is closed.
+;; NOTE: A resumed task refreshes its touch-time (see serve-one-request), so a
+;;       periodic check also defers the idle timeout of the connection.
 ;; NOTE: Only for the single-threaded server core (server.workers = 1).
 ;; NOTE: Server thread only.
 
-(define *idle-queues* (make-hash-table)) ; timeout -> queue
-
-;; Watch the task of client, timeout is its task timeout in seconds (> 0).
-(define (idle-watch! client timeout)
-  (let ((q (or (hashv-ref *idle-queues* timeout)
+(define (timed-watch! queues client period)
+  (let ((q (or (hashv-ref queues period)
                (let ((q (new-queue)))
-                 (hashv-set! *idle-queues* timeout q)
+                 (hashv-set! queues period q)
                  q))))
     (queue-in! q (cons client (current-time)))))
 
-;; Returns the clients whose task is idle for its timeout. They're removed
-;; from the watch: the resumed task is closed by its timeout.
-(define (take-idle-expired! wt)
+;; decide: (client task) -> one of
+;;  'take    return the client, drop the item
+;;  'again   enqueue the item again
+;;  'both    return the client, and enqueue the item again
+(define (take-due! queues wt decide)
   (let ((now (current-time))
         (tasks (work-table-content wt)))
     (define (alive-task client)
@@ -360,26 +369,55 @@
              (task (and fd (hashv-ref tasks fd))))
         (and task (eq? (task-client task) client) task)))
     (hash-fold
-     (lambda (timeout q acc)
+     (lambda (period q acc)
        (let lp ((acc acc))
          (cond
           ((queue-empty? q) acc)
           ;; The head isn't due yet, neither is the rest.
-          ((< (- now (cdr (queue-head q))) timeout) acc)
+          ((< (- now (cdr (queue-head q))) period) acc)
           (else
            (let* ((client (car (queue-out! q)))
                   (task (alive-task client)))
              (cond
               ((not task) (lp acc))
-              ;; A busy task is waiting for the server, not idle.
-              ((and (not (task-busy? client)) (is-task-timeout? task))
-               (lp (cons client acc)))
               (else
-               (queue-in! q (cons client now))
-               (lp acc))))))))
+               (let ((d (decide client task)))
+                 (when (memq d '(again both))
+                   (queue-in! q (cons client now)))
+                 (lp (if (memq d '(take both)) (cons client acc) acc))))))))))
      '()
-     *idle-queues*)))
-;; =========== end Idle connections ===========
+     queues)))
+
+(define *idle-queues* (make-hash-table)) ; timeout -> queue
+
+;; Watch the task of client, timeout is its task timeout in seconds (> 0).
+(define (idle-watch! client timeout)
+  (timed-watch! *idle-queues* client timeout))
+
+;; Returns the clients whose task is idle for its timeout. They're removed
+;; from the watch: the resumed task is closed by its timeout.
+(define (take-idle-expired! wt)
+  (take-due! *idle-queues* wt
+             (lambda (client task)
+               ;; A busy task is waiting for the server, not idle.
+               (if (and (not (task-busy? client)) (is-task-timeout? task))
+                   'take
+                   'again))))
+
+(define *recheck-queues* (make-hash-table)) ; period -> queue
+
+;; Resume the task of client every period seconds (> 0), until it's closed.
+(define (recheck-watch! client period)
+  (timed-watch! *recheck-queues* client period))
+
+;; Returns the clients whose periodic check is due.
+(define (take-recheck-due! wt)
+  (take-due! *recheck-queues* wt
+             (lambda (client task)
+               ;; A busy task isn't waiting in the protocol, it can't do the
+               ;; check. Try again in the next period.
+               (if (task-busy? client) 'again 'both))))
+;; =========== end Timed watches ===========
 
 (define *high-prio-mutex* (make-mutex))
 (define *high-prio-table* (make-hash-table))

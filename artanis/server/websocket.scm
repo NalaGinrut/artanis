@@ -50,6 +50,9 @@
   #:use-module (artanis server server-context)
   #:use-module (artanis server scheduler)
   #:use-module (artanis server http)
+  #:use-module ((artanis config) #:select (get-conf))
+  #:use-module ((artanis session) #:select (session-restore))
+  #:use-module ((ice-9 suspendable-ports) #:select (current-read-waiter))
   #:use-module (ice-9 format)
   #:use-module ((rnrs) #:select (bytevector? bytevector-length))
   #:export (new-websocket-protocol
@@ -108,6 +111,58 @@
 
 ;; NOTE: Called by http-read right after the connection is switched to this
 ;;       protocol, within the task.
+;; ---------------------------------------------------------------------------
+;; Session check
+;;
+;; A connection authenticated with a session at its handshake is closed with
+;; 1008 once the session isn't valid anymore (expired, logged out, ...). The
+;; session is checked every session lifetime (cookie.expires, the expiration
+;; of new sessions), so it's closed at most one period after the session is
+;; gone. The check is done within the task, since the session backend may do
+;; I/O which suspends the task:
+;;  - A timed watch (recheck-watch!) resumes the task every period, even if
+;;    the peer sends nothing. The task is waiting in ws-read-waiter then.
+;;  - ws-read also checks before each message, for a peer that never lets
+;;    the task wait.
+;; NOTE: The waiter only breaks the task to the Ragnarok scheduler, as
+;;       async-read-waiter does, there's no other scheduler.
+
+(define (recheck-period)
+  (get-conf '(cookie expires)))
+
+;; Throws 'websocket-err 1008 if the session is gone.
+(define (ws-recheck! state)
+  (let ((sid (websocket-state-sid state))
+        (period (recheck-period)))
+    (when (and sid
+               (> period 0)
+               (>= (- (current-time) (websocket-state-checked-at state))
+                   period))
+      ;; Set first: if the backend suspends the task, this waiter is called
+      ;; again, then it just breaks the task.
+      (websocket-state-checked-at-set! state (current-time))
+      (let ((session (session-restore sid)))
+        ;; Same outcomes as the check of #:session.
+        (case session
+          ((expired not-found)
+           (throw 'websocket-err 1008 'ws-recheck!
+                  "The session is ~a" session))
+          (else #t))))))
+
+;; The read waiter of a WebSocket connection. Guile's suspendable ports call
+;; the current read waiter when a read would block, ignore what it returns,
+;; and retry the read after it returns (see read-bytes in
+;; (ice-9 suspendable-ports)). So, like async-read-waiter:
+;;  1. break-task aborts to the Ragnarok scheduler, which saves the task.
+;;  2. When Ragnarok resumes the task (data from the peer, or the timed
+;;     watch), break-task returns here.
+;; Then the session is checked before the read is retried. If it's gone,
+;; ws-recheck! throws out of the read to the catch in ws-read.
+(define (ws-read-waiter state)
+  (lambda (port)
+    (break-task)
+    (ws-recheck! state)))
+
 (define (ws-open server client)
   (let* ((state (proto-conn-state client))
          (req (websocket-state-request state))
@@ -117,6 +172,8 @@
     (task-timeout-set! (current-task) timeout)
     (when (> timeout 0)
       (idle-watch! client timeout))
+    (when (and (websocket-state-sid state) (> (recheck-period) 0))
+      (recheck-watch! client (recheck-period)))
     (catch #t
       (lambda ()
         (run-hook *after-websocket-handshake-hook* req client))
@@ -137,7 +194,9 @@
       (end-connection! server client #f))
     (let ((msg (catch 'websocket-err
                  (lambda ()
-                   (read-websocket-message port))
+                   (ws-recheck! state)
+                   (parameterize ((current-read-waiter (ws-read-waiter state)))
+                     (read-websocket-message port)))
                  (lambda (k code thrower fmt . args)
                    (log-ws client "failed with close code ~a: ~a"
                            code (apply format #f fmt args))

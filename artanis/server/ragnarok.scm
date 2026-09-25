@@ -239,8 +239,11 @@
          (woken? (any is-wakeup-fd? events))
          ;; Busy tasks whose deadline has passed, see Busy tasks.
          (expired (take-expired-busy-clients!))
-         ;; Idle long-lived connections, see Idle connections.
-         (idle (take-idle-expired! (current-work-table server)))
+         ;; Idle long-lived connections, see Timed watches.
+         (idle-expired (take-idle-expired! (current-work-table server)))
+         ;; Long-lived connections due to be checked, see Timed watches.
+         (recheck-due (take-recheck-due! (current-work-table server)))
+         (idle (append idle-expired recheck-due))
          ;; epoll never returns an fd twice in one round, but a task may be
          ;; restored by its own socket event AND woken up by another thread
          ;; (or by its deadline) in the same round. If so, it must be queued
@@ -253,8 +256,8 @@
       (when enqueued
         (hashv-set! enqueued (client-sockport-descriptor client) #t))
       (ready-queue-in! rq client))
-    ;; touch? is #f for an idle task: it's resumed to get its timeout, so its
-    ;; time must not be refreshed.
+    ;; touch? is #f for a task resumed by a timed watch: an idle one is
+    ;; resumed to get its timeout, so its time must not be refreshed.
     (define* (resume-woken-client! client #:optional (touch? #t))
       (let* ((fd (client-live-fd client))
              (task (and fd (hashv-ref (work-table-content

@@ -122,6 +122,45 @@
       (watch! c 30 30)
       (length (take-idle-expired! wt)))))
 
+(define recheck-queues (@@ (artanis server server-context) *recheck-queues*))
+
+(with-test-prefix "periodic checks"
+
+  (pass-if "a due task is resumed and watched again"
+    (hash-clear! recheck-queues)
+    (let* ((wt (new-wt)) (c (client+task wt 0 0)))
+      (recheck-watch! c 5)
+      (set-cdr! (queue-tail (hashv-ref recheck-queues 5)) (- (current-time) 5))
+      (and (equal? (list c) (take-recheck-due! wt))
+           (= 1 (queue-length (hashv-ref recheck-queues 5)))
+           ;; watched again from now
+           (null? (take-recheck-due! wt)))))
+
+  (pass-if "not due yet"
+    (hash-clear! recheck-queues)
+    (let* ((wt (new-wt)) (c (client+task wt 0 0)))
+      (recheck-watch! c 5)
+      (null? (take-recheck-due! wt))))
+
+  (pass-if "a busy task is tried again in the next period"
+    (hash-clear! recheck-queues)
+    (let* ((wt (new-wt)) (c (client+task wt 0 0)))
+      (recheck-watch! c 5)
+      (set-cdr! (queue-tail (hashv-ref recheck-queues 5)) (- (current-time) 5))
+      (task-busy-begin! c #f)
+      (let ((r (take-recheck-due! wt)))
+        (task-busy-end! c)
+        (and (null? r) (= 1 (queue-length (hashv-ref recheck-queues 5)))))))
+
+  (pass-if "a closed connection is dropped"
+    (hash-clear! recheck-queues)
+    (let* ((wt (new-wt)) (c (client+task wt 0 0)))
+      (recheck-watch! c 5)
+      (set-cdr! (queue-tail (hashv-ref recheck-queues 5)) (- (current-time) 5))
+      (remove-from-work-table! wt c #f)
+      (and (null? (take-recheck-due! wt))
+           (zero? (queue-length (hashv-ref recheck-queues 5)))))))
+
 (with-test-prefix "close codes"
 
   (pass-if-equal "HTTP status -> close code"
