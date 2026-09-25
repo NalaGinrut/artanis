@@ -165,9 +165,13 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
                                  (string->pointer sec-mod-name)
                                  %null-pointer flags)))
 
+;; NOTE: strings are always passed to NSS as UTF-8 (here and in nss:hash):
+;;       the length is the UTF-8 length, and a plain string->pointer uses
+;;       the locale encoding, which under a C locale turns non-ASCII into
+;;       `?' and silently hashes/HMACs the wrong bytes.
 (define (nss:hash-it algo str/bv)
   (let ((in (cond
-             ((string? str/bv) (string->pointer str/bv))
+             ((string? str/bv) (string->pointer str/bv "UTF-8"))
              (((@ (rnrs) bytevector?) str/bv)
               (bytevector->pointer str/bv))
              (else (throw 'artanis-err 500 nss:hash-it
@@ -245,7 +249,7 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
 (define (nss:hash algo algo-len str/bv)
   (let ((out (bytevector->pointer (make-bytevector algo-len 0)))
         (in (cond
-             ((string? str/bv) (string->pointer str/bv))
+             ((string? str/bv) (string->pointer str/bv "UTF-8"))
              ((bytevector? str/bv) (bytevector->pointer str/bv))
              (else (throw 'artanis-err 500 nss:hash
                           "Invalid input type `~a'" str/bv))))
