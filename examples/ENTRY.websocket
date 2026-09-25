@@ -27,3 +27,17 @@
  (get "/short" #:websocket 'raw #:timeout 2
       (lambda (rc) (:websocket rc 'payload)))
  (get "/hello" (lambda (rc) "hello"))
+
+ ;; AuthN (layer 3): log in by HTTP, then the handshake carries the sid cookie.
+ ;; websocket-auth-test.py needs in conf/artanis.conf:
+ ;;   cookie.expires = 4
+ ;;   server.origins = http://localhost:5173
+ (get "/login" #:session #t
+      (lambda (rc) (:session rc 'spawn) "ok"))
+ (get "/logout" #:session #t
+      (lambda (rc)
+        ((@ (artanis session) session-destroy!)
+         ((@ (artanis route) get-sid-from-client-cookie) rc))
+        "bye"))
+ (get "/secure" #:websocket 'raw #:with-auth 'status #:timeout 0
+      (lambda (rc) (:websocket rc 'payload)))
