@@ -169,6 +169,53 @@
             (select '((sec-websocket-protocol . "a, chat")) 'chat)
             (select '((sec-websocket-protocol . "a, b")) 'chat)))))
 
+(with-test-prefix "websocket origin"
+
+  (define ok? (@@ (artanis websocket handshake) acceptable-origin?))
+  (define* (h origin #:optional (host '("localhost" . 3000)))
+    `((host . ,host) ,@(if origin `((origin . ,origin)) '())))
+
+  (pass-if "no Origin (not a browser)" (ok? (h #f)))
+
+  (pass-if "same origin" (ok? (h "http://localhost:3000")))
+
+  (pass-if "same origin, case-insensitive host and scheme"
+    (ok? (h "HTTP://LocalHost:3000")))
+
+  (pass-if "Host without port means the default port of the origin's scheme"
+    (and (ok? (h "https://example.com" '("example.com" . #f)))
+         (ok? (h "http://example.com:80" '("example.com" . #f)))))
+
+  (pass-if "other port" (not (ok? (h "http://localhost:3001"))))
+
+  (pass-if "other host" (not (ok? (h "http://evil.example:3000"))))
+
+  (pass-if "opaque origin" (not (ok? (h "null"))))
+
+  (pass-if "garbage" (not (ok? (h "not an origin"))))
+
+  (pass-if "trusted by server.origins"
+    (begin
+      (conf-set! '(server origins) '("http://localhost:5173" "https://ui.example"))
+      (websocket-origins-init!)
+      (let ((r (and (ok? (h "http://localhost:5173"))
+                    (ok? (h "https://ui.example:443"))
+                    (not (ok? (h "http://ui.example"))))))
+        (conf-set! '(server origins) '())
+        (websocket-origins-init!)
+        r)))
+
+  (pass-if "an invalid origin in server.origins is an error at boot"
+    (begin
+      (conf-set! '(server origins) '("null"))
+      (let ((r (catch #t (lambda () (websocket-origins-init!) #f) (lambda _ #t))))
+        (conf-set! '(server origins) '())
+        (websocket-origins-init!)
+        r)))
+
+  (pass-if-equal "403 for an untrusted origin" 403
+    (req-error #:headers (with 'origin "http://evil.example"))))
+
 (with-test-prefix "websocket rules"
 
   (pass-if "exact rule" (url-need-websocket? "/ws"))

@@ -276,6 +276,14 @@ server.mmapped = <boolean>")
      "The allowed HTTP methods.
 server.allowedmethods = <methods-list>")
 
+    ((server origins)
+     ()
+     "The trusted origins of the site besides its own, e.g. for the front-end
+dev server during integration testing. An origin is scheme://host[:port], say,
+http://localhost:5173. Empty means same-origin only (default).
+It's checked in the WebSocket handshake (403 for an untrusted Origin).
+server.origins = <origins-list>")
+
     ((server jsmanifest)
      "pub"
      "The path to find \"manifest.json\".
@@ -562,6 +570,7 @@ session.i18n = json | sxml | locale | <third-party-engine>")
     (('mmapped v) (conf-set! '(server mmapped) (->bool v)))
     (('allowedmethods ml) (conf-set! '(server allowedmethods) (->methods ml)))
     (('jsmanifest jm) (conf-set! '(server jsmanifest) (->none/str jm)))
+    (('origins o) (conf-set! '(server origins) (->string-list o)))
     (else (error parse-namespace-server "Config: Invalid item" item))))
 
 (define (parse-namespace-websocket item)

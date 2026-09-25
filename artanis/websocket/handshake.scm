@@ -35,10 +35,12 @@
   #:use-module (artanis security nss)
   #:use-module (ice-9 format)
   #:use-module ((web request) #:select (request-version))
+  #:use-module (web uri)
   #:use-module (rnrs bytevectors)
   #:use-module ((rnrs) #:select (define-record-type))
   #:use-module ((srfi srfi-1) #:select (find any))
   #:export (gen-accept-key
+            websocket-origins-init!
             websocket-request-path
             websocket-request-error
             reject-websocket-request
@@ -139,6 +141,66 @@
          (memq 'upgrade connection)
          #t)))
 
+;; ---------------------------------------------------------------------------
+;; Origin
+;;
+;; Browsers don't apply CORS to WebSocket, and they send the cookies of the
+;; target site with the handshake. So the Origin must be checked, otherwise
+;; any page could open an authenticated connection on behalf of the user
+;; (Cross-Site WebSocket Hijacking).
+;; Trusted: the same origin as the Host of the request, and server.origins.
+;; A request without Origin is not from a browser, so there's no hijacking
+;; to prevent, it's accepted (a non-browser client can forge Origin anyway).
+
+(define (default-port scheme)
+  (case scheme
+    ((http ws) 80)
+    ((https wss) 443)
+    (else #f)))
+
+;; Normalize an origin string to (scheme host port), or #f if it's invalid
+;; (including the opaque origin "null").
+(define (parse-origin str)
+  (let ((u (and (string? str) (string->uri (string-trim-both str)))))
+    (and u (uri-scheme u) (uri-host u)
+         (let ((port (or (uri-port u) (default-port (uri-scheme u)))))
+           (and port
+                (list (uri-scheme u) (string-downcase (uri-host u)) port))))))
+
+;; host is the parsed Host header: (host . port), port may be #f.
+(define (same-origin? origin host)
+  (and (pair? host)
+       (string-ci=? (cadr origin) (car host))
+       ;; Without a port, Host means the default port of the scheme the
+       ;; client used, which is the scheme of the origin (it may differ from
+       ;; ours behind a TLS terminating proxy).
+       (= (caddr origin)
+          (or (cdr host) (default-port (car origin))))))
+
+;; server.origins, parsed once at boot by websocket-origins-init!.
+(define *trusted-origins* '())
+
+;; Parse server.origins. Called at boot (see `run'), an invalid origin in the
+;; config is an error.
+(define (websocket-origins-init!)
+  (set! *trusted-origins*
+        (map (lambda (str)
+               (or (parse-origin str)
+                   (error "Invalid origin in server.origins:" str)))
+             (get-conf '(server origins)))))
+
+(define (trusted-origin? origin)
+  (member origin *trusted-origins*))
+
+(define (acceptable-origin? headers)
+  (let ((str (header-ref headers 'origin)))
+    (or (not str)
+        (let ((origin (parse-origin str)))
+          (and origin
+               (or (same-origin? origin (header-ref headers 'host))
+                   (trusted-origin? origin))
+               #t)))))
+
 (define *upgrade-headers*
   '((upgrade "websocket")
     (connection upgrade)
@@ -168,7 +230,8 @@
      ((not (string=? (string-trim-both version) "13"))
       `(426 ,(format #f "Unsupported WebSocket version `~a'" version)
             (Sec-WebSocket-Version . "13")))
-     ;; TODO: check Origin, it's the job of AuthN (layer 3).
+     ((not (acceptable-origin? headers))
+      `(403 ,(format #f "Untrusted origin `~a'" (header-ref headers 'origin))))
      (else #f))))
 
 ;; Answer a rejected handshake request. The caller closes the connection.

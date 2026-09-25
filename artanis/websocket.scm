@@ -42,6 +42,7 @@
                websocket-rule-add!
                websocket-rule-timeout-set!
                websocket-rules-defined?
+               websocket-origins-init!
                websocket-request-path
                websocket-rule-timeout
                url-need-websocket?
