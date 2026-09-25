@@ -328,6 +328,22 @@
     (display "Database is not enabled. Make sure you have no models.\n")
     #f)))
 
+;; Fail fast at start-up instead of failing each WebSocket handshake.
+;; NOTE: WebSocket is served by the `websocket' protocol of Ragnarok, which
+;;       relies on non-blocking I/O with suspendable ports (edge trigger).
+(define (check-websocket-config)
+  (cond
+   ((get-conf '(server websocket))
+    (when (not (eq? 'ragnarok (get-conf '(server engine))))
+      (error "server.websocket requires server.engine = ragnarok, but it's"
+             (get-conf '(server engine))))
+    (when (not (eq? 'edge (get-conf '(server trigger))))
+      (error "server.websocket requires server.trigger = edge, but it's"
+             (get-conf '(server trigger)))))
+   ((websocket-rules-defined?)
+    (error "There're #:websocket routes, but server.websocket is not enabled"))
+   (else #t)))
+
 ;; Invalid use-db? must be (dbd username passwd) or #f
 (define* (run #:key (host #f) (port #f) (debug #f) (use-db? #f) (db-proto #f) (server #f)
               (dbd #f) (db-username #f) (db-passwd #f) (db-name #f) (db-addr #f))
@@ -372,6 +388,8 @@
      (format #t "Session with ~:@(~a~) backend init done!~%"
              (get-conf '(session backend)))))
   (run-hook *before-run-hook*)
+  ;; NOTE: After *before-run-hook*, since `art work' loads the routes there.
+  (check-websocket-config)
   (format #t "Server core: ~a~%" (get-conf '(server engine)))
   (format #t "~a~%" (current-myhost))
   (format #t "Anytime you want to quit just try Ctrl+C, thanks!~%")
