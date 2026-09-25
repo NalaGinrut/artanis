@@ -70,18 +70,21 @@
                     (let ((html ((@@ (artanis tpl) tpl-render-from-file) file e)))
                       ((@ (artanis artanis) response-emit) html)))
                    (else ((@ (artanis artanis) response-emit) "" #:status 404)))))
+               ;; NOTE: a syntax-rules clause takes exactly one template,
+               ;;       so the check and the render go in one begin.
                ((_ theme method e)
-                (when (not (<theme-path>? theme))
-                  (throw 'artanis-err 500 'view-render
-                         "Theme `~a' is not a valid <theme-path>, did you use `compose-theme-path' API?" theme))
-                (let ((file (format #f "~a/sys/themes/~a/~a/~a.html.tpl"
-                                    (current-toplevel)
-                                    (<theme-path>-path theme) 'name method)))
-                  (cond
-                   ((file-exists? file)
-                    (let ((html ((@@ (artanis tpl) tpl-render-from-file) file e)))
-                      ((@ (artanis artanis) response-emit) html)))
-                   (else ((@ (artanis artanis) response-emit) "" #:status 404)))))))
+                (begin
+                  (when (not (<theme-path>? theme))
+                    (throw 'artanis-err 500 'view-render
+                           "Theme `~a' is not a valid <theme-path>, did you use `compose-theme-path' API?" theme))
+                  (let ((file (format #f "~a/sys/themes/~a/~a/~a.html.tpl"
+                                      (current-toplevel)
+                                      (<theme-path>-path theme) 'name method)))
+                    (cond
+                     ((file-exists? file)
+                      (let ((html ((@@ (artanis tpl) tpl-render-from-file) file e)))
+                        ((@ (artanis artanis) response-emit) html)))
+                     (else ((@ (artanis artanis) response-emit) "" #:status 404))))))))
            (define-syntax #,(datum->syntax #'name (symbol-append (syntax->datum #'name) '-define))
              (syntax-rules ::: ()
                ((_ method rest rest* :::)
