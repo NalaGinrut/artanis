@@ -160,8 +160,12 @@
 (define (init-rule-key-bindings! rc)
   (let* ((m (irregex-search (rc-re rc) (rc-path rc)))
          (num (irregex-match-num-submatches m)))
+    ;; NOTE: path segments arrive percent-encoded (a Chinese slug is
+    ;;       "%E4%BD%A0..."), so bound values are decoded here -- the same
+    ;;       as init-query! does for the query string. Without it, a
+    ;;       non-ASCII path parameter never matches what's stored.
     (rc-bt! rc
-            (map (lambda (k i) (cons k (irregex-match-substring m i)))
+            (map (lambda (k i) (cons k (uri-decode (irregex-match-substring m i))))
                  (rc-keys rc) (iota num 1)))))
 
 (define (init-query! rc)
