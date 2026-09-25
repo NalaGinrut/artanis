@@ -61,7 +61,9 @@
 ;; Session identifiers should be at least 128 bits (16 chars)
 ;; long to prevent brute-force session guessing attacks.
 (define (get-new-sid)
-  (get-random-from-dev #:length 16)) ; NOTE: one hex contains two chars
+  ;; NOTE: #:length counts hex chars (two per byte), so 32 = 128 bits.
+  ;;       It was 16, i.e. only 64 bits, despite the comment above.
+  (get-random-from-dev #:length 32))
 
 (define (session->alist session)
   (hash-map->list cons session))
