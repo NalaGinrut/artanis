@@ -20,12 +20,12 @@
 ;; The `websocket' ragnarok-protocol.
 ;;
 ;; After the 101 response, http-read registers the connection to this
-;; protocol in the proto table, then calls ws-open and ws-read within the
-;; task of the connection:
+;; protocol in the proto table, then calls the open and read methods of it
+;; (ws-open and ws-serve) within the task of the connection:
 ;;  - ws-open calls the route handler once with the rc of the handshake, it
 ;;    returns the dispatcher of the connection, see
 ;;    (artanis websocket connection).
-;;  - ws-read never returns: it loops over reading one message, passing it
+;;  - ws-serve never returns: it loops over reading one message, passing it
 ;;    to the dispatcher, and writing the outbound queue. The connection
 ;;    only ends by end-connection! or fail-connection!, which close it and
 ;;    leave the task. So the rest of the HTTP continuation (handle-request,
@@ -199,7 +199,7 @@
 ;;    handshake is closed with 1008 once the session isn't valid anymore
 ;;    (expired, logged out, ...). It's checked every session lifetime
 ;;    (cookie.expires, the expiration of new sessions), so it's closed at
-;;    most one period after the session is gone. ws-read also checks it
+;;    most one period after the session is gone. ws-serve also checks it
 ;;    before each message, for a peer that never lets the task wait.
 ;; The check is done within the task, since the session backend may do I/O
 ;; which suspends the task.
@@ -283,7 +283,7 @@
 ;;     timed watch), break-task returns here.
 ;; Then the outbound queue is written, and the timed checks are done before
 ;; the read is retried. If one fails, it throws out of the read to
-;; with-connection-errors in ws-read.
+;; with-connection-errors in ws-serve.
 ;; NOTE: A write of the outbound queue may suspend the task again, in the
 ;;       write waiter. The read isn't retried until the write is done.
 ;; NOTE: The session backend may read another port (e.g. a DB) within
@@ -334,8 +334,10 @@
                 result)
         (fail-connection! server client 1011))))))
 
-;; Serve the connection until it ends, it never returns.
-(define (ws-read server client)
+;; Serve the connection until it ends, it never returns: read, dispatch, and
+;; write the outbound queue. It's the read method of the protocol, since
+;; http-read enters it right after the 101 response.
+(define (ws-serve server client)
   (let* ((port (client-sockport client))
          (conn (proto-conn-state client))
          (on-message (ws-dispatcher-on-message
@@ -383,12 +385,14 @@
           (values (bytevector-u16-ref payload 0 'big)
                   (utf8->string reason))))))
 
-;; Only reached for an error that escaped from the task, e.g. a bug of this
-;; module: the error branches of the Ragnarok main-loop write the rendered
-;; error response with it. It's sent as a close frame, the body is dropped.
+;; Fail the connection for an error that escaped from the task, e.g. a bug
+;; of this module. It's the write method of the protocol: the error
+;; branches of the Ragnarok main-loop write the rendered error response with
+;; it. The status is sent as a close frame, the body is dropped. Messages
+;; are never written by it, see ws-serve.
 ;; NOTE: It's called out of the task prompt, so it never aborts to the
-;;       prompt. The connection is closed by ws-close right after it.
-(define (ws-write server client response body method-is-head?)
+;;       prompt. The TCP connection is closed by ws-close right after it.
+(define (ws-fail-and-close server client response body method-is-head?)
   (let* ((port (client-sockport client))
          (status (response-code response))
          (code (if (< status 400) 1011 (status->close-code status))))
@@ -437,4 +441,5 @@
           (log-ws client "on-close failed: ~a ~s" k e))))))
 
 (define (new-websocket-protocol)
-  (make-ragnarok-protocol 'websocket ws-open ws-read ws-write ws-close))
+  (make-ragnarok-protocol 'websocket
+                          ws-open ws-serve ws-fail-and-close ws-close))
