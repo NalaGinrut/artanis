@@ -47,7 +47,7 @@
             sql-bigint sql-smallint sql-varchar sql-char sql-timestamp
             sql-date sql-time sql-bytea sql-json sql-jsonb sql-uuid
             sql-inet sql-cidr sql-macaddr sql-point sql-array
-            sql-literal? sql-literal-text sql-vector))
+            make-sql-literal sql-literal? sql-literal-text sql-vector))
 
 (define (->string obj) (if (string? obj) obj (object->string obj)))
 
