@@ -64,7 +64,11 @@
             nss:hash-it
             nss:pr-cleanup
 
-            nss:hmac-raw))
+            nss:hmac-raw
+
+            nss:random-bytes
+            nss:aes-gcm-encrypt
+            nss:aes-gcm-decrypt))
 
 (define *nss-error-msg*
   "
@@ -94,6 +98,9 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
     (define-c-function void PK11_DestroyContext ('* int))
     (define-c-function void PK11_FreeSymKey ('*))
     (define-c-function void PK11_FreeSlot ('*))
+    (define-c-function int PK11_GenerateRandom ('* int))
+    (define-c-function int PK11_Encrypt ('* unsigned-long '* '* '* unsigned-int '* unsigned-int))
+    (define-c-function int PK11_Decrypt ('* unsigned-long '* '* '* unsigned-int '* unsigned-int))
     )
 
   (ffi-binding "libssl3"
@@ -376,3 +383,156 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/SSL_functions/ssle
           (%PK11_FreeSymKey sym-key)
           (%PK11_FreeSlot slot)
           out-bv)))))
+
+;; ========== AES-GCM ==========
+;; Authenticated symmetric encryption through NSS's PK11 layer, for
+;; secrets an application has to store and later use as they were (API
+;; keys of a downstream service, say), where a hash won't do.
+;;
+;; Sealed format: IV (12 bytes) || ciphertext || tag (16 bytes).
+;; A fresh random IV is drawn for every call, so the same plaintext
+;; seals differently each time. The key is a bytevector of 16, 24 or 32
+;; bytes (AES-128/192/256); keep it out of the database the sealed data
+;; lives in. aad, if given, is authenticated but not encrypted -- pass
+;; e.g. the row's owner id so a sealed value can't be moved to another
+;; row -- and must be given again, identically, to decrypt.
+
+(define CKM_AES_GCM #x00001087)
+(define CKA_ENCRYPT #x00000104)
+(define CKA_DECRYPT #x00000105)
+(define *aes-gcm-iv-len* 12)
+(define *aes-gcm-tag-len* 16)
+
+;; CK_GCM_PARAMS (PKCS#11 v3.0): pIv, ulIvLen, ulIvBits, pAAD, ulAADLen,
+;; ulTagBits. CK_ULONG is `unsigned long'.
+(define *CK_GCM_PARAMS* (list '* unsigned-long unsigned-long '* unsigned-long unsigned-long))
+
+(define (%nss-ok? who ret errno)
+  (when (< ret 0)
+    (throw 'artanis-err 500 who "NSS error errno=~a" errno)))
+
+(define (nss:random-bytes n)
+  (when (not (nss:is-initialized?))
+    (nss:no-db-init))
+  (let ((bv (make-bytevector n 0)))
+    (call-with-values (lambda () (%PK11_GenerateRandom (bytevector->pointer bv) n))
+      (lambda (ret errno) (%nss-ok? 'nss:random-bytes ret errno)))
+    bv))
+
+(define (->bytevector who x)
+  (cond
+   ((bytevector? x) x)
+   ((string? x) (string->utf8 x))
+   (else (throw 'artanis-err 500 who "need a string or bytevector, got `~a'" x))))
+
+;; Runs (proc sym-key) with key-bv imported as an AES key for op
+;; (CKA_ENCRYPT or CKA_DECRYPT), freeing the key and slot however proc
+;; exits.
+(define (call-with-aes-key who key-bv op proc)
+  (when (not (memv (bytevector-length key-bv) '(16 24 32)))
+    (throw 'artanis-err 500 who "AES key must be 16, 24 or 32 bytes, got ~a"
+           (bytevector-length key-bv)))
+  (when (not (nss:is-initialized?))
+    (nss:no-db-init))
+  (let ((slot (call-with-values %PK11_GetInternalKeySlot
+                (lambda (p errno)
+                  (when (null-pointer? p)
+                    (throw 'artanis-err 500 who "No NSS key slot, errno=~a" errno))
+                  p))))
+    (dynamic-wind
+      (lambda () #t)
+      (lambda ()
+        (let ((sym-key (call-with-values
+                           (lambda ()
+                             (%PK11_ImportSymKey slot CKM_AES_GCM PK11_OriginUnwrap op
+                                                 (bv->sec-item key-bv) %null-pointer))
+                         (lambda (p errno)
+                           (when (null-pointer? p)
+                             (throw 'artanis-err 500 who "Can't import AES key, errno=~a" errno))
+                           p))))
+          (dynamic-wind
+            (lambda () #t)
+            (lambda () (proc sym-key))
+            (lambda () (%PK11_FreeSymKey sym-key)))))
+      (lambda () (%PK11_FreeSlot slot)))))
+
+;; A SECItem holding CK_GCM_PARAMS for iv/aad. The bytevectors must stay
+;; alive while the SECItem is used; the caller keeps them in scope.
+(define (gcm-param iv-bv aad-bv)
+  (let ((params (make-c-struct *CK_GCM_PARAMS*
+                               (list (bytevector->pointer iv-bv)
+                                     (bytevector-length iv-bv)
+                                     (* 8 (bytevector-length iv-bv))
+                                     (if aad-bv (bytevector->pointer aad-bv) %null-pointer)
+                                     (if aad-bv (bytevector-length aad-bv) 0)
+                                     (* 8 *aes-gcm-tag-len*)))))
+    (values (make-c-struct *SECItem*
+                           (list 0 params (sizeof *CK_GCM_PARAMS*)))
+            params)))
+
+;; key: bytevector; plaintext: string (UTF-8) or bytevector.
+;; Returns the sealed bytevector.
+(define* (nss:aes-gcm-encrypt key plaintext #:key (aad #f))
+  (let* ((in (->bytevector 'nss:aes-gcm-encrypt plaintext))
+         (aad-bv (and aad (->bytevector 'nss:aes-gcm-encrypt aad)))
+         (iv (nss:random-bytes *aes-gcm-iv-len*))
+         (max-len (+ (bytevector-length in) *aes-gcm-tag-len*))
+         (out (make-bytevector max-len 0))
+         (out-len (make-bytevector (sizeof unsigned-int) 0)))
+    (call-with-aes-key
+     'nss:aes-gcm-encrypt key CKA_ENCRYPT
+     (lambda (sym-key)
+       (call-with-values (lambda () (gcm-param iv aad-bv))
+         (lambda (param params)
+           (call-with-values
+               (lambda ()
+                 (%PK11_Encrypt sym-key CKM_AES_GCM param
+                                (bytevector->pointer out) (bytevector->pointer out-len) max-len
+                                (bytevector->pointer in) (bytevector-length in)))
+             (lambda (ret errno)
+               ;; Referencing params keeps the struct the SECItem points
+               ;; at alive until PK11_Encrypt has returned.
+               (pointer-address params)
+               (%nss-ok? 'nss:aes-gcm-encrypt ret errno)
+               (let* ((n (bytevector-uint-ref out-len 0 (native-endianness)
+                                              (sizeof unsigned-int)))
+                      (sealed (make-bytevector (+ *aes-gcm-iv-len* n))))
+                 (bytevector-copy! iv 0 sealed 0 *aes-gcm-iv-len*)
+                 (bytevector-copy! out 0 sealed *aes-gcm-iv-len* n)
+                 sealed)))))))))
+
+;; key: bytevector; sealed: bytevector from nss:aes-gcm-encrypt.
+;; Returns the plaintext bytevector (utf8->string it if it was text).
+;; Throws if the data was tampered with, the key is wrong, or aad
+;; doesn't match.
+(define* (nss:aes-gcm-decrypt key sealed #:key (aad #f))
+  (when (< (bytevector-length sealed) (+ *aes-gcm-iv-len* *aes-gcm-tag-len*))
+    (throw 'artanis-err 500 'nss:aes-gcm-decrypt "Sealed data is too short"))
+  (let* ((aad-bv (and aad (->bytevector 'nss:aes-gcm-decrypt aad)))
+         (iv (make-bytevector *aes-gcm-iv-len*))
+         (body-len (- (bytevector-length sealed) *aes-gcm-iv-len*))
+         (body (make-bytevector body-len))
+         (out (make-bytevector body-len 0))
+         (out-len (make-bytevector (sizeof unsigned-int) 0)))
+    (bytevector-copy! sealed 0 iv 0 *aes-gcm-iv-len*)
+    (bytevector-copy! sealed *aes-gcm-iv-len* body 0 body-len)
+    (call-with-aes-key
+     'nss:aes-gcm-decrypt key CKA_DECRYPT
+     (lambda (sym-key)
+       (call-with-values (lambda () (gcm-param iv aad-bv))
+         (lambda (param params)
+           (call-with-values
+               (lambda ()
+                 (%PK11_Decrypt sym-key CKM_AES_GCM param
+                                (bytevector->pointer out) (bytevector->pointer out-len) body-len
+                                (bytevector->pointer body) body-len))
+             (lambda (ret errno)
+               (pointer-address params) ; keep alive, see nss:aes-gcm-encrypt
+               (when (< ret 0)
+                 (throw 'artanis-err 500 'nss:aes-gcm-decrypt
+                        "Decryption failed: wrong key or aad, or the data was tampered with"))
+               (let ((n (bytevector-uint-ref out-len 0 (native-endianness)
+                                             (sizeof unsigned-int))))
+                 (let ((plain (make-bytevector n)))
+                   (bytevector-copy! out 0 plain 0 n)
+                   plain))))))))))

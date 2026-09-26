@@ -17,6 +17,9 @@
 
 (define-module (test hash)
   #:use-module (artanis utils)
+  #:use-module ((rnrs) #:select (string->utf8 bytevector-length
+                                bytevector-u8-ref bytevector-u8-set!
+                                u8-list->bytevector))
   #:use-module (ice-9 iconv)
   #:use-module (test-suite lib))
 
@@ -24,6 +27,11 @@
 (eval-when (eval load compile)
   (export-all-from-module! '(artanis security nss))
   (export-all-from-module! '(artanis security hash)))
+
+(define (base16->bytevector s)
+  (u8-list->bytevector
+   (map (lambda (i) (string->number (substring s i (+ i 2)) 16))
+        (iota (quotient (string-length s) 2) 0 2))))
 
 (with-test-prefix "Hash test"
 
@@ -109,4 +117,29 @@
   (pass-if "base62 integer encode/decode"
     (= 1234
        (base62->integer (integer->base62 1234))))
+
+  (let ((key (nss:random-bytes 32))
+        (fails? (lambda (thunk) (catch 'artanis-err (lambda () (thunk) #f) (lambda _ #t)))))
+    (pass-if "aes-gcm round trip with aad"
+      (equal? (string->utf8 "secret \u4e16\u754c")
+              (nss:aes-gcm-decrypt key (nss:aes-gcm-encrypt key "secret \u4e16\u754c" #:aad "u42")
+                                   #:aad "u42")))
+    (pass-if "aes-gcm sealed = iv + ciphertext + tag"
+      (= (+ 12 5 16) (bytevector-length (nss:aes-gcm-encrypt key "hello"))))
+    (pass-if "aes-gcm fresh iv each time"
+      (not (equal? (nss:aes-gcm-encrypt key "hello") (nss:aes-gcm-encrypt key "hello"))))
+    (pass-if "aes-gcm wrong aad rejected"
+      (fails? (lambda () (nss:aes-gcm-decrypt key (nss:aes-gcm-encrypt key "x" #:aad "u42") #:aad "u43"))))
+    (pass-if "aes-gcm wrong key rejected"
+      (fails? (lambda () (nss:aes-gcm-decrypt (nss:random-bytes 32) (nss:aes-gcm-encrypt key "x")))))
+    (pass-if "aes-gcm tampering rejected"
+      (let ((s (nss:aes-gcm-encrypt key "hello")))
+        (bytevector-u8-set! s 14 (logxor 1 (bytevector-u8-ref s 14)))
+        (fails? (lambda () (nss:aes-gcm-decrypt key s)))))
+    ;; Known answer from Python's cryptography AESGCM (zero IV, no aad).
+    (pass-if "aes-gcm decrypts standard AES-256-GCM output"
+      (equal? (string->utf8 "abc")
+              (nss:aes-gcm-decrypt
+               (base16->bytevector "9ce44ecf473471181ef8499068859bdc7b91607763b097dfb695961b43a94959")
+               (base16->bytevector "000000000000000000000000698d8f045277144040d392f8db587c167caece")))))
   )
