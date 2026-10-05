@@ -31,6 +31,7 @@
   #:use-module (artanis utils)
   #:use-module (artanis env)
   #:use-module (artanis config)
+  #:use-module ((artanis logger) #:select (artanis-log))
   #:use-module (artanis irregex)
   #:use-module (artanis security nss)
   #:use-module ((artanis websocket protocol)
@@ -266,9 +267,11 @@
   (let ((status (car err))
         (reason (cadr err))
         (extra (cddr err)))
-    (format (artanis-current-output)
-            "[WebSocket] Rejected handshake of ~a: ~a ~a~%"
-            (request-path req) status reason)
+    (artanis-log 'websocket status #f
+                 #:request req
+                 #:msg (format #f "Rejected handshake of ~a: ~a ~a"
+                               (request-path req) status reason)
+                 #:meta `((path . ,(request-path req))))
     (write-response (build-response #:code status
                                     #:headers `((content-length . 0) ,@extra))
                     port)
@@ -322,10 +325,13 @@
                                  '())))))
     (write-response res port)
     (force-output port)
-    (format (artanis-current-output)
-            "[WebSocket] Handshake successfully from ~a~a~%"
-            (or (header-ref headers 'origin) "unknown origin")
-            (request-path req))))
+    (artanis-log 'websocket 101 #f
+                 #:request req
+                 #:msg (format #f "Handshake successfully from ~a~a"
+                               (or (header-ref headers 'origin)
+                                   "unknown origin")
+                               (request-path req))
+                 #:meta `((path . ,(request-path req))))))
 
 ;; NOTE: Only used by the redirector branch of http-close, which is dead code
 ;;       until the redirector is reworked (layer 5). The closing handshake of

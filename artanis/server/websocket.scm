@@ -58,6 +58,7 @@
 (define-module (artanis server websocket)
   #:use-module (artanis utils)
   #:use-module (artanis env)
+  #:use-module ((artanis logger) #:select (artanis-log))
   #:use-module (artanis websocket)
   #:use-module (artanis websocket frame)
   #:use-module (artanis websocket connection)
@@ -80,9 +81,19 @@
   #:export (new-websocket-protocol
             status->close-code))
 
+;; Log an event of the connection with (artanis logger), so a logger plugin
+;; can format it or send it elsewhere.
 (define (log-ws client fmt . args)
-  (format (artanis-current-output) "[WebSocket] Client `~a': ~a~%"
-          (client-ip client) (apply format #f fmt args)))
+  (let* ((ip (client-ip client))
+         (conn (client-conn client))
+         (req (and conn (websocket-conn-rc conn)
+                   (rc-req (websocket-conn-rc conn)))))
+    (artanis-log 'websocket #f #f
+                 #:request req
+                 #:msg (format #f "Client `~a': ~a"
+                               ip (apply format #f fmt args))
+                 #:meta `((client . ,ip)
+                          ,@(if req `((path . ,(request-path req))) '())))))
 
 ;; Map an HTTP status of an error to a close code.
 ;; #f means no close frame is sent for it: 408 is a timeout, ws-close sends

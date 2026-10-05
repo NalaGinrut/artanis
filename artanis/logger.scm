@@ -30,6 +30,8 @@
                       (port (current-error-port))
                       (request #f) (msg #f)
                       ;; customizable meta data for logger plugin writers.
+                      ;; For 'websocket, it has client (the IP) and path
+                      ;; when they're known.
                       ;; For example:
                       ;; (artanis-log 'server 500 'html
                       ;;              #:msg "DB connection pool exhausted"
@@ -66,6 +68,14 @@
           (display s1 port)
           (display s2 port)
           (and msg (display msg port))))))
+    ((websocket)
+     ;; Events of WebSocket connections: handshakes (status is 101 or the
+     ;; status of the rejection), and failures after the handshake (status
+     ;; is #f, the close code is in msg). request may be #f.
+     (atomic-output
+      (lambda ()
+        (when msg
+          (format port "[WebSocket] ~a~%" msg)))))
     ((warn)
      (atomic-output
       (lambda ()
