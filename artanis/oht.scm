@@ -397,43 +397,43 @@
       ((#:overflow (and overflow (or 'reject 'close))) overflow)
       (else (throw 'artanis-err 500 websocket-maker
                    "Invalid WebSocket options `~a' for `~a'" opts rule))))
+  (define (not-implemented what)
+    (throw 'artanis-err 500 websocket-maker
+           "#:websocket ~a of `~a' isn't implemented yet" what rule))
   (match mode
     ('send-only
-     ;; NOTE: send-only is used for sending messages to registed websocket connection by
-     ;;       the specified pipe name. If you use this option, then the rule will not init
-     ;;       a websocket handshake. It's just for sending messages.
-     ;; NOTE; If you use this option, you can only send messages, but other can't send
-     ;;       message to you. That is to say, it's one-way transimission.
-     ;; NOTE: Other options could be bi-direction transmission without specified 'send/recv
-     ;;       explicitly.
-     (DEBUG "~a is registered to be named-pipe send only rule!" rule))
+     ;; NOTE: It was for sending messages to named-pipes without a handshake.
+     ;;       Messages are published to topics from anywhere now, see
+     ;;       ws-publish in (artanis websocket topic).
+     (not-implemented "'send-only"))
     ((or #t 'raw)
      (websocket-rule-add! rule regexp 'raw))
     (('raw . opts)
      (websocket-rule-add! rule regexp 'raw #:overflow (overflow-of opts)))
     (('proto (? symbol? proto) . opts)
-     ;; TODO: call protocol initilizer, and establish websocket for it.
+     ;; NOTE: The messages are decoded and encoded with the application
+     ;;       protocol, see (artanis websocket protocol).
      ;; NOTE: By default, we accept only one protocol for each URL-remapping,
      ;;       if you have several protocols to service, please use different
      ;;       URL-remapping.
      (websocket-rule-add! rule regexp proto #:overflow (overflow-of opts)))
     (('redirect (? string? ip/usk))
-     ;; NOTE: We use IP rather than hostname, since it's usually redirected to
-     ;;       a LAN address. Using hostname may cause DNS issues.
+     ;; TODO: A tunnel from the WebSocket connection to a service port on the
+     ;;       server, e.g. to expose a TCP service on the web.
      ;; NOTE: ip/usk means ip or unix-socket, the pattern should be this:
      ;;       ^ip://(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(:[0-9]{1,5})?$
      ;;       ^unix://[a-zA-Z-_0-9]+\\.socket$
+     ;;       The target must come from the server, never from the client,
+     ;;       and the route must be authenticated.
      ;; NOTE: Equivalent to transparent proxy.
-     ;; TODO: call protocol initilizer, and establish websocket
-     ;;       to redirect it.
-     (websocket-rule-add! rule regexp 'redirect))
+     (not-implemented "'redirect"))
     (('proxy (? symbol? proto))
-     ;; NOTE: Setup a proxy with certain protocol handler.
-     ;;       Different from the regular proxy design, the proxy in Artanis doesn't
-     ;;       need a listen port, since it's always 80/443. The client should
-     ;;       support websocket, and visit the related URL for establishing
-     ;;       a websocket channel. Then the rest is the same with regular proxy.
-     (websocket-rule-add! rule regexp 'proxy))
+     ;; TODO: A proxy with a certain protocol handler. Different from the
+     ;;       regular proxy design, the proxy in Artanis doesn't need a listen
+     ;;       port, since it's always 80/443. The client visits the related
+     ;;       URL to establish a WebSocket channel, then the rest is the same
+     ;;       with a regular proxy.
+     (not-implemented "'proxy"))
     (else (throw 'artanis-err 500 websocket-maker "Invalid type `~a'!" mode)))
   ;; There's no :websocket command, messages are passed to the dispatcher.
   (lambda (rc) mode))
