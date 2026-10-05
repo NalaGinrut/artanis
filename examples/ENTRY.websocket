@@ -48,8 +48,8 @@
  ;; Connection API (layer 4), for websocket-test.py.
  ;; A connection opened with ?sub=NAME is registered as NAME for pushing, and
  ;; how it was closed is kept for /closed/NAME.
- ;; NOTE: This registry is only for the tests. Finding a connection by name
- ;;       is the job of named-pipe (layer 5).
+ ;; NOTE: This registry is only for the tests of layer 4. The way to reach
+ ;;       connections is topics, see the Topics section below.
 
  (define *subs* (make-hash-table))
  (define *closed* (make-hash-table))
@@ -186,3 +186,41 @@
               (lambda () (->reply (ws-send conn (ws-pre-encode 'chat obj))))
               (lambda _ "rejected")))
            (else (->reply (ws-send conn obj)))))))
+
+ ;; ---------------------------------------------------------------------------
+ ;; Topics, for websocket-auth-test.py. Only an authenticated connection can
+ ;; subscribe.
+ ;; NOTE: The topic is taken from ?t= only for the tests, a real application
+ ;;       chooses it on the server, e.g. from the session.
+
+ (get "/topic" #:websocket 'raw #:with-auth 'status #:timeout 0
+      (lambda (rc)
+        (ws-dispatcher
+         #:on-open (lambda (conn)
+                     (ws-subscribe! conn (params rc "t")
+                                    #:exclusive? (equal? (params rc "x") "1")))
+         #:on-message (lambda (conn msg) (ws-send conn msg)))))
+
+ ;; The same with the `chat' protocol: published objects are encoded.
+ (get "/topic-chat" #:websocket '(proto chat) #:with-auth 'status #:timeout 0
+      (lambda (rc)
+        (ws-dispatcher
+         #:on-open (lambda (conn) (ws-subscribe! conn (params rc "t")))
+         #:on-message (lambda (conn obj) (ws-send conn obj)))))
+
+ ;; Not authenticated: ws-subscribe! fails in on-open, closed with 1011.
+ (get "/topic-noauth" #:websocket 'raw #:timeout 0
+      (lambda (rc)
+        (ws-dispatcher
+         #:on-open (lambda (conn) (ws-subscribe! conn "t"))
+         #:on-message (lambda (conn msg) #t))))
+
+ ;; Publish to a topic, replies with the number of subscribers it's queued
+ ;; for. ?obj=1 publishes an object (a JSON object for `chat').
+ (get "/publish/:topic"
+      (lambda (rc)
+        (let ((msg (or (params rc "msg") "pub")))
+          (->reply (ws-publish (params rc "topic")
+                               (if (params rc "obj")
+                                   `(("msg" . ,msg))
+                                   msg))))))

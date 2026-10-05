@@ -1,0 +1,202 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  === WebSocket topic tests: subscribe, publish, exclusive, release ===
+;;  Copyright (C) 2026
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License and GNU
+;;  Lesser General Public License published by the Free Software
+;;  Foundation, either version 3 of the License, or (at your option)
+;;  any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License and GNU Lesser General Public License
+;;  for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  and GNU Lesser General Public License along with this program.
+;;  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (test ws-topic)
+  #:use-module (artanis env)
+  #:use-module (artanis config)
+  #:use-module (artanis websocket connection)
+  #:use-module (artanis websocket protocol)
+  #:use-module (artanis websocket handshake)
+  #:use-module (artanis websocket topic)
+  #:use-module (rnrs bytevectors)
+  #:use-module (test-suite lib))
+
+;; An authenticated conn without a client (no wake-up), as a unit.
+(define* (new-conn #:key (rule #f) (authenticated? #t))
+  (new-websocket-conn #f rule #f authenticated?))
+
+(define (drain conn)
+  (let lp ((items '()))
+    (let ((item (websocket-conn-take-outbound! conn)))
+      (if item
+          (lp (cons item items))
+          (reverse items)))))
+
+(define (fails? thunk)
+  (catch 'artanis-err
+    (lambda () (thunk) #f)
+    (lambda _ #t)))
+
+(define-syntax-rule (with-conf key value body ...)
+  (let ((old (get-conf key)))
+    (dynamic-wind
+      (lambda () (conf-set! key value))
+      (lambda () body ...)
+      (lambda () (conf-set! key old)))))
+
+(with-test-prefix "subscribe"
+
+  (pass-if "only an authenticated connection can subscribe"
+    (fails? (lambda ()
+              (ws-subscribe! (new-conn #:authenticated? #f) "s-auth"))))
+
+  (pass-if "a topic is a non-empty string"
+    (and (fails? (lambda () (ws-subscribe! (new-conn) 'sym)))
+         (fails? (lambda () (ws-subscribe! (new-conn) "")))
+         (fails? (lambda () (ws-subscribe! 'not-a-conn "t")))))
+
+  (pass-if-equal "subscribers and topics"
+    '(#t 2 ("s-b" "s-a"))
+    (let ((a (new-conn)) (b (new-conn)))
+      (list (ws-subscribe! a "s-a")
+            (begin (ws-subscribe! a "s-b")
+                   (ws-subscribe! b "s-a")
+                   (length (ws-subscribers "s-a")))
+            (ws-topics-of a))))
+
+  (pass-if "subscribing twice is the same"
+    (let ((a (new-conn)))
+      (ws-subscribe! a "s-twice")
+      (ws-subscribe! a "s-twice")
+      (and (equal? '("s-twice") (ws-topics-of a))
+           (equal? (list a) (ws-subscribers "s-twice")))))
+
+  (pass-if "websocket.maxtopics"
+    (with-conf '(websocket maxtopics) 2
+      (let ((a (new-conn)))
+        (ws-subscribe! a "m-1")
+        (ws-subscribe! a "m-2")
+        (and (fails? (lambda () (ws-subscribe! a "m-3")))
+             ;; A subscribed topic doesn't count again.
+             (eq? #t (ws-subscribe! a "m-2"))))))
+
+  (pass-if "a closing connection can't subscribe"
+    (let ((a (new-conn)))
+      (ws-close! a)
+      (eq? 'closed (ws-subscribe! a "s-closing"))))
+
+  (pass-if "unsubscribe"
+    (let ((a (new-conn)) (b (new-conn)))
+      (ws-subscribe! a "u")
+      (ws-subscribe! b "u")
+      (ws-unsubscribe! a "u")
+      (and (equal? (list b) (ws-subscribers "u"))
+           (null? (ws-topics-of a))))))
+
+(with-test-prefix "exclusive"
+
+  (pass-if "the others are closed with 4001 and unsubscribed"
+    (let ((a (new-conn)) (b (new-conn)) (c (new-conn)))
+      (ws-subscribe! a "x")
+      (ws-subscribe! a "x-other")
+      (ws-subscribe! b "x")
+      (ws-subscribe! c "x" #:exclusive? #t)
+      (and (equal? (list c) (ws-subscribers "x"))
+           (equal? '((close 4001 "Replaced")) (drain a))
+           (equal? '((close 4001 "Replaced")) (drain b))
+           (null? (drain c))
+           ;; a keeps its other topics until it's released.
+           (equal? '("x-other") (ws-topics-of a))))))
+
+(with-test-prefix "publish"
+
+  (pass-if-equal "each subscriber gets the message"
+    `(2 ((data text ,(string->utf8 "hi"))) ((data text ,(string->utf8 "hi"))))
+    (let ((a (new-conn)) (b (new-conn)))
+      (ws-subscribe! a "p")
+      (ws-subscribe! b "p")
+      (let ((n (ws-publish "p" "hi")))
+        (list n (drain a) (drain b)))))
+
+  (pass-if-equal "no subscribers" 0 (ws-publish "p-nobody" "x"))
+
+  (pass-if "a closed subscriber is unsubscribed"
+    (let ((a (new-conn)) (b (new-conn)))
+      (ws-subscribe! a "p-closed")
+      (ws-subscribe! b "p-closed")
+      ;; Closed without being released, e.g. a missed release.
+      (websocket-conn-close! b 1006)
+      (and (= 1 (ws-publish "p-closed" "x"))
+           (equal? (list a) (ws-subscribers "p-closed")))))
+
+  (pass-if-equal "encoded once per protocol"
+    '(1 2 3)
+    (let* ((count 0)
+           (_ (ws-protocol-register!
+               'topic-count #:type 'text #:decode identity
+               #:encode (lambda (obj)
+                          (set! count (1+ count))
+                          (string->utf8 (format #f "~a" obj)))))
+           (rule (begin (websocket-rule-add! "/t-count" "^/t-count$"
+                                             'topic-count)
+                        (find-websocket-rule "/t-count")))
+           (a (new-conn #:rule rule))
+           (b (new-conn #:rule rule))
+           (raw (new-conn)))
+      (ws-subscribe! a "p-proto")
+      (ws-subscribe! b "p-proto")
+      (ws-subscribe! raw "p-proto")
+      (let ((n (ws-publish "p-proto" "s")))
+        (list count
+              (length (filter (lambda (c) (pair? (drain c))) (list a b)))
+              n)))))
+
+(with-test-prefix "release"
+
+  (pass-if "unsubscribed from all, on-close once, with the default code"
+    (let ((a (new-conn))
+          (closed '()))
+      (websocket-conn-dispatcher-set!
+       a (ws-dispatcher #:on-message (lambda _ #t)
+                        #:on-close (lambda (conn code reason)
+                                     (set! closed (cons code closed)))))
+      (ws-subscribe! a "r-1")
+      (ws-subscribe! a "r-2")
+      (websocket-conn-release! a 1006)
+      (websocket-conn-release! a 1001)
+      (and (equal? '(1006) closed)
+           (null? (ws-topics-of a))
+           (null? (ws-subscribers "r-1"))
+           (null? (ws-subscribers "r-2"))
+           (eq? 'closed (ws-send a "x")))))
+
+  (pass-if "the close code recorded before wins"
+    (let ((a (new-conn))
+          (code #f))
+      (websocket-conn-dispatcher-set!
+       a (ws-dispatcher #:on-message (lambda _ #t)
+                        #:on-close (lambda (conn c reason) (set! code c))))
+      (websocket-conn-note-close! a 4001 "Replaced")
+      (websocket-conn-release! a 1006)
+      (eqv? 4001 code)))
+
+  (pass-if "an error of on-close doesn't escape"
+    (let ((a (new-conn)))
+      (websocket-conn-dispatcher-set!
+       a (ws-dispatcher #:on-message (lambda _ #t)
+                        #:on-close (lambda _ (error "boom"))))
+      (websocket-conn-release! a 1006)
+      #t))
+
+  (pass-if "releasing something that isn't a client is harmless"
+    (begin
+      (websocket-release! 'nothing)
+      (websocket-release! #f)
+      #t)))

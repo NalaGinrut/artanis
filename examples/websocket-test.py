@@ -313,20 +313,6 @@ def t_conformance_extra():
     check("empty close: TCP closed", r.eof(2))
 
 
-def t_named_pipe_replace():
-    s1, h1, r1 = ws_open("/echo?artanis_named_pipe=np1")
-    a = Reader(s1, r1)
-    s1.sendall(frame(1, b"one")); a.frame()
-    s2, h2, r2 = ws_open("/echo?artanis_named_pipe=np1")
-    check("second pipe connection accepted", h2.startswith("HTTP/1.1 101"), h2)
-    f = a.frame()
-    check("replaced pipe connection gets close 1001", f[1] == 8 and close_code(f[2]) == 1001, f)
-    check("replaced pipe connection: TCP closed", a.eof(2))
-    b = Reader(s2, r2)
-    s2.sendall(frame(1, b"two"))
-    check("new pipe connection works", b.frame()[2] == b"two")
-    s2.close()
-
 def t_half_frame_doesnt_block():
     s1, h1, r1 = ws_open()
     slow = frame(1, b"slow client")
@@ -577,7 +563,7 @@ def t_proto_push():
     check("a pre-encoded message is rejected on a raw route", body == "rejected", body)
     s.close()
 
-tests = [t_named_pipe_replace, t_half_frame_doesnt_block, t_conformance_extra, t_http_still_works, t_handshake_ok, t_subprotocol, t_rejects, t_echo,
+tests = [t_half_frame_doesnt_block, t_conformance_extra, t_http_still_works, t_handshake_ok, t_subprotocol, t_rejects, t_echo,
          t_first_message_in_handshake_segment, t_close_by_client, t_quiet,
          t_errors, t_abrupt_disconnects, t_fd_reuse, t_idle_timeout,
          t_activity_keeps_alive, t_push, t_welcome, t_invalid_handlers,

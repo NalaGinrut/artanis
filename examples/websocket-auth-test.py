@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-# End-to-end checks for the WebSocket AuthN layer (layer 3).
+# End-to-end checks for the WebSocket AuthN layer (layer 3), and topics,
+# which need an authenticated connection.
 # Needs the routes of examples/ENTRY.websocket, and in conf/artanis.conf:
 #   server.websocket = true
 #   cookie.expires = 4
 #   server.origins = http://localhost:5173
-import socket, struct, sys, time, os
+import json, socket, struct, sys, time, os
 
 HOST, PORT = "127.0.0.1", 3000
 KEY = "dGhlIHNhbXBsZSBub25jZQ=="
@@ -43,12 +44,13 @@ def logout(sid):
     s.close()
     return head
 
-def handshake(path="/secure", sid=None, origin=None, host="localhost:3000"):
+def handshake(path="/secure", sid=None, origin=None, host="localhost:3000", proto=None):
     lines = [f"GET {path} HTTP/1.1", f"Host: {host}", "Upgrade: websocket",
              "Connection: Upgrade", f"Sec-WebSocket-Key: {KEY}",
              "Sec-WebSocket-Version: 13"]
     if sid: lines.append(f"Cookie: sid={sid}")
     if origin: lines.append(f"Origin: {origin}")
+    if proto: lines.append(f"Sec-WebSocket-Protocol: {proto}")
     s = conn()
     head, rest = http_raw(s, "\r\n".join(lines) + "\r\n\r\n")
     return s, head, rest
@@ -192,7 +194,75 @@ def t_active_peer_recheck():
     check("chatty peer with gone session -> close 1008", closed)
     s.close()
 
-tests = [t_auth, t_origin, t_skip_and_recheck, t_expired_session, t_active_peer_recheck]
+def http_get(path):
+    # Read the body by Content-Length, so the session (cookie.expires = 4)
+    # doesn't expire while waiting for the server to close.
+    s = conn()
+    head, body = http_raw(s, f"GET {path} HTTP/1.1\r\nHost: localhost:3000\r\nConnection: close\r\n\r\n")
+    n = 0
+    for line in head.split("\r\n"):
+        if line.lower().startswith("content-length:"):
+            n = int(line.split(":", 1)[1])
+    while len(body) < n:
+        d = s.recv(65536)
+        if not d:
+            break
+        body += d
+    s.close()
+    return body.decode(errors="replace")
+
+def close_code(p):
+    return struct.unpack("!H", p[:2])[0] if len(p) >= 2 else None
+
+def t_topics():
+    sid = login()
+    a, ra = accepted("subscriber a", path="/topic?t=news", sid=sid)
+    b, rb = accepted("subscriber b", path="/topic?t=news", sid=sid)
+    A, B = Reader(a, ra), Reader(b, rb)
+    # on-open has run once the connection echoes
+    a.sendall(frame(1, b"ping")); A.frame()
+    b.sendall(frame(1, b"ping")); B.frame()
+    body = http_get("/publish/news?msg=hello")
+    check("publish reaches 2 subscribers", body == "2", body)
+    check("subscriber a gets it", A.frame() == (1, b"hello"))
+    check("subscriber b gets it", B.frame() == (1, b"hello"))
+    check("publish to a topic without subscribers", http_get("/publish/nobody") == "0")
+    b.close()
+    time.sleep(0.5)
+    body = http_get("/publish/news?msg=again")
+    check("a closed subscriber is gone", body == "1", body)
+    check("the other still gets it", A.frame() == (1, b"again"))
+    # exclusive: the new subscriber replaces the others
+    sid = login()
+    c, rc = accepted("exclusive subscriber", path="/topic?t=news&x=1", sid=sid)
+    C = Reader(c, rc)
+    c.sendall(frame(1, b"ping")); C.frame()
+    f = A.frame()
+    check("replaced subscriber is closed with 4001",
+          f[0] == 8 and close_code(f[1]) == 4001 and b"Replaced" in f[1], f)
+    check("replaced subscriber: TCP closed", A.eof())
+    body = http_get("/publish/news?msg=only")
+    check("the exclusive subscriber is the only one", body == "1", body)
+    check("it gets the message", C.frame() == (1, b"only"))
+    c.close()
+    # a protocol connection gets encoded objects
+    sid = login()
+    d, rd = accepted("protocol subscriber", path="/topic-chat?t=room", sid=sid, proto="chat")
+    D = Reader(d, rd)
+    d.sendall(frame(1, b'{"x":1}')); D.frame()
+    body = http_get("/publish/room?obj=1&msg=hi")
+    f = D.frame()
+    check("published object is encoded by the protocol",
+          body == "1" and f[0] == 1 and json.loads(f[1]) == {"msg": "hi"}, (body, f))
+    d.close()
+    # not authenticated: can't subscribe
+    e, re_ = accepted("unauthenticated route", path="/topic-noauth")
+    f = Reader(e, re_).frame()
+    check("subscribing without #:with-auth closes it with 1011",
+          f[0] == 8 and close_code(f[1]) == 1011, f)
+
+tests = [t_auth, t_origin, t_skip_and_recheck, t_expired_session, t_active_peer_recheck,
+         t_topics]
 only = sys.argv[1:]
 for t in tests:
     if only and t.__name__ not in only:
