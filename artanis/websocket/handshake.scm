@@ -33,6 +33,8 @@
   #:use-module (artanis config)
   #:use-module (artanis irregex)
   #:use-module (artanis security nss)
+  #:use-module ((artanis websocket protocol)
+                #:select (lookup-ws-protocol ws-protocol-route?))
   #:use-module (ice-9 format)
   #:use-module ((web request) #:select (request-version))
   #:use-module (web uri)
@@ -50,6 +52,7 @@
             websocket-rule-add!
             websocket-rule-timeout-set!
             websocket-rules-defined?
+            check-websocket-protocols
             find-websocket-rule
             websocket-rule-rule
             websocket-rule-protocol
@@ -98,6 +101,19 @@
 
 (define (websocket-rules-defined?)
   (pair? *websocket-rules*))
+
+;; Fail fast at start-up (see `run'): the protocol of each '(proto X) route
+;; must be a builtin one or defined in app/protocols/X.scm, which `art work'
+;; has loaded by then.
+(define (check-websocket-protocols)
+  (for-each
+   (lambda (r)
+     (let ((protocol (websocket-rule-protocol r)))
+       (when (and (ws-protocol-route? protocol)
+                  (not (lookup-ws-protocol protocol)))
+         (error (format #f "No WebSocket protocol `~a' for route `~a', please define it in app/protocols/~a.scm"
+                        protocol (websocket-rule-rule r) protocol)))))
+   *websocket-rules*))
 
 ;; The path as the route sees it, see new-route-context.
 (define (websocket-request-path req)

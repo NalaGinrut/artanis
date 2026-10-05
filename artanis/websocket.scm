@@ -58,6 +58,7 @@
                websocket-rule-add!
                websocket-rule-timeout-set!
                websocket-rules-defined?
+               check-websocket-protocols
                websocket-origins-init!
                websocket-request-path
                websocket-rule-timeout

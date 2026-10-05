@@ -359,7 +359,8 @@
     (when (not (eq? 'edge (get-conf '(server trigger))))
       (error "server.websocket requires server.trigger = edge, but it's"
              (get-conf '(server trigger))))
-    (websocket-origins-init!))
+    (websocket-origins-init!)
+    (check-websocket-protocols))
    ((websocket-rules-defined?)
     (error "There're #:websocket routes, but server.websocket is not enabled"))
    (else #t)))
