@@ -73,16 +73,27 @@
 ;; 5. Strings are sent as text messages encoded in UTF-8 (server.charset is
 ;;    not used here). Anything else is sent from a ws-buffer, see below.
 ;;
-;; TODO: #:websocket '(proto X) will attach a codec of X to the dispatcher,
-;;       (decode msg) -> obj on the way in, (encode obj) -> (values type
-;;       ws-buffer) on the way out. For now it's served as 'raw.
+;; 6. On a '(proto X) route, the messages are decoded and encoded with the
+;;    application protocol X (see (artanis websocket protocol)), so the
+;;    handler deals with objects only:
+;;     - on-message gets the object decoded by X. A message of a frame type
+;;       X doesn't take is closed with 1003, a decode error with 1007.
+;;     - ws-send takes an object and encodes it with X, in the context of
+;;       the caller, so an encode error is thrown to the caller (from
+;;       on-message, it closes the connection with 1011).
+;;     - ws-pre-encode encodes an object once for many connections of X,
+;;       e.g. a broadcast, ws-send takes it as it is.
+;;     - (ws-send conn x #:raw #t) bypasses X, e.g. for debugging: x is
+;;       sent as on a 'raw route.
 ;; TODO: Rate limiting (e.g. an OHT #:rate-limit), and a buffer pool.
 
 (define-module (artanis websocket connection)
   #:use-module (artanis utils)
   #:use-module (artanis config)
   #:use-module (artanis server server-context)
-  #:use-module ((artanis websocket handshake) #:select (websocket-rule-overflow))
+  #:use-module ((artanis websocket handshake)
+                #:select (websocket-rule-overflow websocket-rule-protocol))
+  #:use-module (artanis websocket protocol)
   #:use-module (ice-9 threads)
   #:use-module (ice-9 match)
   #:use-module ((rnrs) #:select (define-record-type
@@ -98,6 +109,8 @@
             ws-dispatcher?
             ws-send
             ws-close!
+            ws-pre-encode
+            ws-encoded?
 
             ws-message?
             ws-message-type
@@ -120,6 +133,8 @@
             websocket-conn?
             websocket-conn-rc
             websocket-conn-rule
+            websocket-conn-protocol
+            websocket-conn-inbound
             websocket-conn-sid
             websocket-conn-client
             websocket-conn-client-set!
@@ -259,6 +274,7 @@
 ;; rc: the route context of the handshake, the route handler is called with
 ;;     it once.
 ;; rule: the websocket-rule of the route.
+;; protocol: the ws-protocol of a '(proto X) route, or #f.
 ;; sid: the session the connection was authenticated with at its handshake,
 ;;      or #f. It's checked again periodically, see ws-recheck! in
 ;;      (artanis server websocket).
@@ -281,7 +297,7 @@
 ;;       touched by the server thread.
 
 (define-record-type websocket-conn
-  (fields rc rule sid
+  (fields rc rule protocol sid
           (mutable checked-at)
           (mutable client)
           (mutable last-inbound)
@@ -293,8 +309,18 @@
           (mutable close-code)
           (mutable close-reason)))
 
+;; The ws-protocol of a '(proto X) route, or #f. The rule is #f in unit tests.
+;; NOTE: X has been checked at start-up, see check-websocket-protocols.
+(define (rule-protocol rule)
+  (let ((protocol (and rule (websocket-rule-protocol rule))))
+    (and (ws-protocol-route? protocol)
+         (or (lookup-ws-protocol protocol)
+             (throw 'artanis-err 500 'new-websocket-conn
+                    "No WebSocket protocol `~a'" protocol)))))
+
 (define (new-websocket-conn rc rule sid)
-  (make-websocket-conn rc rule sid (current-time) #f (current-time) #f
+  (make-websocket-conn rc rule (rule-protocol rule) sid
+                       (current-time) #f (current-time) #f
                        (make-mutex) (new-queue) 0 'open #f #f))
 
 (define (websocket-conn-queued-bytes conn)
@@ -366,7 +392,7 @@
 
 (define (max-queue) (get-conf '(websocket maxqueue)))
 
-(define (outgoing data type)
+(define (outgoing-raw data type)
   (define (check-type who type)
     (unless (memq type '(text binary))
       (throw 'artanis-err 500 who "Invalid message type `~a'" type))
@@ -386,7 +412,98 @@
            "Can't send `~a', expect a string, a ws-buffer or a ws-message"
            data))))
 
-;; Send a message to the connection. data is a string (a text message by
+;; ---------------------------------------------------------------------------
+;; Application protocols, see (artanis websocket protocol)
+
+;; Call the codec of protocol, its error is thrown as key with code (a close
+;; code for websocket-err, a status for artanis-err).
+(define (call-codec protocol proc x key code who what)
+  (catch #t
+    (lambda () (proc x))
+    (lambda (k . args)
+      (case k
+        ((quit interrupt) (apply throw k args))
+        (else
+         (throw key code who "Protocol `~a' failed to ~a a message: ~a ~s"
+                (ws-protocol-name protocol) what k args))))))
+
+;; The message as on-message gets it: a ws-message, or the object decoded by
+;; the protocol of the route. It's called within the task of the connection,
+;; a websocket-err fails the connection with its close code.
+(define (websocket-conn-inbound conn type payload)
+  (define (decode protocol x)
+    (call-codec protocol (ws-protocol-decode protocol) x
+                'websocket-err 1007 'websocket-conn-inbound "decode"))
+  (let ((protocol (websocket-conn-protocol conn)))
+    (cond
+     ((not protocol) (make-ws-message type payload))
+     ((eq? 'any (ws-protocol-type protocol))
+      (decode protocol (make-ws-message type payload)))
+     ((not (eq? type (ws-protocol-type protocol)))
+      (throw 'websocket-err 1003 'websocket-conn-inbound
+             "Protocol `~a' takes ~a messages, but got a ~a message"
+             (ws-protocol-name protocol) (ws-protocol-type protocol) type))
+     (else (decode protocol payload)))))
+
+;; Encode obj with protocol, returns (values type bytevector).
+(define (encode protocol obj who)
+  (let ((x (call-codec protocol (ws-protocol-encode protocol) obj
+                      'artanis-err 500 who "encode")))
+    (case (ws-protocol-type protocol)
+      ((any) (outgoing-raw x #f))
+      (else
+       (unless (bytevector? x)
+         (throw 'artanis-err 500 who
+                "ws-encode of protocol `~a' must return a bytevector, but it returned `~a'"
+                (ws-protocol-name protocol) x))
+       (values (ws-protocol-type protocol) x)))))
+
+;; A message encoded by ws-pre-encode. Like a ws-buffer, its bytevector is
+;; never exposed, and it can be sent many times.
+(define-record-type ws-encoded
+  (fields protocol type bv))
+
+;; Encode obj once with a protocol, to send it to many connections of that
+;; protocol, e.g. a broadcast. protocol is the name of a protocol, or a
+;; connection of a '(proto X) route.
+(define (ws-pre-encode protocol obj)
+  (let ((p (cond
+            ((websocket-conn? protocol) (websocket-conn-protocol protocol))
+            ((symbol? protocol) (lookup-ws-protocol protocol))
+            (else #f))))
+    (unless p
+      (throw 'artanis-err 500 'ws-pre-encode
+             "No WebSocket protocol for `~a'" protocol))
+    (call-with-values (lambda () (encode p obj 'ws-pre-encode))
+      (lambda (type bv)
+        (make-ws-encoded (ws-protocol-name p) type bv)))))
+
+;; The type and the bytes of a message to send to conn.
+(define (outgoing conn data type raw?)
+  (let ((protocol (websocket-conn-protocol conn)))
+    (cond
+     ((or raw? (not protocol))
+      (when (ws-encoded? data)
+        (throw 'artanis-err 500 'ws-send
+               "A message of protocol `~a' can only be sent on its routes"
+               (ws-encoded-protocol data)))
+      (outgoing-raw data type))
+     (type
+      (throw 'artanis-err 500 'ws-send
+             "#:type can't be used on a route of protocol `~a', unless #:raw"
+             (ws-protocol-name protocol)))
+     ((ws-encoded? data)
+      (unless (eq? (ws-encoded-protocol data) (ws-protocol-name protocol))
+        (throw 'artanis-err 500 'ws-send
+               "A message of protocol `~a' can't be sent on a route of protocol `~a'"
+               (ws-encoded-protocol data) (ws-protocol-name protocol)))
+      (values (ws-encoded-type data) (ws-encoded-bv data)))
+     (else (encode protocol data 'ws-send)))))
+
+;; Send a message to the connection.
+;; On a '(proto X) route, data is an object encoded by X, or what
+;; ws-pre-encode returns for X.
+;; Otherwise, or with #:raw #t, data is a string (a text message by
 ;; default), a ws-buffer (a binary message by default) or a ws-message.
 ;; #:type 'text or 'binary overrides the type. A ws-buffer sent as text must
 ;; hold valid UTF-8.
@@ -394,10 +511,10 @@
 ;;  #t         the message is queued;
 ;;  'overflow  the queue is full, see #:overflow of the route;
 ;;  'closed    the connection is closing or closed, the message is dropped.
-(define* (ws-send conn data #:key (type #f))
+(define* (ws-send conn data #:key (type #f) (raw #f))
   (unless (websocket-conn? conn)
     (throw 'artanis-err 500 'ws-send "Not a WebSocket connection `~a'" conn))
-  (call-with-values (lambda () (outgoing data type))
+  (call-with-values (lambda () (outgoing conn data type raw))
     (lambda (type bv)
       (let* ((len (bytevector-length bv))
              (limit (max-queue))

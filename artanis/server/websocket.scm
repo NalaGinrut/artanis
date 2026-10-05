@@ -364,12 +364,17 @@
               (websocket-conn-note-close! conn code reason)))
           (end-connection! server client #f))
          (else
-          (call-handler
-           server client "on-message"
-           (lambda ()
-             (on-message conn (make-ws-message
-                               (websocket-frame-type msg)
-                               (websocket-frame-payload msg)))))
+          (let ((obj (call-handler
+                      server client "Decoding the message"
+                      ;; A ws-message, or the object decoded by the
+                      ;; protocol of a '(proto X) route.
+                      (lambda ()
+                        (websocket-conn-inbound
+                         conn
+                         (websocket-frame-type msg)
+                         (websocket-frame-payload msg))))))
+            (call-handler server client "on-message"
+                          (lambda () (on-message conn obj))))
           ;; Handling a message isn't idle, e.g. a long runner.
           (touch-inbound! conn)
           (lp)))))))

@@ -198,6 +198,8 @@
                ws-dispatcher?
                ws-send
                ws-close!
+               ws-pre-encode
+               ws-encoded?
                ws-message?
                ws-message-type
                ws-message-text?
