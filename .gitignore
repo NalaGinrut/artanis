@@ -72,3 +72,5 @@ typescript
 *.gz.sig
 *.tmp
 .aider*
+*.pyc
+__pycache__/
