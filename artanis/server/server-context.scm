@@ -112,8 +112,6 @@
 
             new-ragnarok-client
             ragnarok-client?
-            oneshot-mention/fd!
-            oneshot-mention!
             client-sockport
             client-sockport-descriptor
             client-connecting-port
@@ -558,19 +556,6 @@
 
 (define (fd-closed? fd)
   (null? (fdes->ports fd)))
-
-(::define (oneshot-mention/fd! fd)
-  (:anno: (int) -> ANY)
-  (DEBUG "oneshot-mention/fd! ~a~%" fd)
-  (let* ((epfd (ragnarok-server-epfd (current-server)))
-         (event (make-epoll-event fd (gen-oneshot-event))))
-    (epoll-ctl epfd EPOLL_CTL_MOD fd event)))
-
-(::define (oneshot-mention! c)
-  (:anno: (ragnarok-client) -> ANY)
-  (DEBUG "oneshot-mention! ~a~%" c)
-  (let ((fd (client-sockport-descriptor c)))
-    (oneshot-mention/fd! fd)))
 
 ;; for emacs:
 ;; (put '::define 'scheme-indent-function 1)

@@ -115,7 +115,7 @@
   (and=> (websocket-request-error (apply ws-req args)) car))
 
 (websocket-rule-add! "/ws" "^/ws$" 'raw)
-(websocket-rule-add! "/chat/:room" "^/chat/([^\\/\\?]+)$" 'chat #:inexclusive? #t)
+(websocket-rule-add! "/chat/:room" "^/chat/([^\\/\\?]+)$" 'chat)
 (websocket-rule-timeout-set! "/chat/:room" 7)
 
 (with-test-prefix "websocket handshake"
@@ -239,10 +239,6 @@
 
   (pass-if-equal "request path is trimmed like the route" "/ws"
     (websocket-request-path (ws-req #:path "/ws/")))
-
-  (pass-if-equal "inexclusive" '(#f #t)
-    (list (url-need-inexclusive-websocket? "/ws")
-          (url-need-inexclusive-websocket? "/chat/1")))
 
   (pass-if-equal "timeout of the route" 7
     (websocket-rule-timeout (find-websocket-rule "/chat/1")))

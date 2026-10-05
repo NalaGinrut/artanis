@@ -411,10 +411,6 @@
      (websocket-rule-add! rule regexp 'raw))
     (('raw . opts)
      (websocket-rule-add! rule regexp 'raw #:overflow (overflow-of opts)))
-    (('proto (? symbol? proto) 'inexclusive . opts)
-     ;; NOTE: Allow many clients subscribe to one named-pipe.
-     (websocket-rule-add! rule regexp proto #:inexclusive? #t
-                          #:overflow (overflow-of opts)))
     (('proto (? symbol? proto) . opts)
      ;; TODO: call protocol initilizer, and establish websocket for it.
      ;; NOTE: By default, we accept only one protocol for each URL-remapping,

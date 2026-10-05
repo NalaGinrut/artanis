@@ -64,7 +64,6 @@
                websocket-request-path
                websocket-rule-timeout
                url-need-websocket?
-               url-need-inexclusive-websocket?
 
                ;; from (artanis websocket frame)
                make-websocket-frame
