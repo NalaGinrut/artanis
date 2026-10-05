@@ -600,6 +600,7 @@ component list:
   migration
   view
   lib
+  protocol
 
 Options:
   -h, [--help]     # Print this screen
@@ -801,7 +802,7 @@ Usually it's passed to the page handler as a unique argument. It's supposed to p
 #+END_SRC
 + Get the current request body:
   + For a regular HTTP request, the body should be a bytevector;
-  + For a Websocket request, the body should be [[Websocket frame][Websocket frame]] as a record-type.
+  + A Websocket route has no body, its messages are passed to the dispatcher, see [[Websocket][Websocket]].
 
 #+BEGIN_SRC  scheme
 (rc-method <route-context>)
@@ -2178,7 +2179,7 @@ inside the handler. If you use src_scheme[:exports code]{#:with-auth}, then all 
 This mode will parse and return *username* and *password* by the specified field name in query-string.
 What matters here is that you can write your own checker for customization.
 ** Websocket Authentication
-See [[Websocket authentication][Websocket authencation]]
+See [[Websocket authentication][Websocket authentication]].
 ** HMAC
 [[https://en.wikipedia.org/wiki/HMAC][HMAC]] is a hash-based message authentication code.
 It's dangerous to store the passwd in a raw string.
@@ -2357,248 +2358,299 @@ the next version if you wish to use it.
 
 ** Authentication shortcut
 See [[Authentication][Authentication]].
-* Websocket (Experimental)
+* Websocket
 ** Websocket introduction
 Websockets are becoming more and more important for modern web development.
-GNU Artanis is trying to provide an industrial strength and efficient Websocket implementation.
-Websockets are important for GNU Artanis's design. Please see [[Principles][Principles]] for more details.
+GNU Artanis provides an [[https://tools.ietf.org/html/rfc6455][RFC6455]] compliant Websocket implementation, which is served by the Ragnarok
+server core without blocking, see [[Principles][Principles]].
+
+In GNU Artanis, *a Websocket route is a connection*: the route handler is called once for each
+connection after the handshake, and it returns the dispatcher of that connection. The per-connection
+state lives in the closure of the handler.
+
+To use Websocket, it must be enabled in src_conf[:exports code]{conf/artanis.conf}, with the Ragnarok
+server core in edge trigger mode (the defaults):
+#+BEGIN_SRC conf
+server.websocket = true
+server.engine = ragnarok
+server.trigger = edge
+#+END_SRC
+The server refuses to start if a route uses src_scheme[:exports code]{#:websocket} but Websocket isn't enabled.
 
 ** Websocket basic usage
-
-In GNU Artanis, a Websocket handling is triggered by setting it on a specific URL.
-You should use src_scheme[:exports code]{#:websocket} to configure the Websocket.
-Here's the API definition:
-#+BEGIN_SRC scheme
-#:websocket (proto protocol-name ['inexclusive])
-#+END_SRC
-*'inexclusive* is optional. By default, each Websocket connection only servs one client.
-However, sometimes we do need to multicast the messages to several clients. Enable *'inexclusive* is the
-easiest way, but it may cause the similar issue to file-description-leaking. There're two suggestions:
-- Set and check security token to prevent malicious programs establish massive connections.
-- If you want to do muticasting as in pub/sub, then use different token or named-pipe to subscribe. And maintain
-  a subscribers table for multicasting.
-
-Here's a simple example for common cases:
+Here's an echo server:
 #+BEGIN_SRC scheme
 (use-modules (artanis artanis))
 
-(get "/echo" #:websocket '(proto echo)
+(get "/echo" #:websocket 'raw
      (lambda (rc)
-       (:websocket rc 'payload)))
+       (lambda (conn msg) (ws-send conn msg))))
 
 (run #:port 3000)
 #+END_SRC
 
-In this simple test, we choose the simplest *echo* protocol of the Websocket.
-This will return back the string sent from the client.
-Let's also write a simple javascript function for the web frontend:
-
-#+BEGIN_SRC js
-function WebSocketTest()
-{
-    if ("WebSocket" in window)
-    {
-        document.write("<p>WebSocket is supported by your Browser!</p>");
-
-        // Let us open a web socket
-        var ws = new WebSocket("ws://localhost:3000/echo");
-
-        ws.onopen = function()
-        {
-            // Web Socket is connected, send data using send()
-            ws.send("hello world");
-            document.write("<p>Message is sent...</p>");
-        };
-
-        ws.onmessage = function (evt)
-        {
-            var received_msg = evt.data;
-            document.write("<p>hello welcome...</p>");
-        };
-
-        ws.onclose = function()
-        {
-            // websocket is closed.
-            document.write("<p>Connection is closed...</p>");
-        };
-
-        window.onbeforeunload = function(event) {
-            socket.close();
-        };
-    }
-    else
-    {
-        // Your browser doesn't support WebSockets
-        document.write("<p>WebSocket NOT supported by your Browser!</p>");
-    }
-}
-#+END_SRC
-
-** Websocket named-pipe
-Artanis provides the named-pipe based on Websocket, which is very useful to interact between the client and server.
-/NOTE: The Websocket named-pipe is very useful to implement server-push messaging./
-
-Here is the critical API:
+A procedure returned by the handler is the short form of /on-message/. The full form is a dispatcher:
 #+BEGIN_SRC scheme
-(named-pipe-subscribe <route-context>)
-#+END_SRC
-
-Let's try a simple example:
-#+BEGIN_SRC scheme
-(get "/robot" #:websocket '(proto echo) named-pipe-subscribe)
-#+END_SRC
-
-Here we register a WebAPI named src_conf[:exports code]{"/robot"}, and configure it a Websocket API by
-src_conf[:exports code]{#:websocket '(proto echo)}. As you may see, we specify its protocol to a simple echo protocal,
-it is to say, it will redirect what it receives. Each time it receives a message, it will redirect the message to the
-specified named-pipe, and the subscriber of that named-pipe will get the message instantly. The name of the pipe is specified
-by the client like this:
-#+BEGIN_SRC js
-var ws = new WebSocket("ws://localhost:3000/robot?artanis_named_pipe=robot-1");
-#+END_SRC
-The query-string src_conf[:exports code]{"artanis_named_pipe"} is a special key in Artanis, you MUST use this key to specify the
-pipe name. Here we specify the pipe name as src_conf[:exports code]{"robot-1"}.
-
-Now we setup the named-pipe, however, we still need to setup another WebAPI to let the client send message:
-#+BEGIN_SRC scheme
-(get "/welcome/:whom/:what" #:websocket 'send-only
+(get "/room/:id" #:websocket 'raw
      (lambda (rc)
-       (:websocket rc 'send (params rc "whom") (params rc "what"))
-       "ok"))
-#+END_SRC
-The configure src_conf[:exports code]{"#:websocket 'send-only"} means this API is only for sending, so that it's half-duplex.
-And another critical Websocket API here:
-#+BEGIN_SRC scheme
-(:websocket <route-context> 'send <pipe-name> <data>)
+       (let ((room (params rc "id")))
+         (ws-dispatcher
+          #:on-open (lambda (conn) (join-room! room conn))
+          #:on-message (lambda (conn msg)
+                         (ws-send conn (string-append room ":" (ws-message-text msg))))
+          #:on-close (lambda (conn code reason) (leave-room! room conn))))))
 #+END_SRC
 
-Each time you send data from the WebAPI, for example:
++ /on-open/ =(conn)= is called once, before any message. It's optional.
++ /on-message/ =(conn msg)= is called for each message, one at a time.
++ /on-close/ =(conn code reason)= is called once when the connection is closed, whoever closes it.
+  It's optional.
+
+Any other return value of the handler closes the connection with 1011.
+
+And the javascript for the web frontend:
+#+BEGIN_SRC js
+const ws = new WebSocket("ws://localhost:3000/echo");
+ws.onopen = () => ws.send("hello world");
+ws.onmessage = (evt) => console.log(evt.data);
+ws.onclose = (evt) => console.log("closed", evt.code, evt.reason);
+#+END_SRC
+
+** Websocket route options
+#+BEGIN_SRC scheme
+#:websocket 'raw
+#:websocket '(raw #:overflow reject)
+#:websocket '(proto protocol-name)
+#:websocket '(proto protocol-name #:overflow close)
+#+END_SRC
++ *'raw* (or *#t*): messages are passed to the handler as they are, see [[Websocket messages][Websocket messages]].
++ *'(proto protocol-name)*: messages are decoded and encoded with the application protocol, see
+  [[Websocket application protocols][Websocket application protocols]].
++ *#:overflow* decides what to do when the outbound queue of a connection is full, see [[Websocket sending][Websocket sending]]:
+  + *reject* (default): the message is dropped, src_scheme[:exports code]{ws-send} returns src_scheme[:exports code]{'overflow};
+  + *close*: the peer is regarded as a slow consumer, the connection is closed with 1008.
+
+Other options of the route:
++ src_scheme[:exports code]{#:timeout seconds} is the idle timeout of the connections of this route, it overrides
+  *websocket.timeout*. 0 means no timeout.
++ src_scheme[:exports code]{#:with-auth} authenticates the handshake, see [[Websocket authentication][Websocket authentication]].
+
+*NOTE:* src_scheme[:exports code]{#:websocket '(redirect ip/usk)} (a tunnel to a service port on the server) and
+src_scheme[:exports code]{#:websocket '(proxy protocol)} aren't implemented yet, they're errors when the route is defined.
+
+** Websocket messages
+On a *'raw* route, /on-message/ gets a ws-message:
+#+BEGIN_SRC scheme
+(ws-message? msg)
+(ws-message-type msg)      ; 'text or 'binary
+(ws-message-text? msg)
+(ws-message-binary? msg)
+(ws-message-text msg)      ; the string of a text message
+(ws-message-payload msg)   ; the bytevector of the whole message
+#+END_SRC
++ A text message has been checked as valid UTF-8, an invalid one closes the connection with 1007.
++ Fragmented messages are reassembled, and ping/pong/close frames are handled by GNU Artanis.
++ The payload bytevector belongs to the handler.
+
+** Websocket sending
+#+BEGIN_SRC scheme
+(ws-send conn data #:key (type #f) (raw #f))
+#+END_SRC
+On a *'raw* route, /data/ can be:
++ a string, sent as a text message encoded in UTF-8;
++ a ws-buffer, sent as a binary message;
++ a ws-message, e.g. a received message to forward it as it is.
+
+src_scheme[:exports code]{#:type 'text} or src_scheme[:exports code]{#:type 'binary} overrides the type.
+On a *'(proto X)* route, /data/ is an object encoded by X, see [[Websocket application protocols][Websocket application protocols]].
+
+It returns:
++ src_scheme[:exports code]{#t} if the message is queued;
++ src_scheme[:exports code]{'overflow} if the outbound queue is full, see *#:overflow*;
++ src_scheme[:exports code]{'closed} if the connection is closing or closed.
+
+src_scheme[:exports code]{ws-send} never writes to the socket, it puts the message into the outbound queue of the
+connection, and wakes the connection up. So it can be called from anywhere: the handler, an HTTP handler,
+or another thread (e.g. a runner). The connection itself is the only writer of its socket.
+
+To close a connection:
+#+BEGIN_SRC scheme
+(ws-close! conn #:key (code 1000) (reason #f))
+#+END_SRC
+The close frame is queued after the messages sent before, nothing can be sent afterwards.
+
+Binary data is sent from a ws-buffer, whose bytevector is never exposed:
+#+BEGIN_SRC scheme
+(make-ws-buffer size)
+(string->ws-buffer str)
+(bytevector->ws-buffer bv [start count])
+(ws-buffer-length buf)
+(ws-buffer-u8-set! buf index value)
+(ws-buffer-put! buf offset src-bv [start count])
+(ws-buffer-frozen? buf)
+#+END_SRC
+Once a ws-buffer is sent, it's frozen and can't be modified anymore, since it may still be waiting in the
+queue. But it can be sent many times, e.g. to broadcast one message to many connections without copying it.
+
+*NOTE:* While /on-message/ runs, including a src_scheme[:exports code]{call-with-runner} in it, the connection
+doesn't read, doesn't answer pings, and doesn't write its queue. So a runner is a backpressure on the input,
+and what's sent meanwhile goes out when /on-message/ returns.
+
+*NOTE:* /on-close/ may be called out of the connection, e.g. when the peer has gone or the server is quitting,
+so it must not do any I/O that may suspend (e.g. DB queries). Use it to release in-memory state.
+
+** Websocket application protocols
+An application protocol is the codec of the messages of a route, so that the handler deals with objects only.
+Each protocol is one file in *app/protocols*, named after the protocol, for example
+src_conf[:exports code]{app/protocols/chat.scm}:
+#+BEGIN_SRC scheme
+(define-ws-protocol chat
+  #:type 'text
+  #:decode (lambda (bv) (json-string->scm (utf8->string bv)))
+  #:encode (lambda (obj) (string->utf8 (scm->json-string obj))))
+#+END_SRC
+To create one:
 #+BEGIN_SRC bash
-curl localhost:3000/welcome/robot-1/nala
+art draw protocol chat
 #+END_SRC
-In our simple example of [[https://gitlab.com/NalaGinrut/artanis/blob/master/examples/websocket-named-pipe.html][Websocket named-pipe test]], you should run
-The named-pipe will receive the message src_scheme[:exports code]{"nala"},
-and the page on the browser will print src_scheme[:exports code]{"hello welcome...nala"} instantly.
 
-** Websocket APIs
++ *#:type* is the frame type of the messages:
+  + *'text* or *'binary*: a message of the other type closes the connection with 1003.
+    /decode/ is =bytevector -> object=, /encode/ is =object -> bytevector=.
+  + *'any*: the frame type isn't checked, /decode/ gets the ws-message, and /encode/ returns anything
+    src_scheme[:exports code]{ws-send} takes on a *'raw* route.
++ The file is the module src_scheme[:exports code]{(app protocols chat)}. (rnrs bytevectors) and
+  (artanis third-party json) are imported, import anything else after src_scheme[:exports code]{define-ws-protocol}.
+  A big parser should be put in *lib/* and imported, there's no sub-directory in *app/protocols*.
++ The arguments are evaluated where src_scheme[:exports code]{define-ws-protocol} is, so a name imported or defined
+  after it can only be used inside a lambda.
++ src_scheme[:exports code]{art work} loads *app/protocols* before the models and controllers, and the protocol is
+  registered once, shared by all the connections of its routes. Keep per-connection state in the closure of the handler.
++ *echo* is a builtin protocol (*'any* with the identity codec), an application protocol can't take its name.
 
-*NOTE: The Websocket is in a very preliminary stage. It only support echo.*
-
-*** Websocket configuration
+Then use it on a route:
 #+BEGIN_SRC scheme
-#:websocket `(proto ,protocol_name)
+(get "/room/:id" #:websocket '(proto chat)
+     (lambda (rc)
+       (lambda (conn obj)
+         (ws-send conn `(("room" . ,(params rc "id"))
+                         ("text" . ,(assoc-ref obj "text")))))))
 #+END_SRC
-*protocol_name* can be:
-+ *'echo* for a simple echo test.
-  *NOTE:* More protocols will be added in the future.
-
-  #+BEGIN_SRC scheme
-#:websocket simple_pattern
++ /on-message/ gets the object decoded by the protocol, a decode error closes the connection with 1007.
++ src_scheme[:exports code]{ws-send} encodes the object in the context of its caller, so an encode error is thrown
+  to the caller (from /on-message/, it closes the connection with 1011).
++ The client must request the protocol in the handshake, otherwise the handshake is rejected with 400:
+  #+BEGIN_SRC js
+const ws = new WebSocket("ws://localhost:3000/room/7", "chat");
   #+END_SRC
-  *simple_pattern* can be:
-  + *#t* or *'raw* will enable a WebSocket on this URL without specifying the protocol.
-    So you will get the raw data from the decoded payload.
++ The server refuses to start if a route uses a protocol which is neither builtin nor in *app/protocols*.
 
-  #+BEGIN_SRC scheme
-#:websocket `(redirect ,ip/usk)
-  #+END_SRC
-  This is used for redirecting a Websocket stream to another address.
-  ip/usk is an ip or a unix-socket. The string regexp pattern has to match:
-  + src_scheme[:exports code]{^ip://(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(:[0-9]{1,5})?$}
-  + src_scheme[:exports code]{^unix://[a-zA-Z-_0-9]+\\.socket$}
-
-  #+BEGIN_SRC scheme
-#:websocket `(proxy ,protocol)
-  #+END_SRC
-  Setup a proxy with a specific protocol handler.
-  Unlike the regular proxy approach, the proxy in Artanis doesn't
-  need a listening port. Since it's always 80/443 or a custom port.
-  The client has to have websocket support. And be able to access the specified URL
-  to establish a websocket connection. The rest is the same as with a regular proxy.
-
-*** Websocket application
-
+To send one object to many connections of a protocol, encode it once:
 #+BEGIN_SRC scheme
-(:websocket <route-context> command)
+(ws-pre-encode protocol-name-or-conn obj)
 #+END_SRC
-*command* can be:
-+ *'payload* to get the decoded data from the client. It's decoded from Websocket frame automatically.
-  So you don't have to parse the frame.
+The result can be sent by src_scheme[:exports code]{ws-send} to any connection of that protocol.
+src_scheme[:exports code]{(ws-send conn x #:raw #t)} bypasses the protocol, e.g. for debugging.
 
-** Websocket frame
-
-GNU Artanis provides a Websocket data frame struct, as defined in [[https://tools.ietf.org/html/rfc6455][RFC6455]].
-
-The frame will not be decoded or parsed into a record-type, but will be kept as the binary
-frame read from the client, and use bitwise operations to fetch fields.
-This kind of `lazy' design saves much time as it doesn't parse unused fields, and makes
-it easier to redirect without any serialization.
-If users want to get a certain field, Artanis provides APIs for fetching them.
-Users can decide how to parse the frames by themselves, which we think is more efficient.
-
-Here are the APIs you can use:
-
+** Websocket topics
+Topics are a simple publish/subscribe to reach connections from anywhere, e.g. to push notifications.
+A topic is a string chosen by the server, e.g. src_scheme[:exports code]{"user:42"} or src_scheme[:exports code]{"room:7"}.
 #+BEGIN_SRC scheme
-(websocket-frame? <websocket-frame>)
+(ws-subscribe! conn topic #:key (exclusive? #f))
+(ws-unsubscribe! conn topic)
+(ws-publish topic obj)   ; returns the number of subscribers it's queued for
+(ws-subscribers topic)   ; the list of connections
+(ws-topics-of conn)      ; the list of topics
 #+END_SRC
 
+For example:
 #+BEGIN_SRC scheme
-;; parser: bytevector -> custom data frame
-(websocket-frame-parser <websocket-frame>)
+(get "/notify" #:websocket 'raw #:with-auth 'status
+     (lambda (rc)
+       (let ((uid (get-user-id rc))) ; e.g. from the session
+         (ws-dispatcher
+          #:on-open (lambda (conn) (ws-subscribe! conn (string-append "user:" uid)))
+          #:on-message (lambda (conn msg) #t)))))
+
+;; Elsewhere, e.g. in an HTTP handler after an order is paid:
+(ws-publish (string-append "user:" uid) "paid")
 #+END_SRC
 
-*websocket-frame-parser* is the registered reader for the protocol specified by the
-src_scheme[:exports code]{#:websocket} configuration. The protocol is customizable based on protobuf.
-/NOTE: Custom protocols support hasn't been implemented yet./
++ Only a connection authenticated at its handshake (its route has src_scheme[:exports code]{#:with-auth}) can subscribe.
+  The topic must be chosen by the server, never taken from the client as it is.
++ A connection can subscribe to *websocket.maxtopics* topics at most.
++ src_scheme[:exports code]{ws-publish} calls src_scheme[:exports code]{ws-send} for each subscriber, so the message is encoded
+  by the protocol of each connection (once per protocol). It can be called from any thread.
++ src_scheme[:exports code]{#:exclusive? #t} makes the connection the only subscriber of the topic: the other subscribers are
+  closed with 4001 "Replaced", e.g. a user can be online in one place only. Don't use it if several connections of a user
+  should get the messages, e.g. several browser tabs.
++ A connection is unsubscribed from all its topics when it's closed.
 
-#+BEGIN_SRC scheme
-(websocket-frame-head <websocket-frame>)
-(websocket-frame-final-fragment? <websocket-frame>)
-(websocket-frame-opcode <websocket-frame>)
-(websocket-frame-payload <websocket-frame>)
-(websocket-frame-mask <websocket-frame>)
-#+END_SRC
-To get the Websocket frame information. See [[https://tools.ietf.org/html/rfc6455#page-27][Data framing]] for details.
-+ *head* returns the first 2 bytes in the data frame.
-+ *final-fragment* returns true if it's the last frame in a session.
-+ *opcode* returns the opcode in the frame. Refer to [[Websocket opcode][Websocket opcode]].
-+ *payload* returns the actual encoded data.
-+ *mask* returns the frame mask.
-
-** Websocket opcode
-
-Opcode defines the interpretation of "Payload data". If an unknown opcode is received,
-the receiving endpoint's WebSocket connection will fail.
-
-#+BEGIN_SRC scheme
-;;  check if it's a continuation frame
-(is-continue-frame? opcode)
-
-;;  check if it's text frame
-(is-text-frame? opcode)
-
-;; check if it's binary frame
-(is-binary-frame? opcode)
-
-;; check if it's control frame
-(is-control-frame? opcode)
-(is-non-control-frame? opcode)
-
-;;  websocket requires closing
-(is-close-frame? opcode)
-
-;;  check if it's a ping frame
-(is-ping-frame? opcode)
-
-;;  check if it's a pong frame
-(is-pong-frame? opcode)
-
-;;  %xB-F are reserved for further control frames
-(is-reserved-frame? opcode)
-
-#+END_SRC
 ** Websocket authentication
-The Websocket authentication hasn't been unsupported yet.
+The handshake is authenticated by src_scheme[:exports code]{#:with-auth} of the route, see [[Authenticate checking][Authenticate checking]].
+The user logs in by HTTP first, then the browser sends the session cookie with the handshake.
+#+BEGIN_SRC scheme
+(get "/secure" #:websocket 'raw #:with-auth 'status
+     (lambda (rc) (lambda (conn msg) (ws-send conn msg))))
+#+END_SRC
++ A failed authentication rejects the handshake with 401, whatever the option of src_scheme[:exports code]{#:with-auth} is,
+  since a browser can't see the response of a failed handshake.
++ Messages are not authenticated again. The session is checked periodically, and the connection is closed with 1008
+  once the session isn't valid anymore (expired, logged out, ...).
++ The *Origin* of the handshake must be the same origin as the site, or one of *server.origins*, otherwise the handshake
+  is rejected with 403. It prevents other sites from opening an authenticated connection on behalf of the user.
+  A request without Origin is not from a browser, so it's accepted.
+
+** Websocket close codes
+| Code | When                                                                       |
+|------+----------------------------------------------------------------------------|
+| 1000 | src_scheme[:exports code]{ws-close!} by default                            |
+| 1001 | idle timeout, or the server is closing the connection                      |
+| 1002 | protocol error of the peer, e.g. an unmasked frame                         |
+| 1003 | a frame type the application protocol doesn't take                         |
+| 1005 | the peer sent a close frame without code (for /on-close/ only)             |
+| 1006 | the peer has gone without a close frame (for /on-close/ only)              |
+| 1007 | invalid UTF-8 in a text message, or the application protocol can't decode  |
+| 1008 | the session is gone, an invalid fragment, or #:overflow close              |
+| 1009 | a frame or a message is too big                                            |
+| 1011 | an error of the handler or the dispatcher                                  |
+| 4001 | replaced by an exclusive subscriber of a topic                             |
+
+An error of the handler with src_scheme[:exports code]{(throw 'artanis-err status ...)} closes the connection with
+1011 for 5xx, 1009 for 413, and 1008 for other 4xx. A connection is never answered with an HTTP error after the handshake.
+
+** Websocket configuration
+#+BEGIN_SRC conf
+## The maximum payload size of a single incoming frame in bytes, a larger frame is closed with 1009.
+websocket.maxpayload = 1048576
+## The minimum payload size of a non-final fragment in bytes, against floods of tiny fragments (1008). 0 disables it.
+websocket.minpayload = 0
+## The payload size of each fragment of an outgoing message in bytes. 0 means no fragmentation.
+websocket.fragment = 0
+## The maximum size of a whole incoming message in bytes, after reassembling (1009).
+websocket.maxsize = 4194304
+## The maximum number of fragments of an incoming message (1008). 0 means no limit.
+websocket.maxfragments = 65536
+## The maximum bytes waiting to be sent on a connection, see #:overflow. 0 means no limit.
+websocket.maxqueue = 1048576
+## The maximum number of topics a connection can subscribe to. 0 means no limit.
+websocket.maxtopics = 10
+## The idle timeout in seconds, counted from the last data of the peer. 0 means no timeout.
+websocket.timeout = 64
+## The trusted origins besides the site itself, e.g. http://localhost:5173 for a front-end dev server.
+server.origins =
+#+END_SRC
+The defaults are fine for most cases.
+
+** Websocket hooks
+#+BEGIN_SRC scheme
+;; proc: (request client) -> ANY, after the 101 response.
+(run-after-websocket-handshake! proc)
+;; proc: () -> ANY, once for each closed connection.
+(run-after-websocket-close! proc)
+#+END_SRC
+They're global hooks, use /on-open/ and /on-close/ of the dispatcher for a route.
+
 * Ragnarok server core
 ** Ragnarok introduction
 Since version 0.2, GNU Artanis has started to use a strong server core for high concurrency.
