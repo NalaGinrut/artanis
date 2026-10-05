@@ -23,6 +23,7 @@
   #:use-module (artanis config)
   #:use-module (artanis websocket connection)
   #:use-module (artanis websocket handshake)
+  #:use-module (artanis websocket protocol)
   #:use-module (artanis server server-context)
   #:use-module (ice-9 threads)
   #:use-module (ice-9 match)
@@ -239,3 +240,143 @@
            (wrong-type-arg "car" "x" () ())
            (websocket-err 4001 f "x")
            (misc-error #f "x" () #f)))))
+
+;; ---------------------------------------------------------------------------
+;; Application protocols
+
+;; A JSON-like text protocol over strings: decode fails on "bad", encode
+;; fails on 'bad, and returns a non-bytevector for 'not-bv.
+(ws-protocol-register!
+ 'conn-text
+ #:type 'text
+ #:decode (lambda (bv)
+            (let ((s (utf8->string bv)))
+              (if (string=? s "bad") (error "can't decode") (list 'got s))))
+ #:encode (lambda (obj)
+            (case obj
+              ((bad) (error "can't encode"))
+              ((not-bv) "a string")
+              (else (string->utf8 (format #f "~a" obj))))))
+
+(ws-protocol-register! 'conn-bin #:type 'binary
+                       #:decode identity #:encode identity)
+
+;; 'any: decode gets the ws-message, encode returns what a raw route takes.
+(ws-protocol-register! 'conn-any #:type 'any
+                       #:decode (lambda (msg) (list 'msg (ws-message-type msg)))
+                       #:encode (lambda (obj) (format #f "~a" obj)))
+
+(define (proto-conn protocol)
+  (let ((path (format #f "/conn-~a" protocol)))
+    (unless (find-websocket-rule path)
+      (websocket-rule-add! path (string-append "^" path "$") protocol))
+    (new-conn (find-websocket-rule path))))
+
+(define (ws-err-code thunk)
+  (catch 'websocket-err
+    (lambda () (thunk) #f)
+    (lambda (k code . _) code)))
+
+(with-test-prefix "protocol inbound"
+
+  (pass-if "a raw route gets the ws-message"
+    (ws-message? (websocket-conn-inbound (new-conn) 'text #vu8(97))))
+
+  (pass-if-equal "decoded by the protocol"
+    '(got "hi")
+    (websocket-conn-inbound (proto-conn 'conn-text) 'text (string->utf8 "hi")))
+
+  (pass-if-equal "a frame type the protocol doesn't take is 1003"
+    '(1003 1003)
+    (list (ws-err-code (lambda ()
+                         (websocket-conn-inbound (proto-conn 'conn-text)
+                                                 'binary #vu8(1))))
+          (ws-err-code (lambda ()
+                         (websocket-conn-inbound (proto-conn 'conn-bin)
+                                                 'text #vu8(97))))))
+
+  (pass-if-equal "a decode error is 1007"
+    1007
+    (ws-err-code (lambda ()
+                   (websocket-conn-inbound (proto-conn 'conn-text) 'text
+                                           (string->utf8 "bad")))))
+
+  (pass-if-equal "'any takes both types, and decodes the ws-message"
+    '((msg text) (msg binary))
+    (let ((conn (proto-conn 'conn-any)))
+      (list (websocket-conn-inbound conn 'text #vu8(97))
+            (websocket-conn-inbound conn 'binary #vu8(1)))))
+
+  (pass-if "the connection has the protocol of its route"
+    (and (eq? 'conn-text (ws-protocol-name
+                          (websocket-conn-protocol (proto-conn 'conn-text))))
+         (not (websocket-conn-protocol (new-conn))))))
+
+(with-test-prefix "protocol outbound"
+
+  (pass-if-equal "ws-send encodes, with the type of the protocol"
+    `(#t 2 ((data text ,(string->utf8 "42"))))
+    (let* ((conn (proto-conn 'conn-text))
+           (r (ws-send conn 42)))
+      (list r (websocket-conn-queued-bytes conn) (drain conn))))
+
+  (pass-if "a string is an object to encode too"
+    (equal? `((data binary ,(string->utf8 "s")))
+            (let ((conn (proto-conn 'conn-bin)))
+              (ws-send conn (string->utf8 "s"))
+              (drain conn))))
+
+  (pass-if "an encode error is thrown to the caller, nothing is queued"
+    (let ((conn (proto-conn 'conn-text)))
+      (and (throws-artanis-err? (lambda () (ws-send conn 'bad)))
+           (throws-artanis-err? (lambda () (ws-send conn 'not-bv)))
+           (null? (drain conn)))))
+
+  (pass-if "#:type is an error on a protocol route"
+    (throws-artanis-err?
+     (lambda () (ws-send (proto-conn 'conn-text) 1 #:type 'binary))))
+
+  (pass-if-equal "#:raw bypasses the protocol"
+    `((data text ,(string->utf8 "raw")) (data binary ,(string->utf8 "b")))
+    (let ((conn (proto-conn 'conn-text)))
+      (ws-send conn "raw" #:raw #t)
+      (ws-send conn (string->ws-buffer "b") #:raw #t)
+      (drain conn)))
+
+  (pass-if-equal "'any: encode returns what a raw route takes"
+    `((data text ,(string->utf8 "(1 2)")))
+    (let ((conn (proto-conn 'conn-any)))
+      (ws-send conn '(1 2))
+      (drain conn)))
+
+  (pass-if-equal "ws-pre-encode: encoded once, sent to many"
+    `((data text ,(string->utf8 "7")) (data text ,(string->utf8 "7")))
+    (let ((m (ws-pre-encode 'conn-text 7))
+          (a (proto-conn 'conn-text))
+          (b (proto-conn 'conn-text)))
+      (ws-send a m)
+      (ws-send b m)
+      (and (ws-encoded? m)
+           (append (drain a) (drain b)))))
+
+  (pass-if "ws-pre-encode takes a connection too"
+    (let ((conn (proto-conn 'conn-text)))
+      (ws-send conn (ws-pre-encode conn 8))
+      (equal? `((data text ,(string->utf8 "8"))) (drain conn))))
+
+  (pass-if "a pre-encoded message only goes to its protocol"
+    (let ((m (ws-pre-encode 'conn-text 1)))
+      (and (throws-artanis-err? (lambda () (ws-send (proto-conn 'conn-bin) m)))
+           (throws-artanis-err? (lambda () (ws-send (new-conn) m)))
+           (throws-artanis-err?
+            (lambda () (ws-send (proto-conn 'conn-text) m #:raw #t))))))
+
+  (pass-if "ws-pre-encode of an unknown protocol, or of a raw connection"
+    (and (throws-artanis-err? (lambda () (ws-pre-encode 'no-such 1)))
+         (throws-artanis-err? (lambda () (ws-pre-encode (new-conn) 1)))))
+
+  (pass-if "the encoded bytes count for the queue limit"
+    (with-maxqueue 3
+      (let ((conn (proto-conn 'conn-text)))
+        (and (eq? #t (ws-send conn 123))
+             (eq? 'overflow (ws-send conn 4)))))))

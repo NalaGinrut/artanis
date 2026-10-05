@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # Raw-socket end-to-end checks for the Artanis WebSocket layers 2 and 4.
-# Needs the routes of examples/ENTRY.websocket, and server.websocket = true.
-import base64, os, socket, struct, sys, time
+# Needs the routes of examples/ENTRY.websocket, examples/protocols/chat.scm in
+# app/protocols/, and server.websocket = true.
+import base64, json, os, socket, struct, sys, time
 
 HOST, PORT = "127.0.0.1", 3000
 KEY = "dGhlIHNhbXBsZSBub25jZQ=="
@@ -101,12 +102,18 @@ def t_handshake_ok():
     check("no subprotocol unless asked", "sec-websocket-protocol" not in head.lower(), head)
     s.close()
 
+CHAT = "Sec-WebSocket-Protocol: chat"
+
 def t_subprotocol():
     s, head, _ = ws_open("/room/7", extra="Sec-WebSocket-Protocol: foo, chat")
-    check("subprotocol selected when requested", "sec-websocket-protocol: chat" in head.lower(), head)
+    check("proto route: 101 selects its subprotocol",
+          head.startswith("HTTP/1.1 101") and "sec-websocket-protocol: chat" in head.lower(), head)
     s.close()
-    s, head, _ = ws_open("/room/7", extra="Sec-WebSocket-Protocol: foo")
-    check("unknown subprotocol: 101 without header",
+    reject("proto route without its subprotocol -> 400",
+           upgrade_req("/room/7", extra="Sec-WebSocket-Protocol: foo"), 400)
+    reject("proto route without Sec-WebSocket-Protocol -> 400", upgrade_req("/room/7"), 400)
+    s, head, _ = ws_open("/echo", extra=CHAT)
+    check("raw route: no subprotocol",
           head.startswith("HTTP/1.1 101") and "sec-websocket-protocol" not in head.lower(), head)
     s.close()
 
@@ -157,10 +164,10 @@ def t_echo():
     check("200KB binary echo", r.frame()[2] == big)
     # route keys still work
     s.close()
-    s, head, rest = ws_open("/room/42")
+    s, head, rest = ws_open("/room/42", extra=CHAT)
     r = Reader(s, rest)
-    s.sendall(frame(1, b"hi"))
-    check("route keys in ws handler", r.frame()[2] == b"42:hi")
+    s.sendall(frame(1, b'{"text":"hi"}'))
+    check("route keys in ws handler", json.loads(r.frame()[2]) == {"room": "42", "text": "hi"})
     s.close()
 
 def t_first_message_in_handshake_segment():
@@ -514,13 +521,69 @@ def t_runner_in_on_message():
     check(f"runner took its time ({time.time() - t:.2f}s)", time.time() - t >= 0.3)
     s.close()
 
+def chat_open(path="/room/1"):
+    s, head, rest = ws_open(path, extra=CHAT)
+    return s, Reader(s, rest)
+
+def closed_with(r, code):
+    f = r.frame()
+    return f[1] == 8 and close_code(f[2]) == code and r.eof()
+
+def t_proto():
+    s, r = chat_open()
+    s.sendall(frame(1, '{"text":"中文"}'.encode()))
+    f = r.frame()
+    check("proto: decoded and encoded (JSON)",
+          f[1] == 1 and json.loads(f[2]) == {"room": "1", "text": "中文"}, f)
+    s.sendall(frame(1, b'{"text":"pre"}'))
+    f = r.frame()
+    check("proto: ws-pre-encode", json.loads(f[2]) == {"room": "1", "text": "pre"}, f)
+    s.sendall(frame(1, b'{"text":"raw"}'))
+    check("proto: #:raw bypasses the codec", r.frame()[1:] == (1, b"raw!"))
+    s.sendall(frame(1, b'{"text":', fin=False) + frame(0, b'"x"}'))
+    check("proto: fragmented message is decoded", json.loads(r.frame()[2])["text"] == "x")
+    s.close()
+    s, r = chat_open()
+    s.sendall(frame(2, b'{"text":"bin"}'))
+    check("proto: wrong frame type -> 1003", closed_with(r, 1003))
+    s, r = chat_open()
+    s.sendall(frame(1, b'not json'))
+    check("proto: decode error -> 1007", closed_with(r, 1007))
+    s, r = chat_open()
+    s.sendall(frame(1, b'{"text":"bad-encode"}'))
+    check("proto: encode error in on-message -> 1011", closed_with(r, 1011))
+    # the builtin echo
+    s, head, rest = ws_open("/echo-proto", extra="Sec-WebSocket-Protocol: echo")
+    r = Reader(s, rest)
+    check("builtin echo: 101 selects echo", "sec-websocket-protocol: echo" in head.lower(), head)
+    s.sendall(frame(1, b"t") + frame(2, b"\x01\x02"))
+    check("builtin echo keeps the frame types",
+          (r.frame()[1:], r.frame()[1:]) == ((1, b"t"), (2, b"\x01\x02")))
+    s.close()
+
+def t_proto_push():
+    s, r = chat_open("/room/5?sub=pj")
+    _, body = http_get("/push-obj/pj?msg=hi")
+    check("proto push from HTTP: ws-send -> #t", body == "#t", body)
+    check("proto push from HTTP is encoded", json.loads(r.frame()[2]) == {"pushed": "hi"})
+    _, body = http_get("/push-obj/pj?runner=1&msg=run")
+    check("proto push from a runner thread: ws-send -> #t", body == "#t", body)
+    check("proto push from a runner thread is encoded", json.loads(r.frame()[2]) == {"pushed": "run"})
+    _, body = http_get("/push-obj/pj?pre=1&msg=pre")
+    check("proto push of a pre-encoded message", body == "#t" and json.loads(r.frame()[2]) == {"pushed": "pre"}, body)
+    s.close()
+    s, head, rest = ws_open("/sub?sub=pr")
+    _, body = http_get("/push-obj/pr?pre=1")
+    check("a pre-encoded message is rejected on a raw route", body == "rejected", body)
+    s.close()
+
 tests = [t_named_pipe_replace, t_half_frame_doesnt_block, t_conformance_extra, t_http_still_works, t_handshake_ok, t_subprotocol, t_rejects, t_echo,
          t_first_message_in_handshake_segment, t_close_by_client, t_quiet,
          t_errors, t_abrupt_disconnects, t_fd_reuse, t_idle_timeout,
          t_activity_keeps_alive, t_push, t_welcome, t_invalid_handlers,
          t_server_close, t_on_close_codes, t_idle_with_push,
          t_overflow_reject, t_overflow_close, t_write_suspends_in_waiter,
-         t_runner_in_on_message, t_server_alive]
+         t_runner_in_on_message, t_proto, t_proto_push, t_server_alive]
 only = sys.argv[1:]
 for t in tests:
     if only and t.__name__ not in only:

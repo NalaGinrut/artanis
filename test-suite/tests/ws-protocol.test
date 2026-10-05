@@ -1,0 +1,195 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  === WebSocket application protocol tests: registry, app/protocols ===
+;;  Copyright (C) 2026
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License and GNU
+;;  Lesser General Public License published by the Free Software
+;;  Foundation, either version 3 of the License, or (at your option)
+;;  any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License and GNU Lesser General Public License
+;;  for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  and GNU Lesser General Public License along with this program.
+;;  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (test ws-protocol)
+  #:use-module (artanis env)
+  #:use-module (artanis websocket protocol)
+  #:use-module (artanis websocket handshake)
+  #:use-module (rnrs bytevectors)
+  #:use-module (test-suite lib))
+
+(define (fails? thunk)
+  (catch #t
+    (lambda () (thunk) #f)
+    (lambda (k . _) (not (memq k '(quit interrupt))))))
+
+(define (register name . args)
+  (call-with-values (lambda () (apply ws-protocol-register! name args))
+    list))
+
+;; A fresh app directory with the files of app/protocols, as (name . text).
+(define (make-app files)
+  (let* ((top (string-append (or (getenv "TMPDIR") "/tmp")
+                             "/ws-protocol-test-"
+                             (number->string (getpid)) "-"
+                             (number->string (random 100000000))))
+         (dir (string-append top "/app/protocols")))
+    (mkdir top)
+    (mkdir (string-append top "/app"))
+    (mkdir dir)
+    (for-each (lambda (f)
+                (call-with-output-file (string-append dir "/" (car f))
+                  (lambda (port) (display (cdr f) port))))
+              files)
+    top))
+
+(define (load-app files)
+  (parameterize ((%current-toplevel (make-app files)))
+    (load-app-protocols)))
+
+(define (every-exported? name)
+  (let ((i (resolve-interface name)))
+    (and (module-variable i 'ws-type)
+         (module-variable i 'ws-decode)
+         (module-variable i 'ws-encode)
+         #t)))
+
+(with-test-prefix "registry"
+
+  (pass-if "echo is builtin, 'any with the identity codec"
+    (let ((p (lookup-ws-protocol 'echo)))
+      (and (ws-protocol-builtin? p)
+           (eq? 'any (ws-protocol-type p))
+           (eq? 'x ((ws-protocol-decode p) 'x))
+           (eq? 'x ((ws-protocol-encode p) 'x)))))
+
+  (pass-if "register returns the exported values"
+    (let ((r (register 'reg-ok #:type 'binary #:decode identity
+                       #:encode identity)))
+      (and (equal? 'binary (car r))
+           (eq? identity (cadr r))
+           (eq? 'binary (ws-protocol-type (lookup-ws-protocol 'reg-ok)))
+           (not (ws-protocol-builtin? (lookup-ws-protocol 'reg-ok))))))
+
+  (pass-if "keywords in any order"
+    (pair? (register 'reg-order #:encode identity #:type 'text
+                     #:decode identity)))
+
+  (pass-if "a builtin name is an error"
+    (fails? (lambda () (register 'echo #:type 'text #:decode identity
+                                 #:encode identity))))
+
+  (pass-if "a mode of #:websocket is not a protocol name"
+    (and (fails? (lambda () (register 'raw #:type 'text #:decode identity
+                                      #:encode identity)))
+         (fails? (lambda () (register 'redirect #:type 'text
+                                      #:decode identity #:encode identity)))
+         (fails? (lambda () (register 'proxy #:type 'text #:decode identity
+                                      #:encode identity)))))
+
+  (pass-if "defined twice is an error"
+    (fails? (lambda () (register 'reg-ok #:type 'text #:decode identity
+                                 #:encode identity))))
+
+  (pass-if "invalid type, decode or encode"
+    (and (fails? (lambda () (register 'reg-bad1 #:type 'json
+                                      #:decode identity #:encode identity)))
+         (fails? (lambda () (register 'reg-bad2 #:type 'text #:decode 1
+                                      #:encode identity)))
+         (fails? (lambda () (register 'reg-bad3 #:type 'text
+                                      #:decode identity)))
+         (fails? (lambda () (register 'reg-bad4 #:type 'text #:decode identity
+                                      #:encode identity #:extra 1)))))
+
+  (pass-if "a failed registration registers nothing"
+    (not (lookup-ws-protocol 'reg-bad1)))
+
+  (pass-if "protocol routes"
+    (and (ws-protocol-route? 'chat)
+         (ws-protocol-route? 'echo)
+         (not (ws-protocol-route? 'raw))
+         (not (ws-protocol-route? 'redirect))
+         (not (ws-protocol-route? 'proxy))
+         (not (ws-protocol-route? #f)))))
+
+(with-test-prefix "app/protocols"
+
+  (pass-if-equal "a file registers its protocol as module (app protocols X)"
+    '(text (("a" . 1)) "{\"b\":2}" #t)
+    (begin
+      (load-app
+       '(("json-chat.scm" . "
+(define-ws-protocol json-chat
+  #:type 'text
+  #:decode (lambda (bv) (json-string->scm (utf8->string bv)))
+  #:encode (lambda (obj) (string->utf8 (scm->json-string obj))))")
+         ;; Not a protocol file, ignored.
+         ("README" . "no")))
+      (let ((p (lookup-ws-protocol 'json-chat))
+            (m (resolve-module '(app protocols json-chat) #:ensure #f)))
+        (list (ws-protocol-type p)
+              ((ws-protocol-decode p) (string->utf8 "{\"a\":1}"))
+              (utf8->string ((ws-protocol-encode p) '(("b" . 2))))
+              (and m
+                   (eq? (ws-protocol-decode p)
+                        (module-ref (resolve-interface
+                                     '(app protocols json-chat))
+                                    'ws-decode))
+                   (every-exported? '(app protocols json-chat)))))))
+
+  (pass-if-equal "a lambda can use a name defined after define-ws-protocol"
+    'ok
+    (begin
+      (load-app
+       '(("late.scm" . "
+(define-ws-protocol late
+  #:type 'binary
+  #:decode (lambda (bv) (late-helper bv))
+  #:encode (lambda (obj) obj))
+(define (late-helper bv) 'ok)")))
+      ((ws-protocol-decode (lookup-ws-protocol 'late)) #vu8())))
+
+  (pass-if "a file must define the protocol it's named after"
+    (fails? (lambda ()
+              (load-app
+               '(("misnamed.scm" . "
+(define-ws-protocol other-name
+  #:type 'text #:decode identity #:encode identity)"))))))
+
+  (pass-if "a file without define-ws-protocol is an error"
+    (fails? (lambda () (load-app '(("empty.scm" . "(define x 1)"))))))
+
+  (pass-if "an app protocol can't take a builtin name"
+    (fails? (lambda ()
+              (load-app
+               '(("echo.scm" . "
+(define-ws-protocol echo
+  #:type 'text #:decode identity #:encode identity)"))))))
+
+  (pass-if "no app/protocols is fine"
+    (parameterize ((%current-toplevel "/nonexistent-artanis-app"))
+      (load-app-protocols)
+      #t)))
+
+(with-test-prefix "start-up check of routes"
+
+  (pass-if "registered and builtin protocols, and raw routes pass"
+    (begin
+      (websocket-rule-add! "/p-chat" "^/p-chat$" 'json-chat)
+      (websocket-rule-add! "/p-echo" "^/p-echo$" 'echo)
+      (websocket-rule-add! "/p-raw" "^/p-raw$" 'raw)
+      (check-websocket-protocols)
+      #t))
+
+  ;; NOTE: Keep it the last one, the rule stays.
+  (pass-if "a route of an unknown protocol is an error"
+    (begin
+      (websocket-rule-add! "/p-nope" "^/p-nope$" 'nope)
+      (fails? check-websocket-protocols))))

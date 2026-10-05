@@ -16,11 +16,6 @@
  ;; procedure is the short form of #:on-message.
  (get "/echo" #:websocket 'raw
       (lambda (rc) (lambda (conn msg) (ws-send conn msg))))
- (get "/room/:id" #:websocket '(proto chat)
-      (lambda (rc)
-        (let ((room (params rc "id")))
-          (lambda (conn msg)
-            (ws-send conn (string-append room ":" (ws-message-text msg)))))))
  (get "/quiet" #:websocket 'raw
       (lambda (rc) (lambda (conn msg) #t)))
  (get "/boom" #:websocket 'raw
@@ -145,3 +140,49 @@
         (ws-dispatcher
          #:on-open (lambda (conn) (ws-send conn "welcome"))
          #:on-message (lambda (conn msg) (ws-send conn msg)))))
+
+ ;; ---------------------------------------------------------------------------
+ ;; Application protocols, for websocket-test.py.
+ ;; '(proto chat) is JSON in text frames: copy examples/protocols/chat.scm to
+ ;; app/protocols/. The handler deals with objects only, the client must ask
+ ;; for the subprotocol `chat'.
+
+ (get "/room/:id" #:websocket '(proto chat) #:timeout 0
+      (lambda (rc)
+        (let ((room (params rc "id")))
+          (subscriber
+           rc
+           (lambda (conn obj)
+             (let ((text (assoc-ref obj "text")))
+               (cond
+                ((equal? text "pre")
+                 (ws-send conn (ws-pre-encode 'chat `(("room" . ,room)
+                                                      ("text" . "pre")))))
+                ((equal? text "raw")
+                 (ws-send conn "raw!" #:raw #t))
+                ((equal? text "bad-encode")
+                 ;; Not JSON, the encode error closes it with 1011.
+                 (ws-send conn (lambda () #t)))
+                (else
+                 (ws-send conn `(("room" . ,room) ("text" . ,text)))))))))))
+
+ ;; The builtin `echo': any frame type, the identity codec.
+ (get "/echo-proto" #:websocket '(proto echo)
+      (lambda (rc) (lambda (conn msg) (ws-send conn msg))))
+
+ ;; Push an object to a connection registered by ?sub=NAME, from an HTTP
+ ;; request, or from a runner thread with ?runner=1. ?pre=1 encodes it once
+ ;; with ws-pre-encode, which only a '(proto chat) connection takes.
+ (get "/push-obj/:name"
+      (lambda (rc)
+        (let ((conn (hash-ref *subs* (params rc "name")))
+              (obj `(("pushed" . ,(or (params rc "msg") "obj")))))
+          (cond
+           ((not conn) "none")
+           ((params rc "runner")
+            (->reply (call-with-runner (lambda () (ws-send conn obj)))))
+           ((params rc "pre")
+            (catch 'artanis-err
+              (lambda () (->reply (ws-send conn (ws-pre-encode 'chat obj))))
+              (lambda _ "rejected")))
+           (else (->reply (ws-send conn obj)))))))
