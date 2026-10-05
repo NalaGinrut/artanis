@@ -28,6 +28,7 @@
   #:use-module (artanis mvc model)
   #:use-module (artanis mvc view)
   #:use-module (artanis webapi restful)
+  #:use-module ((artanis websocket protocol) #:select (load-app-protocols))
   #:use-module (ice-9 getopt-long)
   #:use-module (ice-9 regex)
   #:use-module (ice-9 format)
@@ -78,6 +79,8 @@
     (load entry)))
 
 (define (try-load-app)
+  ;; Protocols first, the routes of the controllers may use them.
+  (load-app-protocols)
   (load-app-models)
   (load-app-controllers)
   (load-app-views)
