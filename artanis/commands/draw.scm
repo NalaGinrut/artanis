@@ -26,6 +26,8 @@
   #:use-module (artanis mvc controller)
   #:use-module (artanis mvc view)
   #:use-module (artanis mvc migration)
+  #:use-module ((artanis websocket protocol)
+                #:select (check-protocol-file-name do-protocol-create))
   #:use-module (ice-9 getopt-long)
   #:use-module (ice-9 format)
   #:use-module (ice-9 match)
@@ -51,6 +53,7 @@ component list:
   controller
   migration
   lib
+  protocol
 
 Options:
   -h, [--help]     # Print this screen
@@ -183,12 +186,27 @@ Example:
       (display lpath) (newline)
       (draw:create do-lib-create name lpath '())))))
 
+(define (%draw-protocol name . _)
+  (let* ((path (current-toplevel))
+         (entry (string-append path "/ENTRY"))
+         (dir (string-append path "/app/protocols"))
+         (cpath (string-append dir "/" name ".scm")))
+    (cond
+     ((not (verify-ENTRY entry))
+      (error "You're not in a valid Artanis app directory! Or ENTRY is invalid!"))
+     (else
+      (check-protocol-file-name name)
+      (when (and (not (cmd:is-dry-run?)) (not (file-exists? dir)))
+        (mkdir dir))
+      (draw:create do-protocol-create name cpath '())))))
+
 (define *component-handlers*
   `(("model"      . ,%draw-model)
     ("view"       . ,%draw-view)
     ("controller" . ,%draw-controller)
     ("migration"  . ,%draw-migration)
     ("lib"        . ,%draw-lib)
+    ("protocol"   . ,%draw-protocol)
     ;; ("api"     . ,%draw-api)
     ))
 

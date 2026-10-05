@@ -67,6 +67,7 @@
 (define-module (artanis websocket protocol)
   #:use-module (artanis utils)
   #:use-module (artanis env)
+  #:use-module (artanis irregex)
   #:use-module (ice-9 ftw)
   #:use-module ((system syntax internal)
                 #:select (syntax? make-syntax syntax-expression syntax-wrap
@@ -75,6 +76,8 @@
   #:export (define-ws-protocol
             ws-protocol-register!
             load-app-protocols
+            check-protocol-file-name
+            do-protocol-create
             lookup-ws-protocol
             ws-protocol?
             ws-protocol-name
@@ -225,3 +228,32 @@
            (error (format #f "app/protocols/~a doesn't define protocol `~a' with define-ws-protocol"
                           f name)))))
      files)))
+
+;; ---------------------------------------------------------------------------
+;; `art draw protocol NAME'
+
+;; Check the name before app/protocols/NAME.scm is created.
+(define (check-protocol-file-name name)
+  (let ((sym (string->symbol name)))
+    (unless (irregex-match "[a-zA-Z0-9_-]+" name)
+      (error "Invalid protocol name, expect [a-zA-Z0-9_-]+:" name))
+    (when (memq sym *websocket-modes*)
+      (error "It's a mode of #:websocket, it can't be a protocol name:" name))
+    (when (lookup-ws-protocol sym)
+      (error "It's a builtin protocol, please choose another name:" name))))
+
+(define (do-protocol-create name _ port)
+  (format (artanis-current-output) "create ~10t app/protocols/~a.scm~%" name)
+  (format port ";; Protocol ~a definition of ~a~%" name (current-appname))
+  (display ";; Please add your license header here.\n" port)
+  (display ";; This file is generated automatically by GNU Artanis.\n" port)
+  (format port "(define-ws-protocol ~a~%" name)
+  (display "  ;; The frame type of the messages: 'text, 'binary or 'any.
+  #:type 'binary
+  ;; bytevector -> object, called on each inbound message.
+  ;; With 'any, it gets the ws-message instead of the bytevector.
+  #:decode (lambda (bv) bv)
+  ;; object -> bytevector, called by ws-send.
+  ;; With 'any, it returns a string, a ws-buffer or a ws-message.
+  #:encode (lambda (obj) obj))
+" port))
