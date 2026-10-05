@@ -48,7 +48,6 @@
             websocket-request-error
             reject-websocket-request
             do-websocket-handshake
-            closing-websocket-handshake
 
             websocket-rule-add!
             websocket-rule-timeout-set!
@@ -332,9 +331,3 @@
                                    "unknown origin")
                                (request-path req))
                  #:meta `((path . ,(request-path req))))))
-
-;; NOTE: Only used by the redirector branch of http-close, which is dead code
-;;       until the redirector is reworked (layer 5). The closing handshake of
-;;       a WebSocket connection is done by ws-close in (artanis server websocket).
-(define (closing-websocket-handshake server client peer-shutdown?)
-  (DEBUG "[Websocket] closing-websocket-handshake ~a~%" peer-shutdown?))

@@ -147,7 +147,7 @@
       (let* ((req (try-to-read-request port))
              (ws-state (detect-if-connecting-websocket req port)))
         (cond
-         ((websocket-state? ws-state)
+         ((websocket-conn? ws-state)
           ;; The 101 response has been sent. Switch the connection to the
           ;; `websocket' protocol, then Ragnarok will select it for this
           ;; connection from now on. The handshake has no message for the
@@ -172,28 +172,6 @@
     ;; NOTE: simply-quit here will be more efficient to avoid useless keep-alive connection
     ;;       and just drop the rest steps.
     (simply-quit))
-   ((get-the-redirector-of-websocket server client)
-    ;; If there's a redirector has been registered by the client, then it means
-    ;; the client enabled a special websocket-based protocol other than
-    ;; HTTP. And we will not close this client, but treat it as a waiting
-    ;; connection.
-    => (lambda (redirector)
-         (let ((type (redirector-type redirector))
-               (ip (client-ip client)))
-           (DEBUG "The redirected ~a client ~a is writing...~%" type ip)
-           (DEBUG "Just suspended...~%")
-           (cond
-            ((is-proxy? redirector)
-             ;; TODO: auto proxy I/O
-             ((redirector-writer redirector) redirector)
-             (break-task)
-             (http-write server client response body #f))
-            (else
-             ;; NOTE: WebSocket connections are served by the `websocket'
-             ;;       protocol, see (artanis server websocket). The
-             ;;       redirector is dead code until its rework (layer 5).
-             (throw 'artanis-err 500 http-write
-                    "BUG: WebSocket redirector `~a' is not supported yet" type))))))
    (else
     (let* ((res (write-response response (client-sockport client)))
            (port (response-port res))) ; return the continued port
@@ -210,43 +188,13 @@
         (throw 'artanis-err 500 http-write
                "Expected a bytevector for body" body)))))))
 
-(define (run-after-websocket-close-hooks)
-  (run-hook *after-websocket-close-hook*))
-
-;; Check if the client in the redirectors table:
-;; 1. In the table, emit websocket closing handshake.
-;; 2. Not in the table, just close the connection.
+;; WebSocket connections are closed by the `websocket' protocol, see ws-close
+;; in (artanis server websocket), they never come here.
 (::define (http-close server client peer-shutdown?)
   (:anno: (ragnarok-server ragnarok-client boolean) -> ANY)
   (DEBUG "http close ~a~%" (client-sockport client))
   (cond
    ((preparing-quit?) #t)
-   ((get-the-redirector-of-websocket server client)
-    => (lambda (redirector)
-         (let ((type (redirector-type redirector))
-               (ip (client-ip client)))
-           (remove-redirector! server client)
-           (DEBUG "Closing `~a' client `~a' registered as websocket...~%" type ip)
-           ;; NOTE:
-           ;; Websocket protocol demands a closing frame when the connection is going to
-           ;; close, so there's oneshot writing operation before shutdown. Then we have to
-           ;; clean websocket before actual shutdown
-           (remove-named-pipe-if-the-connection-is-websocket! client)
-           (cond
-            ((eq? 'half-write (half-closed?))
-             ;; NOTE: We have to give it one more chance to finish the reading.
-             ;;       So we can't actually close it here.
-             (DEBUG "Half-write websocket ~a from ~a~%"
-                    (client-sockport client) (client-ip client))
-             (closing-websocket-handshake server client peer-shutdown?))
-            ((eq? 'half-read (half-closed?))
-             (DEBUG "Half-read websocket ~a from ~a~%"
-                    (client-sockport client) (client-ip client)))
-            (else
-             (run-after-websocket-close-hooks)
-             ;; full-closed
-             (DEBUG "Full-closed websocket ~a from ~a~%"
-                    (client-sockport client) (client-ip client)))))))
    (else
     (DEBUG "do close connection~%")
     ;; NOTE: Don't use simply-quit here, since there's no valid installed prompt

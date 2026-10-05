@@ -31,9 +31,9 @@
   #:use-module (artanis websocket named-pipe)
   #:use-module (artanis websocket connection)
   #:use-module (artanis route)
-  #:export (detect-if-connecting-websocket
-            websocket-state?)
+  #:export (detect-if-connecting-websocket)
   #:re-export (; from (artanis websocket connection)
+               websocket-conn?
                ws-dispatcher
                ws-dispatcher?
                ws-send
@@ -56,7 +56,6 @@
                bytevector->ws-buffer
 
                ;; from (artanis websocket handshake)
-               closing-websocket-handshake
                websocket-rule-add!
                websocket-rule-timeout-set!
                websocket-rules-defined?
@@ -89,8 +88,6 @@
                named-pipe-clients named-pipe-clients-set!
                named-pipe-task-queue-set!))
 
-;; http-read checks the result of detect-if-connecting-websocket with it.
-(define websocket-state? websocket-conn?)
 
 ;; AuthN of the handshake: run #:with-auth of the route, if any.
 ;; Returns (values ok? rc sid), rc is the route context of the handshake, the

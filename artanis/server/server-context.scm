@@ -500,18 +500,12 @@
 
 ;; A redirectors table holds all the redirectors as the value, and the
 ;; client port descriptor is the key.
-;; NOTE: There're 2 kinds of redirector types:
-;; 1. 'proxy
-;;    For redirecting to the remote socket port.
-;;    The content field will be the remote socket port.
-;; 2. protocol in symbol, e.g, 'echo, 'ping
-;;    For regular usage of websocket. If the http-read has detected the
-;;    current client was bound to a websocket, then http-read won't read
-;;    its body.
-;;    The body reading will be delayed to the handler, users have to
-;;    use :websocket command to read the parsed body according to the
-;;    registered protocol parser.
-;;    The content field is #f.
+;; NOTE: The redirector is reserved for connection layer protocols over the
+;;       connection of a client, e.g. a tunnel from a WebSocket connection to
+;;       a service port on the server ('redirect), or a transparent proxy
+;;       ('proxy). Nothing registers a redirector for now: the application
+;;       protocols of WebSocket are codecs, see (artanis websocket protocol),
+;;       and #:websocket 'redirect and 'proxy aren't implemented yet.
 (define (make-redirectors-table) (make-hash-table))
 
 (::define (get-the-redirector-of-websocket server client)
