@@ -63,7 +63,7 @@
   #:use-module (artanis websocket frame)
   #:use-module (artanis websocket connection)
   #:use-module ((artanis websocket handshake) #:select (websocket-rule-timeout))
-  #:use-module (artanis websocket named-pipe)
+  #:use-module ((artanis websocket topic) #:select (websocket-conn-release!))
   #:use-module ((artanis route) #:select (rc-handler rc-req))
   #:use-module (artanis server server-context)
   #:use-module (artanis server scheduler)
@@ -419,8 +419,8 @@
       (send-close! port code))))
 
 ;; Close the connection: send a close frame (1001) unless it has been sent or
-;; the peer is gone, call on-close of the dispatcher, then release the
-;; connection.
+;; the peer is gone, release the connection (topics, on-close, the close
+;; hook, see websocket-conn-release!), then close the socket.
 ;; NOTE: It may be called out of the task (the peer shut down, the server is
 ;;       quitting, an error escaped from the task, ...), so it never aborts
 ;;       to the prompt.
@@ -437,24 +437,8 @@
     (when (not (port-closed? port))
       (websocket-output-close! port))
     (when conn
-      (notify-close! client conn (if peer-shutdown? 1006 1001)))
-    (remove-named-pipe-if-the-connection-is-websocket! client)
-    (catch #t
-      (lambda () (run-hook *after-websocket-close-hook*))
-      (lambda (k . e)
-        (log-ws client "after-websocket-close hook failed: ~a ~a" k e)))
+      (websocket-conn-release! conn (if peer-shutdown? 1006 1001)))
     (%%raw-close-connection server client peer-shutdown?)))
-
-;; Mark the conn closed and call on-close, only once.
-(define (notify-close! client conn default-code)
-  (let ((why (websocket-conn-close! conn default-code))
-        (dispatcher (websocket-conn-dispatcher conn)))
-    (when (and why dispatcher (ws-dispatcher-on-close dispatcher))
-      (catch #t
-        (lambda ()
-          ((ws-dispatcher-on-close dispatcher) conn (car why) (cdr why)))
-        (lambda (k . e)
-          (log-ws client "on-close failed: ~a ~s" k e))))))
 
 (define (new-websocket-protocol)
   (make-ragnarok-protocol 'websocket

@@ -332,6 +332,12 @@ the #:overflow option of the route decides whether the connection is closed.
 0 means no limit.
 websocket.maxqueue = <integer>")
 
+    ((websocket maxtopics)
+     10
+     "The maximum number of topics a WebSocket connection can subscribe to,
+see ws-subscribe!. 0 means no limit.
+websocket.maxtopics = <integer>")
+
     ((websocket timeout)
      64
      "The idle timeout of WebSocket connections, in seconds. A connection is
@@ -593,6 +599,8 @@ session.i18n = json | sxml | locale | <third-party-engine>")
     (('maxfragments maxfragments)
      (conf-set! '(websocket maxfragments) (->integer maxfragments)))
     (('maxqueue maxqueue) (conf-set! '(websocket maxqueue) (->integer maxqueue)))
+    (('maxtopics maxtopics)
+     (conf-set! '(websocket maxtopics) (->integer maxtopics)))
     (('timeout timeout) (conf-set! '(websocket timeout) (->integer timeout)))
     (else (error parse-namespace-websocket "Config: Invalid item" item))))
 

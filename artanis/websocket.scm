@@ -28,7 +28,7 @@
   #:use-module (artanis env)
   #:use-module (artanis websocket handshake)
   #:use-module (artanis websocket frame)
-  #:use-module (artanis websocket named-pipe)
+  #:use-module (artanis websocket topic)
   #:use-module (artanis websocket connection)
   #:use-module (artanis route)
   #:export (detect-if-connecting-websocket)
@@ -78,15 +78,12 @@
                send-websocket-close
                websocket-output-closed?
 
-               ;; from (artanis websocket named-pipe)
-               register-websocket-pipe!
-               pair-name-to-client!
-               send-to-websocket-named-pipe
-               detect-pipe-name
-               get-named-pipe
-               new-named-pipe
-               named-pipe-clients named-pipe-clients-set!
-               named-pipe-task-queue-set!))
+               ;; from (artanis websocket topic)
+               ws-subscribe!
+               ws-unsubscribe!
+               ws-publish
+               ws-subscribers
+               ws-topics-of))
 
 
 ;; AuthN of the handshake: run #:with-auth of the route, if any.
@@ -135,4 +132,6 @@
          (else
           (do-websocket-handshake req port)
           (new-websocket-conn
-           rc (find-websocket-rule (websocket-request-path req)) sid))))))))
+           rc (find-websocket-rule (websocket-request-path req)) sid
+           ;; The handshake passed #:with-auth, see handshake-auth.
+           (and (rc-oht-ref rc #:with-auth) #t)))))))))

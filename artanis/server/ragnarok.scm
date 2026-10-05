@@ -37,7 +37,7 @@
   #:use-module (artanis server server-context)
   #:use-module (artanis server scheduler)
   #:use-module (artanis server aio)
-  #:use-module (artanis websocket named-pipe)
+  #:use-module ((artanis websocket topic) #:select (websocket-release!))
   #:use-module ((srfi srfi-1) #:select (fold any))
   #:use-module (system repl error-handling)
   #:use-module (srfi srfi-9)
@@ -166,7 +166,7 @@
                        (ragnarok-close proto server (task-client t) #f)))
                    (lambda _
                      ;; ignore any error since there's no resource to handle.
-                     (remove-named-pipe-if-the-connection-is-websocket! (task-client t))
+                     (websocket-release! (task-client t))
                      (close-current-task! server (task-client t)))))))))
        wt)))
   ;; TODO: add more collectors
@@ -590,7 +590,7 @@
                                (DEBUG "An error occured outside of the task prmpt, ")
                                (DEBUG "we have no choice but ignore it.~%")
                                ;; NOTE: The error task must be removed here.
-                               (remove-named-pipe-if-the-connection-is-websocket! client)
+                               (websocket-release! client)
                                (close-current-task! server client))))))))))
                (lambda (k . e)
                  (call-with-values
@@ -621,7 +621,7 @@
              (cond
               ((out-of-system-resources? e)
                (parameterize ((current-server server))
-                 (remove-named-pipe-if-the-connection-is-websocket! client)
+                 (websocket-release! client)
                  (close-current-task! server client)
                  (close (client-sockport client))
                  (resources-collector)))
@@ -638,7 +638,7 @@
                  (lambda ()
                    (when (ragnarok-client? client)
                      (parameterize ((current-server server))
-                       (remove-named-pipe-if-the-connection-is-websocket! client)
+                       (websocket-release! client)
                        (close-current-task! server client))))
                  (lambda _ #t))))))
          (DEBUG "main-loop again~%")
@@ -760,6 +760,9 @@
             (epfd (ragnarok-server-epfd (current-server))))
         (DEBUG "The closed peer ~a is going to be shut right now!~%" conn-fd)
         (epoll-ctl epfd EPOLL_CTL_DEL conn-fd #f) ; #f means %null-pointer here
+        ;; A WebSocket connection must be released before its task is
+        ;; dropped, see (artanis websocket topic).
+        (websocket-release! (current-client))
         (close-task)))
      ((io-exception:out-of-memory? e)
       ;; NOTE: out of memory, and throw 503 to let client try again. We can't just schedule

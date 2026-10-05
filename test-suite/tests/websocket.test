@@ -21,7 +21,7 @@
 (define-module (test websocket)
   #:use-module (artanis websocket handshake)
   #:use-module (artanis websocket frame)
-  #:use-module (artanis websocket named-pipe)
+  #:use-module (artanis websocket topic)
   #:use-module (artanis config)
   #:use-module (rnrs bytevectors)
   #:use-module (rnrs io ports)
@@ -527,9 +527,10 @@
         (lambda _ #t))
       (websocket-frame-in-flight? p))))
 
-(with-test-prefix "websocket named-pipe"
+(with-test-prefix "websocket release"
 
-  (pass-if "closing a connection without a named-pipe"
+  (pass-if "releasing something that isn't a WebSocket client"
     (begin
-      (remove-named-pipe-if-the-connection-is-websocket! (list 'not-a-pipe-client))
+      (websocket-release! (list 'not-a-client))
+      (websocket-release! #f)
       #t)))

@@ -23,7 +23,6 @@
   #:use-module (artanis config)
   #:use-module (artanis runner)
   #:use-module (artanis websocket)
-  #:use-module (artanis websocket named-pipe)
   #:use-module (artanis server server-context)
   #:use-module (artanis server epoll)
   #:use-module (artanis server scheduler)

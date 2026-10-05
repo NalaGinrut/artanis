@@ -200,6 +200,11 @@
                ws-close!
                ws-pre-encode
                ws-encoded?
+               ws-subscribe!
+               ws-unsubscribe!
+               ws-publish
+               ws-subscribers
+               ws-topics-of
                ws-message?
                ws-message-type
                ws-message-text?

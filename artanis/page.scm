@@ -55,51 +55,6 @@
 (define (rc-lpc-recycle rc body)
   (and=> (rc-lpc rc) lpc-instance-recycle))
 
-(define* (try-to-register-websocket-pipe! req new-client)
-  (let ((name (detect-pipe-name req))
-        (inexclusive? (url-need-inexclusive-websocket?
-                       (websocket-request-path req))))
-    (DEBUG "Register named-pipe: ~a~%" name)
-    (cond
-     ((not name) #f) ; the connection doesn't use a named-pipe
-     ((get-named-pipe name)
-      => (lambda (named-pipe)
-           (let ((old-clients (named-pipe-clients named-pipe))
-                 (server (current-server)))
-             ;; NOTE: If the same name was specified, we close the old one then register the
-             ;;       new one. This is because some clients/browswers have bugs to not close
-             ;;       connection when refresh the page/webapi, so we close it positively to
-             ;;       avoid further problem.
-             ;; FIXME: We should detect secure token here first.
-             ;; NOTE: Because WS connection was closed then reopened, so we MUST pass
-             ;;       peer-shutdown? as #f here, or it'll close the new WS connection.
-             (cond
-              (inexclusive?
-               ;; If the client is not registered, then add it.
-               (when (not (member new-client old-clients))
-                 (let ((clients (cons new-client old-clients)))
-                   (named-pipe-clients-set! named-pipe clients)
-                   (pair-name-to-client! new-client name))))
-              (else
-               (for-each
-                (lambda (client)
-                  (DEBUG "Closing replaced WS connection~%")
-                  ;; It sends the close frame (1001) then closes the
-                  ;; connection. The old connection may be gone already, it
-                  ;; must not break the new one.
-                  (catch #t
-                    (lambda ()
-                      ((ragnarok-protocol-close (lookup-protocol 'websocket))
-                       server client #f))
-                    (lambda e
-                      (DEBUG "Failed to close replaced WS connection: ~a~%" e))))
-                old-clients)
-               (DEBUG "Replace existing named-pipe ~a ...~%" name)
-               (named-pipe-clients-set! named-pipe (list new-client))
-               (register-websocket-pipe! named-pipe)
-               (DEBUG "done."))))))
-     (else (register-websocket-pipe! (new-named-pipe name (list new-client)))))))
-
 (define (print-request-info rq body)
   (let ((path (request-path rq))
         (method (request-method rq))
@@ -119,9 +74,6 @@
   (run-before-response! rc-conn-recycle)
   (run-before-response! rc-lpc-recycle))
 
-(define (init-after-websocket-hook)
-  (run-after-websocket-handshake! try-to-register-websocket-pipe!))
-
 (define (init-startup-hook)
   #t)
 
@@ -129,8 +81,7 @@
 (define (init-hook)
   (init-startup-hook)
   (init-after-request-hook)
-  (init-before-response-hook)
-  (init-after-websocket-hook))
+  (init-before-response-hook))
 
 (define (handler-render handler rc)
   (define (->bytevector body)

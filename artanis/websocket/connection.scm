@@ -136,6 +136,7 @@
             websocket-conn-protocol
             websocket-conn-inbound
             websocket-conn-sid
+            websocket-conn-authenticated?
             websocket-conn-client
             websocket-conn-client-set!
             websocket-conn-checked-at
@@ -275,6 +276,7 @@
 ;;     it once.
 ;; rule: the websocket-rule of the route.
 ;; protocol: the ws-protocol of a '(proto X) route, or #f.
+;; authenticated?: its route has #:with-auth, which passed at the handshake.
 ;; sid: the session the connection was authenticated with at its handshake,
 ;;      or #f. It's checked again periodically, see ws-recheck! in
 ;;      (artanis server websocket).
@@ -297,7 +299,7 @@
 ;;       touched by the server thread.
 
 (define-record-type websocket-conn
-  (fields rc rule protocol sid
+  (fields rc rule protocol sid authenticated?
           (mutable checked-at)
           (mutable client)
           (mutable last-inbound)
@@ -318,8 +320,8 @@
              (throw 'artanis-err 500 'new-websocket-conn
                     "No WebSocket protocol `~a'" protocol)))))
 
-(define (new-websocket-conn rc rule sid)
-  (make-websocket-conn rc rule (rule-protocol rule) sid
+(define* (new-websocket-conn rc rule sid #:optional (authenticated? #f))
+  (make-websocket-conn rc rule (rule-protocol rule) sid authenticated?
                        (current-time) #f (current-time) #f
                        (make-mutex) (new-queue) 0 'open #f #f))
 
