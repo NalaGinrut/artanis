@@ -256,6 +256,9 @@
             (Sec-WebSocket-Version . "13")))
      ((not (acceptable-origin? headers))
       `(403 ,(format #f "Untrusted origin `~a'" (header-ref headers 'origin))))
+     ((missing-subprotocol req)
+      => (lambda (name)
+           `(400 ,(format #f "Sec-WebSocket-Protocol must include `~a'" name))))
      (else #f))))
 
 ;; Answer a rejected handshake request. The caller closes the connection.
@@ -271,18 +274,36 @@
                     port)
     (force-output port)))
 
-;; The Sec-WebSocket-Protocol subprotocol is only negotiated when the client
-;; asks for one: the protocol of the route is selected if the client listed
-;; it. Otherwise the header is omitted, and it's up to the client whether to
-;; go on (RFC 6455 4.2.2).
-(define (select-subprotocol headers protocol)
+;; The Sec-WebSocket-Protocol subprotocol is the application protocol of a
+;; '(proto X) route: the client must list X, otherwise the handshake is
+;; rejected by websocket-request-error, since the messages are decoded and
+;; encoded with X (see (artanis websocket protocol)). The 101 response
+;; selects X. Other routes ('raw, ...) don't negotiate any subprotocol, the
+;; header is omitted, and it's up to the client whether to go on (RFC 6455
+;; 4.2.2).
+(define (requested-subprotocol? headers name)
   (let ((requested (header-ref headers 'sec-websocket-protocol)))
     (and (string? requested)
-         (symbol? protocol)
-         (let ((name (symbol->string protocol)))
-           (and (any (lambda (p) (string=? (string-trim-both p) name))
-                     (string-split requested #\,))
-                name)))))
+         (any (lambda (p) (string=? (string-trim-both p) name))
+              (string-split requested #\,)))))
+
+;; The name of the protocol of the route, if it's a '(proto X) route.
+(define (route-subprotocol rule)
+  (let ((protocol (and rule (websocket-rule-protocol rule))))
+    (and (ws-protocol-route? protocol)
+         (symbol->string protocol))))
+
+;; Returns the subprotocol the client must list but didn't, or #f.
+(define (missing-subprotocol req)
+  (let ((name (route-subprotocol
+               (find-websocket-rule (websocket-request-path req)))))
+    (and name
+         (not (requested-subprotocol? (request-headers req) name))
+         name)))
+
+(define (select-subprotocol headers rule)
+  (let ((name (route-subprotocol rule)))
+    (and name (requested-subprotocol? headers name) name)))
 
 ;; Write the 101 response. The request must have passed
 ;; websocket-request-error, and its path must be a WebSocket route.
@@ -290,7 +311,7 @@
   (let* ((headers (request-headers req))
          (rule (find-websocket-rule (websocket-request-path req)))
          (accept-key (gen-accept-key (header-ref headers 'sec-websocket-key)))
-         (subprotocol (select-subprotocol headers (websocket-rule-protocol rule)))
+         (subprotocol (select-subprotocol headers rule))
          (res (build-response
                #:code 101
                #:headers `((upgrade "websocket")

@@ -162,12 +162,25 @@
       (and (= 426 (car err))
            (equal? "13" (assq-ref (cddr err) 'Sec-WebSocket-Version)))))
 
-  (pass-if-equal "subprotocol only when requested"
-    '(#f "chat" #f)
+  (pass-if-equal "subprotocol: the protocol of a proto route, never on raw"
+    '("chat" "chat" #f)
     (let ((select (@@ (artanis websocket handshake) select-subprotocol)))
-      (list (select '() 'chat)
-            (select '((sec-websocket-protocol . "a, chat")) 'chat)
-            (select '((sec-websocket-protocol . "a, b")) 'chat)))))
+      (list (select '((sec-websocket-protocol . "chat"))
+                    (find-websocket-rule "/chat/1"))
+            (select '((sec-websocket-protocol . "a, chat"))
+                    (find-websocket-rule "/chat/1"))
+            (select '((sec-websocket-protocol . "raw"))
+                    (find-websocket-rule "/ws")))))
+
+  (pass-if-equal "a proto route requires its subprotocol"
+    '(400 400 #f #f)
+    (list (req-error #:path "/chat/1")
+          (req-error #:path "/chat/1"
+                     #:headers (with 'sec-websocket-protocol "a, b"))
+          (req-error #:path "/chat/1"
+                     #:headers (with 'sec-websocket-protocol "a, chat"))
+          ;; A raw route doesn't care.
+          (req-error #:headers (with 'sec-websocket-protocol "a, b")))))
 
 (with-test-prefix "websocket origin"
 
