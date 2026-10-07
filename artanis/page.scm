@@ -31,6 +31,7 @@
   #:use-module (artanis route)
   #:use-module (artanis websocket)
   #:use-module (artanis server server-context)
+  #:use-module (artanis security nss)
   #:use-module (srfi srfi-19)
   #:use-module (web uri)
   #:use-module (web http)
