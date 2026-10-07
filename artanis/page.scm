@@ -90,8 +90,9 @@
 ;; integration testing). A special entry "localhost" trusts any localhost /
 ;; 127.0.0.1 / [::1] origin regardless of port. Untrusted or absent-Origin
 ;; requests get no CORS headers, so the browser enforces same-origin policy
-;; as usual. No Access-Control-Allow-Credentials here: the endpoints that
-;; need CORS are pre-auth.
+;; as usual. Credentials are allowed (the login session cookie), so the
+;; origin is echoed back verbatim -- never "*", which a credentialed
+;; response forbids.
 (define (localhost-origin? origin)
   (let ((u (string->uri origin)))
     (and u
@@ -111,7 +112,8 @@
 (define (cors-headers req)
   (let ((origin (cors-origin req)))
     (and origin
-         `((access-control-allow-origin . ,origin)))))
+         `((access-control-allow-origin . ,origin)
+           (access-control-allow-credentials . "true")))))
 
 (define (handler-render handler rc)
   (define (->bytevector body)
@@ -181,6 +183,7 @@
                                 (content-length . 0)
                                 ,@(if cors
                                       `((access-control-allow-origin . ,cors)
+                                        (access-control-allow-credentials . "true")
                                         (access-control-allow-methods
                                          . ,(string-join
                                              (map symbol->string
