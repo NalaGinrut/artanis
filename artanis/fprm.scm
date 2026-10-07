@@ -1041,7 +1041,7 @@
   (define (table-exists? tname)
     (case (get-conf '(db dbd))
       ((mysql) (DB-query rc/conn (format #f "show tables like '~a';" tname)))
-      ((postgresql) (DB-query rc/conn (format #f "select from information_schema.tables where table_schema='public' and table_name='~a';" tname)))
+      ((postgresql) (DB-query rc/conn (format #f "select table_name from information_schema.tables where table_schema='public' and table_name='~a';" tname)))
       ((sqlite3) (DB-query rc/conn (format #f "select * from sqlite_master where type='table' and name='~a'" tname)))
       (else (throw 'artanis-err 500 table-exists?
                    "Unsupported DBD `~a'!" (get-conf '(db dbd)))))
