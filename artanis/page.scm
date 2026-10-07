@@ -33,6 +33,7 @@
   #:use-module (artanis server server-context)
   #:use-module (artanis security nss)
   #:use-module (srfi srfi-19)
+  #:use-module (srfi srfi-13)
   #:use-module (web uri)
   #:use-module (web http)
   #:use-module (ice-9 match)
@@ -84,6 +85,34 @@
   (init-after-request-hook)
   (init-before-response-hook))
 
+;; CORS. server.origins is a whitelist of the browser origins allowed to call
+;; us cross-origin (e.g. the sandboxed iframe / front-end dev server during
+;; integration testing). A special entry "localhost" trusts any localhost /
+;; 127.0.0.1 / [::1] origin regardless of port. Untrusted or absent-Origin
+;; requests get no CORS headers, so the browser enforces same-origin policy
+;; as usual. No Access-Control-Allow-Credentials here: the endpoints that
+;; need CORS are pre-auth.
+(define (localhost-origin? origin)
+  (let ((u (string->uri origin)))
+    (and u
+         (let ((host (uri-host u)))
+           (and host
+                (member host '("localhost" "127.0.0.1" "::1")))))))
+
+(define (cors-origin req)
+  (let ((origin (assq-ref (request-headers req) 'origin)))
+    (and (string? origin)
+         (let ((origins (get-conf '(server origins))))
+           (and (or (member origin origins)
+                    (and (member "localhost" origins)
+                         (localhost-origin? origin)))
+                origin)))))
+
+(define (cors-headers req)
+  (let ((origin (cors-origin req)))
+    (and origin
+         `((access-control-allow-origin . ,origin)))))
+
 (define (handler-render handler rc)
   (define (->bytevector body)
     (cond
@@ -101,6 +130,7 @@
                       (host . ,(current-myhost #:for-header? #t))
                       (last-modified . ,mtime)
                       ,(gen-content-length reformed-body)
+                      ,@(cors-headers (rc-req rc))
                       ,@pre-headers
                       ,@(generate-cookies (rc-set-cookie rc))))
            (response (build-response #:code status #:headers headers)))
@@ -143,11 +173,24 @@
   (let* ((path (request-path req))
          (digest (string->sha-1 path))
          (methods (http-options->methods digest))
+         (cors (cors-origin req))
          (response (build-response
                     #:code 200
                     #:headers `((server . ,(get-conf '(server info)))
                                 (allow ,@methods)
                                 (content-length . 0)
+                                ,@(if cors
+                                      `((access-control-allow-origin . ,cors)
+                                        (access-control-allow-methods
+                                         . ,(string-join
+                                             (map symbol->string
+                                                  (append methods '(OPTIONS)))
+                                             ", "))
+                                        (access-control-allow-headers
+                                         . ,(or (assq-ref (request-headers req)
+                                                          'access-control-request-headers)
+                                                "Content-Type")))
+                                      '())
                                 ,@(prepare-headers '())))))
     (if (is-guile-compatible-server-core? (get-conf '(server engine)))
         (values response #vu8())
