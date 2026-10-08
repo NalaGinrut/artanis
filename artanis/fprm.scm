@@ -521,7 +521,7 @@
            (index-sqls (if (eq? dbd 'mysql)
                            '()
                            (srfi-1:append-map (cut ->separate-indexes tname <>)
-                                       options)))
+                                              options)))
            (pks (gen-primary-keys primary-keys))
            (engine (if (eq? 'mysql dbd)
                        engine
@@ -536,17 +536,13 @@
                       (else (->sql create table tname `(,types ,inline-opts ,pks) engine)))))
         (cond
          ((not dump)
-          (pk 'dbd dbd)
-          (pk 'sql sql)
-          (pk 'before conn)
           (DB-query conn sql #:params params)
           ;; PostgreSQL/SQLite3 have no inline INDEX in CREATE TABLE, so
           ;; indexes are created right after the table, only if it worked.
           (when (db-conn-success? conn)
             (for-each (lambda (isql) (DB-query conn isql)) index-sqls))
-          (pk 'after conn)
           (lambda cmd
-            (match (pk 'cmd cmd)
+            (match cmd
               ('(primary-keys) primary-keys)
               (`(add-primary-keys ,keys)
                (call-with-values
@@ -657,7 +653,6 @@
            "In ~a, ~a: unsafe SQL identifier rejected: `~a'" proc who name)))
 
 (define (non-negative-integer? x)
-  (pk 'non-negative-integer? x)
   (when (not (number? x))
     (throw 'artanis-err 500 non-negative-integer?
            "Invalid non-negative integer `~a'!" x))
@@ -1049,7 +1044,7 @@
     (DB-get-top-row rc/conn))
   (lambda (cmd tname . args)
     (define-syntax-rule (->call func)
-      (apply func (pk 'args (cons tname args))))
+      (apply func (cons tname args)))
     (case cmd
       ((valid?) (db-conn-success? conn))
       ((get) (->call getter))
