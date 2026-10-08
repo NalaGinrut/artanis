@@ -310,10 +310,14 @@
 ;; (map (lambda (x) (->sql-type (cdr x)))
 ;;      '((name varchar 10) (age int 5) (email varchar 255)))
 ;; ==> ("varchar(10)" "int(5)" "varchar(255)")
-(define-macro (->sql-type name-and-args)
-  `(or (apply ->sql-general-type ,name-and-args)
-       (apply ,(symbol-append '-> (->symbol (get-conf '(db dbd))) '-type)
-              ,name-and-args)))
+(define (->sql-type name-and-args)
+  (or (apply ->sql-general-type name-and-args)
+      (apply (case (get-conf '(db dbd))
+               ((mysql) ->mysql-type)
+               ((postgresql) ->postgresql-type)
+               (else (throw 'artanis-err 500 ->sql-type
+                            "Unsupported DBD `~a'!" (get-conf '(db dbd)))))
+             name-and-args)))
 
 (define (make-table-dropper rc/conn)
   (define conn (get-conn-from-rc/conn rc/conn make-table-dropper))
