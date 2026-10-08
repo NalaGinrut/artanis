@@ -180,6 +180,8 @@
     ;; char for 1 byte single-byte internal type
     ((char) (if (null? args) (->0 name args) (->1 name args)))
     ((name) (->0 name args)) ; 64 bytes internal type for object names
+    ((text) (->0 name args)) ; variable-length string, no length limit
+
 
     ;; 8 bytes currency amount
     ;; -92233720368547758.08 to +92233720368547758.07
