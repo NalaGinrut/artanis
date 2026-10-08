@@ -111,9 +111,10 @@
 
 (define (cors-headers req)
   (let ((origin (cors-origin req)))
-    (and origin
-         `((access-control-allow-origin . ,origin)
-           (access-control-allow-credentials . "true")))))
+    (if origin
+        `((access-control-allow-origin . ,origin)
+          (access-control-allow-credentials . "true"))
+        '())))
 
 (define (handler-render handler rc)
   (define (->bytevector body)
