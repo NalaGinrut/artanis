@@ -190,13 +190,53 @@
          (or (eqv? errno EADDRNOTAVAIL) ; no available port for connecting socket
              (eqv? errno EMFILE))))) ; Too many opened files
 
+(define *max-connections* #f)
+
+;; server.maxconns, or the soft limit of fds of the process minus some for
+;; other fds (the listening socket, epoll, files, DB connections, ...).
+(define (max-connections)
+  (or *max-connections*
+      (let ((n (get-conf '(server maxconns))))
+        (set! *max-connections*
+              (if (> n 0)
+                  n
+                  (call-with-values (lambda () (getrlimit 'nofile))
+                    (lambda (soft hard)
+                      (if soft (max 64 (- soft 64)) 1024)))))
+        *max-connections*)))
+
+(define *busy-response*
+  (string->utf8
+   (string-append "HTTP/1.1 503 Service Unavailable\r\n"
+                  "Connection: close\r\n"
+                  "Retry-After: 1\r\n"
+                  "Content-Length: 0\r\n\r\n")))
+
+;; Answer a connection over server.maxconns with 503 as far as it's possible,
+;; and close it. Its send buffer is empty, the write never blocks.
+(define (reject-connection! sock)
+  (DEBUG "Too many connections, reject ~a~%" sock)
+  (catch #t
+    (lambda ()
+      (send sock *busy-response* MSG_DONTWAIT)
+      (shutdown sock 2))
+    (const #f))
+  (close-port sock))
+
 ;; NOTE: We will call `accept' if it's listenning socket. Logically, it's
 ;;       impossible to encounter listenning socket again while polling.
 (::define (fill-ready-queue-from-service proto server)
   ;; should be client list but we don't check internally.
   (:anno: (ragnarok-protocol ragnarok-server) -> ready-queue)
+  ;; Over server.maxconns, a new connection is answered with 503 and closed
+  ;; at once, so the server never runs out of fds for the connections it
+  ;; serves. The suspended tasks are the connections being served, see
+  ;; save-current-task!.
+  (define (room)
+    (- (max-connections)
+       (hash-count (const #t) (work-table-content (current-work-table server)))))
   (define (accept-them-all listen-socket)
-    (let lp ((ret '()))
+    (let lp ((ret '()) (room (room)))
       (let ((sock-port
              (catch #t
                (lambda ()
@@ -220,9 +260,13 @@
                   (else
                    (DEBUG "Get ~a new connections.~%" (length ret))
                    #f))))))
-        (if sock-port
-            (lp (cons (new-ragnarok-client sock-port) ret))
-            ret))))
+        (cond
+         ((not sock-port) ret)
+         ((<= room 0)
+          (reject-connection! (car sock-port))
+          (lp ret room))
+         (else
+          (lp (cons (new-ragnarok-client sock-port) ret) (1- room)))))))
   (define (is-listenning-fd? e)
     (DEBUG "listenning-port? ~a~%" e)
     (let ((listen-socket (ragnarok-server-listen-socket server)))

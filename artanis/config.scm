@@ -193,6 +193,15 @@ server.engine = ragnarok | guile | fibers | <customized engine>")
 0 for always short live connections.
 server.timeout = <integer>")
 
+    ((server maxconns)
+     0
+     "The maximum number of connections served at the same time. A new
+connection over it is answered with 503 Service Unavailable and closed at once,
+so the server never runs out of file descriptors. 0 means the limit of open
+files of the process (ulimit -n) minus 64 for other files, e.g. DB connections.
+The default value is suitable for most cases, don't change it without a reason.
+server.maxconns = <integer>")
+
     ((server readtimeout)
      30
      "The time to read a request (in seconds). The request line and
@@ -591,6 +600,7 @@ for the headers), and the connection is closed.
     (('wqlen wqlen) (conf-set! '(server wqlen) (->integer wqlen)))
     (('trigger trigger) (conf-set! '(server trigger) (string->symbol trigger)))
     (('timeout timeout) (conf-set! '(server timeout) (->integer timeout)))
+    (('maxconns maxconns) (conf-set! '(server maxconns) (->integer maxconns)))
     (('readtimeout readtimeout)
      (conf-set! '(server readtimeout) (->integer readtimeout)))
     (('polltimeout polltimeout) (conf-set! '(server polltimeout) (->integer polltimeout)))
