@@ -327,19 +327,25 @@
       (format #f "./pub/~a" path)))
 
 (define-syntax-rule (request-ip req)
-  ;; TODO: support AF_INET6 in the future
   (if (port-filename (request-port req))
       ;; Valid socket port
       (catch #t
         (lambda ()
-          (inet-ntop AF_INET (sockaddr:addr (getpeername (request-port req)))))
+          (let ((sa (getpeername (request-port req))))
+            ;; AF_INET or AF_INET6
+            (inet-ntop (sockaddr:fam sa) (sockaddr:addr sa))))
         (lambda _ "Unknown IP"))
       "localtest")) ; fake hostname for testing
 
+;; The IP of the client. Behind nginx (server.nginx), it's X-Real-IP, which
+;; nginx must set with `proxy_set_header X-Real-IP $remote_addr;', and
+;; Artanis must listen on 127.0.0.1, otherwise a client could fake it.
+;; Without X-Real-IP, e.g. a request which didn't go through nginx, it's the
+;; peer, so such requests aren't all regarded as one client.
 (define-syntax-rule (remote-info req)
-  (if (get-conf '(server nginx))
-      (or (assoc-ref (request-headers req) 'x-real-ip) "Unknown IP")
-      (or (request-ip req) "Unknown IP")))
+  (or (and (get-conf '(server nginx))
+           (assoc-ref (request-headers req) 'x-real-ip))
+      (request-ip req)))
 
 (define *methods-list* '(HEAD GET POST PUT PATCH OPTIONS DELETE))
 (define (allowed-method? method)
