@@ -77,8 +77,14 @@
   (display "rendering a sys page for it...\n" (current-error-port))
   (render-sys-page 'client status request))
 
+;; NOTE: A 4xx here is an error of a request which couldn't be read, e.g. too
+;;       large or timeout, so there's no request to blame the client with.
 (define (format-status-page/server status)
-  (format (current-error-port) "[SERVER ERROR] Internal error from server-side, ")
+  (if (< status 500)
+      (format (current-error-port)
+              "[CLIENT ERROR] The request couldn't be read, ")
+      (format (current-error-port)
+              "[SERVER ERROR] Internal error from server-side, "))
   (format (current-error-port) "rendering a ~a page for client ...~%" status)
   (render-sys-page 'server status #f))
 
