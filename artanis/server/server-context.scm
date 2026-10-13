@@ -44,6 +44,10 @@
             take-idle-expired!
             recheck-watch!
             take-recheck-due!
+            read-deadline-set!
+            read-deadline-clear!
+            read-deadline-passed?
+            take-read-deadline-due!
 
             make-ragnarok-engine
             ragnarok-engine?
@@ -359,6 +363,7 @@
 ;;  'take    return the client, drop the item
 ;;  'again   enqueue the item again
 ;;  'both    return the client, and enqueue the item again
+;;  'drop    drop the item
 (define (take-due! queues wt decide)
   (let ((now (current-time))
         (tasks (work-table-content wt)))
@@ -415,6 +420,47 @@
                ;; A busy task isn't waiting in the protocol, it can't do the
                ;; check. Try again in the next period.
                (if (task-busy? client) 'again 'both))))
+(define *read-deadline-queues* (make-hash-table)) ; seconds -> queue
+;; client -> deadline in seconds. Weak, so a closed connection which didn't
+;; clear its deadline doesn't leak.
+(define *read-deadlines* (make-weak-key-hash-table))
+;; client -> #t if it has an item in the watch, so a keep-alive connection
+;; reading request after request has one item at most.
+(define *read-watched* (make-weak-key-hash-table))
+
+;; The task of client must have read what it's reading (e.g. the head of a
+;; request) within seconds (> 0) from now, otherwise it's resumed to get its
+;; timeout, even if the peer sends nothing. Unlike the task timeout, it's not
+;; refreshed by the data from the peer, so a slow peer can't hold the
+;; connection by sending a byte now and then. Setting it again moves the
+;; deadline.
+(define (read-deadline-set! client seconds)
+  (hashq-set! *read-deadlines* client (+ (current-time) seconds))
+  (unless (hashq-ref *read-watched* client)
+    (hashq-set! *read-watched* client #t)
+    (timed-watch! *read-deadline-queues* client seconds)))
+
+(define (read-deadline-clear! client)
+  (hashq-remove! *read-deadlines* client))
+
+(define (read-deadline-passed? client)
+  (let ((d (hashq-ref *read-deadlines* client)))
+    (and d (>= (current-time) d))))
+
+;; Returns the clients whose read deadline has passed. The watch of a client
+;; is dropped once its deadline has been cleared.
+(define (take-read-deadline-due! wt)
+  (take-due! *read-deadline-queues* wt
+             (lambda (client task)
+               (define (unwatch! d)
+                 (hashq-remove! *read-watched* client)
+                 d)
+               (cond
+                ((not (hashq-ref *read-deadlines* client)) (unwatch! 'drop))
+                ;; A busy task isn't reading, check it in the next period.
+                ((task-busy? client) 'again)
+                ((read-deadline-passed? client) (unwatch! 'take))
+                (else 'again)))))
 ;; =========== end Timed watches ===========
 
 (define *high-prio-mutex* (make-mutex))

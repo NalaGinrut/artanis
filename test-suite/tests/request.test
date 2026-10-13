@@ -16,8 +16,11 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (test request)
+  #:use-module (artanis utils)
   #:use-module (artanis server request)
+  #:use-module (artanis server server-context)
   #:use-module (ice-9 binary-ports)
+  #:use-module (ice-9 threads)
   #:use-module (ice-9 receive)
   #:use-module (rnrs bytevectors)
   #:use-module (web request)
@@ -110,3 +113,81 @@
                            1024)
         #f)
       (lambda (k . _) k))))
+
+;; Read deadlines
+
+(define (new-client)
+  (let ((p (socketpair PF_UNIX SOCK_STREAM 0)))
+    (new-ragnarok-client (list (car p)))))
+
+(define (new-wt) (make-work-table (make-hash-table) (make-mutex)))
+
+(define (client+task wt)
+  (let* ((c (new-client))
+         (t (make-task c (current-time) 60 #f #f #t)))
+    (add-a-task-to-work-table! wt c t)
+    c))
+
+(define deadline-queues
+  (@@ (artanis server server-context) *read-deadline-queues*))
+
+(define (reset-deadlines!) (hash-clear! deadline-queues))
+
+;; Pretend the deadline was set `ago' seconds ago.
+(define (age! client seconds ago)
+  (hashq-set! (@@ (artanis server server-context) *read-deadlines*)
+              client (+ (- (current-time) ago) seconds))
+  (let ((q (hashv-ref deadline-queues seconds)))
+    (set-cdr! (queue-tail q) (- (current-time) ago))))
+
+(define (queued seconds)
+  (let ((q (hashv-ref deadline-queues seconds)))
+    (if q (queue-length q) 0)))
+
+(with-test-prefix "read deadline"
+
+  (pass-if "a passed deadline is taken"
+    (reset-deadlines!)
+    (let* ((wt (new-wt)) (c (client+task wt)))
+      (read-deadline-set! c 5)
+      (age! c 5 5)
+      (and (read-deadline-passed? c)
+           (equal? (list c) (take-read-deadline-due! wt))
+           (zero? (queued 5)))))
+
+  (pass-if "a deadline not passed yet isn't taken"
+    (reset-deadlines!)
+    (let* ((wt (new-wt)) (c (client+task wt)))
+      (read-deadline-set! c 5)
+      (and (not (read-deadline-passed? c))
+           (null? (take-read-deadline-due! wt))
+           (= 1 (queued 5)))))
+
+  (pass-if "a moved deadline is checked again"
+    (reset-deadlines!)
+    (let* ((wt (new-wt)) (c (client+task wt)))
+      (read-deadline-set! c 5)
+      (age! c 5 5)
+      ;; Set again, e.g. the next request of a kept-alive connection.
+      (read-deadline-set! c 5)
+      (and (null? (take-read-deadline-due! wt))
+           (= 1 (queued 5)))))
+
+  (pass-if "a cleared deadline drops the watch"
+    (reset-deadlines!)
+    (let* ((wt (new-wt)) (c (client+task wt)))
+      (read-deadline-set! c 5)
+      (age! c 5 5)
+      (read-deadline-clear! c)
+      (and (not (read-deadline-passed? c))
+           (null? (take-read-deadline-due! wt))
+           (zero? (queued 5)))))
+
+  (pass-if "one watch item for a client set again and again"
+    (reset-deadlines!)
+    (let* ((wt (new-wt)) (c (client+task wt)))
+      (read-deadline-set! c 5)
+      (read-deadline-clear! c)
+      (read-deadline-set! c 5)
+      (read-deadline-set! c 5)
+      (= 1 (queued 5)))))

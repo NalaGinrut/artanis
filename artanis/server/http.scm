@@ -34,6 +34,7 @@
                                  bytevector-length make-bytevector))
   #:use-module (ice-9 format)
   #:use-module (ice-9 futures)
+  #:use-module ((ice-9 suspendable-ports) #:select (current-read-waiter))
   #:use-module (system foreign)
   #:export (new-http-protocol
             %%raw-close-connection
@@ -139,18 +140,46 @@
                "Content is too large!~%"))
        ((zero? content-length) #f)
        (else (read-request-body req)))))
+  ;; The request must be read within server.readtimeout, see
+  ;; read-deadline-set!. When the task waits for the peer, it's resumed by
+  ;; the data, or by the deadline.
+  (define read-timeout (get-conf '(server readtimeout)))
+  (define body? #f)
+  (define (arm-deadline!)
+    (when (> read-timeout 0)
+      (read-deadline-set! client read-timeout)))
+  (define (deadline-waiter port)
+    (break-task)
+    (cond
+     ((read-deadline-passed? client)
+      (read-deadline-clear! client)
+      (throw 'artanis-err 408 http-read
+             "The request isn't read in ~a seconds" read-timeout))
+     ;; The body may take long, it must just not stop coming.
+     ((and body? (char-ready? port))
+      (arm-deadline!))))
+  (define (read-with-deadline thunk)
+    (parameterize ((current-read-waiter deadline-waiter))
+      (thunk)))
+  (define first-request? (not (task-keepalive? (current-task))))
   (DEBUG "Enter http-read ~a~%" (client-sockport client))
+  ;; A new connection must send its request in time. A kept-alive one may
+  ;; wait for its next request, until server.timeout.
+  (when first-request? (arm-deadline!))
   (let ((port (client-sockport client)))
     (cond
-     ((eof-object? (peek-char port))
+     ((eof-object? (read-with-deadline (lambda () (peek-char port))))
       (DEBUG "http-read: Encountered EOF, closing ~a~%"
              (client-sockport client))
       ;; Close it as peer-shutdown
       (%%raw-close-connection server client #t)
       (simply-quit))
      (else
-      (call-with-values (lambda () (try-to-read-request port))
+      (unless first-request? (arm-deadline!))
+      (call-with-values
+          (lambda () (read-with-deadline (lambda () (try-to-read-request port))))
         (lambda (req head-size)
+          (read-deadline-clear! client)
           (let ((ws-state (and (not (eof-object? req))
                                (detect-if-connecting-websocket req port))))
             (cond
@@ -172,7 +201,13 @@
               (%%raw-close-connection server client #f)
               (simply-quit))
              (else
-              (values req (try-to-read-request-body req head-size)))))))))))
+              (set! body? #t)
+              (arm-deadline!)
+              (let ((body (read-with-deadline
+                           (lambda ()
+                             (try-to-read-request-body req head-size)))))
+                (read-deadline-clear! client)
+                (values req body)))))))))))
 
 (::define (http-write server client response body method-is-head?)
   (:anno: (ragnarok-server ragnarok-client <response> ANY boolean) -> ANY)

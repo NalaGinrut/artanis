@@ -193,6 +193,19 @@ server.engine = ragnarok | guile | fibers | <customized engine>")
 0 for always short live connections.
 server.timeout = <integer>")
 
+    ((server readtimeout)
+     30
+     "The time to read a request (in seconds). The request line and
+the headers must arrive within it from the start of the request, and the body
+must not stop coming for that long. Otherwise the connection is closed. Unlike
+server.timeout, it's not refreshed by every byte from the peer, so a slow peer
+can't hold a connection by sending a byte now and then. It's checked about
+every this period with 1-second resolution, so a connection is closed
+roughly within [T, 2T] seconds.
+The default value is suitable for most cases, don't change it without a reason.
+0 means no limit.
+server.readtimeout = <integer>")
+
     ((server polltimeout)
      500
      "The the timeout for each event polling round, in miliseconds.
@@ -578,6 +591,8 @@ for the headers), and the connection is closed.
     (('wqlen wqlen) (conf-set! '(server wqlen) (->integer wqlen)))
     (('trigger trigger) (conf-set! '(server trigger) (string->symbol trigger)))
     (('timeout timeout) (conf-set! '(server timeout) (->integer timeout)))
+    (('readtimeout readtimeout)
+     (conf-set! '(server readtimeout) (->integer readtimeout)))
     (('polltimeout polltimeout) (conf-set! '(server polltimeout) (->integer polltimeout)))
     (('bufsize bufsize) (conf-set! '(server bufsize) (->integer bufsize)))
     (('impl impl) (conf-set! '(server impl) (string->symbol impl)))
