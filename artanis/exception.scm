@@ -45,7 +45,8 @@
         (bv-cat syspage #f)
         #vu8())))
 
-(define (render-sys-page blame-who? status request)
+;; headers are added to the response, e.g. Retry-After of 429 or 503.
+(define* (render-sys-page blame-who? status request #:key (headers '()))
   (artanis-log blame-who? status 'text/html #:request request)
   (let* ((charset (get-conf '(server charset)))
          (mtime (generate-modify-time (current-time)))
@@ -54,7 +55,8 @@
           (build-response #:code status
                           #:headers `((server . ,(get-conf '(server info)))
                                       (last-modified . ,mtime)
-                                      (content-type . (text/html (charset . ,charset))))))
+                                      (content-type . (text/html (charset . ,charset)))
+                                      ,@headers)))
          (body (cond
                 ((resources-collecting?)
                  #vu8(0)) ; Don't open any file since we don't have resources now
