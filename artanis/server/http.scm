@@ -218,13 +218,16 @@
   (cond
    (method-is-head?
     (DEBUG "Method is HEAD, so don't write body~%")
-    (force-output (response-port (write-response response (client-sockport client))))
+    (force-output (response-port (write-response
+                                  (response-with-standard-phrase response)
+                                  (client-sockport client))))
     (%%raw-close-connection server client #t)
     ;; NOTE: simply-quit here will be more efficient to avoid useless keep-alive connection
     ;;       and just drop the rest steps.
     (simply-quit))
    (else
-    (let* ((res (write-response response (client-sockport client)))
+    (let* ((res (write-response (response-with-standard-phrase response)
+                                (client-sockport client)))
            (port (response-port res))) ; return the continued port
       ;; send body to regular HTTP client
       (cond

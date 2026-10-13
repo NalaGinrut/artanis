@@ -268,6 +268,7 @@
                                (request-path req) status reason)
                  #:meta `((path . ,(request-path req))))
     (write-response (build-response #:code status
+                                    #:reason-phrase (status->reason-phrase status)
                                     #:headers `((content-length . 0) ,@extra))
                     port)
     (force-output port)))

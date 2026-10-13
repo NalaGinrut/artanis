@@ -93,6 +93,7 @@
             colorize-string WARN-TEXT ERROR-TEXT REASON-TEXT
             NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr request-path
             response-keep-alive? request-keep-alive? response-with-close
+            status->reason-phrase response-with-standard-phrase
             file->bytevector
             procedure-name->string gen-content-length
             make-file-sender file-sender? file-sender-size file-sender-thunk
@@ -1358,6 +1359,59 @@
               ;; HTTP/1.0 needs explicit keep-alive notice
               ((0) (memq 'keep-alive (response-connection response)))))
            (else #f)))))
+
+;; The reason phrases of RFC 9110 15, and of the extensions Artanis may send.
+;; Guile's table is the one of RFC 2616, without the codes defined later
+;; (e.g. 429, 431), and with old phrases (e.g. 413, 414).
+(define *reason-phrases*
+  '((100 . "Continue") (101 . "Switching Protocols")
+    (200 . "OK") (201 . "Created") (202 . "Accepted")
+    (203 . "Non-Authoritative Information") (204 . "No Content")
+    (205 . "Reset Content") (206 . "Partial Content")
+    (207 . "Multi-Status")                      ; RFC 4918
+    (300 . "Multiple Choices") (301 . "Moved Permanently") (302 . "Found")
+    (303 . "See Other") (304 . "Not Modified") (305 . "Use Proxy")
+    (307 . "Temporary Redirect") (308 . "Permanent Redirect")
+    (400 . "Bad Request") (401 . "Unauthorized") (402 . "Payment Required")
+    (403 . "Forbidden") (404 . "Not Found") (405 . "Method Not Allowed")
+    (406 . "Not Acceptable") (407 . "Proxy Authentication Required")
+    (408 . "Request Timeout") (409 . "Conflict") (410 . "Gone")
+    (411 . "Length Required") (412 . "Precondition Failed")
+    (413 . "Content Too Large") (414 . "URI Too Long")
+    (415 . "Unsupported Media Type") (416 . "Range Not Satisfiable")
+    (417 . "Expectation Failed") (421 . "Misdirected Request")
+    (422 . "Unprocessable Content")
+    (423 . "Locked") (424 . "Failed Dependency") ; RFC 4918
+    (425 . "Too Early")                         ; RFC 8470
+    (426 . "Upgrade Required")
+    (428 . "Precondition Required") (429 . "Too Many Requests")
+    (431 . "Request Header Fields Too Large")   ; RFC 6585
+    (451 . "Unavailable For Legal Reasons")     ; RFC 7725
+    (500 . "Internal Server Error") (501 . "Not Implemented")
+    (502 . "Bad Gateway") (503 . "Service Unavailable")
+    (504 . "Gateway Timeout") (505 . "HTTP Version Not Supported")
+    (507 . "Insufficient Storage") (508 . "Loop Detected") ; RFC 4918, 5842
+    (511 . "Network Authentication Required"))) ; RFC 6585
+
+(define (status->reason-phrase status)
+  (or (assv-ref *reason-phrases* status) "Unknown"))
+
+;; The response with the standard reason phrase of its status, unless the
+;; phrase has been customized, i.e. it's not the default of Guile.
+(define (response-with-standard-phrase response)
+  (let* ((code (response-code response))
+         (phrase (response-reason-phrase response))
+         (standard (status->reason-phrase code)))
+    (if (or (string=? phrase standard)
+            (not (string=? phrase
+                           ((@@ (web response) code->reason-phrase) code))))
+        response
+        (build-response #:version (response-version response)
+                        #:code code
+                        #:reason-phrase standard
+                        #:headers (response-headers response)
+                        #:port (response-port response)
+                        #:validate-headers? #f))))
 
 ;; The response with `Connection: close', for a connection closed after it.
 (define (response-with-close response)
