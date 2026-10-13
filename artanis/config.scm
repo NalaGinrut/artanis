@@ -268,8 +268,9 @@ server.workers = <integer>")
 Runners are for blocking operations that can't be done by non-blocking I/O, say, file I/O,
 foreign blocking calls, etc. They're NOT for parallel computing. The server core is still
 single-threaded, and the task calling call-with-runner will be suspended until it's done.
-NOTE: The runner queue is unbounded. Overload protection (backpressure) is expected to be
-done by rate limiting in front of Artanis, e.g. by the reverse proxy.
+NOTE: The task calling call-with-runner waits for its runner, so each queued runner has its
+connection, and the runner queue is bounded by server.maxconns. When the runners can't keep
+up, the tasks wait longer (backpressure), and give up with 504 after their #:timeout.
 server.runners = <integer>")
 
     ((server websocket)
