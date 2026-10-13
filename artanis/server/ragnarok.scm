@@ -233,8 +233,7 @@
   ;; serves. The suspended tasks are the connections being served, see
   ;; save-current-task!.
   (define (room)
-    (- (max-connections)
-       (hash-count (const #t) (work-table-content (current-work-table server)))))
+    (- (max-connections) (work-table-size (current-work-table server))))
   (define (accept-them-all listen-socket)
     (let lp ((ret '()) (room (room)))
       (let ((sock-port

@@ -78,6 +78,7 @@
             ready-queue-out!
 
             make-work-table
+            work-table-size
             work-table?
             work-table-content
             work-table-mutex
@@ -565,10 +566,14 @@
   (ragnarok-server-work-table server))
 
 ;; A table contains continuations
-(define-record-type work-table
+(define-record-type (work-table %make-work-table work-table?)
     (fields
      content ; the continuation
-     mutex)) ; a mutex for lock
+     mutex   ; a mutex for lock
+     (mutable size))) ; the number of tasks in content, see work-table-size
+
+(define (make-work-table content mutex)
+  (%make-work-table content mutex (hash-count (const #t) content)))
 
 
 ;; NOTE: Any methods in protocol shouldn't be bound to Ragnarok.
@@ -712,7 +717,11 @@
 (::define (remove-from-work-table! wt client peer-shutdown?)
   (:anno: (work-table ragnarok-client boolean) -> ANY)
   (DEBUG "Removed task ~a~%" (client-sockport client))
-  (hashv-remove! (work-table-content wt) (client-sockport-descriptor client))
+  (let ((fd (client-sockport-descriptor client))
+        (content (work-table-content wt)))
+    (when (hashv-ref content fd)
+      (work-table-size-set! wt (1- (work-table-size wt))))
+    (hashv-remove! content fd))
   ;; Before the fd could be closed and reused.
   (unregister-proto! client)
   (if (task-busy? client)
@@ -724,7 +733,12 @@
   (:anno: (work-table ragnarok-client task) -> ANY)
   (DEBUG "Add new task ~a == ~a~%"
          (client-sockport client) (client-sockport (task-client task)))
-  (hashv-set! (work-table-content wt) (client-sockport-descriptor client) task))
+  (let ((fd (client-sockport-descriptor client))
+        (content (work-table-content wt)))
+    ;; A task is added again each time it's suspended.
+    (unless (hashv-ref content fd)
+      (work-table-size-set! wt (1+ (work-table-size wt))))
+    (hashv-set! content fd task)))
 
 (::define (get-task-from-work-table wt client)
   (:anno: (work-table ragnarok-client) -> task)

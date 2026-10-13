@@ -338,3 +338,28 @@
 
   (pass-if-equal "EOF in the middle is 400" 400
     (chunked "5\r\nab" 1024)))
+
+;; The size of the work table, for server.maxconns
+
+(define remove-from-work-table!
+  (@@ (artanis server server-context) remove-from-work-table!))
+
+(with-test-prefix "work table size"
+
+  (pass-if-equal "counted when added and removed" '(0 2 2 1)
+    (let* ((wt (new-wt))
+           (s0 (work-table-size wt))
+           (a (client+task wt))
+           (b (client+task wt))
+           (s1 (work-table-size wt)))
+      ;; A task is added again each time it's suspended.
+      (add-a-task-to-work-table! wt a (get-task-from-work-table wt a))
+      (let ((s2 (work-table-size wt)))
+        (remove-from-work-table! wt a #f)
+        (list s0 s1 s2 (work-table-size wt)))))
+
+  (pass-if-equal "a table made with tasks" 2
+    (let ((content (make-hash-table)))
+      (hashv-set! content 1 'a)
+      (hashv-set! content 2 'b)
+      (work-table-size (make-work-table content (make-mutex))))))
