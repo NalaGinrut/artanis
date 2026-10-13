@@ -363,7 +363,6 @@
 ;;  'take    return the client, drop the item
 ;;  'again   enqueue the item again
 ;;  'both    return the client, and enqueue the item again
-;;  'drop    drop the item
 (define (take-due! queues wt decide)
   (let ((now (current-time))
         (tasks (work-table-content wt)))
@@ -420,47 +419,96 @@
                ;; A busy task isn't waiting in the protocol, it can't do the
                ;; check. Try again in the next period.
                (if (task-busy? client) 'again 'both))))
-(define *read-deadline-queues* (make-hash-table)) ; seconds -> queue
-;; client -> deadline in seconds. Weak, so a closed connection which didn't
-;; clear its deadline doesn't leak.
+;; Read deadlines
+;; The task of a client must have read what it's reading (e.g. the head of a
+;; request) before its deadline, otherwise it's resumed to get its timeout,
+;; even if the peer sends nothing. Unlike the task timeout, it's not refreshed
+;; by the data from the peer, so a slow peer can't hold the connection by
+;; sending a byte now and then.
+;; The deadlines use the monotonic clock, and are checked in each round of
+;; the main loop, so a passed deadline is taken within server.polltimeout.
+;; One queue of (client . deadline) for all the clients: a deadline is always
+;; set to now + the same timeout (server.readtimeout), so the items are
+;; enqueued in the order of their deadlines, and only the head of the queue
+;; needs to be checked. The cost of a round is the number of due items, not
+;; the number of connections.
+;; A deadline may be moved, e.g. for the next request of a kept-alive
+;; connection, or while the body is coming. It isn't enqueued again each
+;; time: a new item is enqueued only if the deadline is moved by
+;; *read-deadline-step* or more from the last item of the client, so a body
+;; coming in small pieces doesn't flood the queue. When an older item is due
+;; and the deadline has moved less than that, the item is enqueued again with
+;; the deadline. So a deadline is taken at most *read-deadline-step* late.
+;; NOTE: Server thread only.
+(define *read-deadline-queue* (new-queue))
+;; client -> (deadline . queued): deadline is #f once it's cleared, queued is
+;; the deadline of the last item of the client in the queue, #f if none.
+;; Weak, so a closed connection doesn't leak.
 (define *read-deadlines* (make-weak-key-hash-table))
-;; client -> #t if it has an item in the watch, so a keep-alive connection
-;; reading request after request has one item at most.
-(define *read-watched* (make-weak-key-hash-table))
+(define *read-deadline-step* internal-time-units-per-second)
 
-;; The task of client must have read what it's reading (e.g. the head of a
-;; request) within seconds (> 0) from now, otherwise it's resumed to get its
-;; timeout, even if the peer sends nothing. Unlike the task timeout, it's not
-;; refreshed by the data from the peer, so a slow peer can't hold the
-;; connection by sending a byte now and then. Setting it again moves the
-;; deadline.
+(define (enqueue-read-deadline! client entry deadline)
+  (set-cdr! entry deadline)
+  (queue-in! *read-deadline-queue* (cons client deadline)))
+
+;; Set the deadline of client to seconds (> 0) from now, or move it.
 (define (read-deadline-set! client seconds)
-  (hashq-set! *read-deadlines* client (+ (current-time) seconds))
-  (unless (hashq-ref *read-watched* client)
-    (hashq-set! *read-watched* client #t)
-    (timed-watch! *read-deadline-queues* client seconds)))
+  (let ((deadline (deadline-after seconds))
+        (entry (or (hashq-ref *read-deadlines* client)
+                   (let ((e (cons #f #f)))
+                     (hashq-set! *read-deadlines* client e)
+                     e))))
+    (set-car! entry deadline)
+    (let ((queued (cdr entry)))
+      (when (or (not queued)
+                (>= (- deadline queued) *read-deadline-step*))
+        (enqueue-read-deadline! client entry deadline)))))
 
 (define (read-deadline-clear! client)
-  (hashq-remove! *read-deadlines* client))
+  (and=> (hashq-ref *read-deadlines* client)
+         (lambda (entry) (set-car! entry #f))))
 
 (define (read-deadline-passed? client)
-  (let ((d (hashq-ref *read-deadlines* client)))
-    (and d (>= (current-time) d))))
+  (let ((entry (hashq-ref *read-deadlines* client)))
+    (and entry (car entry) (deadline-passed? (car entry)))))
 
-;; Returns the clients whose read deadline has passed. The watch of a client
-;; is dropped once its deadline has been cleared.
+;; Returns the clients whose read deadline has passed.
 (define (take-read-deadline-due! wt)
-  (take-due! *read-deadline-queues* wt
-             (lambda (client task)
-               (define (unwatch! d)
-                 (hashq-remove! *read-watched* client)
-                 d)
+  (define tasks (work-table-content wt))
+  (define (alive? client)
+    (let* ((fd (client-live-fd client))
+           (task (and fd (hashv-ref tasks fd))))
+      (and task (eq? (task-client task) client))))
+  (let lp ((acc '()))
+    (let ((q *read-deadline-queue*))
+      (if (or (queue-empty? q)
+              (not (deadline-passed? (cdr (queue-head q)))))
+          acc
+          (let* ((item (queue-out! q))
+                 (client (car item))
+                 (due (cdr item)))
+             (let ((entry (hashq-ref *read-deadlines* client)))
                (cond
-                ((not (hashq-ref *read-deadlines* client)) (unwatch! 'drop))
-                ;; A busy task isn't reading, check it in the next period.
-                ((task-busy? client) 'again)
-                ((read-deadline-passed? client) (unwatch! 'take))
-                (else 'again)))))
+                ;; A newer item of the client is in the queue.
+                ((or (not entry) (not (eqv? due (cdr entry)))) (lp acc))
+                ((not (alive? client))
+                 (hashq-remove! *read-deadlines* client)
+                 (lp acc))
+                ((not (car entry))
+                 ;; Cleared, the next deadline enqueues a new item.
+                 (set-cdr! entry #f)
+                 (lp acc))
+                ((task-busy? client)
+                 ;; A busy task isn't reading, check it again later.
+                 (enqueue-read-deadline! client entry (deadline-after 1))
+                 (lp acc))
+                ((deadline-passed? (car entry))
+                 (set-cdr! entry #f)
+                 (lp (cons client acc)))
+                (else
+                 ;; Moved by less than *read-deadline-step*.
+                 (enqueue-read-deadline! client entry (car entry))
+                 (lp acc)))))))))
 ;; =========== end Timed watches ===========
 
 (define *high-prio-mutex* (make-mutex))

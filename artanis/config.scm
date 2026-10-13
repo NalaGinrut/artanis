@@ -216,9 +216,9 @@ server.maxconns = <integer>")
 the headers must arrive within it from the start of the request, and the body
 must not stop coming for that long. Otherwise the connection is closed. Unlike
 server.timeout, it's not refreshed by every byte from the peer, so a slow peer
-can't hold a connection by sending a byte now and then. It's checked about
-every this period with 1-second resolution, so a connection is closed
-roughly within [T, 2T] seconds.
+can't hold a connection by sending a byte now and then. It's checked in each
+round of the server, so a connection is closed within about T seconds plus
+server.polltimeout, or 1 more second while the body is coming.
 The default value is suitable for most cases, don't change it without a reason.
 0 means no limit.
 server.readtimeout = <integer>")
