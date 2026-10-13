@@ -1359,10 +1359,15 @@
            (else #f)))))
 
 ;; NOTE: The order matters
+;; RFC 9112 9.3: `close' closes it; otherwise HTTP/1.1 keeps it alive by
+;; default, and HTTP/1.0 needs `keep-alive'.
 (define (request-keep-alive? request)
-  (or (equal? (request-upgrade request) '(websocket))
-      (equal? (request-connection request) '(keep-alive))
-      (equal? (request-version request) '(1 . 1))))
+  (let ((conn (request-connection request)))
+    (cond
+     ((memq 'close conn) #f)
+     ((equal? (request-upgrade request) '(websocket)) #t)
+     ((memq 'keep-alive conn) #t)
+     (else (equal? (request-version request) '(1 . 1))))))
 
 (define (procedure-name->string proc)
   (symbol->string (procedure-name proc)))

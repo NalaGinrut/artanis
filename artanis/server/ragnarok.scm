@@ -406,11 +406,15 @@
                        (lambda (request body)
                          (call-with-values
                              (lambda ()
+                               ;; Each request decides, e.g. the last one of
+                               ;; a kept-alive connection may ask to close it
+                               ;; with `Connection: close'.
                                (let ((task (current-task)))
-                                 (when (and (not (specified-proto? client))
-                                            (allow-long-live-connection?)
-                                            (request-keep-alive? request))
-                                   (task-keepalive?-set! task #t)))
+                                 (unless (specified-proto? client)
+                                   (task-keepalive?-set!
+                                    task
+                                    (and (allow-long-live-connection?)
+                                         (request-keep-alive? request)))))
                                (handle-request handler request body))
                            (lambda (response body request-status)
                              ;; NOTE: We provide the 3rd parameter here to keep it
@@ -425,10 +429,13 @@
                              ;;       depend on HTTP keep-alive or server.timeout.
                              ;;       It's served until its protocol closes it, or
                              ;;       an exception.
+                             ;; NOTE: Both the request and the response must
+                             ;;       keep it alive (RFC 9112 9.3), either may
+                             ;;       close it with `Connection: close'.
                              (let ((keepalive? (or (specified-proto? client)
                                                    (and (allow-long-live-connection?)
-                                                        (or (response-keep-alive? response)
-                                                            (task-keepalive? (current-task)))))))
+                                                        (task-keepalive? (current-task))
+                                                        (response-keep-alive? response)))))
                                (cond
                                 ((or (eq? request-status 'exception)
                                      (not keepalive?))
