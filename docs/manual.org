@@ -527,6 +527,62 @@ src_scheme[:exports code]{#:mtime} specifies the modified time in the response. 
 
 [headers] is the custom HTTP headers.
 
+** Streaming a response
+A response body can be sent piece by piece as it's produced, e.g. the output of an LLM:
+#+begin_src scheme
+(response-emit-stream producer #:status 200 #:headers '())
+#+end_src
+
+*producer* is src_scheme[:exports code]{(lambda (send) ...)}, it's called after the status and the headers have been
+sent. src_scheme[:exports code]{(send x)} writes /x/, a string or a bytevector, to the client at once. The response
+ends when /producer/ returns.
+
+#+begin_src scheme
+(get "/count"
+  (lambda (rc)
+    (response-emit-stream
+     (lambda (send)
+       (for-each (lambda (i) (send (format #f "~a~%" i))) (iota 10)))
+     #:headers '((content-type . (text/plain))))))
+#+end_src
+
++ The body is sent with *Transfer-Encoding: chunked* to an HTTP/1.1 client, and ended by closing the connection for
+  HTTP/1.0.
++ src_scheme[:exports code]{send} waits while the client doesn't read, so a slow client slows /producer/ down instead
+  of piling the body up in memory.
++ The status and the headers have been sent when /producer/ runs, so an error can't be an error page: if the client
+  has gone, or /producer/ throws, the connection is closed before the end of the body, the client knows it's
+  incomplete. Use src_scheme[:exports code]{dynamic-wind} in /producer/ to clean up.
++ */producer/ runs in the server core*, it must never block. Wait for anything else, e.g. the next tokens from an
+  upstream LLM API, with [[Asynchronous Runner][call-with-runner]], the server goes on serving others meanwhile.
++ It's only for the Ragnarok server engine.
+
+Server-Sent Events (text/event-stream) are a stream of events:
+#+begin_src scheme
+(response-emit-sse producer #:status 200 #:headers '())
+(sse-event data #:event #f #:id #f #:retry #f)
+#+end_src
+src_scheme[:exports code]{sse-event} makes an event, /data/ may have several lines. A string starting with ":" is a
+comment, e.g. to keep the connection alive.
+
+#+begin_src scheme
+(get "/chat"
+  (lambda (rc)
+    (response-emit-sse
+     (lambda (send)
+       (let lp ()
+         ;; Wait for the next tokens from the upstream in a runner.
+         (let ((tokens (call-with-runner (lambda () (read-upstream-tokens)))))
+           (cond
+            ((eof-object? tokens) (send (sse-event "[DONE]")))
+            (else
+             (send (sse-event tokens #:event "delta"))
+             (lp)))))))))
+#+end_src
+
+Behind Nginx, *X-Accel-Buffering: no* is sent with a stream when *server.nginx* is enabled, so Nginx passes it on at
+once instead of buffering it.
+
 ** Running the server
 #+begin_src scheme
 (run #:host #f #:port #f #:debug #f #:use-db? #f
