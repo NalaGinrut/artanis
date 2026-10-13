@@ -38,6 +38,31 @@
 
 (define simple "GET /a?b=1 HTTP/1.1\r\nHost: localhost\r\nX-Foo: bar\r\n\r\n")
 
+;; The line as a string and the bytes read, or 'too-long.
+(define (bounded-line str limit)
+  (call/cc
+   (lambda (k)
+     (receive (line n)
+         (read-bounded-line (port-of str) limit (lambda () (k 'too-long)))
+       (list (if (eof-object? line) line (utf8->string line)) n)))))
+
+(with-test-prefix "bounded line"
+
+  (pass-if-equal "CRLF" '("abc" 5) (bounded-line "abc\r\nrest" 10))
+  (pass-if-equal "LF" '("abc" 4) (bounded-line "abc\nrest" 10))
+  (pass-if-equal "an empty line" '("" 2) (bounded-line "\r\n" 10))
+  (pass-if-equal "a CR not before LF is in the line" '("a\rb\r" 6)
+    (bounded-line "a\rb\r\r\n" 10))
+  (pass-if-equal "exactly the limit, with its end" '("abc" 5)
+    (bounded-line "abc\r\n" 5))
+  (pass-if-equal "longer than the limit" 'too-long
+    (bounded-line "abcd\r\n" 5))
+  (pass-if-equal "no end within the limit" 'too-long
+    (bounded-line (make-string 100 #\a) 10))
+  (pass-if "EOF" (eof-object? (car (bounded-line "" 10))))
+  (pass-if-equal "EOF in the middle of a line is 400" 400
+    (status-of (lambda () (bounded-line "abc" 10)))))
+
 (with-test-prefix "request head"
 
   (pass-if "a request is parsed, its port is the given port"

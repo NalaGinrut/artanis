@@ -37,12 +37,46 @@
 
 (define-module (artanis server request)
   #:use-module (ice-9 binary-ports)
+  #:use-module ((ice-9 iconv) #:select (bytevector->string))
   #:use-module (rnrs bytevectors)
   #:use-module (web request)
   #:use-module (srfi srfi-1)
-  #:export (read-request-head
+  #:export (read-bounded-line
+            read-request-head
             request-body-framing
             read-chunked-body))
+
+(define *lf* 10)
+(define *cr* 13)
+(define *crlf* #vu8(13 10))
+
+;; Read a line from port, at most limit bytes including its end, LF or CRLF.
+;; Returns two values: the line as a bytevector without its end, and the
+;; number of bytes read. Returns the EOF object and 0 at EOF before any byte.
+;; A CR not followed by LF is part of the line.
+;; Calls (too-long) when the line is longer than limit, it must not return.
+;; Throws 'artanis-err 400 if the peer closes in the middle of the line.
+;; The reads go through the suspendable port, a slow peer suspends the task.
+(define (read-bounded-line port limit too-long)
+  (define-values (out get-bytes) (open-bytevector-output-port))
+  ;; cr?: the previous byte is a CR, which isn't written yet.
+  (let lp ((count 0) (cr? #f))
+    (let ((b (get-u8 port)))
+      (cond
+       ((eof-object? b)
+        (if (zero? count)
+            (values b 0)
+            (throw 'artanis-err 400 'read-bounded-line
+                   "The peer closed in the middle of a line")))
+       ((>= count limit) (too-long))
+       ((= b *lf*) (values (get-bytes) (1+ count)))
+       (else
+        (when cr? (put-u8 out *cr*))
+        (cond
+         ((= b *cr*) (lp (1+ count) #t))
+         (else
+          (put-u8 out b)
+          (lp (1+ count) #f))))))))
 
 ;; Read the head of a request from port, at most limit bytes, and parse it.
 ;; Returns two values: the request, whose port is port, and the number of
@@ -63,34 +97,30 @@
                "The request line is longer than ~a bytes" limit)
         (throw 'artanis-err 431 'read-request-head
                "The request header fields are longer than ~a bytes" limit)))
-  ;; count: bytes read; line: bytes of the current line before its LF;
-  ;; prev: the previous byte; started?: the request line has begun;
-  ;; first-line?: still in the request line.
-  (let lp ((count 0) (line 0) (prev #f) (started? #f) (first-line? #t))
-    (let ((b (get-u8 port)))
-      (cond
-       ((eof-object? b)
-        (if (not started?)
-            (values b 0)
-            (throw 'artanis-err 400 'read-request-head
-                   "The peer closed in the middle of the request head")))
-       ((>= count limit) (too-large! first-line?))
-       ((= b 10)                        ; LF, a CR before it is part of line
-        (let ((empty? (or (zero? line) (and (= line 1) (eqv? prev 13)))))
-          (cond
-           ((not started?)
-            ;; An empty line before the request line, drop it.
-            (get-bytes)
-            (lp (1+ count) 0 b #f #t))
-           (empty?
-            (put-u8 out b)
-            (values (parse-head (get-bytes) port) (1+ count)))
-           (else
-            (put-u8 out b)
-            (lp (1+ count) 0 b #t #f)))))
-       (else
-        (put-u8 out b)
-        (lp (1+ count) (1+ line) b (or started? (not (= b 13))) first-line?))))))
+  ;; count: bytes read; started?: the request line has been read.
+  (let lp ((count 0) (started? #f))
+    (call-with-values
+        (lambda ()
+          (read-bounded-line port (- limit count)
+                             (lambda () (too-large! (not started?)))))
+      (lambda (line n)
+        (cond
+         ((eof-object? line)
+          (if started?
+              (throw 'artanis-err 400 'read-request-head
+                     "The peer closed in the middle of the request head")
+              (values line 0)))
+         ((positive? (bytevector-length line))
+          (put-bytevector out line)
+          (put-bytevector out *crlf*)
+          (lp (+ count n) #t))
+         ((not started?)
+          ;; An empty line before the request line, drop it.
+          (lp (+ count n) #f))
+         (else
+          ;; The empty line ending the head.
+          (put-bytevector out *crlf*)
+          (values (parse-head (get-bytes) port) (+ count n))))))))
 
 ;; Parse the head with Guile's read-request, and make it a request on port,
 ;; so the body is read from port.
@@ -156,19 +186,19 @@
   (define (take! n)
     (set! count (+ count n))
     (when (> count limit)
-      (throw 'artanis-err 413 'read-chunked-body
-             "Content is larger than ~a bytes" limit)))
-  ;; A line without its CRLF or LF, as a latin-1 string.
+      (too-large!)))
+  (define (too-large!)
+    (throw 'artanis-err 413 'read-chunked-body
+           "Content is larger than ~a bytes" limit))
+  ;; A line without its end, as a latin-1 string. It counts toward limit.
   (define (read-line!)
-    (let lp ((acc '()))
-      (let ((b (get-u8 port)))
-        (cond
-         ((eof-object? b) (bad "The peer closed in the middle of the body"))
-         ((= b 10)
-          (take! 1)
-          (let ((l (if (and (pair? acc) (= (car acc) 13)) (cdr acc) acc)))
-            (list->string (map integer->char (reverse l)))))
-         (else (take! 1) (lp (cons b acc)))))))
+    (call-with-values
+        (lambda () (read-bounded-line port (- limit count) too-large!))
+      (lambda (line n)
+        (when (eof-object? line)
+          (bad "The peer closed in the middle of the body"))
+        (set! count (+ count n))
+        (bytevector->string line "ISO-8859-1"))))
   (define (chunk-size line)
     ;; chunk-size [ BWS ; chunk-ext ]
     (let* ((end (or (string-index line #\;) (string-length line)))
