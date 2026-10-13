@@ -126,19 +126,23 @@
           (else
            (apply throw k e))))))
   ;; upload.size limits the whole request, the head and the body.
+  ;; The body is framed by Content-Length or chunked, see
+  ;; request-body-framing.
   (define (try-to-read-request-body req head-size)
     (DEBUG "try to read request body ~a~%" req)
-    (let ((content-length (or (request-content-length req) 0))
+    (let ((framing (request-body-framing req))
           (limit (- (get-conf '(upload size)) head-size)))
       (cond
-       ((> content-length limit)
+       ((eq? framing 'chunked)
+        (read-chunked-body (request-port req) limit))
+       ((> framing limit)
         (DEBUG "Entity size is ~a, size limit is ~a~%"
-               content-length limit)
+               framing limit)
         ;; 413 Content Too Large (RFC 9110 15.5.14). The body isn't read, so
         ;; the connection is closed after the response.
         (throw 'artanis-err 413 try-to-read-request-body
                "Content is too large!~%"))
-       ((zero? content-length) #f)
+       ((zero? framing) #f)
        (else (read-request-body req)))))
   ;; The request must be read within server.readtimeout, see
   ;; read-deadline-set!. When the task waits for the peer, it's resumed by

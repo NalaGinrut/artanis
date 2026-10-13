@@ -191,3 +191,107 @@
       (read-deadline-set! c 5)
       (read-deadline-set! c 5)
       (= 1 (queued 5)))))
+
+;; Body framing
+
+(define (head-of str)
+  (receive (req size) (read-request-head (port-of str) 4096) req))
+
+(define (framing-of str)
+  (catch 'artanis-err
+    (lambda () (request-body-framing (head-of str)))
+    (lambda (k status . _) status)))
+
+(with-test-prefix "body framing"
+
+  (pass-if-equal "no body" 0
+    (framing-of "GET / HTTP/1.1\r\nHost: h\r\n\r\n"))
+
+  (pass-if-equal "Content-Length" 12
+    (framing-of "POST / HTTP/1.1\r\nHost: h\r\nContent-Length: 12\r\n\r\n"))
+
+  (pass-if-equal "the same Content-Length twice" 12
+    (framing-of (string-append "POST / HTTP/1.1\r\nHost: h\r\n"
+                               "Content-Length: 12\r\nContent-Length: 12\r\n\r\n")))
+
+  (pass-if-equal "different Content-Length values are 400" 400
+    (framing-of (string-append "POST / HTTP/1.1\r\nHost: h\r\n"
+                               "Content-Length: 12\r\nContent-Length: 13\r\n\r\n")))
+
+  (pass-if-equal "chunked" 'chunked
+    (framing-of (string-append "POST / HTTP/1.1\r\nHost: h\r\n"
+                               "Transfer-Encoding: chunked\r\n\r\n")))
+
+  (pass-if-equal "chunked is case-insensitive" 'chunked
+    (framing-of (string-append "POST / HTTP/1.1\r\nHost: h\r\n"
+                               "Transfer-Encoding: Chunked\r\n\r\n")))
+
+  (pass-if-equal "Transfer-Encoding with Content-Length is 400" 400
+    (framing-of (string-append "POST / HTTP/1.1\r\nHost: h\r\n"
+                               "Content-Length: 3\r\n"
+                               "Transfer-Encoding: chunked\r\n\r\n")))
+
+  (pass-if-equal "Transfer-Encoding in HTTP/1.0 is 400" 400
+    (framing-of (string-append "POST / HTTP/1.0\r\nHost: h\r\n"
+                               "Transfer-Encoding: chunked\r\n\r\n")))
+
+  (pass-if-equal "chunked not final is 400" 400
+    (framing-of (string-append "POST / HTTP/1.1\r\nHost: h\r\n"
+                               "Transfer-Encoding: chunked, gzip\r\n\r\n")))
+
+  (pass-if-equal "chunked not final over two fields is 400" 400
+    (framing-of (string-append "POST / HTTP/1.1\r\nHost: h\r\n"
+                               "Transfer-Encoding: chunked\r\n"
+                               "Transfer-Encoding: gzip\r\n\r\n")))
+
+  (pass-if-equal "another coding is 501" 501
+    (framing-of (string-append "POST / HTTP/1.1\r\nHost: h\r\n"
+                               "Transfer-Encoding: gzip, chunked\r\n\r\n"))))
+
+;; Chunked bodies
+
+(define (chunked str limit)
+  (catch 'artanis-err
+    (lambda ()
+      (let ((port (port-of str)))
+        (let ((bv (read-chunked-body port limit)))
+          (list (and bv (utf8->string bv))
+                (let ((rest (get-bytevector-all port)))
+                  (if (eof-object? rest) "" (utf8->string rest)))))))
+    (lambda (k status . _) status)))
+
+(with-test-prefix "chunked body"
+
+  (pass-if-equal "chunks are joined, the rest is left"
+      '("hello, world" "NEXT")
+    (chunked "5\r\nhello\r\n7\r\n, world\r\n0\r\n\r\nNEXT" 1024))
+
+  (pass-if-equal "hex sizes, extensions and trailers"
+      (list (make-string 26 #\x) "")
+    (chunked (string-append "1A;name=value\r\n" (make-string 26 #\x)
+                            "\r\n0\r\nX-Trailer: 1\r\n\r\n")
+             1024))
+
+  (pass-if-equal "LF-only line endings" '("abc" "")
+    (chunked "3\nabc\n0\n\n" 1024))
+
+  (pass-if-equal "an empty body is #f" '(#f "")
+    (chunked "0\r\n\r\n" 1024))
+
+  (pass-if-equal "too large is 413" 413
+    (chunked "10\r\n0123456789abcdef\r\n0\r\n\r\n" 10))
+
+  (pass-if-equal "a huge chunk size is 413, nothing allocated" 413
+    (chunked "ffffffffffffffffffff\r\n" 1024))
+
+  (pass-if-equal "an invalid chunk size is 400" 400
+    (chunked "zz\r\nabc\r\n0\r\n\r\n" 1024))
+
+  (pass-if-equal "a signed chunk size is 400" 400
+    (chunked "+3\r\nabc\r\n0\r\n\r\n" 1024))
+
+  (pass-if-equal "no CRLF after the data is 400" 400
+    (chunked "3\r\nabcd\r\n0\r\n\r\n" 1024))
+
+  (pass-if-equal "EOF in the middle is 400" 400
+    (chunked "5\r\nab" 1024)))
