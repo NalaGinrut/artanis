@@ -501,7 +501,9 @@
                  (lp acc))
                 ((task-busy? client)
                  ;; A busy task isn't reading, check it again later.
-                 (enqueue-read-deadline! client entry (deadline-after 1))
+                 (enqueue-read-deadline!
+                  client entry
+                  (+ (get-internal-real-time) *read-deadline-step*))
                  (lp acc))
                 ((deadline-passed? (car entry))
                  (set-cdr! entry #f)

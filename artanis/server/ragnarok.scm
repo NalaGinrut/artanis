@@ -190,10 +190,18 @@
          (or (eqv? errno EADDRNOTAVAIL) ; no available port for connecting socket
              (eqv? errno EMFILE))))) ; Too many opened files
 
+;; The fds kept for other things than connections (the listening socket,
+;; epoll, files, DB connections, ...) when server.maxconns is 0.
+(define *reserved-fds* 64)
+;; server.maxconns when it's 0 and the limit of fds is unknown.
+(define *default-max-connections* 1024)
+;; The Retry-After of a connection over server.maxconns, in seconds.
+(define *busy-retry-after* 1)
+
 (define *max-connections* #f)
 
-;; server.maxconns, or the soft limit of fds of the process minus some for
-;; other fds (the listening socket, epoll, files, DB connections, ...).
+;; server.maxconns, or the soft limit of fds of the process minus
+;; *reserved-fds*.
 (define (max-connections)
   (or *max-connections*
       (let ((n (get-conf '(server maxconns))))
@@ -202,14 +210,16 @@
                   n
                   (call-with-values (lambda () (getrlimit 'nofile))
                     (lambda (soft hard)
-                      (if soft (max 64 (- soft 64)) 1024)))))
+                      (if soft
+                          (max *reserved-fds* (- soft *reserved-fds*))
+                          *default-max-connections*)))))
         *max-connections*)))
 
 (define *busy-response*
   (string->utf8
    (string-append "HTTP/1.1 503 Service Unavailable\r\n"
                   "Connection: close\r\n"
-                  "Retry-After: 1\r\n"
+                  (format #f "Retry-After: ~a\r\n" *busy-retry-after*)
                   "Content-Length: 0\r\n\r\n")))
 
 ;; Answer a connection over server.maxconns with 503 as far as it's possible,

@@ -359,9 +359,13 @@
 ;; violation). The pings include the ones between the fragments of a message,
 ;; so a peer can't keep the task busy answering pings without a message.
 
+;; A bucket holds this many seconds of the rate, it's the burst.
+(define *rate-burst-seconds* 2)
+
 ;; A bucket for rate per second, or #f if rate is 0 (no limit).
 (define (rate-bucket rate)
-  (and (> rate 0) (make-token-bucket (* 2 rate) 2)))
+  (and (> rate 0)
+       (make-token-bucket (* *rate-burst-seconds* rate) *rate-burst-seconds*)))
 
 (define (check-rate! bucket what)
   (when (and bucket (not (eq? #t (token-bucket-take! bucket))))
@@ -372,7 +376,7 @@
   (let ((default (default-control-handler port)))
     (if bucket
         (lambda (frame)
-          (when (= #x9 (websocket-frame-opcode frame))
+          (when (eq? 'ping (websocket-frame-type frame))
             (check-rate! bucket "pings"))
           (default frame))
         default)))
@@ -400,7 +404,7 @@
                     (let ((msg (parameterize ((current-read-waiter waiter))
                                  (read-websocket-message port
                                                          #:control control))))
-                      (unless (= #x8 (websocket-frame-opcode msg))
+                      (unless (eq? 'close (websocket-frame-type msg))
                         (check-rate! messages "messages"))
                       msg)))))
         (touch-inbound! conn)

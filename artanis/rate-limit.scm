@@ -66,6 +66,12 @@
 (define (monotonic-seconds)
   (exact->inexact (/ (get-internal-real-time) internal-time-units-per-second)))
 
+;; The idle buckets of a full rate limiter are dropped at most once per this
+;; many seconds, and it warns about being full at most once per this.
+(define *rate-limiter-interval* 1)
+;; The minimum Retry-After in seconds, it's an integer (RFC 9110 10.2.3).
+(define *min-retry-after* 1)
+
 (define-record-type token-bucket
   (%make-token-bucket capacity rate tokens last)
   token-bucket?
@@ -139,15 +145,17 @@
   (with-mutex (limiter-mutex limiter)
     (limiter-count limiter)))
 
-;; At most once per second since the time in get, then set it.
-(define (once-per-second! limiter get set now)
+;; At most once per *rate-limiter-interval* since the time in get, then set
+;; it.
+(define (once-per-interval! limiter get set now)
   (let ((t (get limiter)))
-    (and (or (not t) (>= (- now t) 1))
+    (and (or (not t) (>= (- now t) *rate-limiter-interval*))
          (begin (set limiter now) #t))))
 
-;; Drop the idle buckets, at most once per second.
+;; Drop the idle buckets, at most once per *rate-limiter-interval*.
 (define (sweep! limiter now)
-  (when (once-per-second! limiter limiter-swept-at set-limiter-swept-at! now)
+  (when (once-per-interval! limiter limiter-swept-at set-limiter-swept-at!
+                            now)
     (let* ((table (limiter-table limiter))
            (idle (hash-fold (lambda (key b acc)
                               (if (bucket-idle? b now) (cons key acc) acc))
@@ -177,8 +185,8 @@
        (b (token-bucket-take! b now))
        (else
         ;; No room for a new key, it's over the limit.
-        (when (once-per-second! limiter limiter-warned-at
-                                set-limiter-warned-at! now)
+        (when (once-per-interval! limiter limiter-warned-at
+                                  set-limiter-warned-at! now)
           (artanis-log 'warn #f #f
                        #:msg (format #f "Rate limiter is full (~a keys), new keys are rejected~%"
                                      (limiter-max-keys limiter))))
@@ -191,4 +199,4 @@
     (and check
          (let ((r (check rc)))
            (and (not (eq? r #t))
-                (max 1 (inexact->exact (ceiling r))))))))
+                (max *min-retry-after* (inexact->exact (ceiling r))))))))

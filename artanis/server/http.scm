@@ -216,6 +216,9 @@
                 (read-deadline-clear! client)
                 (values req body)))))))))))
 
+;; The end of a chunked body: the last chunk and no trailer (RFC 9112 7.1).
+(define *last-chunk* "0\r\n\r\n")
+
 ;; Write a body-stream, see response-emit-stream. Each piece is a chunk if the
 ;; response is chunked, otherwise it's written as it is, and the connection is
 ;; closed at the end. Each piece is flushed at once.
@@ -245,7 +248,7 @@
     (lambda ()
       ((body-stream-producer body) send)
       (when chunked?
-        (put-string port "0\r\n\r\n"))
+        (put-string port *last-chunk*))
       (force-output port))
     (lambda (k . e)
       (format (artanis-current-output)
