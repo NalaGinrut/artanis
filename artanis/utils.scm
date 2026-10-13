@@ -1497,17 +1497,19 @@
       (let ((errno (system-error-errno e)))
         (cond
          ((= errno ENOMEM)
-          ;; NOTE: Out of memory, call (gc) and throw 507
+          ;; NOTE: Out of memory, call (gc) and throw 503, it's temporary.
           (format (artanis-current-output) "No memory! Run GC now!~%")
           (gc)
-          (throw 'artanis-err 507 handle-upload
+          (throw 'artanis-err 503 handle-upload
                  "Server is out of RAMs, please extend more RAMs!~%"))
          ((= errno EIO)
-          ;; NOTE: The storage device was disconnected, just throw 507
-          (throw 'artanis-err 507 handle-upload
+          ;; NOTE: The storage device was disconnected, it's an internal
+          ;;       error of the server.
+          (throw 'artanis-err 500 handle-upload
                  "Server is not available, maybe storage media was disconnected?~%"))
          ((= errno ENOSPC)
-          ;; NOTE: no space for uploading, just throw 507
+          ;; NOTE: No space for uploading, 507 Insufficient Storage
+          ;;       (RFC 4918 11.5).
           (throw 'artanis-err 507 handle-upload
                  "Server has insufficient storage space!~%"))
          (else

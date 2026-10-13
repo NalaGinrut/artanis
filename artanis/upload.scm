@@ -188,7 +188,7 @@
              (type (-> headers "Content-Type"))
              (mfd (make-mfd (car dispos) name filename start end type)))
         (lp (+ end 3) (cons mfd mfds))))
-     (else (throw 'artanis-err 422 parse-mfds
+     (else (throw 'artanis-err 400 parse-mfds
                   "Wrong multipart form body ~a!" body)))))
 
 (define* (make-mfd-dumper body #:key (path (current-upload-path))
