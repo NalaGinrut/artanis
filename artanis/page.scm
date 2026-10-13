@@ -130,7 +130,6 @@
     (run-before-response-hooks rc body)
     (let* ((reformed-body (->bytevector body))
            (headers `((server . ,(get-conf '(server info)))
-                      (host . ,(current-myhost #:for-header? #t))
                       (last-modified . ,mtime)
                       ,(gen-content-length reformed-body)
                       ,@(cors-headers (rc-req rc))
