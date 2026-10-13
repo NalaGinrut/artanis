@@ -634,6 +634,15 @@ And run GNU Artanis:
 #+begin_src scheme
 (run #:port 1234)
 #+end_src
+
+Enable *server.nginx* in the config, then the IP of the client (e.g. for [[Rate limiting][rate limiting]] and the logs) is
+taken from *X-Real-IP*:
++ Nginx must set it with src_conf[:exports code]{proxy_set_header X-Real-IP $remote_addr;} as above, which replaces
+  any X-Real-IP sent by the client.
++ GNU Artanis must listen on 127.0.0.1 (*host.addr*), otherwise a client could connect to it directly and make up its
+  X-Real-IP.
+A request without X-Real-IP is regarded as coming from its peer.
+
 * The Art command line
 GNU Artanis provides the *art* command line tool to save users' time.
 ** art create
@@ -2478,6 +2487,7 @@ ws.onclose = (evt) => console.log("closed", evt.code, evt.reason);
 #:websocket '(raw #:overflow reject)
 #:websocket '(proto protocol-name)
 #:websocket '(proto protocol-name #:overflow close)
+#:websocket '(raw #:msgrate 10 #:pingrate 1)
 #+END_SRC
 + *'raw* (or *#t*): messages are passed to the handler as they are, see [[Websocket messages][Websocket messages]].
 + *'(proto protocol-name)*: messages are decoded and encoded with the application protocol, see
@@ -2485,11 +2495,17 @@ ws.onclose = (evt) => console.log("closed", evt.code, evt.reason);
 + *#:overflow* decides what to do when the outbound queue of a connection is full, see [[Websocket sending][Websocket sending]]:
   + *reject* (default): the message is dropped, src_scheme[:exports code]{ws-send} returns src_scheme[:exports code]{'overflow};
   + *close*: the peer is regarded as a slow consumer, the connection is closed with 1008.
++ *#:msgrate n* is the messages per second the peer may send on a connection, with a burst of twice as many. Over
+  it, the connection is closed with 1008. It overrides *websocket.msgrate*, 0 means no limit.
++ *#:pingrate n* is the pings per second the peer may send, including the ones between the fragments of a message.
+  It overrides *websocket.pingrate*, 0 means no limit.
 
 Other options of the route:
 + src_scheme[:exports code]{#:timeout seconds} is the idle timeout of the connections of this route, it overrides
   *websocket.timeout*. 0 means no timeout.
 + src_scheme[:exports code]{#:with-auth} authenticates the handshake, see [[Websocket authentication][Websocket authentication]].
++ src_scheme[:exports code]{#:rate-limit '(key capacity period)} limits the handshakes, a handshake over it is
+  answered with 429, see [[Rate limiting][Rate limiting]].
 
 *NOTE:* src_scheme[:exports code]{#:websocket '(redirect ip/usk)} (a tunnel to a service port on the server) and
 src_scheme[:exports code]{#:websocket '(proxy protocol)} aren't implemented yet, they're errors when the route is defined.
@@ -2667,7 +2683,8 @@ The user logs in by HTTP first, then the browser sends the session cookie with t
 | 1005 | the peer sent a close frame without code (for /on-close/ only)             |
 | 1006 | the peer has gone without a close frame (for /on-close/ only)              |
 | 1007 | invalid UTF-8 in a text message, or the application protocol can't decode  |
-| 1008 | the session is gone, an invalid fragment, or #:overflow close              |
+| 1008 | the session is gone, an invalid fragment, #:overflow close, too many       |
+|      | messages or pings (#:msgrate, #:pingrate)                                  |
 | 1009 | a frame or a message is too big                                            |
 | 1011 | an error of the handler or the dispatcher                                  |
 | 4001 | replaced by an exclusive subscriber of a topic                             |
@@ -2689,6 +2706,10 @@ websocket.maxsize = 4194304
 websocket.maxfragments = 65536
 ## The maximum bytes waiting to be sent on a connection, see #:overflow. 0 means no limit.
 websocket.maxqueue = 1048576
+## The messages per second a peer may send on a connection, with a burst of twice as many (1008). 0 means no limit.
+websocket.msgrate = 100
+## The pings per second a peer may send on a connection, with a burst of twice as many (1008). 0 means no limit.
+websocket.pingrate = 5
 ## The maximum number of topics a connection can subscribe to. 0 means no limit.
 websocket.maxtopics = 10
 ## The idle timeout in seconds, counted from the last data of the peer. 0 means no timeout.
@@ -2706,6 +2727,79 @@ The defaults are fine for most cases.
 (run-after-websocket-close! proc)
 #+END_SRC
 They're global hooks, use /on-open/ and /on-close/ of the dispatcher for a route.
+
+* Limits and rate limiting
+GNU Artanis protects itself at the protocol and the application level, it works with or without Nginx in front. The
+network level (SYN floods, TLS, bandwidth) is left to the kernel or to a proxy.
+
+The defaults are suitable for most cases, don't change them without a reason.
+
+** Request limits
+#+BEGIN_SRC conf
+## The size of a request in bytes, including its request line, headers and body.
+upload.size = 5242880
+## The time in seconds to read a request. 0 means no limit.
+server.readtimeout = 30
+## The maximum number of connections served at the same time. 0 means ulimit -n minus 64.
+server.maxconns = 0
+#+END_SRC
+
++ *upload.size* limits the whole request, so the headers can't be filled with large data either. Over it, the request
+  is answered with *414 URI Too Long* (the request line), *431 Request Header Fields Too Large* (the headers) or
+  *413 Content Too Large* (the body).
++ *server.readtimeout*: the request line and the headers must arrive within it, and the body must not stop coming for
+  that long, otherwise it's *408 Request Timeout*. Unlike *server.timeout*, it's not refreshed by every byte, so a
+  client can't hold a connection by sending a byte now and then. A kept-alive connection may still wait
+  *server.timeout* for its next request.
++ *server.maxconns*: a new connection over it is answered with *503 Service Unavailable* and closed at once, so the
+  server never runs out of file descriptors.
++ A body is framed by *Content-Length* or *Transfer-Encoding: chunked*. A request which could be framed differently
+  by a proxy in front (request smuggling) is *400 Bad Request*: both of them, Transfer-Encoding in HTTP/1.0, chunked
+  not being the last coding, or different Content-Length values. Other transfer codings are *501 Not Implemented*.
+
+The connection is closed after any of these errors.
+
+** Rate limiting
+#+BEGIN_SRC scheme
+#:rate-limit '(key capacity period)
+#+END_SRC
+A route option allowing /capacity/ requests per /period/ seconds for each /key/, with a burst of /capacity/. A
+request over it is answered with *429 Too Many Requests* and *Retry-After*. /key/ is:
++ *ip*: the IP of the client, see [[Working with Nginx][Working with Nginx]];
++ *session*: the session of the client if it's valid (the route needs #:session or #:with-auth), otherwise the IP, so
+  a client can't get a new limit by sending a made-up session id;
++ a procedure src_scheme[:exports code]{(lambda (rc) ...)} returning the key, e.g. the user, or #f for the IP.
+
+#+BEGIN_SRC scheme
+;; 10 requests per second for each IP
+(get "/api/orders" #:rate-limit '(ip 10 1)
+  (lambda (rc) ...))
+;; 60 requests per minute for each session
+(post "/api/chat" #:with-auth 'status #:rate-limit '(session 60 60)
+  (lambda (rc) ...))
+#+END_SRC
+
++ It's checked before #:with-auth, so it's cheap to reject, but the request has been read. It's a quota of the
+  route, a flood of connections is limited by *server.maxconns* and *server.readtimeout*, or by Nginx in front.
++ On a WebSocket route it limits the handshakes, see [[Websocket route options][Websocket route options]].
++ A procedure key comes before #:with-auth, a key taken from the request must be checked, otherwise a client may
+  make up keys.
++ The keys of each route are limited by *server.ratelimitkeys* (100000), so a client changing its key can't fill the
+  memory. When it's full, the idle keys are dropped, and if there's still no room, a new key is over the limit.
++ The counts are in the process: several instances of a server don't share them.
+
+The token buckets are available as well:
+#+BEGIN_SRC scheme
+(use-modules (artanis rate-limit))
+(define limiter (make-rate-limiter capacity period))
+(rate-limiter-take! limiter key) ; => #t, or the seconds to wait
+(define bucket (make-token-bucket capacity period))
+(token-bucket-take! bucket)      ; => #t, or the seconds to wait
+#+END_SRC
+
+** Limits of WebSocket
+The frames and the messages of a WebSocket peer are limited by the [[Websocket configuration][Websocket configuration]], and its rates
+by *websocket.msgrate* and *websocket.pingrate*, see [[Websocket route options][Websocket route options]].
 
 * Ragnarok server core
 ** Ragnarok introduction
