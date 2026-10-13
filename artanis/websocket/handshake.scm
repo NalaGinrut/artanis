@@ -58,6 +58,8 @@
             websocket-rule-protocol
             websocket-rule-overflow
             websocket-rule-timeout
+            websocket-rule-message-rate
+            websocket-rule-ping-rate
             url-need-websocket?))
 
 (define *ws-magic* "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
@@ -72,9 +74,11 @@
 ;; the Sec-WebSocket-Protocol subprotocol.
 ;; `overflow' is what to do when the outbound queue of a connection is full,
 ;; 'reject or 'close, see (artanis websocket connection).
+;; `msgrate' and `pingrate' are the messages and pings per second a peer may
+;; send on a connection, #f for websocket.msgrate and websocket.pingrate.
 
 (define-record-type websocket-rule
-  (fields irx rule protocol overflow))
+  (fields irx rule protocol overflow msgrate pingrate))
 
 (define *websocket-rules* '())
 
@@ -83,16 +87,34 @@
 
 ;; regexp is the compiled rule, see compile-rule in (artanis oht).
 (define* (websocket-rule-add! rule regexp protocol
-                              #:key (overflow 'reject))
+                              #:key (overflow 'reject) (msgrate #f)
+                              (pingrate #f))
   (DEBUG "websocket-rule-add! ~a ~a~%" rule protocol)
   (unless (memq overflow '(reject close))
     (throw 'artanis-err 500 'websocket-rule-add!
            "Invalid #:overflow `~a' for `~a', expect reject or close"
            overflow rule))
+  (for-each
+   (lambda (name rate)
+     (unless (or (not rate) (and (integer? rate) (exact? rate) (>= rate 0)))
+       (throw 'artanis-err 500 'websocket-rule-add!
+              "Invalid #:~a `~a' for `~a', expect a non-negative integer"
+              name rate rule)))
+   '(msgrate pingrate) (list msgrate pingrate))
   (set! *websocket-rules*
         (cons (make-websocket-rule (string->irregex regexp) rule protocol
-                                   overflow)
+                                   overflow msgrate pingrate)
               *websocket-rules*)))
+
+;; The messages per second a peer may send on a connection of the rule, 0
+;; means no limit.
+(define (websocket-rule-message-rate r)
+  (or (websocket-rule-msgrate r) (get-conf '(websocket msgrate))))
+
+;; The pings per second a peer may send on a connection of the rule, 0 means
+;; no limit.
+(define (websocket-rule-ping-rate r)
+  (or (websocket-rule-pingrate r) (get-conf '(websocket pingrate))))
 
 (define (websocket-rule-timeout-set! rule seconds)
   (hash-set! *websocket-timeouts* rule seconds))

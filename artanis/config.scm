@@ -363,6 +363,23 @@ the #:overflow option of the route decides whether the connection is closed.
 0 means no limit.
 websocket.maxqueue = <integer>")
 
+    ((websocket msgrate)
+     100
+     "The messages per second a peer may send on a WebSocket connection, with
+a burst of twice as many. Over it, the connection is closed with 1008. The
+#:msgrate option of a route overrides it. 0 means no limit.
+The default value is suitable for most cases, don't change it without a reason.
+websocket.msgrate = <integer>")
+
+    ((websocket pingrate)
+     5
+     "The pings per second a peer may send on a WebSocket connection, with a
+burst of twice as many, including the pings between the fragments of a message.
+Over it, the connection is closed with 1008. The #:pingrate option of a route
+overrides it. 0 means no limit.
+The default value is suitable for most cases, don't change it without a reason.
+websocket.pingrate = <integer>")
+
     ((websocket maxtopics)
      10
      "The maximum number of topics a WebSocket connection can subscribe to,
@@ -639,6 +656,8 @@ for the headers), and the connection is closed.
     (('maxfragments maxfragments)
      (conf-set! '(websocket maxfragments) (->integer maxfragments)))
     (('maxqueue maxqueue) (conf-set! '(websocket maxqueue) (->integer maxqueue)))
+    (('msgrate msgrate) (conf-set! '(websocket msgrate) (->integer msgrate)))
+    (('pingrate pingrate) (conf-set! '(websocket pingrate) (->integer pingrate)))
     (('maxtopics maxtopics)
      (conf-set! '(websocket maxtopics) (->integer maxtopics)))
     (('timeout timeout) (conf-set! '(websocket timeout) (->integer timeout)))

@@ -389,15 +389,28 @@
 ;; (artanis websocket connection).
 ;; Options can follow 'raw and '(proto name):
 ;;   #:overflow reject|close   see ws-send, the default is reject.
-;; e.g. #:websocket '(raw #:overflow close)
+;;   #:msgrate n    messages per second a peer may send on a connection, the
+;;                  default is websocket.msgrate, 0 means no limit.
+;;   #:pingrate n   pings per second a peer may send on a connection, the
+;;                  default is websocket.pingrate, 0 means no limit.
+;; e.g. #:websocket '(raw #:overflow close #:msgrate 10)
 (define (websocket-maker mode rule keys)
   (define regexp (compile-rule rule))
-  (define (overflow-of opts)
-    (match opts
-      (() 'reject)
-      ((#:overflow (and overflow (or 'reject 'close))) overflow)
-      (else (throw 'artanis-err 500 websocket-maker
-                   "Invalid WebSocket options `~a' for `~a'" opts rule))))
+  (define (bad-options opts)
+    (throw 'artanis-err 500 websocket-maker
+           "Invalid WebSocket options `~a' for `~a'" opts rule))
+  ;; The keyword arguments of websocket-rule-add! from the options.
+  (define (options opts)
+    (let lp ((rest opts) (acc '()))
+      (match rest
+        (() acc)
+        (((and k (or #:overflow #:msgrate #:pingrate)) v . rest)
+         (if (memq k acc)
+             (bad-options opts)
+             (lp rest (append acc (list k v)))))
+        (else (bad-options opts)))))
+  (define (add! protocol opts)
+    (apply websocket-rule-add! rule regexp protocol (options opts)))
   (define (not-implemented what)
     (throw 'artanis-err 500 websocket-maker
            "#:websocket ~a of `~a' isn't implemented yet" what rule))
@@ -408,16 +421,16 @@
      ;;       ws-publish in (artanis websocket topic).
      (not-implemented "'send-only"))
     ((or #t 'raw)
-     (websocket-rule-add! rule regexp 'raw))
+     (add! 'raw '()))
     (('raw . opts)
-     (websocket-rule-add! rule regexp 'raw #:overflow (overflow-of opts)))
+     (add! 'raw opts))
     (('proto (? symbol? proto) . opts)
      ;; NOTE: The messages are decoded and encoded with the application
      ;;       protocol, see (artanis websocket protocol).
      ;; NOTE: By default, we accept only one protocol for each URL-remapping,
      ;;       if you have several protocols to service, please use different
      ;;       URL-remapping.
-     (websocket-rule-add! rule regexp proto #:overflow (overflow-of opts)))
+     (add! proto opts))
     (('redirect (? string? ip/usk))
      ;; TODO: A tunnel from the WebSocket connection to a service port on the
      ;;       server, e.g. to expose a TCP service on the web.

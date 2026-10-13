@@ -141,6 +141,36 @@
      (lambda () (websocket-rule-add! "/ov-bad" "^/ov-bad$" 'raw
                                      #:overflow 'drop)))))
 
+(define websocket-maker (@@ (artanis oht) websocket-maker))
+
+(with-test-prefix "rates of the peer"
+
+  (pass-if-equal "the config by default" '(100 5)
+    (let ((r (rule-of "/rate-default" 'reject)))
+      (list (websocket-rule-message-rate r) (websocket-rule-ping-rate r))))
+
+  (pass-if-equal "#:msgrate and #:pingrate of the route" '(close 10 0)
+    (begin
+      (websocket-maker '(raw #:pingrate 0 #:overflow close #:msgrate 10)
+                       "/rate-route" '())
+      (let ((r (find-websocket-rule "/rate-route")))
+        (list (websocket-rule-overflow r)
+              (websocket-rule-message-rate r)
+              (websocket-rule-ping-rate r)))))
+
+  (pass-if "an invalid #:msgrate is an error"
+    (throws-artanis-err?
+     (lambda () (websocket-maker '(raw #:msgrate -1) "/rate-bad" '()))))
+
+  (pass-if "an unknown option is an error"
+    (throws-artanis-err?
+     (lambda () (websocket-maker '(raw #:rate 1) "/rate-bad2" '()))))
+
+  (pass-if "a repeated option is an error"
+    (throws-artanis-err?
+     (lambda () (websocket-maker '(raw #:msgrate 1 #:msgrate 2)
+                                 "/rate-bad3" '())))))
+
 (with-test-prefix "ws-close!"
 
   (pass-if-equal "queued after the messages, nothing can be sent after it"

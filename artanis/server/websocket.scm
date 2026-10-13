@@ -62,7 +62,12 @@
   #:use-module (artanis websocket)
   #:use-module (artanis websocket frame)
   #:use-module (artanis websocket connection)
-  #:use-module ((artanis websocket handshake) #:select (websocket-rule-timeout))
+  #:use-module ((artanis websocket handshake)
+                #:select (websocket-rule-timeout
+                          websocket-rule-message-rate
+                          websocket-rule-ping-rate))
+  #:use-module ((artanis rate-limit)
+                #:select (make-token-bucket token-bucket-take!))
   #:use-module ((artanis websocket topic) #:select (websocket-conn-release!))
   #:use-module ((artanis route) #:select (rc-handler rc-req))
   #:use-module (artanis server server-context)
@@ -345,6 +350,33 @@
                 result)
         (fail-connection! server client 1011))))))
 
+;; ---------------------------------------------------------------------------
+;; Rates of the peer
+;;
+;; The messages and the pings a peer may send per second, see websocket.msgrate
+;; and websocket.pingrate. A bucket for each connection allows a burst of
+;; twice the rate. Over it, the connection is closed with 1008 (policy
+;; violation). The pings include the ones between the fragments of a message,
+;; so a peer can't keep the task busy answering pings without a message.
+
+;; A bucket for rate per second, or #f if rate is 0 (no limit).
+(define (rate-bucket rate)
+  (and (> rate 0) (make-token-bucket (* 2 rate) 2)))
+
+(define (check-rate! bucket what)
+  (when (and bucket (not (eq? #t (token-bucket-take! bucket))))
+    (throw 'websocket-err 1008 'check-rate! "Too many ~a" what)))
+
+;; The control handler of read-websocket-message, counting the pings.
+(define (rate-limited-control port bucket)
+  (let ((default (default-control-handler port)))
+    (if bucket
+        (lambda (frame)
+          (when (= #x9 (websocket-frame-opcode frame))
+            (check-rate! bucket "pings"))
+          (default frame))
+        default)))
+
 ;; Serve the connection until it ends, it never returns: read, dispatch, and
 ;; write the outbound queue. It's the read method of the protocol, since
 ;; http-read enters it right after the 101 response.
@@ -353,7 +385,11 @@
          (conn (proto-conn-state client))
          (on-message (ws-dispatcher-on-message
                       (websocket-conn-dispatcher conn)))
-         (waiter (ws-read-waiter server client conn port)))
+         (waiter (ws-read-waiter server client conn port))
+         (rule (websocket-conn-rule conn))
+         (messages (rate-bucket (websocket-rule-message-rate rule)))
+         (control (rate-limited-control
+                   port (rate-bucket (websocket-rule-ping-rate rule)))))
     (let lp ()
       (let ((msg (with-connection-errors
                   server client
@@ -361,8 +397,12 @@
                     ;; What the handler or other tasks have sent.
                     (flush-outbound! server client conn port)
                     (ws-recheck! conn)
-                    (parameterize ((current-read-waiter waiter))
-                      (read-websocket-message port))))))
+                    (let ((msg (parameterize ((current-read-waiter waiter))
+                                 (read-websocket-message port
+                                                         #:control control))))
+                      (unless (= #x8 (websocket-frame-opcode msg))
+                        (check-rate! messages "messages"))
+                      msg)))))
         (touch-inbound! conn)
         (cond
          ((= #x8 (websocket-frame-opcode msg))
