@@ -29,6 +29,7 @@
   #:use-module (artanis tpl sxml)
   #:use-module (artanis db)
   #:use-module (artanis route)
+  #:use-module ((artanis rate-limit) #:select (rc-rate-limited))
   #:use-module (artanis websocket)
   #:use-module (artanis server server-context)
   #:use-module (artanis security nss)
@@ -228,6 +229,10 @@
                (handler (rc-handler rc))
                (with-auth (rc-oht-ref rc #:with-auth)))
           (cond
+           ((and handler (rc-rate-limited rc))
+            => (lambda (seconds)
+                 (render-sys-page 'client 429 (rc-req rc)
+                                  #:headers `((retry-after . ,seconds)))))
            (handler
             (if with-auth
                 (with-auth

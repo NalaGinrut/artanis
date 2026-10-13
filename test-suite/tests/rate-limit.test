@@ -94,3 +94,20 @@
       ;; "b" is idle at 1.5, but there's no sweep until 2.05.
       (and (not (eq? #t (rate-limiter-take! l "d" 1.5)))
            (eq? #t (rate-limiter-take! l "d" 2.1))))))
+
+(define rate-limit-maker (@@ (artanis oht) rate-limit-maker))
+
+(define (maker-status mode)
+  (catch 'artanis-err
+    (lambda () (rate-limit-maker mode "/r" '()) #t)
+    (lambda (k status . _) status)))
+
+(with-test-prefix "#:rate-limit"
+
+  (pass-if "ip" (eq? #t (maker-status '(ip 10 1))))
+  (pass-if "session" (eq? #t (maker-status '(session 60 60))))
+  (pass-if "a procedure" (eq? #t (maker-status `(,(lambda (rc) #f) 1 0.5))))
+  (pass-if-equal "an unknown key is 500" 500 (maker-status '(user 10 1)))
+  (pass-if-equal "a zero capacity is 500" 500 (maker-status '(ip 0 1)))
+  (pass-if-equal "a negative period is 500" 500 (maker-status '(ip 1 -1)))
+  (pass-if-equal "a missing period is 500" 500 (maker-status '(ip 1))))

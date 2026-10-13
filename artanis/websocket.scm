@@ -31,6 +31,7 @@
   #:use-module (artanis websocket topic)
   #:use-module (artanis websocket connection)
   #:use-module (artanis route)
+  #:use-module ((artanis rate-limit) #:select (rc-rate-limited))
   #:export (detect-if-connecting-websocket)
   #:re-export (; from (artanis websocket connection)
                websocket-conn?
@@ -94,9 +95,8 @@
 ;; NOTE: Browsers send the cookies with the handshake, so the session is
 ;;       restored from the sid in the cookie, just like HTTP. The user logs
 ;;       in by HTTP first.
-(define (handshake-auth req)
-  (let* ((rc (new-route-context req #f))
-         (with-auth (rc-oht-ref rc #:with-auth)))
+(define (handshake-auth rc)
+  (let ((with-auth (rc-oht-ref rc #:with-auth)))
     (cond
      ((not with-auth) (values #t rc #f))
      ((with-auth rc (lambda _ #f) (lambda () #t))
@@ -124,13 +124,20 @@
    ((not (url-need-websocket? (websocket-request-path req))) #f)
    ((websocket-request-error req) => reject)
    (else
-    (call-with-values (lambda () (handshake-auth req))
-      (lambda (ok? rc sid)
-        (cond
-         ((not ok?) (reject '(401 "Authentication failed")))
-         (else
-          (do-websocket-handshake req port)
-          (new-websocket-conn
-           rc (find-websocket-rule (websocket-request-path req)) sid
-           ;; The handshake passed #:with-auth, see handshake-auth.
-           (and (rc-oht-ref rc #:with-auth) #t)))))))))
+    (let ((rc (new-route-context req #f)))
+      (cond
+       ;; #:rate-limit is checked before #:with-auth, like a HTTP request.
+       ((rc-rate-limited rc)
+        => (lambda (seconds)
+             (reject `(429 "Too many handshakes" (retry-after . ,seconds)))))
+       (else
+        (call-with-values (lambda () (handshake-auth rc))
+          (lambda (ok? rc sid)
+            (cond
+             ((not ok?) (reject '(401 "Authentication failed")))
+             (else
+              (do-websocket-handshake req port)
+              (new-websocket-conn
+               rc (find-websocket-rule (websocket-request-path req)) sid
+               ;; The handshake passed #:with-auth, see handshake-auth.
+               (and (rc-oht-ref rc #:with-auth) #t))))))))))))

@@ -49,6 +49,7 @@
   #:use-module (artanis utils)
   #:use-module (artanis config)
   #:use-module ((artanis logger) #:select (artanis-log))
+  #:use-module ((artanis route) #:select (rc-oht-ref))
   #:use-module (ice-9 threads)
   #:use-module (srfi srfi-9)
   #:export (make-token-bucket
@@ -58,7 +59,8 @@
             rate-limiter?
             rate-limiter-take!
             rate-limiter-count
-            monotonic-seconds))
+            monotonic-seconds
+            rc-rate-limited))
 
 ;; Seconds from a monotonic clock, as a real number.
 (define (monotonic-seconds)
@@ -181,3 +183,12 @@
                        #:msg (format #f "Rate limiter is full (~a keys), new keys are rejected~%"
                                      (limiter-max-keys limiter))))
         (limiter-period limiter))))))
+
+;; Is the request of rc over the #:rate-limit of its route? Returns #f, or
+;; the seconds to wait for Retry-After (RFC 9110 10.2.3), at least 1.
+(define (rc-rate-limited rc)
+  (let ((check (rc-oht-ref rc #:rate-limit)))
+    (and check
+         (let ((r (check rc)))
+           (and (not (eq? r #t))
+                (max 1 (inexact->exact (ceiling r))))))))

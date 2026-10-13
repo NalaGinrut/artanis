@@ -45,6 +45,7 @@
   #:use-module (artanis irregex)
   #:use-module (artanis lpc)
   #:use-module (artanis i18n)
+  #:use-module (artanis rate-limit)
   #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
@@ -451,6 +452,48 @@
   (websocket-rule-timeout-set! rule seconds)
   (lambda (rc) seconds))
 
+;; for #:rate-limit
+;; (key capacity period): capacity requests per period seconds for each key,
+;; a request over it is answered with 429 Too Many Requests and Retry-After.
+;; On a WebSocket route, it's the rate of the handshakes. key is:
+;;   ip        the IP of the client, see remote-info;
+;;   session   the session of the client if it's valid (the route must have
+;;             #:session or #:with-auth), otherwise the IP, so a client can't
+;;             get a new limit by sending a made-up session id;
+;;   (lambda (rc) ...)  returns the key, e.g. the user, #f for the IP.
+;;             NOTE: It's called before #:with-auth, a key from the client
+;;                   must be checked, otherwise a client may make up keys.
+;; e.g. #:rate-limit '(ip 10 1)
+;; NOTE: It's checked before #:with-auth, so it's cheap to reject a flood.
+;;       But the request has been read, see upload.size.
+(define (rate-limit-maker mode rule keys)
+  (define (ip-key rc) (cons 'ip (remote-info (rc-req rc))))
+  (define (session-key rc)
+    (let ((session (rc-oht-ref rc #:session))
+          (sid (get-sid-from-client-cookie rc)))
+      (if (and session sid (session rc 'check))
+          (cons 'sid sid)
+          (ip-key rc))))
+  (define (custom-key proc)
+    (lambda (rc)
+      (let ((k (proc rc)))
+        (if k (cons 'key k) (ip-key rc)))))
+  (match mode
+    (((and key (or 'ip 'session (? procedure?)))
+      (? (lambda (c) (and (integer? c) (exact? c) (> c 0))) capacity)
+      (? (lambda (p) (and (real? p) (> p 0))) period))
+     (let ((limiter (make-rate-limiter capacity period))
+           (key-of (match key
+                     ('ip ip-key)
+                     ('session session-key)
+                     (proc (custom-key proc)))))
+       (lambda (rc)
+         (rate-limiter-take! limiter (key-of rc)))))
+    (else
+     (throw 'artanis-err 500 rate-limit-maker
+            "Invalid #:rate-limit `~a' for `~a', expect (key capacity period)"
+            mode rule))))
+
 ;; for #:lpc
 ;; Local Persistent Cache
 (define (lpc-maker mode rule keys)
@@ -758,6 +801,9 @@
 
    ;; The idle timeout of the connection, in seconds, see timeout-maker.
    (#:timeout . ,timeout-maker)
+
+   ;; Limit the rate of requests, see rate-limit-maker.
+   (#:rate-limit . ,rate-limit-maker)
 
    ;; Apply an instance of Local Persistent Cache
    ;; This is useful when you want to store some key-value stuffs.
