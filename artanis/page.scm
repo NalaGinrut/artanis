@@ -40,7 +40,11 @@
   #:use-module (ice-9 iconv)
   #:use-module (ice-9 futures)
   #:use-module ((rnrs) #:select (bytevector-length bytevector?))
+  #:use-module ((web request) #:select (request-version))
   #:export (response-emit
+            response-emit-stream
+            response-emit-sse
+            sse-event
             throw-auth-needed
             tpl->html
             redirect-to
@@ -116,6 +120,19 @@
           (access-control-allow-credentials . "true"))
         '())))
 
+;; A body-stream has no length: HTTP/1.1 sends it chunked, HTTP/1.0 ends it by
+;; closing the connection (RFC 9112 6.3). nginx mustn't buffer it.
+(define (body-framing-headers body req)
+  (cond
+   ((body-stream? body)
+    `(,@(if (equal? (request-version req) '(1 . 1))
+            '((transfer-encoding (chunked)))
+            '((connection close)))
+      ,@(if (get-conf '(server nginx))
+            '((x-accel-buffering . "no"))
+            '())))
+   (else (list (gen-content-length body)))))
+
 (define (handler-render handler rc)
   (define (->bytevector body)
     (cond
@@ -131,7 +148,7 @@
     (let* ((reformed-body (->bytevector body))
            (headers `((server . ,(get-conf '(server info)))
                       (last-modified . ,mtime)
-                      ,(gen-content-length reformed-body)
+                      ,@(body-framing-headers reformed-body (rc-req rc))
                       ,@(cors-headers (rc-req rc))
                       ,@pre-headers
                       ,@(generate-cookies (rc-set-cookie rc))))
@@ -248,6 +265,64 @@
   (values body #:pre-headers (prepare-headers headers) #:status status
           #:mtime (generate-modify-time mtime)
           #:request-status request-status))
+
+;; Send the body piece by piece as it's produced, e.g. the output of an LLM.
+;; producer is called with send after the status and the headers have been
+;; written: (send x) writes x, a string or a bytevector, to the client at
+;; once. The response ends when producer returns.
+;; send waits while the client doesn't read (backpressure), and throws if the
+;; client has gone, then the connection is closed, so producer can clean up
+;; with dynamic-wind.
+;; NOTE: The status and the headers have been sent when producer runs, so an
+;;       error in producer can't be an error page: the connection is closed
+;;       before the end of the body, the client sees an incomplete response.
+;; NOTE: Only for the Ragnarok server engine.
+(define* (response-emit-stream producer #:key (status 200) (headers '())
+                               (mtime (current-time)))
+  (response-emit (make-body-stream producer)
+                 #:status status #:headers headers #:mtime mtime))
+
+;; Server-Sent Events (text/event-stream), see response-emit-stream. send
+;; writes events made by sse-event, or comments starting with ":".
+(define* (response-emit-sse producer #:key (status 200) (headers '()))
+  (response-emit-stream
+   producer
+   #:status status
+   #:headers `((content-type . (text/event-stream))
+               (cache-control . (no-cache))
+               ,@headers)))
+
+;; CRLF and CR are line breaks as well as LF in an event stream.
+(define (normalize-newlines str)
+  (let ((len (string-length str)))
+    (call-with-output-string
+      (lambda (port)
+        (let lp ((i 0))
+          (when (< i len)
+            (let ((c (string-ref str i)))
+              (cond
+               ((not (char=? c #\return)) (write-char c port) (lp (1+ i)))
+               ((and (< (1+ i) len) (char=? #\newline (string-ref str (1+ i))))
+                (write-char #\newline port)
+                (lp (+ i 2)))
+               (else (write-char #\newline port) (lp (1+ i)))))))))))
+
+;; An event of Server-Sent Events, see the HTML Standard 9.2.
+;; data may have several lines.
+(define* (sse-event data #:key (event #f) (id #f) (retry #f))
+  (define (field name value)
+    (when (string-any (lambda (c) (memv c '(#\newline #\return))) value)
+      (throw 'artanis-err 500 sse-event
+             "The ~a of an event can't have a line break: ~s" name value))
+    (string-append name ": " value "\n"))
+  (string-append
+   (if event (field "event" event) "")
+   (if id (field "id" id) "")
+   (if retry (field "retry" (number->string retry)) "")
+   (string-concatenate
+    (map (lambda (line) (string-append "data: " line "\n"))
+         (string-split (normalize-newlines data) #\newline)))
+   "\n"))
 
 (define (throw-auth-needed)
   (response-emit

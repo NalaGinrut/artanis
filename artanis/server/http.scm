@@ -28,6 +28,9 @@
   #:use-module (artanis server scheduler)
   #:use-module (artanis server ragnarok)
   #:use-module (artanis server request)
+  #:use-module ((ice-9 textual-ports) #:select (put-string))
+  #:use-module ((web response) #:select (response-transfer-encoding))
+  #:use-module ((ice-9 iconv) #:select (string->bytevector))
   #:use-module ((rnrs) #:select (put-bytevector
                                  bytevector?
                                  get-bytevector-n!
@@ -213,6 +216,43 @@
                 (read-deadline-clear! client)
                 (values req body)))))))))))
 
+;; Write a body-stream, see response-emit-stream. Each piece is a chunk if the
+;; response is chunked, otherwise it's written as it is, and the connection is
+;; closed at the end. Each piece is flushed at once.
+;; The writes suspend the task when the client doesn't read, so the producer
+;; waits for it. If anything goes wrong once the headers are sent, e.g. the
+;; client has gone or the producer throws, the connection is closed without
+;; the end of the body, so the client knows it's incomplete.
+(define (write-body-stream server client res body)
+  (define port (response-port res))
+  (define chunked? (member '(chunked) (response-transfer-encoding res)))
+  (define charset (get-conf '(server charset)))
+  (define (send x)
+    (let ((bv (cond
+               ((bytevector? x) x)
+               ((string? x) (string->bytevector x charset))
+               (else (throw 'artanis-err 500 send
+                            "Expect a string or a bytevector, but got ~a" x)))))
+      ;; An empty chunk would end the body.
+      (unless (zero? (bytevector-length bv))
+        (when chunked?
+          (put-string port (number->string (bytevector-length bv) 16))
+          (put-string port "\r\n"))
+        (put-bytevector port bv)
+        (when chunked? (put-string port "\r\n"))
+        (force-output port))))
+  (catch #t
+    (lambda ()
+      ((body-stream-producer body) send)
+      (when chunked?
+        (put-string port "0\r\n\r\n"))
+      (force-output port))
+    (lambda (k . e)
+      (format (artanis-current-output)
+              "The body stream to ~a is broken: ~a ~a~%" (client-ip client) k e)
+      (%%raw-close-connection server client #f)
+      (simply-quit))))
+
 (::define (http-write server client response body method-is-head?)
   (:anno: (ragnarok-server ragnarok-client <response> ANY boolean) -> ANY)
   (cond
@@ -238,6 +278,8 @@
        ((file-sender? body)
         ;; No runner timeout: the runner writes to the client socket itself.
         (call-with-runner (file-sender-thunk body) #:timeout 0))
+       ((body-stream? body)
+        (write-body-stream server client res body))
        (else
         (throw 'artanis-err 500 http-write
                "Expected a bytevector for body" body)))))))

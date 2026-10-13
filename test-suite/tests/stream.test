@@ -1,0 +1,77 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  === Streaming response bodies ===
+;;  Copyright (C) 2026
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License as published by
+;;  the Free Software Foundation, either version 3 of the License, or
+;;  (at your option) any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (test stream)
+  #:use-module (artanis artanis)
+  #:use-module (artanis utils)
+  #:use-module (web response)
+  #:use-module ((rnrs bytevectors) #:select (string->utf8))
+  #:use-module (test-suite lib))
+
+(define write-body-stream (@@ (artanis server http) write-body-stream))
+
+;; What a body-stream writes for a response with headers.
+(define (stream-output headers producer)
+  (let* ((out (open-output-string))
+         (res (write-response (build-response #:headers headers) out))
+         (start (string-length (get-output-string out))))
+    (write-body-stream 'server 'client res (make-body-stream producer))
+    (substring (get-output-string out) start)))
+
+(with-test-prefix "body stream"
+
+  (pass-if-equal "chunked pieces and the last chunk"
+      "3\r\nabc\r\n2\r\nde\r\n0\r\n\r\n"
+    (stream-output '((transfer-encoding (chunked)))
+                   (lambda (send) (send "abc") (send (string->utf8 "de")))))
+
+  (pass-if-equal "an empty piece doesn't end the body"
+      "1\r\na\r\n1\r\nb\r\n0\r\n\r\n"
+    (stream-output '((transfer-encoding (chunked)))
+                   (lambda (send) (send "a") (send "") (send "b"))))
+
+  (pass-if-equal "the size is in bytes, in hex" "13\r\n"
+    ;; 2 three-byte characters + 13 = 19 bytes = #x13
+    (substring (stream-output '((transfer-encoding (chunked)))
+                              (lambda (send) (send "你好0123456789abc")))
+               0 4))
+
+  (pass-if-equal "not chunked, pieces as they are"
+      "abcde"
+    (stream-output '((connection close))
+                   (lambda (send) (send "abc") (send "de")))))
+
+(with-test-prefix "sse-event"
+
+  (pass-if-equal "data" "data: hello\n\n" (sse-event "hello"))
+
+  (pass-if-equal "fields and lines"
+      "event: e\nid: 7\nretry: 3000\ndata: a\ndata: b\n\n"
+    (sse-event "a\nb" #:event "e" #:id "7" #:retry 3000))
+
+  (pass-if-equal "CRLF and CR are line breaks"
+      "data: a\ndata: b\ndata: c\n\n"
+    (sse-event "a\r\nb\rc"))
+
+  (pass-if-equal "a trailing line break is kept"
+      "data: a\ndata: \n\n"
+    (sse-event "a\n"))
+
+  (pass-if-equal "a line break in a field is 500" 500
+    (catch 'artanis-err
+      (lambda () (sse-event "x" #:event "a\nb"))
+      (lambda (k status . _) status))))

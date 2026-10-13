@@ -97,6 +97,7 @@
             file->bytevector
             procedure-name->string gen-content-length
             make-file-sender file-sender? file-sender-size file-sender-thunk
+            make-body-stream body-stream? body-stream-producer
             get-string-all-with-detected-charset make-unstop-exception-handler
             bv-copy/share bv-backward artanis-list-matches
             artanis-sys-response char-predicate handle-upload is-valid-table-name?
@@ -1443,6 +1444,12 @@
 
 (define-record-type file-sender
   (fields size thunk))
+
+;; A body written piece by piece as it's produced, e.g. the output of an LLM.
+;; producer is (lambda (send) ...), send writes a string or a bytevector to
+;; the client at once. See response-emit-stream.
+(define-record-type body-stream
+  (fields producer))
 
 (define (gen-content-length body)
   (let ((get-length (lambda ()

@@ -55,6 +55,9 @@
 
                ;; page module
                response-emit
+               response-emit-stream
+               response-emit-sse
+               sse-event
                throw-auth-needed
                tpl->html
                redirect-to
