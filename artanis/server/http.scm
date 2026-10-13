@@ -130,7 +130,10 @@
        ((> content-length (get-conf '(upload size)))
         (DEBUG "Entity size is ~a, size limit is ~a~%"
                content-length (get-conf '(upload size)))
-        (throw 'artanis-err 419 try-to-read-request-body "Entity is too large!~%"))
+        ;; 413 Content Too Large (RFC 9110 15.5.14). The body isn't read, so
+        ;; the connection is closed after the response.
+        (throw 'artanis-err 413 try-to-read-request-body
+               "Content is too large!~%"))
        ((zero? content-length) #f)
        (else (read-request-body req)))))
   (DEBUG "Enter http-read ~a~%" (client-sockport client))

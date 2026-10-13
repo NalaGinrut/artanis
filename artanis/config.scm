@@ -414,7 +414,8 @@ session.i18n = json | sxml | locale | <third-party-engine>")
 
     ((upload size)
      5242880  ; 5MB
-     "The size limitation of uploaded file in bytes.
+     "The size limitation of uploaded file in bytes. A larger request is
+answered with 413 Content Too Large, and the connection is closed.
      upload.size = <interger>")
 
     ;; for mail namespace
