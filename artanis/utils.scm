@@ -92,7 +92,8 @@
             ::define did-not-specify-parameter colorize-string-helper
             colorize-string WARN-TEXT ERROR-TEXT REASON-TEXT
             NOTIFY-TEXT STATUS-TEXT get-trigger get-family get-addr request-path
-            response-keep-alive? request-keep-alive? file->bytevector
+            response-keep-alive? request-keep-alive? response-with-close
+            file->bytevector
             procedure-name->string gen-content-length
             make-file-sender file-sender? file-sender-size file-sender-thunk
             get-string-all-with-detected-charset make-unstop-exception-handler
@@ -1357,6 +1358,20 @@
               ;; HTTP/1.0 needs explicit keep-alive notice
               ((0) (memq 'keep-alive (response-connection response)))))
            (else #f)))))
+
+;; The response with `Connection: close', for a connection closed after it.
+(define (response-with-close response)
+  (if (memq 'close (response-connection response))
+      response
+      (build-response #:version (response-version response)
+                      #:code (response-code response)
+                      #:reason-phrase (response-reason-phrase response)
+                      #:headers `((connection close)
+                                  ,@(filter (lambda (h)
+                                              (not (eq? (car h) 'connection)))
+                                            (response-headers response)))
+                      #:port (response-port response)
+                      #:validate-headers? #f)))
 
 ;; NOTE: The order matters
 ;; RFC 9112 9.3: `close' closes it; otherwise HTTP/1.1 keeps it alive by

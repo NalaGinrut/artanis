@@ -162,7 +162,8 @@
                  (catch #t
                    (lambda ()
                      (let ((proto (client-proto (task-client t) http)))
-                       (ragnarok-write proto server (task-client t) r b #f)
+                       (ragnarok-write proto server (task-client t)
+                                       (response-with-close r) b #f)
                        (ragnarok-close proto server (task-client t) #f)))
                    (lambda _
                      ;; ignore any error since there's no resource to handle.
@@ -421,9 +422,6 @@
                              ;;       compatible with the continuation of Guile built-in
                              ;;       server, although it's useless in Ragnarok.
                              (DEBUG "Ragnarok: write client~%")
-                             (ragnarok-write (client-proto client proto)
-                                             server client response body
-                                             (eq? 'HEAD (request-method request)))
                              ;; NOTE: A switched connection (e.g. WebSocket) is
                              ;;       long-lived by its protocol, it doesn't
                              ;;       depend on HTTP keep-alive or server.timeout.
@@ -432,13 +430,25 @@
                              ;; NOTE: Both the request and the response must
                              ;;       keep it alive (RFC 9112 9.3), either may
                              ;;       close it with `Connection: close'.
-                             (let ((keepalive? (or (specified-proto? client)
-                                                   (and (allow-long-live-connection?)
-                                                        (task-keepalive? (current-task))
-                                                        (response-keep-alive? response)))))
+                             ;; NOTE: http-write closes it after a HEAD.
+                             (let* ((head? (eq? 'HEAD (request-method request)))
+                                    (keepalive?
+                                     (or (specified-proto? client)
+                                         (and (not head?)
+                                              (not (eq? request-status 'exception))
+                                              (allow-long-live-connection?)
+                                              (task-keepalive? (current-task))
+                                              (response-keep-alive? response)))))
+                               ;; Tell the client it's closed after this
+                               ;; response (RFC 9112 9.6).
+                               (ragnarok-write (client-proto client proto)
+                                               server client
+                                               (if keepalive?
+                                                   response
+                                                   (response-with-close response))
+                                               body head?)
                                (cond
-                                ((or (eq? request-status 'exception)
-                                     (not keepalive?))
+                                ((not keepalive?)
                                  (ragnarok-close (client-proto client proto)
                                                  server client #f))
                                 (else
@@ -593,7 +603,8 @@
                                ;;       but only ignore them.
                                (parameterize ((out-of-task-prompt? #t))
                                  (let ((proto (client-proto client http)))
-                                   (ragnarok-write proto server client r b #f)
+                                   (ragnarok-write proto server client
+                                                   (response-with-close r) b #f)
                                    (ragnarok-close proto server client #f))))
                              (lambda e
                                (DEBUG "An error occured outside of the task prmpt, ")
@@ -621,7 +632,8 @@
                        (ragnarok-close (client-proto client http) server client #f))
                       (else
                        (let ((proto (client-proto client http)))
-                         (ragnarok-write proto server client r b #f)
+                         (ragnarok-write proto server client
+                                         (response-with-close r) b #f)
                          (ragnarok-close proto server client #f))))))))
              (DEBUG "Serve one done~%"))
            (lambda e
