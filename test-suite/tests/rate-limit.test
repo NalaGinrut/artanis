@@ -1,0 +1,96 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  === Rate limiting ===
+;;  Copyright (C) 2026
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License as published by
+;;  the Free Software Foundation, either version 3 of the License, or
+;;  (at your option) any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (test rate-limit)
+  #:use-module (artanis rate-limit)
+  #:use-module (test-suite lib))
+
+(define (take-n! b n now)
+  (map (lambda (_) (token-bucket-take! b now)) (iota n)))
+
+(with-test-prefix "token bucket"
+
+  (pass-if-equal "a burst of capacity, then over the limit"
+      '(#t #t #t #f)
+    (let ((b (make-token-bucket 3 1 0)))
+      (map (lambda (r) (eq? r #t)) (take-n! b 4 0))))
+
+  (pass-if "the wait for the next token"
+    (let ((b (make-token-bucket 2 10 0)))
+      (take-n! b 2 0)
+      ;; 2 tokens per 10s, one token in 5s.
+      (= 5 (token-bucket-take! b 0))))
+
+  (pass-if "refilled with time"
+    (let ((b (make-token-bucket 2 10 0)))
+      (take-n! b 2 0)
+      (and (not (eq? #t (token-bucket-take! b 4)))
+           (eq? #t (token-bucket-take! b 5))
+           (not (eq? #t (token-bucket-take! b 5))))))
+
+  (pass-if "never more than capacity"
+    (let ((b (make-token-bucket 2 1 0)))
+      (and (equal? '(#t #t) (take-n! b 2 1000))
+           (not (eq? #t (token-bucket-take! b 1000))))))
+
+  (pass-if "a time going backwards doesn't refill"
+    (let ((b (make-token-bucket 1 1 10)))
+      (token-bucket-take! b 10)
+      (not (eq? #t (token-bucket-take! b 5)))))
+
+  (pass-if-equal "an invalid capacity is 500" 500
+    (catch 'artanis-err
+      (lambda () (make-token-bucket 0 1))
+      (lambda (k status . _) status))))
+
+(with-test-prefix "rate limiter"
+
+  (pass-if "each key has its own bucket"
+    (let ((l (make-rate-limiter 1 60 #:max-keys 10)))
+      (and (eq? #t (rate-limiter-take! l "a" 0))
+           (not (eq? #t (rate-limiter-take! l "a" 0)))
+           (eq? #t (rate-limiter-take! l "b" 0))
+           (= 2 (rate-limiter-count l)))))
+
+  (pass-if "a full table drops the idle keys for a new one"
+    (let ((l (make-rate-limiter 1 10 #:max-keys 2)))
+      (rate-limiter-take! l "a" 0)
+      (rate-limiter-take! l "b" 5)
+      ;; At 10, "a" is refilled, "b" isn't.
+      (and (eq? #t (rate-limiter-take! l "c" 10))
+           (= 2 (rate-limiter-count l))
+           ;; "b" is still limited.
+           (not (eq? #t (rate-limiter-take! l "b" 10))))))
+
+  (pass-if "a full table of busy keys rejects a new key"
+    (let ((l (make-rate-limiter 1 10 #:max-keys 2)))
+      (rate-limiter-take! l "a" 0)
+      (rate-limiter-take! l "b" 0)
+      (and (= 10 (rate-limiter-take! l "c" 1))
+           (= 2 (rate-limiter-count l))
+           ;; The existing keys aren't reset.
+           (not (eq? #t (rate-limiter-take! l "a" 1))))))
+
+  (pass-if "the table is swept at most once per second"
+    (let ((l (make-rate-limiter 1 1 #:max-keys 2)))
+      (rate-limiter-take! l "a" 0)
+      (rate-limiter-take! l "b" 0.1)
+      ;; Swept at 1.05: "a" is idle, "b" isn't yet.
+      (rate-limiter-take! l "c" 1.05)
+      ;; "b" is idle at 1.5, but there's no sweep until 2.05.
+      (and (not (eq? #t (rate-limiter-take! l "d" 1.5)))
+           (eq? #t (rate-limiter-take! l "d" 2.1))))))

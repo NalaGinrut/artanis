@@ -193,6 +193,14 @@ server.engine = ragnarok | guile | fibers | <customized engine>")
 0 for always short live connections.
 server.timeout = <integer>")
 
+    ((server ratelimitkeys)
+     100000
+     "The maximum number of keys (e.g. client IPs) counted by each rate limit,
+see #:rate-limit. When it's full, the idle keys are dropped, and if there's
+still no room, a new key is over the limit until there is.
+The default value is suitable for most cases, don't change it without a reason.
+server.ratelimitkeys = <integer>")
+
     ((server maxconns)
      0
      "The maximum number of connections served at the same time. A new
@@ -601,6 +609,8 @@ for the headers), and the connection is closed.
     (('wqlen wqlen) (conf-set! '(server wqlen) (->integer wqlen)))
     (('trigger trigger) (conf-set! '(server trigger) (string->symbol trigger)))
     (('timeout timeout) (conf-set! '(server timeout) (->integer timeout)))
+    (('ratelimitkeys ratelimitkeys)
+     (conf-set! '(server ratelimitkeys) (->integer ratelimitkeys)))
     (('maxconns maxconns) (conf-set! '(server maxconns) (->integer maxconns)))
     (('readtimeout readtimeout)
      (conf-set! '(server readtimeout) (->integer readtimeout)))
