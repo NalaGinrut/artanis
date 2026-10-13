@@ -171,6 +171,13 @@
 (define (header-ref headers name)
   (assq-ref headers name))
 
+;; Does the request have a body? Any Transfer-Encoding means a body, even an
+;; empty chunked one (RFC 9112 6.3).
+(define (request-with-body? headers)
+  (or (header-ref headers 'transfer-encoding)
+      (let ((len (header-ref headers 'content-length)))
+        (and len (> len 0)))))
+
 ;; Is it a request to upgrade to WebSocket at all?
 (define (upgrade-request? headers)
   (let ((upgrade (header-ref headers 'upgrade))
@@ -265,6 +272,10 @@
         (or (< (car v) 1) (and (= (car v) 1) (< (cdr v) 1))))
       `(400 ,(format #f "Invalid HTTP version ~a for WebSocket"
                      (request-version req))))
+     ((request-with-body? headers)
+      ;; The handshake is a GET without body (RFC 6455 4.1). The body isn't
+      ;; read, it would be taken as the frames of the peer after the 101.
+      '(400 "A WebSocket handshake can't have a body"))
      ((not (valid-key? (header-ref headers 'sec-websocket-key)))
       '(400 "Missing or invalid Sec-WebSocket-Key"))
      ((not (string? version))

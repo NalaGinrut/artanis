@@ -120,6 +120,15 @@
 
 (with-test-prefix "websocket handshake"
 
+  (pass-if-equal "a body with Content-Length is 400" 400
+    (req-error #:headers (with 'content-length 10)))
+
+  (pass-if-equal "a chunked body is 400" 400
+    (req-error #:headers (with 'transfer-encoding '((chunked)))))
+
+  (pass-if-equal "Content-Length: 0 is no body" #f
+    (req-error #:headers (with 'content-length 0)))
+
   (pass-if "websocket key->accept"
     (let ((ts (gen-accept-key "x3JJHMbDL1EzLkh9GBhXDw==")))
       (string=? ts "HSmrc0sMlYUkAGmm5OPpG2HaGWk=")))
