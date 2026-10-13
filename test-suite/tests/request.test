@@ -1,0 +1,112 @@
+;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
+;;  === Reading HTTP requests with limits ===
+;;  Copyright (C) 2026
+;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
+;;  Artanis is free software: you can redistribute it and/or modify
+;;  it under the terms of the GNU General Public License as published by
+;;  the Free Software Foundation, either version 3 of the License, or
+;;  (at your option) any later version.
+
+;;  Artanis is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;  GNU General Public License for more details.
+
+;;  You should have received a copy of the GNU General Public License
+;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (test request)
+  #:use-module (artanis server request)
+  #:use-module (ice-9 binary-ports)
+  #:use-module (ice-9 receive)
+  #:use-module (rnrs bytevectors)
+  #:use-module (web request)
+  #:use-module (web uri)
+  #:use-module (test-suite lib))
+
+(define (port-of str)
+  (open-bytevector-input-port (string->utf8 str)))
+
+;; The status of the artanis-err thrown by thunk, or #f.
+(define (status-of thunk)
+  (catch 'artanis-err
+    (lambda () (thunk) #f)
+    (lambda (k status . _) status)))
+
+(define simple "GET /a?b=1 HTTP/1.1\r\nHost: localhost\r\nX-Foo: bar\r\n\r\n")
+
+(with-test-prefix "request head"
+
+  (pass-if "a request is parsed, its port is the given port"
+    (let ((port (port-of (string-append simple "BODY"))))
+      (receive (req size) (read-request-head port 1024)
+        (and (eq? 'GET (request-method req))
+             (equal? "/a" (uri-path (request-uri req)))
+             (equal? "bar" (assq-ref (request-headers req) 'x-foo))
+             (eq? port (request-port req))
+             (= size (string-length simple))
+             ;; The body is left in the port.
+             (equal? "BODY" (utf8->string (get-bytevector-all port)))))))
+
+  (pass-if "LF-only line endings are accepted"
+    (receive (req size)
+        (read-request-head (port-of "GET / HTTP/1.1\nHost: h\n\n") 1024)
+      (and (eq? 'GET (request-method req)) (= size 24))))
+
+  (pass-if "empty lines before the request line are ignored"
+    (receive (req size)
+        (read-request-head (port-of (string-append "\r\n\r\n" simple)) 1024)
+      (and (equal? "/a" (uri-path (request-uri req)))
+           (= size (+ 4 (string-length simple))))))
+
+  (pass-if "EOF before anything"
+    (receive (req size) (read-request-head (port-of "") 1024)
+      (and (eof-object? req) (zero? size))))
+
+  (pass-if "EOF after empty lines only"
+    (receive (req size) (read-request-head (port-of "\r\n") 1024)
+      (eof-object? req)))
+
+  (pass-if-equal "EOF in the middle of the head is 400" 400
+    (status-of (lambda ()
+                 (read-request-head (port-of "GET / HTTP/1.1\r\nHost: h\r\n")
+                                    1024))))
+
+  (pass-if "a head of exactly the limit is accepted"
+    (receive (req size)
+        (read-request-head (port-of simple) (string-length simple))
+      (= size (string-length simple))))
+
+  (pass-if-equal "a too long request line is 414" 414
+    (status-of (lambda ()
+                 (read-request-head
+                  (port-of (string-append "GET /" (make-string 100 #\a)
+                                          " HTTP/1.1\r\n\r\n"))
+                  64))))
+
+  (pass-if-equal "too long header fields are 431" 431
+    (status-of (lambda ()
+                 (read-request-head
+                  (port-of (string-append "GET / HTTP/1.1\r\nHost: h\r\n"
+                                          "X-Big: " (make-string 100 #\a)
+                                          "\r\n\r\n"))
+                  64))))
+
+  (pass-if-equal "too many header fields are 431" 431
+    (status-of (lambda ()
+                 (read-request-head
+                  (port-of (string-append
+                            "GET / HTTP/1.1\r\n"
+                            (apply string-append
+                                   (map (lambda (i) (format #f "X-~a: 1\r\n" i))
+                                        (iota 100)))
+                            "\r\n"))
+                  256))))
+
+  (pass-if-equal "a bad header is thrown by Guile" 'bad-header
+    (catch #t
+      (lambda ()
+        (read-request-head (port-of "GET / HTTP/1.1\r\nNoColon\r\n\r\n")
+                           1024)
+        #f)
+      (lambda (k . _) k))))

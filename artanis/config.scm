@@ -414,8 +414,11 @@ session.i18n = json | sxml | locale | <third-party-engine>")
 
     ((upload size)
      5242880  ; 5MB
-     "The size limitation of uploaded file in bytes. A larger request is
-answered with 413 Content Too Large, and the connection is closed.
+     "The size limitation of a request in bytes, including its request line,
+headers and body. So it also limits the headers, which an attacker could fill
+with large data. A larger request is answered with 413 Content Too Large
+(414 URI Too Long for the request line, 431 Request Header Fields Too Large
+for the headers), and the connection is closed.
      upload.size = <interger>")
 
     ;; for mail namespace

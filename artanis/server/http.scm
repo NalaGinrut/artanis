@@ -27,6 +27,7 @@
   #:use-module (artanis server epoll)
   #:use-module (artanis server scheduler)
   #:use-module (artanis server ragnarok)
+  #:use-module (artanis server request)
   #:use-module ((rnrs) #:select (put-bytevector
                                  bytevector?
                                  get-bytevector-n!
@@ -108,10 +109,11 @@
     (write-response (build-response #:version '(1 . 1) #:code status
                                     #:headers '((content-length . 0)))
                     port))
+  ;; Returns the request and the size of its head, see read-request-head.
   (define (try-to-read-request port)
     (catch #t
       (lambda ()
-        (read-request port))
+        (read-request-head port (get-conf '(upload size))))
       (lambda (k . e)
         (case k
           ;; TODO: how about bad-response for proxy?
@@ -122,14 +124,15 @@
            (simply-quit))
           (else
            (apply throw k e))))))
-  (define (try-to-read-request-body req)
+  ;; upload.size limits the whole request, the head and the body.
+  (define (try-to-read-request-body req head-size)
     (DEBUG "try to read request body ~a~%" req)
     (let ((content-length (or (request-content-length req) 0))
-          (port (request-port req)))
+          (limit (- (get-conf '(upload size)) head-size)))
       (cond
-       ((> content-length (get-conf '(upload size)))
+       ((> content-length limit)
         (DEBUG "Entity size is ~a, size limit is ~a~%"
-               content-length (get-conf '(upload size)))
+               content-length limit)
         ;; 413 Content Too Large (RFC 9110 15.5.14). The body isn't read, so
         ;; the connection is closed after the response.
         (throw 'artanis-err 413 try-to-read-request-body
@@ -146,23 +149,30 @@
       (%%raw-close-connection server client #t)
       (simply-quit))
      (else
-      (let* ((req (try-to-read-request port))
-             (ws-state (detect-if-connecting-websocket req port)))
-        (cond
-         ((websocket-conn? ws-state)
-          ;; The 101 response has been sent. Switch the connection to the
-          ;; `websocket' protocol, then Ragnarok will select it for this
-          ;; connection from now on. The handshake has no message for the
-          ;; handler, so return the first message instead.
-          (register-proto! client 'websocket ws-state)
-          (let ((ws (specified-proto? client)))
-            ((ragnarok-protocol-open ws) server client)
-            ((ragnarok-protocol-read ws) server client)))
-         ((eq? ws-state 'rejected)
-          ;; The HTTP error has been sent.
-          (%%raw-close-connection server client #f)
-          (simply-quit))
-         (else (values req (try-to-read-request-body req)))))))))
+      (call-with-values (lambda () (try-to-read-request port))
+        (lambda (req head-size)
+          (let ((ws-state (and (not (eof-object? req))
+                               (detect-if-connecting-websocket req port))))
+            (cond
+             ((eof-object? req)
+              ;; Only empty lines before EOF, close it as peer-shutdown.
+              (%%raw-close-connection server client #t)
+              (simply-quit))
+             ((websocket-conn? ws-state)
+              ;; The 101 response has been sent. Switch the connection to the
+              ;; `websocket' protocol, then Ragnarok will select it for this
+              ;; connection from now on. The handshake has no message for the
+              ;; handler, so return the first message instead.
+              (register-proto! client 'websocket ws-state)
+              (let ((ws (specified-proto? client)))
+                ((ragnarok-protocol-open ws) server client)
+                ((ragnarok-protocol-read ws) server client)))
+             ((eq? ws-state 'rejected)
+              ;; The HTTP error has been sent.
+              (%%raw-close-connection server client #f)
+              (simply-quit))
+             (else
+              (values req (try-to-read-request-body req head-size)))))))))))
 
 (::define (http-write server client response body method-is-head?)
   (:anno: (ragnarok-server ragnarok-client <response> ANY boolean) -> ANY)
