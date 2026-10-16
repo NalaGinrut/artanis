@@ -254,7 +254,9 @@
       ((body-stream-producer body) send)
       (when chunked?
         (put-string port *last-chunk*))
-      (force-output port))
+      (force-output port)
+      ;; The stream has ended, the connection may go on (keep-alive).
+      (run-close-hook! client))
     (lambda (k . e)
       (format (artanis-current-output)
               "The body stream to ~a is broken: ~a ~a~%" (client-ip client) k e)
@@ -293,6 +295,10 @@
     (%http-write server client response body method-is-head?)))
 
 (define (%http-write server client response body method-is-head?)
+  ;; The on-close of a stream is called when the stream ends, or when the
+  ;; connection ends before, see client-close-hook-set!.
+  (when (body-stream? body)
+    (client-close-hook-set! client (body-stream-on-close body)))
   (cond
    (method-is-head?
     (DEBUG "Method is HEAD, so don't write body~%")

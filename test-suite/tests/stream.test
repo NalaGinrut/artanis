@@ -20,6 +20,7 @@
   #:use-module (artanis utils)
   #:use-module (web response)
   #:use-module ((rnrs bytevectors) #:select (string->utf8))
+  #:use-module (artanis server server-context)
   #:use-module (test-suite lib))
 
 (define write-body-stream (@@ (artanis server http) write-body-stream))
@@ -54,6 +55,29 @@
       "abcde"
     (stream-output '((connection close))
                    (lambda (send) (send "abc") (send "de")))))
+
+(with-test-prefix "on-close"
+
+  (pass-if-equal "called once when the stream ends" 1
+    (let ((n 0))
+      (client-close-hook-set! 'client (lambda () (set! n (1+ n))))
+      (stream-output '((transfer-encoding (chunked)))
+                     (lambda (send) (send "a")))
+      ;; The connection ends after it, nothing more is called.
+      (run-close-hook! 'client)
+      n))
+
+  (pass-if-equal "an error of the hook is caught" 'ok
+    (begin
+      (client-close-hook-set! 'client (lambda () (error "boom")))
+      (run-close-hook! 'client)
+      'ok))
+
+  (pass-if-equal "no hook, nothing to call" 'ok
+    (begin
+      (client-close-hook-set! 'client #f)
+      (run-close-hook! 'client)
+      'ok)))
 
 (with-test-prefix "sse-event"
 

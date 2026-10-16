@@ -530,20 +530,33 @@ src_scheme[:exports code]{#:mtime} specifies the modified time in the response. 
 ** Streaming a response
 A response body can be sent piece by piece as it's produced, e.g. the output of an LLM:
 #+begin_src scheme
-(response-emit-stream producer #:status 200 #:headers '())
+(response-emit-stream producer #:status 200 #:headers '() #:on-close #f)
 #+end_src
 
-*producer* is src_scheme[:exports code]{(lambda (send) ...)}, it's called after the status and the headers have been
-sent. src_scheme[:exports code]{(send x)} writes /x/, a string or a bytevector, to the client at once. The response
-ends when /producer/ returns.
+*producer* is src_scheme[:exports code]{(lambda (send) ...)}. The handler returns at once, /producer/ isn't called
+yet. It's called after the status and the headers have been sent, then each src_scheme[:exports code]{(send x)}
+writes /x/, a string or a bytevector, to the client at once, as a chunk. The response ends when /producer/ returns.
+So the body isn't split in advance: it goes out piece by piece, when /producer/ has each piece.
 
 #+begin_src scheme
 (get "/count"
   (lambda (rc)
     (response-emit-stream
      (lambda (send)
-       (for-each (lambda (i) (send (format #f "~a~%" i))) (iota 10)))
+       (for-each (lambda (i) (send (format #f "line ~a~%" i))) (iota 5)))
      #:headers '((content-type . (text/plain))))))
+#+end_src
+
+What the client receives (HTTP/1.1), each chunk is its size in hex, then its data:
+#+begin_src null
+HTTP/1.1 200 OK
+Transfer-Encoding: chunked
+Content-Type: text/plain
+
+7\r\nline 0\n\r\n
+7\r\nline 1\n\r\n
+...
+0\r\n\r\n
 #+end_src
 
 + The body is sent with *Transfer-Encoding: chunked* to an HTTP/1.1 client, and ended by closing the connection for
@@ -554,32 +567,78 @@ ends when /producer/ returns.
   of piling the body up in memory. A client which doesn't read for *server.writetimeout* is dropped.
 + The status and the headers have been sent when /producer/ runs, so an error can't be an error page: if the client
   has gone, or /producer/ throws, the connection is closed before the end of the body, the client knows it's
-  incomplete. Use src_scheme[:exports code]{dynamic-wind} in /producer/ to clean up.
+  incomplete.
 + */producer/ runs in the server core*, it must never block. Wait for anything else, e.g. the next tokens from an
-  upstream LLM API, with [[Asynchronous Runner][call-with-runner]], the server goes on serving others meanwhile.
+  upstream LLM API, with [[Asynchronous Runner][call-with-runner]], the server goes on serving others meanwhile. Note
+  that a waiting /producer/ holds a runner thread (*server.runners*) while it waits.
++ *#:on-close* is a thunk called once when the stream ends, however it ends: /producer/ returns or throws, the client
+  has gone, *server.writetimeout*. Release there what /producer/ holds, e.g. the upstream connection. If /producer/
+  is waiting for a runner, it's called once the runner is done. It's called in the server core, maybe out of the
+  task, so it mustn't block nor wait (no src_scheme[:exports code]{call-with-runner}).
++ *Don't release them with* src_scheme[:exports code]{dynamic-wind} *in /producer/*: each time the task waits
+  (src_scheme[:exports code]{call-with-runner}, a slow client), it leaves the dynamic extent, so the /after/ thunk runs
+  each time. And when the connection is dropped while the task waits, nothing in /producer/ runs anymore. See
+  [[Asynchronous Runner][Asynchronous Runner]].
 + It's only for the Ragnarok server engine.
 
 Server-Sent Events (text/event-stream) are a stream of events:
 #+begin_src scheme
-(response-emit-sse producer #:status 200 #:headers '())
+(response-emit-sse producer #:status 200 #:headers '() #:on-close #f)
 (sse-event data #:event #f #:id #f #:retry #f)
 #+end_src
 src_scheme[:exports code]{sse-event} makes an event, /data/ may have several lines. A string starting with ":" is a
-comment, e.g. to keep the connection alive.
+comment, e.g. to keep the connection alive. SSE is the format of the body, the chunks are how the body is sent: the
+client's HTTP library drops the chunk sizes before its SSE parser, an event doesn't have to be one chunk.
 
 #+begin_src scheme
-(get "/chat"
+(get "/tokens"
   (lambda (rc)
     (response-emit-sse
      (lambda (send)
-       (let lp ()
-         ;; Wait for the next tokens from the upstream in a runner.
-         (let ((tokens (call-with-runner (lambda () (read-upstream-tokens)))))
-           (cond
-            ((eof-object? tokens) (send (sse-event "[DONE]")))
-            (else
-             (send (sse-event tokens #:event "delta"))
-             (lp)))))))))
+       (for-each
+        (lambda (token)
+          ;; Generating, in a runner since producer mustn't block.
+          (call-with-runner (lambda () (usleep 500000)))
+          (send (sse-event token #:event "delta")))
+        '("Hello" "," " world" "!"))
+       (send (sse-event "[DONE]"))))))
+#+end_src
+
+A proxy to an upstream LLM API streaming SSE, each event is sent to the client once it's complete:
+#+begin_src scheme
+(use-modules (web client) (ice-9 rdelim))
+
+(define (open-upstream body)
+  (call-with-values
+      (lambda ()
+        (http-request "http://llm.example/v1/chat"
+                      #:method 'POST
+                      #:body body
+                      #:headers '((content-type . (application/json)))
+                      #:streaming? #t))
+    (lambda (res port)
+      ;; Unbuffered, otherwise a read of the chunked body waits until its
+      ;; buffer is full, i.e. the whole answer.
+      (setvbuf port 'none)
+      port)))
+
+(post "/chat"
+  (lambda (rc)
+    (let ((upstream #f))
+      (response-emit-sse
+       (lambda (send)
+         (set! upstream
+               (call-with-runner (lambda () (open-upstream (rc-body rc)))))
+         ;; The lines of an event until an empty line.
+         (let lp ((event '()))
+           (let ((line (call-with-runner (lambda () (read-line upstream)))))
+             (cond
+              ((eof-object? line) #t)
+              ((string-null? line)
+               (send (string-append (string-join (reverse event) "\n") "\n\n"))
+               (lp '()))
+              (else (lp (cons line event)))))))
+       #:on-close (lambda () (when upstream (close-port upstream)))))))
 #+end_src
 
 Behind Nginx, *X-Accel-Buffering: no* is sent with a stream when *server.nginx* is enabled, so Nginx passes it on at
@@ -2976,6 +3035,15 @@ Here's the API:
 ** Asynchronous Runner principle
 
 The thunk will be executed in a new thread, ensuring that the server core remains unblocked. This means that no matter how many tasks you run, they will not affect the performance of the server core. However, it's important to note that running too many tasks can degrade the overall performance of the operating system.
+
+The thunk runs in a runner thread with blocking I/O: a read or a write in it waits in that thread, it never suspends
+any task. While the thunk runs, the task calling src_scheme[:exports code]{call-with-runner} is suspended, and the
+server core serves others. A call of src_scheme[:exports code]{call-with-runner} in a runner just runs the thunk.
+
+*NOTE:* Suspending a task leaves its dynamic extent, so a src_scheme[:exports code]{dynamic-wind} around
+src_scheme[:exports code]{call-with-runner} (or around anything which may wait, like writing to a slow client) runs
+its /after/ thunk each time the task waits, and its /before/ thunk each time it's resumed. Don't use it to release
+resources in a handler, see #:on-close of [[Streaming a response][response-emit-stream]].
 
 ** Asynchronous Runner Example
 

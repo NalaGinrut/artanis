@@ -276,22 +276,32 @@
 ;; written: (send x) writes x, a string or a bytevector, to the client at
 ;; once. The response ends when producer returns.
 ;; send waits while the client doesn't read (backpressure), and throws if the
-;; client has gone, then the connection is closed, so producer can clean up
-;; with dynamic-wind.
+;; client has gone.
+;; on-close is a thunk called once when the stream ends, however it ends:
+;; producer returns or throws, the client has gone, server.writetimeout. It's
+;; where to release what producer holds, e.g. the upstream connection.
+;; NOTE: Don't release them with dynamic-wind in producer: each wait of the
+;;       task (call-with-runner, a slow client) leaves the dynamic extent and
+;;       runs its after thunk. And when the connection is dropped while the
+;;       task waits, nothing in producer runs anymore.
+;; NOTE: on-close is called in the server core, maybe out of the task, so it
+;;       mustn't block nor wait (no call-with-runner), e.g. close a port.
 ;; NOTE: The status and the headers have been sent when producer runs, so an
 ;;       error in producer can't be an error page: the connection is closed
 ;;       before the end of the body, the client sees an incomplete response.
 ;; NOTE: Only for the Ragnarok server engine.
 (define* (response-emit-stream producer #:key (status 200) (headers '())
-                               (mtime (current-time)))
-  (response-emit (make-body-stream producer)
+                               (mtime (current-time)) (on-close #f))
+  (response-emit (make-body-stream producer on-close)
                  #:status status #:headers headers #:mtime mtime))
 
 ;; Server-Sent Events (text/event-stream), see response-emit-stream. send
 ;; writes events made by sse-event, or comments starting with ":".
-(define* (response-emit-sse producer #:key (status 200) (headers '()))
+(define* (response-emit-sse producer #:key (status 200) (headers '())
+                            (on-close #f))
   (response-emit-stream
    producer
+   #:on-close on-close
    #:status status
    #:headers `((content-type . (text/event-stream))
                (cache-control . (no-cache))

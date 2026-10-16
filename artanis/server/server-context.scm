@@ -78,6 +78,8 @@
             ready-queue-out!
 
             make-work-table
+            client-close-hook-set!
+            run-close-hook!
             work-table-size
             work-table?
             work-table-content
@@ -311,6 +313,7 @@
         (high-prio-task-remove! client)
         (let ((port (car (unbox-type client))))
           (false-if-exception (close port)))
+        (run-close-hook! client)
         #f)
        (else #t))))))
 
@@ -735,10 +738,43 @@
     (hashv-remove! content fd))
   ;; Before the fd could be closed and reused.
   (unregister-proto! client)
-  (if (task-busy? client)
-      ;; Another thread may still use the port, see Busy tasks.
-      (defer-close! client)
-      (close (client-sockport client))))
+  (cond
+   ((task-busy? client)
+    ;; Another thread may still use the port, see Busy tasks. The close hook
+    ;; waits for it as well, see task-busy-end!.
+    (defer-close! client))
+   (else
+    (close (client-sockport client))
+    (run-close-hook! client))))
+
+;; The close hook of a connection is called once when the connection ends,
+;; however it ends: normally, an error, the peer has gone, a timeout, ... It's
+;; for what a task holds out of the connection, e.g. the upstream of a stream,
+;; since a task may be dropped while it's suspended, then nothing in it runs
+;; anymore, not even a dynamic-wind (which runs each time the task is
+;; suspended anyway).
+;; If the task is busy (e.g. waiting for a runner), the hook is called once
+;; the runner is done, so it never races with the runner.
+;; The hook is called in the server core, maybe out of the task: it mustn't
+;; block, nor suspend the task.
+;; Weak, so a hook never keeps a client.
+(define *close-hooks* (make-weak-key-hash-table))
+
+(define (client-close-hook-set! client thunk)
+  (if thunk
+      (hashq-set! *close-hooks* client thunk)
+      (hashq-remove! *close-hooks* client)))
+
+;; Call the close hook of client if any, once. An error of it is logged.
+(define (run-close-hook! client)
+  (let ((hook (hashq-ref *close-hooks* client)))
+    (when hook
+      (hashq-remove! *close-hooks* client)
+      (catch #t
+        hook
+        (lambda e
+          (format (current-error-port)
+                  "The close hook of a connection failed: ~a~%" e))))))
 
 (::define (add-a-task-to-work-table! wt client task)
   (:anno: (work-table ragnarok-client task) -> ANY)
