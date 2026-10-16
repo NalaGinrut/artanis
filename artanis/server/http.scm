@@ -37,7 +37,8 @@
                                  bytevector-length make-bytevector))
   #:use-module (ice-9 format)
   #:use-module (ice-9 futures)
-  #:use-module ((ice-9 suspendable-ports) #:select (current-read-waiter))
+  #:use-module ((ice-9 suspendable-ports)
+                #:select (current-read-waiter current-write-waiter))
   #:use-module (system foreign)
   #:export (new-http-protocol
             %%raw-close-connection
@@ -148,18 +149,18 @@
        ((zero? framing) #f)
        (else (read-request-body req)))))
   ;; The request must be read within server.readtimeout, see
-  ;; read-deadline-set!. When the task waits for the peer, it's resumed by
+  ;; io-deadline-set!. When the task waits for the peer, it's resumed by
   ;; the data, or by the deadline.
   (define read-timeout (get-conf '(server readtimeout)))
   (define body? #f)
   (define (arm-deadline!)
     (when (> read-timeout 0)
-      (read-deadline-set! client read-timeout)))
+      (io-deadline-set! client read-timeout)))
   (define (deadline-waiter port)
     (break-task)
     (cond
-     ((read-deadline-passed? client)
-      (read-deadline-clear! client)
+     ((io-deadline-passed? client)
+      (io-deadline-clear! client)
       (throw 'artanis-err 408 http-read
              "The request isn't read in ~a seconds" read-timeout))
      ;; The body may take long, it must just not stop coming.
@@ -186,7 +187,7 @@
       (call-with-values
           (lambda () (read-with-deadline (lambda () (try-to-read-request port))))
         (lambda (req head-size)
-          (read-deadline-clear! client)
+          (io-deadline-clear! client)
           (let ((ws-state (and (not (eof-object? req))
                                (detect-if-connecting-websocket req port))))
             (cond
@@ -213,7 +214,7 @@
               (let ((body (read-with-deadline
                            (lambda ()
                              (try-to-read-request-body req head-size)))))
-                (read-deadline-clear! client)
+                (io-deadline-clear! client)
                 (values req body)))))))))))
 
 ;; The end of a chunked body: the last chunk and no trailer (RFC 9112 7.1).
@@ -246,6 +247,10 @@
         (force-output port))))
   (catch #t
     (lambda ()
+      ;; The status and the headers go out at once, the client knows the
+      ;; request is taken before the first piece, which may take a while
+      ;; (e.g. the first token of an LLM).
+      (force-output port)
       ((body-stream-producer body) send)
       (when chunked?
         (put-string port *last-chunk*))
@@ -256,8 +261,38 @@
       (%%raw-close-connection server client #f)
       (simply-quit))))
 
+;; The write waiter of http-write. When a write would block, the client
+;; doesn't read what has been sent: the task waits for it, but at most
+;; server.writetimeout each time, see io-deadline-set!. It's not refreshed by
+;; every byte the client reads, only by a write which has been done, so a
+;; client reading a byte now and then holds it for that long at most.
+;; Otherwise the connection is dropped: nothing more can be sent, not even an
+;; error, the client has a part of the response.
+(define (write-deadline-waiter server client)
+  (define timeout (get-conf '(server writetimeout)))
+  (lambda (port)
+    (when (> timeout 0)
+      (io-deadline-set! client timeout))
+    (break-task)
+    (cond
+     ((io-deadline-passed? client)
+      (io-deadline-clear! client)
+      (format (artanis-current-output)
+              "Client ~a doesn't read the response in ~a seconds, drop it~%"
+              (client-ip client) timeout)
+      ;; The data waiting in the port can't be sent, so the flush when the
+      ;; port is closed fails at once, instead of waiting for the client.
+      (catch #t (lambda () (shutdown port 2)) (const #f))
+      (%%raw-close-connection server client #f)
+      (simply-quit))
+     (else (io-deadline-clear! client)))))
+
 (::define (http-write server client response body method-is-head?)
   (:anno: (ragnarok-server ragnarok-client <response> ANY boolean) -> ANY)
+  (parameterize ((current-write-waiter (write-deadline-waiter server client)))
+    (%http-write server client response body method-is-head?)))
+
+(define (%http-write server client response body method-is-head?)
   (cond
    (method-is-head?
     (DEBUG "Method is HEAD, so don't write body~%")

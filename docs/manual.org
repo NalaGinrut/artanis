@@ -548,8 +548,10 @@ ends when /producer/ returns.
 
 + The body is sent with *Transfer-Encoding: chunked* to an HTTP/1.1 client, and ended by closing the connection for
   HTTP/1.0.
++ The status and the headers are sent before /producer/ runs, so the client knows the request is taken before the
+  first piece.
 + src_scheme[:exports code]{send} waits while the client doesn't read, so a slow client slows /producer/ down instead
-  of piling the body up in memory.
+  of piling the body up in memory. A client which doesn't read for *server.writetimeout* is dropped.
 + The status and the headers have been sent when /producer/ runs, so an error can't be an error page: if the client
   has gone, or /producer/ throws, the connection is closed before the end of the body, the client knows it's
   incomplete. Use src_scheme[:exports code]{dynamic-wind} in /producer/ to clean up.
@@ -2740,6 +2742,8 @@ The defaults are suitable for most cases, don't change them without a reason.
 upload.size = 5242880
 ## The time in seconds to read a request. 0 means no limit.
 server.readtimeout = 30
+## The time in seconds a response may wait for the client to read it. 0 means no limit.
+server.writetimeout = 30
 ## The maximum number of connections served at the same time. 0 means ulimit -n minus 64.
 server.maxconns = 0
 #+END_SRC
@@ -2751,6 +2755,9 @@ server.maxconns = 0
   that long, otherwise it's *408 Request Timeout*. Unlike *server.timeout*, it's not refreshed by every byte, so a
   client can't hold a connection by sending a byte now and then. A kept-alive connection may still wait
   *server.timeout* for its next request.
++ *server.writetimeout*: when the client doesn't read the response for that long, the connection is dropped, so a
+  client which stops reading (e.g. a stream or a large response) can't hold it. It's not refreshed by every byte the
+  client reads, but by each write which has been done.
 + *server.maxconns*: a new connection over it is answered with *503 Service Unavailable* and closed at once, so the
   server never runs out of file descriptors.
 + A body is framed by *Content-Length* or *Transfer-Encoding: chunked*. A request which could be framed differently

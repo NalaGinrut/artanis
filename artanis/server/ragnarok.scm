@@ -297,9 +297,10 @@
          (idle-expired (take-idle-expired! (current-work-table server)))
          ;; Long-lived connections due to be checked, see Timed watches.
          (recheck-due (take-recheck-due! (current-work-table server)))
-         ;; Requests not read in time, see read-deadline-set!.
-         (read-due (take-read-deadline-due! (current-work-table server)))
-         (idle (append idle-expired recheck-due read-due))
+         ;; Requests not read or responses not written in time, see
+         ;; io-deadline-set!.
+         (io-due (take-io-deadline-due! (current-work-table server)))
+         (idle (append idle-expired recheck-due io-due))
          ;; epoll never returns an fd twice in one round, but a task may be
          ;; restored by its own socket event AND woken up by another thread
          ;; (or by its deadline) in the same round. If so, it must be queued

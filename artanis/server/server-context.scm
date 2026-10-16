@@ -44,10 +44,10 @@
             take-idle-expired!
             recheck-watch!
             take-recheck-due!
-            read-deadline-set!
-            read-deadline-clear!
-            read-deadline-passed?
-            take-read-deadline-due!
+            io-deadline-set!
+            io-deadline-clear!
+            io-deadline-passed?
+            take-io-deadline-due!
 
             make-ragnarok-engine
             ragnarok-engine?
@@ -420,98 +420,107 @@
                ;; A busy task isn't waiting in the protocol, it can't do the
                ;; check. Try again in the next period.
                (if (task-busy? client) 'again 'both))))
-;; Read deadlines
-;; The task of a client must have read what it's reading (e.g. the head of a
-;; request) before its deadline, otherwise it's resumed to get its timeout,
-;; even if the peer sends nothing. Unlike the task timeout, it's not refreshed
-;; by the data from the peer, so a slow peer can't hold the connection by
-;; sending a byte now and then.
+;; I/O deadlines
+;; The task of a client must have done the I/O it's waiting for (e.g. reading
+;; the head of a request, or writing a response the peer doesn't read) before
+;; its deadline, otherwise it's resumed to get its timeout, even if nothing
+;; happens on the socket. Unlike the task timeout, it's not refreshed by every
+;; byte, so a slow peer can't hold the connection by sending or reading a
+;; byte now and then.
 ;; The deadlines use the monotonic clock, and are checked in each round of
 ;; the main loop, so a passed deadline is taken within server.polltimeout.
-;; One queue of (client . deadline) for all the clients: a deadline is always
-;; set to now + the same timeout (server.readtimeout), so the items are
-;; enqueued in the order of their deadlines, and only the head of the queue
-;; needs to be checked. The cost of a round is the number of due items, not
-;; the number of connections.
+;; There's a queue of (client . deadline) for each timeout (e.g.
+;; server.readtimeout, server.writetimeout): a deadline is always set to now
+;; + its timeout, so the items of a queue are enqueued in the order of their
+;; deadlines, and only the head of each queue needs to be checked. The cost
+;; of a round is the number of due items, not the number of connections.
 ;; A deadline may be moved, e.g. for the next request of a kept-alive
 ;; connection, or while the body is coming. It isn't enqueued again each
 ;; time: a new item is enqueued only if the deadline is moved by
-;; *read-deadline-step* or more from the last item of the client, so a body
+;; *io-deadline-step* or more from the last item of the client, so a body
 ;; coming in small pieces doesn't flood the queue. When an older item is due
 ;; and the deadline has moved less than that, the item is enqueued again with
-;; the deadline. So a deadline is taken at most *read-deadline-step* late.
+;; the deadline. So a deadline is taken at most *io-deadline-step* late.
 ;; NOTE: Server thread only.
-(define *read-deadline-queue* (new-queue))
+(define *io-deadline-queues* (make-hash-table)) ; seconds -> queue
 ;; client -> (deadline . queued): deadline is #f once it's cleared, queued is
-;; the deadline of the last item of the client in the queue, #f if none.
+;; the deadline of the last item of the client in a queue, #f if none.
 ;; Weak, so a closed connection doesn't leak.
-(define *read-deadlines* (make-weak-key-hash-table))
-(define *read-deadline-step* internal-time-units-per-second)
+(define *io-deadlines* (make-weak-key-hash-table))
+(define *io-deadline-step* internal-time-units-per-second)
 
-(define (enqueue-read-deadline! client entry deadline)
+(define (io-deadline-queue seconds)
+  (or (hashv-ref *io-deadline-queues* seconds)
+      (let ((q (new-queue)))
+        (hashv-set! *io-deadline-queues* seconds q)
+        q)))
+
+(define (enqueue-io-deadline! q client entry deadline)
   (set-cdr! entry deadline)
-  (queue-in! *read-deadline-queue* (cons client deadline)))
+  (queue-in! q (cons client deadline)))
 
 ;; Set the deadline of client to seconds (> 0) from now, or move it.
-(define (read-deadline-set! client seconds)
+(define (io-deadline-set! client seconds)
   (let ((deadline (deadline-after seconds))
-        (entry (or (hashq-ref *read-deadlines* client)
+        (entry (or (hashq-ref *io-deadlines* client)
                    (let ((e (cons #f #f)))
-                     (hashq-set! *read-deadlines* client e)
+                     (hashq-set! *io-deadlines* client e)
                      e))))
     (set-car! entry deadline)
     (let ((queued (cdr entry)))
       (when (or (not queued)
-                (>= (- deadline queued) *read-deadline-step*))
-        (enqueue-read-deadline! client entry deadline)))))
+                (>= (- deadline queued) *io-deadline-step*))
+        (enqueue-io-deadline! (io-deadline-queue seconds) client entry
+                              deadline)))))
 
-(define (read-deadline-clear! client)
-  (and=> (hashq-ref *read-deadlines* client)
+(define (io-deadline-clear! client)
+  (and=> (hashq-ref *io-deadlines* client)
          (lambda (entry) (set-car! entry #f))))
 
-(define (read-deadline-passed? client)
-  (let ((entry (hashq-ref *read-deadlines* client)))
+(define (io-deadline-passed? client)
+  (let ((entry (hashq-ref *io-deadlines* client)))
     (and entry (car entry) (deadline-passed? (car entry)))))
 
-;; Returns the clients whose read deadline has passed.
-(define (take-read-deadline-due! wt)
+;; Returns the clients whose I/O deadline has passed.
+(define (take-io-deadline-due! wt)
   (define tasks (work-table-content wt))
   (define (alive? client)
     (let* ((fd (client-live-fd client))
            (task (and fd (hashv-ref tasks fd))))
       (and task (eq? (task-client task) client))))
-  (let lp ((acc '()))
-    (let ((q *read-deadline-queue*))
-      (if (or (queue-empty? q)
-              (not (deadline-passed? (cdr (queue-head q)))))
-          acc
-          (let* ((item (queue-out! q))
-                 (client (car item))
-                 (due (cdr item)))
-             (let ((entry (hashq-ref *read-deadlines* client)))
-               (cond
-                ;; A newer item of the client is in the queue.
-                ((or (not entry) (not (eqv? due (cdr entry)))) (lp acc))
-                ((not (alive? client))
-                 (hashq-remove! *read-deadlines* client)
-                 (lp acc))
-                ((not (car entry))
-                 ;; Cleared, the next deadline enqueues a new item.
-                 (set-cdr! entry #f)
-                 (lp acc))
-                ((task-busy? client)
-                 ;; A busy task isn't reading, check it again later.
-                 (enqueue-read-deadline!
-                  client entry
-                  (+ (get-internal-real-time) *read-deadline-step*))
-                 (lp acc))
-                ((deadline-passed? (car entry))
-                 (set-cdr! entry #f)
-                 (lp (cons client acc)))
-                (else
-                 ;; Moved by less than *read-deadline-step*.
-                 (enqueue-read-deadline! client entry (car entry))
-                 (lp acc)))))))))
+  (define (take-from q acc)
+    (if (or (queue-empty? q)
+            (not (deadline-passed? (cdr (queue-head q)))))
+        acc
+        (let* ((item (queue-out! q))
+               (client (car item))
+               (due (cdr item))
+               (entry (hashq-ref *io-deadlines* client)))
+          (cond
+           ;; A newer item of the client is in a queue.
+           ((or (not entry) (not (eqv? due (cdr entry))))
+            (take-from q acc))
+           ((not (alive? client))
+            (hashq-remove! *io-deadlines* client)
+            (take-from q acc))
+           ((not (car entry))
+            ;; Cleared, the next deadline enqueues a new item.
+            (set-cdr! entry #f)
+            (take-from q acc))
+           ((task-busy? client)
+            ;; A busy task isn't doing the I/O, check it again later.
+            (enqueue-io-deadline!
+             q client entry (+ (get-internal-real-time) *io-deadline-step*))
+            (take-from q acc))
+           ((deadline-passed? (car entry))
+            (set-cdr! entry #f)
+            (take-from q (cons client acc)))
+           (else
+            ;; Moved by less than *io-deadline-step*.
+            (enqueue-io-deadline! q client entry (car entry))
+            (take-from q acc))))))
+  (hash-fold (lambda (seconds q acc) (take-from q acc)) '()
+             *io-deadline-queues*))
 ;; =========== end Timed watches ===========
 
 (define *high-prio-mutex* (make-mutex))

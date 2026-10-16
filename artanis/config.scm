@@ -223,6 +223,17 @@ The default value is suitable for most cases, don't change it without a reason.
 0 means no limit.
 server.readtimeout = <integer>")
 
+    ((server writetimeout)
+     30
+     "The time a response may wait for the client to read it (in seconds).
+When the client doesn't read for that long, the connection is dropped, so a
+client which stops reading, e.g. a stream or a large response, can't hold the
+connection. Like server.readtimeout, it's not refreshed by every byte the client
+reads, but by each write which has been done.
+The default value is suitable for most cases, don't change it without a reason.
+0 means no limit.
+server.writetimeout = <integer>")
+
     ((server polltimeout)
      500
      "The the timeout for each event polling round, in miliseconds.
@@ -629,6 +640,8 @@ for the headers), and the connection is closed.
     (('ratelimitkeys ratelimitkeys)
      (conf-set! '(server ratelimitkeys) (->integer ratelimitkeys)))
     (('maxconns maxconns) (conf-set! '(server maxconns) (->integer maxconns)))
+    (('writetimeout writetimeout)
+     (conf-set! '(server writetimeout) (->integer writetimeout)))
     (('readtimeout readtimeout)
      (conf-set! '(server readtimeout) (->integer readtimeout)))
     (('polltimeout polltimeout) (conf-set! '(server polltimeout) (->integer polltimeout)))

@@ -139,7 +139,7 @@
         #f)
       (lambda (k . _) k))))
 
-;; Read deadlines
+;; I/O deadlines
 
 (define (new-client)
   (let ((p (socketpair PF_UNIX SOCK_STREAM 0)))
@@ -153,110 +153,123 @@
     (add-a-task-to-work-table! wt c t)
     c))
 
-(define deadline-queue
-  (@@ (artanis server server-context) *read-deadline-queue*))
-(define deadlines (@@ (artanis server server-context) *read-deadlines*))
+(define deadline-queues
+  (@@ (artanis server server-context) *io-deadline-queues*))
+(define deadlines (@@ (artanis server server-context) *io-deadlines*))
 
-(define (reset-deadlines!)
-  (while (not (queue-empty? deadline-queue))
-    (queue-out! deadline-queue)))
+(define (reset-deadlines!) (hash-clear! deadline-queues))
 
-(define (queued) (queue-length deadline-queue))
+(define (queued)
+  (hash-fold (lambda (_ q n) (+ n (queue-length q))) 0 deadline-queues))
 
 ;; Move the deadline of client and its items `ago' seconds into the past.
 (define (age! client ago)
   (let ((delta (* ago internal-time-units-per-second))
         (entry (hashq-ref deadlines client)))
-    (for-each (lambda (item)
-                (when (eq? (car item) client)
-                  (set-cdr! item (- (cdr item) delta))))
-              (car deadline-queue))
+    (hash-for-each
+     (lambda (_ q)
+       (for-each (lambda (item)
+                   (when (eq? (car item) client)
+                     (set-cdr! item (- (cdr item) delta))))
+                 (car q)))
+     deadline-queues)
     (when (car entry) (set-car! entry (- (car entry) delta)))
     (when (cdr entry) (set-cdr! entry (- (cdr entry) delta)))))
 
-(with-test-prefix "read deadline"
+(with-test-prefix "I/O deadline"
 
   (pass-if "a passed deadline is taken"
     (reset-deadlines!)
     (let* ((wt (new-wt)) (c (client+task wt)))
-      (read-deadline-set! c 5)
+      (io-deadline-set! c 5)
       (age! c 5)
-      (and (read-deadline-passed? c)
-           (equal? (list c) (take-read-deadline-due! wt))
+      (and (io-deadline-passed? c)
+           (equal? (list c) (take-io-deadline-due! wt))
            (zero? (queued)))))
 
   (pass-if "a deadline not passed yet isn't taken"
     (reset-deadlines!)
     (let* ((wt (new-wt)) (c (client+task wt)))
-      (read-deadline-set! c 5)
+      (io-deadline-set! c 5)
       (age! c 4)
-      (and (not (read-deadline-passed? c))
-           (null? (take-read-deadline-due! wt))
+      (and (not (io-deadline-passed? c))
+           (null? (take-io-deadline-due! wt))
            (= 1 (queued)))))
 
   (pass-if "only the due head is taken, in the order of the deadlines"
     (reset-deadlines!)
     (let* ((wt (new-wt)) (a (client+task wt)) (b (client+task wt))
            (c (client+task wt)))
-      (read-deadline-set! a 5)
-      (read-deadline-set! b 5)
-      (read-deadline-set! c 5)
+      (io-deadline-set! a 5)
+      (io-deadline-set! b 5)
+      (io-deadline-set! c 5)
       (age! a 5)
       (age! b 5)
-      (and (equal? (list b a) (take-read-deadline-due! wt))
+      (and (equal? (list b a) (take-io-deadline-due! wt))
            (= 1 (queued)))))
 
   (pass-if "a deadline moved far enough has a new item"
     (reset-deadlines!)
     (let* ((wt (new-wt)) (c (client+task wt)))
-      (read-deadline-set! c 5)
+      (io-deadline-set! c 5)
       (age! c 5)
       ;; e.g. the next request of a kept-alive connection
-      (read-deadline-set! c 5)
+      (io-deadline-set! c 5)
       (and (= 2 (queued))
            ;; The old item is stale, the new one isn't due.
-           (null? (take-read-deadline-due! wt))
+           (null? (take-io-deadline-due! wt))
            (= 1 (queued)))))
 
   (pass-if "a deadline moved a little is enqueued again when due"
     (reset-deadlines!)
     (let* ((wt (new-wt)) (c (client+task wt)))
-      (read-deadline-set! c 5)
+      (io-deadline-set! c 5)
       (age! c 5)
       ;; The deadline moves by 0.5s, e.g. a piece of the body.
       (set-car! (hashq-ref deadlines c)
                 (+ (car (hashq-ref deadlines c))
                    (quotient internal-time-units-per-second 2)))
       (and (= 1 (queued))
-           (null? (take-read-deadline-due! wt))
+           (null? (take-io-deadline-due! wt))
            (= 1 (queued))
-           (not (read-deadline-passed? c)))))
+           (not (io-deadline-passed? c)))))
+
+  (pass-if "each timeout has its queue, in the order of its deadlines"
+    (reset-deadlines!)
+    (let* ((wt (new-wt)) (a (client+task wt)) (b (client+task wt)))
+      ;; b has a shorter timeout set later, but it's due first.
+      (io-deadline-set! a 10)
+      (io-deadline-set! b 3)
+      (age! a 4)
+      (age! b 4)
+      (and (= 2 (hash-count (const #t) deadline-queues))
+           (equal? (list b) (take-io-deadline-due! wt)))))
 
   (pass-if "a body coming in small pieces doesn't flood the queue"
     (reset-deadlines!)
     (let* ((wt (new-wt)) (c (client+task wt)))
-      (for-each (lambda (_) (read-deadline-set! c 5)) (iota 100))
+      (for-each (lambda (_) (io-deadline-set! c 5)) (iota 100))
       (= 1 (queued))))
 
   (pass-if "a cleared deadline drops its item"
     (reset-deadlines!)
     (let* ((wt (new-wt)) (c (client+task wt)))
-      (read-deadline-set! c 5)
+      (io-deadline-set! c 5)
       (age! c 5)
-      (read-deadline-clear! c)
-      (and (not (read-deadline-passed? c))
-           (null? (take-read-deadline-due! wt))
+      (io-deadline-clear! c)
+      (and (not (io-deadline-passed? c))
+           (null? (take-io-deadline-due! wt))
            (zero? (queued))
            ;; The next deadline enqueues a new item.
-           (begin (read-deadline-set! c 5) (= 1 (queued))))))
+           (begin (io-deadline-set! c 5) (= 1 (queued))))))
 
   (pass-if "a closed connection drops its item"
     (reset-deadlines!)
     (let* ((wt (new-wt)) (c (client+task wt)))
-      (read-deadline-set! c 5)
+      (io-deadline-set! c 5)
       (age! c 5)
       (hash-clear! (work-table-content wt))
-      (and (null? (take-read-deadline-due! wt))
+      (and (null? (take-io-deadline-due! wt))
            (zero? (queued))
            (not (hashq-ref deadlines c))))))
 
