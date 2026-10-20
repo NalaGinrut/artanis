@@ -1883,6 +1883,53 @@ See some example queries:
 ;; this will update some row
 (DB-query (DB-open rc) "UPDATE products SET name = 'High-end Lisp Machine', updated_at = 1749805637 WHERE id = '50f11747-8714-4159-92e5-ff876f96a65a'")
 #+end_src
+** Handling SQL NULL
+A column whose value is SQL ~NULL~ does not come back as ~#f~. The guile-dbi
+DBD drivers encode ~NULL~ as Guile's ~#<unspecified>~, and GNU Artanis passes
+that value through unchanged. ~#<unspecified>~ is a *true* value in Scheme, so
+the obvious empty test is wrong:
+
+#+begin_src scheme
+;; WRONG: this branch never runs for a NULL column, because #<unspecified> is true
+(if value "have a value" "is null")
+;; also wrong:
+(if (eq? value #f) "is null" "have a value")
+#+end_src
+
+This applies to every raw read surface:
+
++ ~DB-get-all-rows~ and ~DB-get-top-row~ return ~#<unspecified>~ for a ~NULL~ cell.
++ An FPRM get returns ~#<unspecified>~ both in ~#:mode 'raw~ (the default) and in
+  ~#:mode 'getter~. Note that ~'getter~ is a raw ~assoc-ref~, so it yields ~#f~
+  *only* when there is no row at all, not when the column is NULL.
+
+To test for SQL NULL, use ~unspecified?~:
+
+#+begin_src scheme
+(if (unspecified? value) "is null" "have a value")
+#+end_src
+
+The accessor ~query-result-ref~ is the one place that normalizes ~NULL~ to ~#f~
+(and returns the symbol ~'no-result~ when there is no row), so it gives ordinary
+Scheme falsiness when that is what you want:
+
+#+begin_src scheme
+;; rows from (m 'get ... #:mode 'raw); #f when the column is NULL,
+;; 'no-result when there is no row at all.
+(query-result-ref rows "column-name")
+;; pass #:throw-when-no-key? #f to get 'no-such-key instead of an error
+;; when the column is not present:
+(query-result-ref rows "column-name" #:throw-when-no-key? #f)
+#+end_src
+
+Because ~#<unspecified>~ is truthy it also slips past ~(or value default)~, and
+~scm->json-string~ raises on it; guard possibly-NULL columns before serializing.
+
+*NOTE*: do not make the drivers return ~#f~ for ~NULL~ to "fix" this at the
+source. That would make SQL ~NULL~ indistinguishable from a boolean ~FALSE~ — a
+nullable ~boolean~ column would lose the difference between "NULL" and "false".
+Keep ~#<unspecified>~ as the NULL encoding and normalize where you use it.
+
 * RESTful API
 GNU Artanis provides a command src_bash[:exports code]{art api} to generate RESTful API skeleton, and the API version can be managed.
 
