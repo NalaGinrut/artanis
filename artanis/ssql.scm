@@ -447,20 +447,23 @@
 
 (define-syntax sql-alter
   (syntax-rules (table rename to add modify drop column as select
-                       primary key change index)
+                       alter primary key change index)
     ((_ table old-name rename to new-name)
      (-> "table ~a rename to ~a" old-name new-name))
     ((_ table name add cname ctype)
      ;; e.g: (->sql alter table 'mmr add 'cname "varchar(50)")
      (-> "table ~a add ~a ~a" name cname ctype))
+    ;; MySQL changes a column's type with MODIFY COLUMN ...
     ((_ table name modify column cname ctype)
      (with-dbd
-      'postgresql
+      'mysql
       (-> "table ~a modify column ~a ~a" name cname ctype)))
+    ;; ... and PostgreSQL with ALTER COLUMN ... TYPE (the TYPE keyword is
+    ;; required; `alter column c integer' is a syntax error).
     ((_ table name alter column cname ctype)
      (with-dbd
-      'mysql
-      (-> "table ~a alter column ~a ~a" name cname ctype)))
+      'postgresql
+      (-> "table ~a alter column ~a type ~a" name cname ctype)))
     ((_ table name modify (cl ...))
      (with-dbd
       'mysql

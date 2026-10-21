@@ -29,6 +29,7 @@
             migration-field-add!
             create-table
             change-table
+            rename-table
             drop-table
             add-column
             change-column
@@ -98,11 +99,25 @@
     (format (artanis-current-output) "Regenerating migration cache......")
     (display "DONE.\n" (artanis-current-output))))
 
-(define (change-table name cl)
-  (let* ((conn (get-conn-from-pool!))
+(define (change-table name . cl)
+  ;; NOTE: like `add-column', each element of `cl' is a complete field
+  ;;       definition, e.g. (change-table 'users '(email char-field (#:maxlen 120))).
+  ;;       Each column is re-typed through `column-def->col+type' - the same
+  ;;       renderer `create-table' uses - so an altered column ends up typed
+  ;;       exactly like a column of a freshly created table.
+  ;;       Table options (:indexes / :constrains) have no ALTER TABLE
+  ;;       equivalent and are ignored, as in `add-column'.
+  (let* ((cols (car ((@@ (artanis mvc model) parse-raw-fields) cl)))
+         (conn (get-conn-from-pool!))
          (mt (map-table-from-DB conn)))
-    (format (artanis-current-output) "Changing table `~a'......" name)
-    (mt 'mod 'alter name cl)
+    (format (artanis-current-output)
+            "Changing columns `(~{~a~^,~})' of table `~a'......"
+            (map car cols) name)
+    ;; NOTE: one column per statement; `alter' takes a name and a rendered type.
+    (for-each (lambda (col)
+                (let ((ct ((@@ (artanis fprm) column-def->col+type) col)))
+                  (mt 'mod name 'alter (car ct) (cdr ct))))
+              cols)
     (recycle-DB-conn conn)
     (display "DONE.\n" (artanis-current-output))))
 
@@ -119,7 +134,7 @@
          (mt (map-table-from-DB conn)))
     (format (artanis-current-output)
             "Renaming table `~a' to `~a'.........." old new)
-    (mt 'mod 'rename old new)
+    (mt 'mod old 'rename new)
     (recycle-DB-conn conn)
     (display "DONE.\n" (artanis-current-output))))
 
@@ -150,7 +165,7 @@
     (format (artanis-current-output)
             "Changing column `~a' of table `~a'.........."
             (list col type) tname)
-    (mt 'mod 'alter tname col type)
+    (mt 'mod tname 'alter col type)
     (recycle-DB-conn conn)
     (display "DONE.\n" (artanis-current-output))))
 
@@ -160,7 +175,7 @@
     (format (artanis-current-output)
             "Renaming column `~a' to `~a' from `~a'.........."
             oldcol newcol tname)
-    (apply mt 'mod 'alter tname oldcol newcol type)
+    (apply mt 'mod tname 'column-rename oldcol newcol type)
     (recycle-DB-conn conn)
     (display "DONE.\n" (artanis-current-output))))
 
@@ -170,7 +185,7 @@
     (format (artanis-current-output)
             "Removing column `~a' in table `~a'.........."
             cname tname)
-    (apply mt 'mod 'column-drop tname cname)
+    (mt 'mod tname 'column-drop cname)
     (recycle-DB-conn conn)
     (display "DONE.\n" (artanis-current-output))))
 

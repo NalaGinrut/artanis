@@ -913,7 +913,7 @@
     (case op
       ((add) (apply table-add tname args))
       ((drop) (apply table-drop tname args))
-      ((column-drop) (apply column-drop args))
+      ((column-drop) (apply column-drop tname args))
       ((alter) (apply table-alter tname args))
       ((rename) (apply table-rename tname args))
       ((column-rename) (apply column-rename tname args))
