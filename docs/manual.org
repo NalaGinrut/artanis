@@ -1524,8 +1524,11 @@ This will be expanded like this:
 #+BEGIN_SRC bash
 /current_toplevel/pub/filename.html
 #+END_SRC
-*NOTE:* Please make sure the included file is in the *pub* directory in the application
-directory.
+*NOTE:* The included file is looked up in the *pub* directory first, and, if there is no
+such file, in the *app/views* directory. So a partial can be kept next to the templates
+using it, which also keeps it out of the static namespace (everything under *pub* is
+served as a static file). The name must be a relative path without any *..* component,
+otherwise an exception is thrown.
 
 To refer to a CSS file:
 #+BEGIN_SRC scheme

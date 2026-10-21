@@ -38,14 +38,13 @@
 (define *file-re* (string->irregex "(.+[.][^ ]+)"))
 
 (define (include-the-file args)
-  (let* ((pub (basename (get-conf '(server pub))))
-         (filename (string-trim-both
-                    (format #f "~a/~a/~a" (current-toplevel) pub args))))
-    (if (file-exists? filename)
-        ;;(format #f "~s" (cat filename #f))
-        (call-with-input-string (cat filename #f) tpl-read)
-        (throw 'artanis-err 500 include-the-file
-               "Included file `~a' in template doesn't exist!" filename))))
+  ;; NOTE: The resolution rule lives in (artanis tpl utils) so it can be unit
+  ;;       tested without a server; it keeps `pub' first, so every historical
+  ;;       include still points at the same file, and falls back to the MVC
+  ;;       view dir for partials.
+  (let ((filename (resolve-tpl-include-path
+                   args (current-toplevel) (basename (get-conf '(server pub))))))
+    (call-with-input-string (cat filename #f) tpl-read)))
 
 (define (gen-command cmd args)
   (define-syntax-rule (-> x)

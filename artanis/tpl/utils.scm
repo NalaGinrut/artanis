@@ -38,7 +38,11 @@
             ->
             pmatch/source
             hash-keys
-            make-token-checker))
+            make-token-checker
+            *tpl-include-views-dir*
+            unsafe-tpl-include-path?
+            tpl-include-roots
+            resolve-tpl-include-path))
 
 (module-export-all! (current-module))
 
@@ -108,6 +112,95 @@
 
 (define (hash-keys ht)
   (hash-map->list (lambda (k v) k) ht))
+
+;; ----------------------------------------------------------------------
+;; The `<@include file>' command
+;; ----------------------------------------------------------------------
+
+;; NOTE: `<@include file>' has always resolved under `server.pub', and every app
+;;       in the wild relies on that, so the pub dir is always tried first. The
+;;       MVC view dir is tried next, so a partial can live next to the templates
+;;       using it. That also keeps partials out of the static namespace: every
+;;       file under `pub' is served as-is, so a `.html' partial there is
+;;       downloadable and leaks the raw `<@include>' markers, while anything
+;;       under `app/views' isn't reachable with a URL at all.
+(define *tpl-include-views-dir* "app/views")
+
+;; Return the include roots (relative to the toplevel), in the order they're
+;; tried. It's a procedure rather than a constant because the first root comes
+;; from the config.
+(define (tpl-include-roots pub)
+  (list pub *tpl-include-views-dir*))
+
+;; NOTE: Artanis constrains the path of sources in the application directory for
+;;       security reasons, so an include must never escape its roots. The
+;;       argument is raw template text, and the old code just concatenated it to
+;;       the pub dir without any check, so `<@include ../../../etc/passwd %>'
+;;       read whatever file was reachable from the toplevel. Reject NUL,
+;;       absolute paths and every `..' component textually; symlink escapes are
+;;       caught later, once we know which file we're about to read.
+(define (unsafe-tpl-include-path? path)
+  (define (has-parent-dir? segs)
+    (and (pair? segs)
+         (or (string=? (car segs) "..") (has-parent-dir? (cdr segs)))))
+  (and (or (string-index path #\nul)
+           (absolute-file-name? path)
+           (has-parent-dir? (string-split path #\/)))
+       #t))
+
+;; NOTE: canonicalize-path throws when the path is gone (or a symlink loop is
+;;       hit), and `file-exists?' already told us everything we need, so swallow
+;;       it and let the caller treat #f as "not inside the root".
+(define (canonical-path-or-#f path)
+  (false-if-exception (canonicalize-path path)))
+
+;; Resolve the argument of the `<@include ...>' command to a file we may read.
+;;   path     - the raw text after the command, as written in the template
+;;   toplevel - the app dir (i.e. `(current-toplevel)')
+;;   pub      - the `(server pub)' dir name
+;; Both are passed in instead of being fetched here, so this is a pure function
+;; of its arguments (the only I/O is probing the candidates) and can be tested
+;; without a server.
+;; The first root holding the file wins, hence the legacy `pub' behavior is
+;; preserved. An unsafe name, or a match whose canonical path leaves its root,
+;; throws `artanis-err' 500 rather than falling back to the next root: silently
+;; rendering the wrong file is worse than a loud failure.
+(define (resolve-tpl-include-path path toplevel pub)
+  (define roots (tpl-include-roots pub))
+  (let ((arg (string-trim-both path)))
+    (define (->candidate root)
+      (format #f "~a/~a/~a" toplevel root arg))
+    (define (->searched)
+      (string-join (map ->candidate roots) "', `"))
+    (define (inside-root? root candidate)
+      ;; NOTE: A file under the root may still be a symlink pointing outside of
+      ;;       it, so compare the canonical paths, not the textual ones.
+      (let ((croot (canonical-path-or-#f (format #f "~a/~a" toplevel root)))
+            (cfile (canonical-path-or-#f candidate)))
+        (and croot cfile
+             (string-prefix? (string-append croot "/") cfile))))
+    (cond
+     ((or (string-null? arg) (unsafe-tpl-include-path? arg))
+      (throw 'artanis-err 500 resolve-tpl-include-path
+             "Refusing to include `~a': the name has to be a relative path without any `..' component!"
+             arg))
+     (else
+      (let lp((rest roots))
+        (cond
+         ((null? rest)
+          (throw 'artanis-err 500 resolve-tpl-include-path
+                 "Included file `~a' in template doesn't exist! (searched `~a')"
+                 arg (->searched)))
+         (else
+          (let* ((root (car rest))
+                 (candidate (->candidate root)))
+            (cond
+             ((not (file-exists? candidate)) (lp (cdr rest)))
+             ((inside-root? root candidate) candidate)
+             (else
+              (throw 'artanis-err 500 resolve-tpl-include-path
+                     "Refusing to include `~a': `~a' escapes the allowed root `~a'!"
+                     arg candidate root)))))))))))
 
 ;; debug utils
 
