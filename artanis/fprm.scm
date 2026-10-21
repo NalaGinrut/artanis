@@ -417,6 +417,35 @@
 (define (get-table-builder-opts-handler)
   (assoc-ref *table-builder-opts-handler* (get-conf '(db dbd))))
 
+;; Render the option list of one column definition - e.g. (#:not-null #:maxlen 64)
+;; - into its SQL suffix. It lives outside `make-table-builder' so that
+;; `column-def->col+type' below shares it: a column added to an existing table
+;; must be typed exactly like a column created together with the table.
+(define (column-opts->sql opts)
+  (let ((h (get-table-builder-opts-handler)))
+    (string-join
+     (srfi-1:fold-right
+      (lambda (x p)
+        (let ((o (h x opts)))
+          (cons o p)))
+      '() opts)
+     " ")))
+
+;; A parsed FPRM column definition - the `(name type-arg ... (opts ...))' shape
+;; that `parse-raw-fields' produces - split into a `(name . "TYPE opts")' pair,
+;; with the type rendered by `->sql-type'. `make-table-builder' uses it for the
+;; columns of a CREATE TABLE; the migration `add-column' helper reuses it for
+;; ALTER TABLE ... ADD, so both paths emit identical column types.
+(define (column-def->col+type x)
+  (match x
+    ((types ... (opts ...))
+     (cons (car types)
+           (format #f "~a ~a" (->sql-type (cdr types))
+                   (if (null? opts) "" (column-opts->sql opts)))))
+    ((types ...) (cons (car types) (->sql-type (cdr types))))
+    (else (throw 'artanis-err 500 column-def->col+type
+                 "Invalid definition of the table `~a'!" x))))
+
 ;; NOTE:
 ;; 1. Use primiary-keys for specifying primary keys, don't specify it in defs directly.
 ;;    Because we're not going to support foreign keys, so we need to record keys in closures for sync.
@@ -431,15 +460,6 @@
           (->sql drop table if exists tname))
       (lambda (sql params)
         (DB-query conn sql #:params params))))
-  (define (->opts opts)
-    (let ((h (get-table-builder-opts-handler)))
-      (string-join
-       (srfi-1:fold-right
-        (lambda (x p)
-          (let ((o (h x opts)))
-            (cons o p)))
-        '() opts)
-       " ")))
   (define (->constrains cexps)
     (string-join
      (map (lambda (cexp) (format #f "~a(~{~a~^,~})" (car cexp) (cdr cexp)))
@@ -494,17 +514,9 @@
                              "Invalid index definition `~a'!" iexp))))
             iexps))
       (else '())))
-  (define (->type/opts x)
-    (match x
-      ((types ... (opts ...)) (values types (if (null? opts) "" (->opts opts))))
-      ((types ...) (values types ""))
-      (else (throw 'artanis-err 500 ->type/opts
-                   "Invalid definition of the table `~a'!" x))))
   (define (->types x)
-    (call-with-values
-        (lambda () (->type/opts x))
-      (lambda (types opts)
-        (format #f "~{~a~^ ~}" (list (car types) (->sql-type (cdr types)) opts)))))
+    (let ((ct (column-def->col+type x)))
+      (format #f "~a ~a" (car ct) (cdr ct))))
   (define (gen-primary-keys primary-keys)
     (if (null? primary-keys)
         ""
@@ -847,8 +859,14 @@
                                "Invalid mode `~a'" mode)))))))))))))
 
 (define (make-table-modifier rc/conn)
-  (define (table-add tname col t)
-    (->sql alter table tname add col t))
+  (define (table-add tname coldef)
+    ;; NOTE: `coldef' is a parsed FPRM column definition (the shape
+    ;;       `parse-raw-fields' yields), not a pre-split name/type pair. It goes
+    ;;       through `column-def->col+type' - the same renderer the CREATE TABLE
+    ;;       path uses - so an added column is typed exactly like a column of a
+    ;;       freshly created table.
+    (let ((ct (column-def->col+type coldef)))
+      (->sql alter table tname add (car ct) (cdr ct))))
   (define (table-drop tname col)
     (->sql alter table tname drop column col))
   (define (table-alter tname col t)

@@ -124,12 +124,23 @@
     (display "DONE.\n" (artanis-current-output))))
 
 (define (add-column tname . cl)
-  (let* ((conn (get-conn-from-pool!))
+  ;; NOTE: each element of `cl' is a complete field definition, exactly the
+  ;;       syntax `create-table' uses, e.g.
+  ;;       (add-column 'users '(timezone char-field (#:maxlen 64))).
+  ;;       parse-raw-fields normalizes them (general-field-handler) and returns
+  ;;       `(column-list table-options ...)'; table options such as :indexes or
+  ;;       :constrains have no ALTER TABLE ADD COLUMN equivalent, so only the
+  ;;       columns are used here.
+  (let* ((cols (car ((@@ (artanis mvc model) parse-raw-fields) cl)))
+         (conn (get-conn-from-pool!))
          (mt (map-table-from-DB conn)))
     (format (artanis-current-output)
             "Adding columns `(~{~a~^,~})' to table `~a'.........."
-            (map car cl) tname)
-    (apply mt 'mod tname 'add cl)
+            (map car cols) tname)
+    ;; NOTE: one column per statement - the modifier op `add' takes a single
+    ;;       column definition and renders its type the same way a column of a
+    ;;       freshly created table is rendered.
+    (for-each (lambda (col) (mt 'mod tname 'add col)) cols)
     (recycle-DB-conn conn)
     (display "DONE.\n" (artanis-current-output))))
 
