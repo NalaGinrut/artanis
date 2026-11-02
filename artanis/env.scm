@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014-2025
+;;  Copyright (C) 2014-2026
 ;;      "Mu Lei" known as "NalaGinrut" <mulei@gnu.org>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -152,11 +152,16 @@
   (or (current-toplevel) "./"))
 
 (define %current-tmp (make-parameter #f))
-(define (current-tmp)
-  (let ((tmp (%current-tmp)))
-    (when (not tmp)
-      (error "Fatal: current-tmp was not initialized!"))
-    tmp))
+(define (current-tmp . args)
+  (cond
+   ((null? args)
+    (let ((tmp (%current-tmp)))
+      (when (not tmp)
+        (error "Fatal: current-tmp was not initialized!"))
+      tmp))
+   (else
+    (%current-tmp (car args))
+    (%current-tmp))))
 
 ;; parameters for command
 (define cmd:is-dry-run? (make-parameter #f))
