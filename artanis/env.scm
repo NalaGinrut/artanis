@@ -151,7 +151,12 @@
 (define-syntax-rule (proper-toplevel)
   (or (current-toplevel) "./"))
 
-(define current-tmp (make-parameter "Fatal: current-tmp was not initialized!"))
+(define %current-tmp (make-parameter #f))
+(define (current-tmp)
+  (let ((tmp (%current-tmp)))
+    (when (not tmp)
+      (error "Fatal: current-tmp was not initialized!"))
+    tmp))
 
 ;; parameters for command
 (define cmd:is-dry-run? (make-parameter #f))
