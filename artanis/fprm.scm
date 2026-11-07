@@ -1151,7 +1151,10 @@
 
 (define-syntax-rule (obsolete-current-DB-conn! rc)
   (begin
-    (recycle-DB-conn (rc-conn rc) #:trustable? #f)
+    ;; recycle-DB-conn always resets the session, and replaces the connection
+    ;; when the reset itself fails, so a connection whose last query errored
+    ;; is cleaned up here and a fresh one takes its place in the rc.
+    (recycle-DB-conn (rc-conn rc))
     (rc-conn! rc (get-conn-from-pool!))))
 
 ;; NOTE: Users have to get result by themselves.
@@ -1232,8 +1235,9 @@
            (else
             (artanis-warn
              "Transaction rollback, this DB connection will be reopened!")
-            ;; NOTE: If the rollback failed, first, we untrust the DB conn.
-            ;;       So we forcely recycle it and close it. And we will get
-            ;;       a new conn to this rc in case any later use.
+            ;; NOTE: If the rollback failed, the connection is untrusted.
+            ;;       Recycle it (the pool resets it, or replaces it when the
+            ;;       reset fails) and put a new conn in the rc for any later
+            ;;       use.
             (obsolete-conn!)
             'transaction-rolled-back-failed)))))))

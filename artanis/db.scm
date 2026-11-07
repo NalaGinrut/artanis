@@ -169,7 +169,13 @@
                     "BUG: Invalid DB pool mode `~a'" (get-conf '(db pool)))))
           (with-mutex
            *conn-pool-mutex*
-           (queue-out! (*conn-pool*))))
+           (let ((conn (queue-out! (*conn-pool*))))
+             ;; DB-close marks a connection 'closed before recycling it and
+             ;; only DB-open used to flip it back. A caller that takes one
+             ;; straight from the pool (models, migrations, scripts) must get
+             ;; a connection DB-query accepts.
+             (<connection>-status-set! conn 'open)
+             conn)))
       (error get-conn-from-pool! "Seems the *conn-pool* wasn't well initialized!"
              (*conn-pool*))))
 
@@ -196,15 +202,85 @@
                            (throw 'artanis-err 500 db-conn-is-closed?
                                   "Unsupported DBD `~a'" (get-conf '(db dbd))))))))
 
-(define* (recycle-DB-conn conn #:key (trustable? #t))
+;; Discard whatever non-transactional session state the previous caller left
+;; behind before the connection is handed to the next one: SET variables,
+;; temporary tables, prepared statements, LISTEN registrations, session user
+;; variables, an unfinished result set, and so on. Returns #t when the
+;; connection is clean and may be reused, #f when it must be replaced.
+;;
+;; Transactions are deliberately not part of the reset. with-transaction
+;; commits or rolls back before the connection is returned; a connection that
+;; still has one open did not come back through it and is refused by the
+;; backend's reset, so the pool replaces it instead of rolling back behind a
+;; caller's back.
+;;
+;; What "session state" means is backend specific, so every DBD implements
+;; the reset itself (dbi-conn-reset dispatches to the backend's
+;; __<dbd>_conn_reset_g_db_handle); this code stays database agnostic and
+;; only reports the result. The guile-dbi patch series is therefore
+;; required -- see patches/README.md.
+;;
+;; NOTE: dbi-conn-reset is resolved by name rather than listed in #:autoload.
+;;       A name in the autoload group that the installed (dbi dbi) does not
+;;       export makes the whole group fail to resolve, which would break
+;;       every other dbi call. A guile-dbi without the primitive is reported
+;;       below and its connections are not reused.
+;;
+;; A failed reset is logged and the connection is replaced instead of being
+;; handed out -- but it is not raised: this runs on the way back into the
+;; pool (response hook, dynamic-wind cleanup), where throwing would fail a
+;; request that already succeeded and would mask the exception being unwound.
+;; Reset is also how a dead connection is detected, so there is no separate
+;; liveness check here: a closed handle and a dropped backend both end up as
+;; an error status from the backend's reset.
+(define (reset-DB-conn-session! conn)
+  (let* ((dbd (get-conf '(db dbd)))
+         (raw (<connection>-conn conn))
+         (dbi-conn-reset
+          (catch #t
+            (lambda ()
+              (module-ref (resolve-module '(dbi dbi)) 'dbi-conn-reset))
+            (lambda args #f)))
+         (result
+          (if dbi-conn-reset
+              (catch #t
+                (lambda ()
+                  (dbi-conn-reset raw)
+                  (dbi-get_status raw))
+                (lambda args (cons 1 (format #f "~a" args))))
+              (cons 1 "installed guile-dbi has no dbi-conn-reset"))))
+    (if (zero? (car result))
+        #t
+        (begin
+          (format (current-error-port)
+                  "[~a] failed to reset a recycled DB connection: ~a; replacing it~%"
+                  dbd (cdr result))
+          #f))))
+
+(define (recycle-DB-conn conn)
   (cond
    ((*conn-pool*)
-    (with-mutex
-     *conn-pool-mutex*
-     (if (or (not trustable?) (db-conn-is-closed? conn))
-         ;; if the connection is unfortunetly closed, then we make a new one
-         (queue-in! (*conn-pool*) (create-new-DB-conn))
-         (queue-in! (*conn-pool*) conn))))
+    ;; Every recycled connection is reset before it goes back into the pool:
+    ;; there is no caller whose connection is safe to reuse untouched. Reset
+    ;; runs outside the pool mutex because it is a round trip to the server
+    ;; and no other thread should wait on the pool for it.
+    (let ((reusable? (reset-DB-conn-session! conn)))
+      (with-mutex
+       *conn-pool-mutex*
+       (if reusable?
+           (queue-in! (*conn-pool*) conn)
+           (begin
+             ;; The connection could not be reset (dead backend, closed
+             ;; handle, an open transaction, or a DBD/guile-dbi without the
+             ;; primitive): make a new one instead of handing dirty state
+             ;; out. Close the old session first -- the handle is dropped,
+             ;; and its finalizer skips the backend close once the status is
+             ;; an error, so a live session would otherwise stay connected
+             ;; for the life of the process.
+             (catch #t
+               (lambda () (dbi-close (<connection>-conn conn)))
+               (lambda args #t))
+             (queue-in! (*conn-pool*) (create-new-DB-conn)))))))
    (else
     (error recycle-DB-conn "Seems the *conn-pool* wasn't well initialized!"
            (*conn-pool*)))))

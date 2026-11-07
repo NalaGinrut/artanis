@@ -345,24 +345,68 @@
              #:use-module (artanis db)
              #:use-module (artanis fprm))
 
-           (eval-when (expand load eval)
-             (when (not (null? (list 'deps* ...)))
-               (process-use-modules
-                (list
-                 (map (lambda (m) `(app models ,m))
-                      (list `deps* ...)))))
+           ;; NOTE: this used to be an (eval-when (expand load eval) ...) block.
+           ;;       That ran the whole body once per phase: with a cold .go
+           ;;       cache a model opened a pool connection and ran CREATE TABLE
+           ;;       at expand time and again when the compiled file was loaded,
+           ;;       and every run kept the connection in the model closure for
+           ;;       the lifetime of the process. A fixed pool (db.poolsize) is
+           ;;       exhausted as soon as the number of models exceeds it, and
+           ;;       get-conn-from-pool! then spins forever waiting for a
+           ;;       connection that only the loading code could return.
+           ;;       Compiling a model must not touch the database; the table is
+           ;;       created once, when the module is loaded (server init-work,
+           ;;       scripts that resolve the model, or a plain use-modules).
+           (define-public #,(datum->syntax #'name (symbol-append '$ (syntax->datum #'name)))
+             (begin
+               (when (not (null? (list 'deps* ...)))
+                 (process-use-modules
+                  (list
+                   (map (lambda (m) `(app models ,m))
+                        (list `deps* ...)))))
 
-             (define-public #,(datum->syntax #'name (symbol-append '$ (syntax->datum #'name)))
-               (let* ((raw (parse-raw-fields (list `rest `rest* ...)))
-                      (conn (or (current-dbconn) (get-conn-from-pool!)))
-                      (mt (map-table-from-DB conn)))
+               (let ((raw (parse-raw-fields (list `rest `rest* ...)))
+                     ;; A caller that bound current-dbconn before loading the
+                     ;; model (a script driving everything on one dedicated
+                     ;; connection) keeps driving every model call on it. That
+                     ;; connection belongs to the caller: never recycle it.
+                     (cur (current-dbconn)))
                  (format (artanis-current-output)
                          "Creating table `~a' defined in model~%......~%"
                          'name)
-                 (apply mt 'try-create 'name raw)
+                 (if cur
+                     (apply (map-table-from-DB cur) 'try-create 'name raw)
+                     ;; No caller connection: borrow one for CREATE TABLE only
+                     ;; and hand it back immediately.
+                     (let ((conn (get-conn-from-pool!)))
+                       (dynamic-wind
+                         (lambda () #t)
+                         (lambda ()
+                           (apply (map-table-from-DB conn) 'try-create 'name raw))
+                         (lambda ()
+                           (recycle-DB-conn conn)))))
                  (format (artanis-current-output) "Done.~%")
+                 ;; The public API is unchanged: the returned procedure still
+                 ;; takes (cmd . args) and returns exactly what it returned
+                 ;; before. Only the connection lifecycle differs -- the model
+                 ;; no longer pins a connection from the moment it is loaded.
                  (lambda (cmd . args)
-                   (apply mt cmd 'name args))))))))))
+                   (let ((fallback (or (current-dbconn) cur)))
+                     (if fallback
+                         ;; Inside with-transaction / with-rc-conn, or a
+                         ;; caller-supplied connection: use it directly.
+                         (apply (map-table-from-DB fallback) cmd 'name args)
+                         ;; Standalone call (plain handler, worker thread):
+                         ;; borrow for this call only. current-dbconn is bound
+                         ;; to it so nested model calls and the model's own
+                         ;; helpers run on the same connection.
+                         (let ((conn (get-conn-from-pool!)))
+                           (dynamic-wind
+                             (lambda () #t)
+                             (lambda ()
+                               (parameterize ((current-dbconn conn))
+                                 (apply (map-table-from-DB conn) cmd 'name args)))
+                             (lambda () (recycle-DB-conn conn)))))))))))))))
 
 (define (gen-model-header name)
   (call-with-output-string
