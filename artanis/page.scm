@@ -62,6 +62,30 @@
 (define (rc-lpc-recycle rc body)
   (and=> (rc-lpc rc) lpc-instance-recycle))
 
+;; Give back what the request holds when the handler threw, so the
+;; before-response hooks didn't run. The fields are cleared first, so nothing
+;; is released twice even if a hook runs later. It must not throw itself: it
+;; runs while another exception is on its way, which must not be masked.
+(define (release-rc-resources! rc)
+  (let ((conn (rc-conn rc)))
+    (when conn
+      (rc-conn! rc #f)
+      (catch #t
+        (lambda () (DB-close conn))
+        (lambda args
+          (format (current-error-port)
+                  "[release-rc-resources!] failed to recycle the DB connection: ~a~%"
+                  args)))))
+  (let ((lpc (rc-lpc rc)))
+    (when lpc
+      (rc-lpc! rc #f)
+      (catch #t
+        (lambda () (lpc-instance-recycle lpc))
+        (lambda args
+          (format (current-error-port)
+                  "[release-rc-resources!] failed to recycle the LPC instance: ~a~%"
+                  args))))))
+
 (define (print-request-info rq body)
   (let ((path (request-path rq))
         (method (request-method rq))
@@ -166,21 +190,38 @@
                   request-status))))
   (call-with-values
       (lambda ()
-        (cond
-         ((has-cache-handler? (get-rule-uid rc))
-          => (lambda (cache)
-               (call-with-values
-                   (lambda ()
-                     (if (thunk? handler)
-                         (handler)
-                         (handler rc)))
-                 (lambda* (body #:key pre-headers status mtime request-status)
-                   (cache rc body #:pre-headers pre-headers #:status status
-                          #:mtime mtime #:request-status request-status)))))
-         (else
-          (if (thunk? handler)
-              (handler)
-              (handler rc)))))
+        ;; NOTE: The before-response hooks give back what the handler took
+        ;;       for this request (the DB connection, the LPC instance), but
+        ;;       they only run in return-response. When the handler throws (a
+        ;;       404 or 403 it raises itself, or a bug), return-response is
+        ;;       never reached, so release them here before the exception goes
+        ;;       on to render the error page. Otherwise every such request
+        ;;       leaks a connection, and with db.pool = fixed the pool runs dry
+        ;;       and every later request waits forever.
+        ;;       The handler doesn't unwind: the exception is raised again
+        ;;       unchanged, so the error page and the backtrace are as before.
+        ;;       And it's not dynamic-wind, which would release them each time
+        ;;       the task is suspended (waiting for a runner, a DB connection).
+        (with-exception-handler
+         (lambda (e)
+           (release-rc-resources! rc)
+           (raise-exception e))
+         (lambda ()
+           (cond
+            ((has-cache-handler? (get-rule-uid rc))
+             => (lambda (cache)
+                  (call-with-values
+                      (lambda ()
+                        (if (thunk? handler)
+                            (handler)
+                            (handler rc)))
+                    (lambda* (body #:key pre-headers status mtime request-status)
+                      (cache rc body #:pre-headers pre-headers #:status status
+                             #:mtime mtime #:request-status request-status)))))
+            (else
+             (if (thunk? handler)
+                 (handler)
+                 (handler rc)))))))
     return-response))
 
 (define (generate-http-options req)

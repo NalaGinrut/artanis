@@ -26,6 +26,8 @@
   #:use-module (artanis env)
   #:use-module (artanis server ragnarok)
   #:use-module (artanis server scheduler)
+  #:use-module ((artanis server server-context)
+                #:select (current-client ragnarok-client? wake-up-task!))
   #:autoload (dbi dbi) (dbi-open
                         dbi-query
                         dbi-params-query
@@ -154,30 +156,81 @@
     (run-hook *DB-conn-init-hook* conn)
     conn))
 
+;; ---------------------- waiting for a connection -------------------
+;; With db.pool = fixed, a caller finding the pool empty waits until a
+;; connection is recycled:
+;;  - A Ragnarok task registers itself as a waiter and suspends, so the server
+;;    goes on serving others (and the tasks holding the connections can finish
+;;    and give them back). recycle-DB-conn wakes the waiters up. The task
+;;    waits as long as it takes: a bounded pool means queueing, and every
+;;    connection comes back, from the before-response hooks or, when the
+;;    handler throws, from handler-render (see page.scm).
+;;  - Outside a Ragnarok task nothing can wait: on the server thread it would
+;;    block the server for good, and runner threads don't see the pool at all
+;;    (they run in a clean dynamic state; don't use DB connections in
+;;    runners). So it's 503 at once instead of a hang.
+;; NOTE: The old code called (schedule-task), but schedule-task is a parameter,
+;;       so that only returned the breaker without calling it: the task never
+;;       yielded and get-conn-from-pool! recursed in a busy loop, starving the
+;;       event loop, so no connection could ever be recycled.
+;; NOTE: All waiters are woken up on each recycle, not one: a waiter may have
+;;       gone (its connection timed out or was closed) and would swallow the
+;;       only wake-up. Each one retries, and the losers wait again.
+(define *conn-waiters* '())                    ; clients of suspended tasks
+
+(define (take-conn-or-#f)
+  ;; Must be called with *conn-pool-mutex* held.
+  (and (not (queue-empty? (*conn-pool*)))
+       (let ((conn (queue-out! (*conn-pool*))))
+         ;; DB-close marks a connection 'closed before recycling it and
+         ;; only DB-open used to flip it back. A caller that takes one
+         ;; straight from the pool (models, migrations, scripts) must get
+         ;; a connection DB-query accepts.
+         (<connection>-status-set! conn 'open)
+         conn)))
+
+(define (wake-up-conn-waiters!)
+  ;; Must be called with *conn-pool-mutex* held.
+  (let ((waiters *conn-waiters*))
+    (set! *conn-waiters* '())
+    (for-each wake-up-task! waiters)))
+
+(define (no-conn-to-wait-for)
+  (throw 'artanis-err 503 get-conn-from-pool!
+         "The DB pool is empty (db.poolsize = ~a) and only a request handler can wait for a connection"
+         (get-conf '(db poolsize))))
+
+(define (wait-for-conn-in-task client)
+  (let lp ()
+    (or (with-mutex *conn-pool-mutex*
+          (or (take-conn-or-#f)
+              (begin
+                (unless (memq client *conn-waiters*)
+                  (set! *conn-waiters* (cons client *conn-waiters*)))
+                #f)))
+        (begin
+          (DEBUG "There's no DB connection in the pool, suspend the task ~a~%" client)
+          (break-task)
+          (lp)))))
+
 (define (get-conn-from-pool!)
-  (if (*conn-pool*)
-      (if (queue-empty? (*conn-pool*))
-          (case (get-conf '(db pool))
-            ((increase) (create-new-DB-conn))
-            ((fixed)
-             (DEBUG "There's no DB connection from pool, wait for a moment!~%")
-             (try-to-recycle-resources) ; must be in front of scheduling
-             (schedule-task)
-             (get-conn-from-pool!))
-            (else
-             (throw 'artanis-err 500 get-conn-from-pool!
-                    "BUG: Invalid DB pool mode `~a'" (get-conf '(db pool)))))
-          (with-mutex
-           *conn-pool-mutex*
-           (let ((conn (queue-out! (*conn-pool*))))
-             ;; DB-close marks a connection 'closed before recycling it and
-             ;; only DB-open used to flip it back. A caller that takes one
-             ;; straight from the pool (models, migrations, scripts) must get
-             ;; a connection DB-query accepts.
-             (<connection>-status-set! conn 'open)
-             conn)))
-      (error get-conn-from-pool! "Seems the *conn-pool* wasn't well initialized!"
-             (*conn-pool*))))
+  (cond
+   ((not (*conn-pool*))
+    (error get-conn-from-pool! "Seems the *conn-pool* wasn't well initialized!"
+           (*conn-pool*)))
+   ((with-mutex *conn-pool-mutex* (take-conn-or-#f))
+    => identity)
+   (else
+    (case (get-conf '(db pool))
+      ((increase) (create-new-DB-conn))
+      ((fixed)
+       (let ((client (current-client)))
+         (if (ragnarok-client? client)
+             (wait-for-conn-in-task client)
+             (no-conn-to-wait-for))))
+      (else
+       (throw 'artanis-err 500 get-conn-from-pool!
+              "BUG: Invalid DB pool mode `~a'" (get-conf '(db pool))))))))
 
 (define (%db-conn-stat conn ret)
   (ret (dbi-get_status (<connection>-conn conn))))
@@ -280,7 +333,8 @@
              (catch #t
                (lambda () (dbi-close (<connection>-conn conn)))
                (lambda args #t))
-             (queue-in! (*conn-pool*) (create-new-DB-conn)))))))
+             (queue-in! (*conn-pool*) (create-new-DB-conn))))
+       (wake-up-conn-waiters!))))
    (else
     (error recycle-DB-conn "Seems the *conn-pool* wasn't well initialized!"
            (*conn-pool*)))))
