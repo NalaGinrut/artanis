@@ -39,6 +39,12 @@
   * Upgade webapp to current Artanis and keep existing configs.\n")
   (display announce-foot))
 
+(define (current-year)
+  "Return the current year, or the year of SOURCE_DATE_EPOCH when that is set."
+  (let ((epoch (getenv "SOURCE_DATE_EPOCH")))
+    (strftime "%Y" (localtime (or (and epoch (string->number epoch))
+                                 (current-time))))))
+
 (define (conf-header)
   (format #f
           "##  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
@@ -66,7 +72,7 @@
 ## to understand these items.
 
 "
-          (strftime "%Y" (localtime (current-time)))))
+          (current-year)))
 
 (define conf-footer "\n\n## End Of Artanis conf.\n")
 
